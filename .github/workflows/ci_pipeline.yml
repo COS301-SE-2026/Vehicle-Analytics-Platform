@@ -31,7 +31,7 @@ jobs:
         run: npm run lint
 
       - name: Run tests with coverage
-        run: npx jest --covarage
+        run: npx jest --coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

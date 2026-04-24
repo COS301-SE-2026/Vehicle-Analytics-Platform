@@ -1,0 +1,7 @@
+{
+  "name": "vehicle-analytics-api",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "echo 'No tests configured yet' && exit 0"
+  }
+}

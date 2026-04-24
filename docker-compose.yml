@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   postgres:
     image: postgres:15
@@ -9,8 +10,7 @@ services:
       POSTGRES_DB: vehicle_analytics
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+
   timescaledb:
     image: timescale/timescaledb:latest-pg15
     container_name: vehicle-analytics-timescaledb
@@ -20,8 +20,3 @@ services:
       POSTGRES_DB: vehicle_analytics
     ports:
       - "5433:5432"
-    volumes:
-      - timescaledb_data:/var/lib/postgresql/data
-volumes:
-  postgres_data:
-  timescaledb_data:

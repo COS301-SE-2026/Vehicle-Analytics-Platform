@@ -1,7 +1,0 @@
-{
-  "name": "vehicle-analytics-dashboard",
-  "version": "1.0.0",
-  "scripts": {
-    "test": "echo 'No tests configured yet' && exit 0"
-  }
-}

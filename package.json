@@ -1,0 +1,24 @@
+{
+  "name": "vehicle-analytics-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "yarn workspace api dev",
+    "dev:dashboard": "yarn workspace web-dashboard dev",
+    "dev:processor": "yarn workspace stream-processor dev",
+    "build:api": "yarn workspace api build",
+    "build:dashboard": "yarn workspace web-dashboard build",
+    "test": "yarn workspaces run test",
+    "lint": "yarn workspaces run lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

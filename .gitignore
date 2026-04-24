@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+coverage/
+.nyc_output/
+.cdk/
+cdk.out/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+
+# Testing
+test-results/
+playwright-report/
+coverage/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# AWS
+cdk.context.json
+*.pem
+*.key
+
+# Docker
+docker-compose.override.yml
+
+# TypeScript
+*.tsbuildinfo
+
+# Application specific
+apps/*/dist/
+apps/*/build/
+apps/*/.next/
+packages/*/dist/

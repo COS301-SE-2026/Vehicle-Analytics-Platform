@@ -108,5 +108,16 @@ git push origin feature/your-feature-name
 # 7. Release: Create PR from develop to main
 ```
 
+## Team Members
+
+| Name | Role | LinkedIn |
+|------|------|----------|
+| Name | Cloud/DevOps/DB Lead | [LinkedIn](link) |
+| Name | Frontend/UX Lead | [LinkedIn](link) |
+| Name | Data Viz/Geospatial Lead | [LinkedIn](link) |
+| Name | Backend/API Lead | [LinkedIn](link) |
+| Name | Data/Real-Time Lead | [LinkedIn](link) |
+
+
 
 

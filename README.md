@@ -102,7 +102,4 @@ git push origin feature/your-feature
 ---
 
 Built for COS 301 Capstone Project 2026 | Fuse IT
-
 ---
-
-Built for COS 301 Capstone Project 2026 | Fuse IT

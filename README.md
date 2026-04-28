@@ -1,9 +1,11 @@
 # Vehicle Analytics Platform - Fleet Telemetry & Driver Safety
 
-[![CI Pipeline](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/actions/workflows/ci.yml)
-[![Coverage](https://coveralls.io/repos/github/COS301-SE-2026/Vehicle-Analytics-Platform/badge.svg)](https://coveralls.io/github/COS301-SE-2026/Vehicle-Analytics-Platform)
+[![CI Pipeline](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/actions/workflows/ci_pipeline.yml)
+[![Coverage](https://codecov.io/gh/COS301-SE-2026/Vehicle-Analytics-Platform/badge.svg)](https://codecov.io/gh/COS301-SE-2026/Vehicle-Analytics-Platform)
 [![Open Issues](https://img.shields.io/github/issues/COS301-SE-2026/Vehicle-Analytics-Platform)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/issues)
 [![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2026/Vehicle-Analytics-Platform)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/issues?q=is%3Aissue+is%3Aclosed)
+[![Node](https://img.shields.io/badge/node-v20-green)](https://nodejs.org)
+[![Uptime](https://img.shields.io/uptimerobot/status/your-monitor-id)](https://uptimerobot.com)
 
 ---
 

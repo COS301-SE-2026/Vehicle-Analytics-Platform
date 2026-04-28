@@ -5,7 +5,7 @@
 [![Open Issues](https://img.shields.io/github/issues/COS301-SE-2026/Vehicle-Analytics-Platform)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/issues)
 [![Closed Issues](https://img.shields.io/github/issues-closed/COS301-SE-2026/Vehicle-Analytics-Platform)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/issues?q=is%3Aissue+is%3Aclosed)
 [![Node](https://img.shields.io/badge/node-v20-green)](https://nodejs.org)
-[![Uptime](https://img.shields.io/uptimerobot/status/your-monitor-id)](https://uptimerobot.com)
+[![Uptime](https://img.shields.io/uptimerobot/status/m802945452)](https://stats.uptimerobot.com/3qOgv6HCr1)
 
 ---
 

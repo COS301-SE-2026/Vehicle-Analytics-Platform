@@ -529,3 +529,35 @@
 * **No Data:** If no telemetry data is available yet, the dashboard displays zeros with a "waiting for data" message.
 
 **Post-conditions:** The fleet manager has a clear and current overview of their entire fleet's performance.
+
+## 3. Functional Requirements (FR)
+
+### UC04 — Live Vehicle Mapping
+
+- **FR-4.1:** The system shall display the current GPS position of all active vehicles on an interactive map.
+- **FR-4.2:** The system shall update vehicle positions on the map within 10 seconds of receiving a telemetry event.
+- **FR-4.3:** The system shall display a minimum of 50 concurrently tracked vehicles without performance degradation.
+- **FR-4.4:** The system shall visually distinguish between active and inactive vehicles on the map.
+- **FR-4.5:** The system shall allow the fleet manager to click a vehicle marker to view its current speed and status.
+- **FR-4.6:** The system shall centre the map on the fleet manager's monitored fleet by default on login.
+
+### UC05 — Driver Safety Score
+
+- **FR-5.1:** The system shall calculate a driver safety score between 0 and 100 for each vehicle.
+- **FR-5.2:** The system shall detect a speeding event when a vehicle exceeds the defined speed threshold.
+- **FR-5.3:** The system shall detect a harsh braking event when deceleration exceeds the defined threshold.
+- **FR-5.4:** The system shall detect a rapid acceleration event when acceleration exceeds the defined threshold.
+- **FR-5.5:** The system shall deduct points from the safety score for each detected unsafe driving event.
+- **FR-5.6:** The system shall classify each safety score as Good, Fair, or Poor based on defined thresholds.
+- **FR-5.7:** The system shall store each detected unsafe driving event with a timestamp and vehicle ID.
+- **FR-5.8:** The system shall recalculate the safety score in real time as new telemetry events are received.
+
+### UC06 — Fleet Dashboard and Analytics
+
+- **FR-6.1:** The system shall display a KPI summary showing total active vehicles, average fleet speed, and total unsafe events.
+- **FR-6.2:** The system shall display a time-series chart of vehicle speed over a selectable time range.
+- **FR-6.3:** The system shall display a ranked list of drivers ordered by safety score from lowest to highest.
+- **FR-6.4:** The system shall display a breakdown of unsafe driving events by type — speeding, harsh braking, rapid acceleration.
+- **FR-6.5:** The system shall allow the fleet manager to filter dashboard data by individual vehicle or entire fleet.
+- **FR-6.6:** The system shall display the timestamp of the last telemetry update for each vehicle.
+- **FR-6.7:** The system shall refresh dashboard data automatically without requiring a manual page reload.

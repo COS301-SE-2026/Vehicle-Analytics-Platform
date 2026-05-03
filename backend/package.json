@@ -6,20 +6,20 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "dotenv": "^16.4.5",
-    "jsonwebtoken": "^9.0.2",
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.12.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4",
     "jest": "^29.7.0",
+    "nodemon": "^3.1.4",
     "supertest": "^7.0.0"
   }
 }

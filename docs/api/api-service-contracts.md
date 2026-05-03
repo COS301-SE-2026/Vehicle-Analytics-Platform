@@ -35,7 +35,7 @@
 
 `POST` `/auth/register`
 
-**Auth Required:** No nbsp;| **Role:** Public
+**Auth Required:** No | **Role:** Public
 
 Creates a new user account with **Viewer** role by default.
 
@@ -71,7 +71,7 @@ Creates a new user account with **Viewer** role by default.
 
 `POST` `/auth/login`
 
-**Auth Required:** No nbsp;| **Role:** Public
+**Auth Required:** No | **Role:** Public
 
 Authenticates a user and returns a JWT token with role.
 
@@ -100,7 +100,7 @@ Authenticates a user and returns a JWT token with role.
 
 `POST` `/auth/logout`
 
-**Auth Required:** Yes nbsp;| **Role:** Any authenticated user
+**Auth Required:** Yes | **Role:** Any authenticated user
 
 Invalidates the user session.
 
@@ -125,7 +125,7 @@ Authorization: Bearer <jwt_token>
 
 `GET` `/admin/users`
 
-**Auth Required:** Yes nbsp;| **Role Required:** `admin`
+**Auth Required:** Yes | **Role Required:** `admin`
 
 Retrieves a list of all registered users.
 
@@ -172,7 +172,7 @@ Authorization: Bearer <jwt_token>
 
 `PATCH` `/admin/users/{userId}/role`
 
-**Auth Required:** Yes nbsp;| **Role Required:** `admin`
+**Auth Required:** Yes | **Role Required:** `admin`
 
 Updates **only** the role of a user (partial update).
 
@@ -219,7 +219,7 @@ Authorization: Bearer <jwt_token>
 
 `DELETE` `/admin/users/{userId}`
 
-**Auth Required:** Yes nbsp;| **Role Required:** `admin`
+**Auth Required:** Yes | **Role Required:** `admin`
 
 Deactivates a user account.
 
@@ -252,7 +252,7 @@ Authorization: Bearer <jwt_token>
 
 `GET` `/vehicles/locations`
 
-**Auth Required:** Yes nbsp;| **Role Required:** `fleet_manager` or `viewer`
+**Auth Required:** Yes | **Role Required:** `fleet_manager` or `viewer`
 
 Retrieves current positions of all active vehicles for the map. Updates every **5–10 seconds**.
 
@@ -299,7 +299,7 @@ Authorization: Bearer <jwt_token>
 
 `GET` `/vehicles/{vehicleId}`
 
-**Auth Required:** Yes nbsp;| **Role Required:** `fleet_manager` or `viewer`
+**Auth Required:** Yes | **Role Required:** `fleet_manager` or `viewer`
 
 Retrieves detailed information for a specific vehicle.
 
@@ -339,7 +339,7 @@ Authorization: Bearer <jwt_token>
 
 `GET` `/dashboard/kpis`
 
-**Auth Required:** Yes nbsp;| **Role Required:** `fleet_manager` or `viewer`
+**Auth Required:** Yes | **Role Required:** `fleet_manager` or `viewer`
 
 Retrieves key performance indicators for the dashboard.
 
@@ -374,7 +374,7 @@ Authorization: Bearer <jwt_token>
 
 `GET` `/dashboard/alerts`
 
-**Auth Required:** Yes nbsp;| **Role Required:** `fleet_manager` or `viewer`
+**Auth Required:** Yes | **Role Required:** `fleet_manager` or `viewer`
 
 Retrieves current active alerts for the fleet.
 

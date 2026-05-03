@@ -1,6 +1,9 @@
 # Software Requirements Specification (SRS)
 ## Vehicle Analytics Platform
 
+## Introduction 
+The business need for this application stems from the fact that modern fleet management requires far more than simple location tracking. While raw GPS and speed data provide a basic map, fleet operators need a system that translates raw, continuous vehicle data—like harsh braking and speeding—into actionable insights so they can actively improve driver safety, optimize their operations, and cut costs. Currently, without this level of analysis, unsafe behaviors often go undetected, leaving managers in a reactive cycle where they only address issues after an incident has already occurred. This platform turns that underutilized telemetry into a proactive tool for smarter, faster decision-making. 
+
 ## 1. User Stories (US)
 
 ### US01: User Registration

@@ -7,18 +7,6 @@ on:
     branches: [develop]
 
 jobs:
-  frontend-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-      - name: Run frontend tests
-        run: cd frontend && npm test
-
   backend-tests:
     runs-on: ubuntu-latest
     steps:
@@ -30,6 +18,18 @@ jobs:
         run: cd backend && npm ci
       - name: Run backend tests
         run: cd backend && npm test
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+      - name: Run frontend tests
+        run: cd frontend && npm test
 
   lint:
     runs-on: ubuntu-latest

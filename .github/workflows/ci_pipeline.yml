@@ -76,7 +76,7 @@ jobs:
     continue-on-error: true
     services:
       postgres:
-        image: timescale/timescaledb:latest-pg15
+        image: timescale/timescaledb:latest-pg16
         env:
           POSTGRES_DB: fleet_analytics_test
           POSTGRES_USER: admin

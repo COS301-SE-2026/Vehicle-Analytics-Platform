@@ -9,7 +9,7 @@ on:
 
 jobs:
   backend_tests:
-    if: false  # Disable backend tests during setup
+    #if: false  # Disable backend tests during setup
     runs-on: ubuntu-latest
     continue-on-error: true
     defaults:
@@ -40,7 +40,7 @@ jobs:
           flags: backend
 
   frontend_tests:
-    if: false  # Disable frontend tests during setup
+    #if: false  # Disable frontend tests during setup
     runs-on: ubuntu-latest
     continue-on-error: true
     defaults:

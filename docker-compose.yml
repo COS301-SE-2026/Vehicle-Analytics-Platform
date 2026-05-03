@@ -7,9 +7,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: fleet_analytics
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: ${DB_NAME:-fleet_analytics}
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-localdev}
     volumes:
       - ./database/migrations:/docker-entrypoint-initdb.d
       - fleet_db_data:/var/lib/postgresql/data

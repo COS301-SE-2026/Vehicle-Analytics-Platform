@@ -1,0 +1,17 @@
+{
+  "name": "vehicle-analytics-pipeline",
+  "version": "1.0.0",
+  "description": "Data pipeline for vehicle telemetry processing",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1691.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

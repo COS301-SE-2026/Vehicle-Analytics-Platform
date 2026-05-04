@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "eslint": "^10.3.0",
     "jest": "^30.3.0",
     "pg": "^8.20.0"
   }

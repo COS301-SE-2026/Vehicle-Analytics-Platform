@@ -35,4 +35,4 @@ COPY . .
 EXPOSE 4000
 
 # Run the application.
-CMD docker
+CMD ["node", "index.js"]

@@ -1,5 +1,4 @@
 services:
-  # The Timescale Database
   db:
     image: timescale/timescaledb:latest-pg16
     container_name: fleet_db
@@ -18,7 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # The Node.js Backend API
   backend:
     build:
       context: ./backend
@@ -32,11 +30,13 @@ services:
       - DB_NAME=fleet_analytics
       - DB_USER=admin
       - DB_PASSWORD=${DB_PASSWORD:-localdev}
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
     depends_on:
       db:
         condition: service_healthy
 
-  # The React/Vite Frontend App
   frontend:
     build:
       context: ./frontend
@@ -44,8 +44,10 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - NODE_ENV=production
       - VITE_API_URL=http://localhost:4000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - backend
 

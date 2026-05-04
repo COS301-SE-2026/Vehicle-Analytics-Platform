@@ -71,7 +71,7 @@ jobs:
           flags: frontend
 
   database_tests:
-    if: false  # Disable database tests during setup
+    #if: false  # Disable database tests during setup
     runs-on: ubuntu-latest
     continue-on-error: true
     services:

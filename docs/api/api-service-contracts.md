@@ -512,3 +512,6 @@ curl -X DELETE "http://localhost:5000/api/admin/users/5" \
 ---
 
 _Vehicle Analytics Platform - API Reference (Demo 1)_
+
+---
+*Updated: May 2026*

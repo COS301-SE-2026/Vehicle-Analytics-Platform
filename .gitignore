@@ -6,3 +6,10 @@ build/
 coverage/
 .DS_Store
 *.log
+npm-debug.log*
+.vscode/
+.idea/
+
+# Local Environment Variables
+.env
+.env.local

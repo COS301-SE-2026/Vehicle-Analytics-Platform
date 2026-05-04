@@ -3,9 +3,9 @@ name: CI Pipeline
 on:
   workflow_dispatch:  # manual trigger only for now
   push:
-    branches: [main, development]
+    branches: [main, develop]
   pull_request:
-    branches: [main, development]
+    branches: [main, develop]
 
 jobs:
   backend_tests:

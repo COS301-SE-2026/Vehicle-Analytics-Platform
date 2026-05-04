@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # The Timescale Database
   db:
     image: timescale/timescaledb:latest-pg16
     container_name: fleet_db
@@ -13,6 +12,42 @@ services:
     volumes:
       - ./database/migrations:/docker-entrypoint-initdb.d
       - fleet_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d fleet_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # The Node.js Backend API
+  backend:
+    build:
+      context: ./backend
+    container_name: fleet_backend
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=fleet_analytics
+      - DB_USER=admin
+      - DB_PASSWORD=localdev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # The React/Vite Frontend App
+  frontend:
+    build:
+      context: ./frontend
+    container_name: fleet_frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=http://localhost:4000
+    depends_on:
+      - backend
 
 volumes:
   fleet_db_data:

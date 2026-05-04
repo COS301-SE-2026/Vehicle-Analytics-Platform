@@ -5,7 +5,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-COPY . .
+COPY package*.json ./
+COPY index.html ./
+COPY vite.config.* ./
+COPY src ./src
 
 EXPOSE 5173
 

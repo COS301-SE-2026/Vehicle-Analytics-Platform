@@ -21,6 +21,15 @@ CREATE TABLE IF NOT EXISTS vehicle_events (
     UNIQUE (time, vehicle_id, event_category)
 );
 
+CREATE TABLE IF NOT EXISTS telemetry_errors (
+    id SERIAL PRIMARY KEY,
+    time TIMESTAMPTZ DEFAULT NOW(),
+    vehicle_id VARCHAR(50),
+    error_message TEXT,
+    raw_payload TEXT,
+    synced_to_cloudwatch BOOLEAN DEFAULT FALSE
+);
+
 -- Convert both to TimescaleDB hypertables
 SELECT create_hypertable('clean_telemetry', by_range('time'));
 SELECT create_hypertable('vehicle_events', by_range('time'));
@@ -71,7 +80,8 @@ BEGIN
 
     RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-    RAISE WARNING 'Failed to parse telemetry for vehicle %: %', NEW.vehicle_id, SQLERRM;
+    INSERT INTO telemetry_errors (vehicle_id, error_message, raw_payload)
+    VALUES (NEW.vehicle_id, SQLERRM, row_to_json(NEW)::TEXT);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

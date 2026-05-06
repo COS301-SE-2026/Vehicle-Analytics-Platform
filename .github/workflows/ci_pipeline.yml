@@ -1,7 +1,7 @@
 name: CI Pipeline
 
 on:
-  workflow_dispatch:  # manual trigger only for now
+  #workflow_dispatch:  # manual trigger only for now
   push:
     branches: [main, develop]
   pull_request:
@@ -9,7 +9,6 @@ on:
 
 jobs:
   backend_tests:
-    #if: false  # Disable backend tests during setup
     runs-on: ubuntu-latest
     continue-on-error: true
     defaults:
@@ -40,7 +39,6 @@ jobs:
           flags: backend
 
   frontend_tests:
-    #if: false  # Disable frontend tests during setup
     runs-on: ubuntu-latest
     continue-on-error: true
     defaults:
@@ -71,7 +69,6 @@ jobs:
           flags: frontend
 
   database_tests:
-    #if: false  # Disable database tests during setup
     runs-on: ubuntu-latest
     continue-on-error: true
     services:
@@ -103,6 +100,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # We must explicitly run the sql migrations because GitHub Services 
+      - name: Run Database Migrations
+        run: |
+          sudo apt-get install postgresql-client -y
+          for file in $(ls migrations/*.sql | sort -V); do
+            echo "Running migration: $file"
+            PGPASSWORD=testpassword psql -h localhost -U admin -d fleet_analytics_test -f "$file"
+          done
+        
       - name: Run migration tests
         run: npm test
         env:

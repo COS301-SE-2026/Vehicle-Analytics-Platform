@@ -45,7 +45,7 @@ BEGIN
     -- 0. Auto-register the vehicle if it's new
     INSERT INTO vehicles (vehicle_id, device_id)
     VALUES (NEW.vehicle_id, NEW.device_id)
-    ON CONFLICT (vehicle_id) DO NOTHING;
+    ON CONFLICT DO NOTHING;
 
     -- 1. Safely parse numbers
     IF NEW.lat_lng IS NOT NULL AND position(',' in NEW.lat_lng) > 0 THEN

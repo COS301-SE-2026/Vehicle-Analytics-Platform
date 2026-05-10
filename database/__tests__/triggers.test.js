@@ -1,35 +1,19 @@
-const { Client } = require('pg');
+const { createDbClient, resetTelemetryData } = require('../testHelpers');
 
 describe('Database Triggers Integration', () => {
   let client;
 
-  // For local docker testing, use 'admin' user with password from POSTGRES_PASSWORD env var
-  const dbConfig = {
-    host: 'localhost',
-    port: 5432,
-    database: 'fleet_analytics',
-    user: 'admin',
-    password: process.env.POSTGRES_PASSWORD || 'localdev',
-  };
-
   beforeAll(async () => {
-    client = new Client(dbConfig);
-    await client.connect();
-    
-    // Clean up test data completely before starting
-    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM telemetry_errors WHERE vehicle_id LIKE 'TEST-%'");
+    client = await createDbClient();
+    await resetTelemetryData(client, 'TEST-');
   });
 
   afterAll(async () => {
     // Cleanup generated data
-    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM telemetry_errors WHERE vehicle_id LIKE 'TEST-%'");
-    await client.end();
+    if (client) {
+      await resetTelemetryData(client, 'TEST-');
+      await client.end();
+    }
   });
 
   test('should parse and insert standard avl records into clean_telemetry', async () => {

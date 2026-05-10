@@ -1,16 +1,16 @@
 CREATE TABLE IF NOT EXISTS raw_telemetry (
     time TIMESTAMPTZ NOT NULL,
-    vehicle_id VARCHAR(50) NOT NULL,
-    measurement VARCHAR(50),
-    device_id VARCHAR(50),
-    event VARCHAR(50),
-    lat_lng VARCHAR(50),
-    spd VARCHAR(20),
-    total_odometer VARCHAR(50),
-    ignition VARCHAR(50),
-    movement VARCHAR(50),
-    green_driving_type VARCHAR(50),
-    crash_detection VARCHAR(50),
+    vehicle_id TEXT NOT NULL,
+    measurement TEXT,
+    device_id TEXT,
+    event TEXT,
+    lat_lng TEXT,
+    spd TEXT,
+    total_odometer TEXT,
+    ignition TEXT,
+    movement TEXT,
+    green_driving_type TEXT,
+    crash_detection TEXT,
     UNIQUE (time, vehicle_id)
 );
 

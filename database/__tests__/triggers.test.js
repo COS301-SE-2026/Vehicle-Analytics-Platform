@@ -3,25 +3,30 @@ const { Client } = require('pg');
 describe('Database Triggers Integration', () => {
   let client;
 
+  // For local docker testing, use 'admin' user with password from POSTGRES_PASSWORD env var
   const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'fleet_analytics',
-    user: process.env.DB_USER || 'admin',
-    password: process.env.DB_PASSWORD || 'localdev',
+    host: 'localhost',
+    port: 5432,
+    database: 'fleet_analytics',
+    user: 'admin',
+    password: process.env.POSTGRES_PASSWORD || 'localdev',
   };
 
   beforeAll(async () => {
     client = new Client(dbConfig);
     await client.connect();
     
-    // Clean up test data if any test failed previously
+    // Clean up test data completely before starting
+    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'TEST-%'");
+    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'TEST-%'");
     await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'TEST-%'");
     await client.query("DELETE FROM telemetry_errors WHERE vehicle_id LIKE 'TEST-%'");
   });
 
   afterAll(async () => {
     // Cleanup generated data
+    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'TEST-%'");
+    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'TEST-%'");
     await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'TEST-%'");
     await client.query("DELETE FROM telemetry_errors WHERE vehicle_id LIKE 'TEST-%'");
     await client.end();
@@ -37,6 +42,9 @@ describe('Database Triggers Integration', () => {
       VALUES 
         ($1, 'TEST-001', 'DEV-001', 'avl', '', '-25.837,28.172', '40', '92537167')
     `, [time]);
+
+    // Give the trigger time to fire (even though it should be immediate)
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // 2. Assert clean_telemetry was populated correctly via trigger
     const cleanRes = await client.query("SELECT * FROM clean_telemetry WHERE vehicle_id = 'TEST-001'");
@@ -62,6 +70,9 @@ describe('Database Triggers Integration', () => {
         ($1, 'TEST-002', 'DEV-002', 'avl_event', 'green_driving_type', '-25.829,28.169', '32', '92536129', 'harsh_acceleration')
     `, [time]);
 
+    // Give the trigger time to fire
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // 2. Assert it's in the clean route breadcrumb table
     const cleanRes = await client.query("SELECT * FROM clean_telemetry WHERE vehicle_id = 'TEST-002'");
     expect(cleanRes.rows.length).toBe(1);
@@ -84,6 +95,9 @@ describe('Database Triggers Integration', () => {
       VALUES 
         ($1, 'TEST-003', 'DEV-003', 'avl', '', '-25.829,28.169', 'invalid_speed', '123')
     `, [time]);
+
+    // Give the trigger time to fire
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // 2. Assert it triggered the exception block and logged it in telemetry_errors
     const errorRes = await client.query("SELECT * FROM telemetry_errors WHERE vehicle_id = 'TEST-003'");

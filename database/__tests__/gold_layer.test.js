@@ -4,14 +4,16 @@ describe('Gold Layer and Querying Integration', () => {
   let client;
 
   beforeAll(async () => {
-    client = await createDbClient('fleet_analytics');
+    client = await createDbClient();
     await resetTelemetryData(client, 'GOLD_TEST-');
   });
 
   afterAll(async () => {
     // Cleanup generated data
-    await resetTelemetryData(client, 'GOLD_TEST-');
-    await client.end();
+    if (client) {
+      await resetTelemetryData(client, 'GOLD_TEST-');
+      await client.end();
+    }
   });
 
   test('should correctly aggregate gold layer materialized views', async () => {

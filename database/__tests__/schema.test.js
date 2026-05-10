@@ -1,17 +1,10 @@
 const { Client } = require('pg');
+const { getDbConfig } = require('../testDbConfig');
 
 describe('Database Integrations', () => {
   let client;
 
-  // Use environment variables (which match your CI pipeline and local docker instances)
-  // For local docker testing, use 'admin' user with the password from .env or 'localdev' fallback
-  const dbConfig = {
-    host: 'localhost',
-    port: 5432,
-    database: 'fleet_analytics',
-    user: 'admin',
-    password: process.env.POSTGRES_PASSWORD || 'localdev',
-  };
+  const dbConfig = getDbConfig();
 
   beforeAll(async () => {
     client = new Client(dbConfig);

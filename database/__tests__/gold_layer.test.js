@@ -1,16 +1,10 @@
 const { Client } = require('pg');
+const { getDbConfig } = require('../testDbConfig');
 
 describe('Gold Layer and Querying Integration', () => {
   let client;
 
-  // For local docker testing, use 'admin' user with password from POSTGRES_PASSWORD env var
-  const dbConfig = {
-    host: 'localhost',
-    port: 5432,
-    database: 'fleet_analytics',
-    user: 'admin',
-    password: process.env.POSTGRES_PASSWORD || 'localdev',
-  };
+  const dbConfig = getDbConfig();
 
   beforeAll(async () => {
     client = new Client(dbConfig);

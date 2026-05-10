@@ -1,26 +1,16 @@
-const { Client } = require('pg');
-const { getDbConfig } = require('../testDbConfig');
+const { createDbClient, resetTelemetryData } = require('../testHelpers');
 
 describe('Gold Layer and Querying Integration', () => {
   let client;
 
-  const dbConfig = getDbConfig();
-
   beforeAll(async () => {
-    client = new Client(dbConfig);
-    await client.connect();
-    
-    // Clean up test data completely before starting
-    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'GOLD_TEST-%'");
-    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'GOLD_TEST-%'");
-    await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'GOLD_TEST-%'");
+    client = await createDbClient('fleet_analytics');
+    await resetTelemetryData(client, 'GOLD_TEST-');
   });
 
   afterAll(async () => {
     // Cleanup generated data
-    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'GOLD_TEST-%'");
-    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'GOLD_TEST-%'");
-    await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'GOLD_TEST-%'");
+    await resetTelemetryData(client, 'GOLD_TEST-');
     await client.end();
   });
 

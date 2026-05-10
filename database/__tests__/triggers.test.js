@@ -1,28 +1,16 @@
-const { Client } = require('pg');
-const { getDbConfig } = require('../testDbConfig');
+const { createDbClient, resetTelemetryData } = require('../testHelpers');
 
 describe('Database Triggers Integration', () => {
   let client;
 
-  const dbConfig = getDbConfig();
-
   beforeAll(async () => {
-    client = new Client(dbConfig);
-    await client.connect();
-    
-    // Clean up test data completely before starting
-    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM telemetry_errors WHERE vehicle_id LIKE 'TEST-%'");
+    client = await createDbClient('fleet_analytics');
+    await resetTelemetryData(client, 'TEST-');
   });
 
   afterAll(async () => {
     // Cleanup generated data
-    await client.query("DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM vehicle_events WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM raw_telemetry WHERE vehicle_id LIKE 'TEST-%'");
-    await client.query("DELETE FROM telemetry_errors WHERE vehicle_id LIKE 'TEST-%'");
+    await resetTelemetryData(client, 'TEST-');
     await client.end();
   });
 

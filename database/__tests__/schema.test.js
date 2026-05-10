@@ -4,12 +4,13 @@ describe('Database Integrations', () => {
   let client;
 
   // Use environment variables (which match your CI pipeline and local docker instances)
+  // For local docker testing, use 'admin' user with the password from .env or 'localdev' fallback
   const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'fleet_analytics',
-    user: process.env.DB_USER || 'admin',
-    password: process.env.DB_PASSWORD || 'localdev',
+    host: 'localhost',
+    port: 5432,
+    database: 'fleet_analytics',
+    user: 'admin',
+    password: process.env.POSTGRES_PASSWORD || 'localdev',
   };
 
   beforeAll(async () => {

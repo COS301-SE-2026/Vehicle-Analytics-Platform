@@ -25,12 +25,12 @@ function readEnvFile(envPath) {
 
 const rootEnv = readEnvFile(path.resolve(__dirname, '../.env'));
 
-function getDbConfig(databaseName = 'fleet_analytics') {
+function getDbConfig(databaseName = process.env.DB_NAME || rootEnv.DB_NAME || 'fleet_analytics') {
   return {
     host: 'localhost',
     port: 5432,
     database: databaseName,
-    user: 'admin',
+    user: process.env.DB_USER || 'admin',
     password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || rootEnv.DB_PASSWORD || 'localdev',
   };
 }

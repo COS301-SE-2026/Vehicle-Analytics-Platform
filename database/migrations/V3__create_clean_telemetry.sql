@@ -42,6 +42,11 @@ DECLARE
     parsed_lng NUMERIC := NULL;
     parsed_speed INTEGER := NULL;
 BEGIN
+    -- 0. Auto-register the vehicle if it's new
+    INSERT INTO vehicles (vehicle_id, device_id)
+    VALUES (NEW.vehicle_id, NEW.device_id)
+    ON CONFLICT (vehicle_id) DO NOTHING;
+
     -- 1. Safely parse numbers
     IF NEW.lat_lng IS NOT NULL AND position(',' in NEW.lat_lng) > 0 THEN
         parsed_lat := CAST(split_part(NEW.lat_lng, ',', 1) AS NUMERIC);

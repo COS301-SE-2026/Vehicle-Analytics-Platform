@@ -10,7 +10,7 @@ on:
 jobs:
   backend_tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     defaults:
       run:
         working-directory: ./backend
@@ -40,7 +40,7 @@ jobs:
 
   frontend_tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     defaults:
       run:
         working-directory: ./frontend
@@ -70,7 +70,7 @@ jobs:
 
   database_tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     services:
       postgres:
         image: timescale/timescaledb:latest-pg16
@@ -117,3 +117,11 @@ jobs:
           DB_NAME: fleet_analytics_test
           DB_USER: admin
           DB_PASSWORD: testpassword
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: database
+          directory: ./database/coverage
+          fail_ci_if_error: false

@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "jest": {
-    "testEnvironment": "jsdom",
+    "testEnvironment": "node",
     "coverageReporters": ["text", "lcov"],
     "coverageDirectory": "coverage"
   },

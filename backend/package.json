@@ -6,6 +6,11 @@
     "test": "jest --coverage",
     "lint": "eslint ."
   },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageReporters": ["text", "lcov"],
+    "coverageDirectory": "coverage"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

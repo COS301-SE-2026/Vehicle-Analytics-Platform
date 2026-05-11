@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --coverage"
+  },
+   "jest": {
+    "testEnvironment": "node",
+    "coverageReporters": ["text", "lcov"],
+    "coverageDirectory": "coverage"
   },
   "keywords": [],
   "author": "",

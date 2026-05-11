@@ -30,13 +30,23 @@ jobs:
         run: npm run lint
 
       - name: Run tests with coverage
-        run: npx jest --coverage
+        run: npx jest --coverage --coverageDirectory=coverage
+
+      - name: Show generated coverage files
+        run: |
+          echo 'Coverage directory listing:'
+          ls -la coverage || true
+          echo '\nFirst 40 lines of lcov.info (if present):'
+          if [ -f coverage/lcov.info ]; then sed -n '1,40p' coverage/lcov.info; else echo 'lcov.info not found'; fi
+        shell: bash
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: backend
+          directory: ./backend/coverage
+          fail_ci_if_error: false
 
   frontend_tests:
     runs-on: ubuntu-latest
@@ -60,13 +70,23 @@ jobs:
         run: npm run lint
 
       - name: Run tests with coverage
-        run: npx jest --coverage
+        run: npx jest --coverage --coverageDirectory=coverage
+
+      - name: Show generated coverage files
+        run: |
+          echo 'Coverage directory listing:'
+          ls -la coverage || true
+          echo '\nFirst 40 lines of lcov.info (if present):'
+          if [ -f coverage/lcov.info ]; then sed -n '1,40p' coverage/lcov.info; else echo 'lcov.info not found'; fi
+        shell: bash
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: frontend
+          directory: ./frontend/coverage
+          fail_ci_if_error: false
 
   database_tests:
     runs-on: ubuntu-latest
@@ -109,8 +129,8 @@ jobs:
             PGPASSWORD=testpassword psql -h localhost -U admin -d fleet_analytics_test -f "$file"
           done
         
-      - name: Run migration tests
-        run: npm test
+      - name: Run migration tests (with coverage)
+        run: npx jest --coverage --coverageDirectory=coverage --runInBand
         env:
           DB_HOST: localhost
           DB_PORT: 5432

@@ -138,14 +138,6 @@ jobs:
           DB_USER: admin
           DB_PASSWORD: testpassword
 
-      - name: Show generated coverage files
-        run: |
-          echo 'Coverage directory listing:'
-          ls -la coverage || true
-          echo '\nFirst 40 lines of lcov.info (if present):'
-          if [ -f coverage/lcov.info ]; then sed -n '1,40p' coverage/lcov.info; else echo 'lcov.info not found'; fi
-        shell: bash
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

@@ -5,10 +5,15 @@
   "scripts": {
     "test": "jest --runInBand --coverage"
   },
-   "jest": {
+  "jest": {
     "testEnvironment": "node",
     "coverageReporters": ["text", "lcov"],
-    "coverageDirectory": "coverage"
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "**/*.js",
+      "!**/__tests__/**",
+      "!node_modules/**"
+    ]
   },
   "keywords": [],
   "author": "",

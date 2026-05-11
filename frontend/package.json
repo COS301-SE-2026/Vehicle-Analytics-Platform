@@ -13,7 +13,12 @@
   "jest": {
     "testEnvironment": "node",
     "coverageReporters": ["text", "lcov"],
-    "coverageDirectory": "coverage"
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!**/__tests__/**",
+      "!node_modules/**"
+    ]
   },
   "dependencies": {
     "react": "^19.2.5",

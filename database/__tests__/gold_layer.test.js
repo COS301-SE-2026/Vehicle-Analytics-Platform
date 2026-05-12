@@ -48,8 +48,25 @@ describe('Gold Layer and Querying Integration', () => {
     `, [time3]);
 
     // 2. Refresh timescaledb continuous aggregates manually for the test
-    await client.query("CALL refresh_continuous_aggregate('vehicle_position_5s', NULL, NULL);");
-    await client.query("CALL refresh_continuous_aggregate('vehicle_events_hourly', NULL, NULL);");
+    // Background policies might kick in automatically causing concurrency locks. We retry if so.
+    async function safeRefresh(viewName) {
+      for (let i = 0; i < 5; i++) {
+        try {
+          await client.query(`CALL refresh_continuous_aggregate('${viewName}', NULL, NULL);`);
+          return;
+        } catch (error) {
+          if (error.message && error.message.includes('concurrent refresh')) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            throw error;
+          }
+        }
+      }
+      throw new Error(`Failed to refresh ${viewName} after 5 retries due to concurrent refreshes.`);
+    }
+
+    await safeRefresh('vehicle_position_5s');
+    await safeRefresh('vehicle_events_hourly');
 
     // 3. Assert vehicle_position_5s
     const positionRes = await client.query("SELECT * FROM vehicle_position_5s WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");

@@ -46,11 +46,9 @@ async function register(req, res) {
 
     return success(res, { message: 'User registered successfully', userSub: cognitoResponse.UserSub }, 201);
   } catch (err) {
-    if (err.name === 'UsernameExistsException') {
-      return error(res, 'Email already registered', 409);
-    }
+    const errorMessage = err.message || 'Registration failed';
     console.error('Cognito registration error:', err);
-    return error(res, 'Registration failed: ' + err.message, 500);
+    return error(res, 'Registration failed: ' + errorMessage, 500);
   }
 }
 
@@ -82,7 +80,8 @@ async function login(req, res) {
       return error(res, 'User not found', 404);
     }
 
-    if (!userResult.rows[0].is_active) {
+    const user = userResult.rows[0];
+    if (!user.is_active) {
       return error(res, 'Account deactivated', 403);
     }
 
@@ -92,10 +91,10 @@ async function login(req, res) {
       refreshToken: authResponse.AuthenticationResult.RefreshToken,
       expiresIn: authResponse.AuthenticationResult.ExpiresIn,
       user: {
-        id: userResult.rows[0].id,
-        name: userResult.rows[0].name,
-        email: userResult.rows[0].email,
-        role: userResult.rows[0].role,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
       },
     }, 200);
   } catch (err) {
@@ -105,8 +104,9 @@ async function login(req, res) {
     if (err.name === 'UserNotFoundException') {
       return error(res, 'User not found', 404);
     }
+    const errorMessage = err.message || 'Login failed';
     console.error('Cognito login error:', err);
-    return error(res, 'Login failed: ' + err.message, 500);
+    return error(res, 'Login failed: ' + errorMessage, 500);
   }
 }
 

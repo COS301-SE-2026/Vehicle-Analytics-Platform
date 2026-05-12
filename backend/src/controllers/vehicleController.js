@@ -25,8 +25,9 @@ async function getLiveLocations(req, res) {
       vehicles: result.rows,
     }, 200);
   } catch (err) {
+    const errorMessage = err.message || 'Failed to fetch vehicle locations';
     console.error('Get live locations error:', err);
-    return error(res, 'Failed to fetch vehicle locations: ' + err.message, 500);
+    return error(res, 'Failed to fetch vehicle locations: ' + errorMessage, 500);
   }
 }
 
@@ -79,8 +80,9 @@ async function getVehicleById(req, res) {
       recent_events: eventsResult.rows,
     }, 200);
   } catch (err) {
+    const errorMessage = err.message || 'Failed to fetch vehicle details';
     console.error('Get vehicle by ID error:', err);
-    return error(res, 'Failed to fetch vehicle details: ' + err.message, 500);
+    return error(res, 'Failed to fetch vehicle details: ' + errorMessage, 500);
   }
 }
 

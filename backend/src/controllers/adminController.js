@@ -9,8 +9,8 @@ const cognitoClient = new CognitoIdentityProviderClient({
 const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;
 
 async function getAllUsers(req, res) {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const page = Number.parseInt(req.query.page) || 1;
+  const limit = Number.parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
 
   try {
@@ -22,17 +22,19 @@ async function getAllUsers(req, res) {
     `, [limit, offset]);
 
     const countResult = await pool.query('SELECT COUNT(*) FROM users');
+    const total = Number.parseInt(countResult.rows[0].count);
 
     return success(res, {
       users: result.rows,
-      total: parseInt(countResult.rows[0].count),
-      page,
-      limit,
-      total_pages: Math.ceil(parseInt(countResult.rows[0].count) / limit),
+      total: total,
+      page: page,
+      limit: limit,
+      total_pages: Math.ceil(total / limit),
     }, 200);
   } catch (err) {
+    const errorMessage = err.message || 'Failed to fetch users';
     console.error('Get all users error:', err);
-    return error(res, 'Failed to fetch users: ' + err.message, 500);
+    return error(res, 'Failed to fetch users: ' + errorMessage, 500);
   }
 }
 
@@ -44,7 +46,7 @@ async function updateUserRole(req, res) {
     return error(res, 'Invalid role. Must be admin, fleet_manager, or viewer', 400);
   }
 
-  if (req.user.id === parseInt(userId)) {
+  if (req.user.id === Number.parseInt(userId)) {
     return error(res, 'Cannot change your own role', 403);
   }
 
@@ -67,15 +69,16 @@ async function updateUserRole(req, res) {
 
     return success(res, { message: 'User role updated successfully' }, 200);
   } catch (err) {
+    const errorMessage = err.message || 'Failed to update role';
     console.error('Update user role error:', err);
-    return error(res, 'Failed to update role: ' + err.message, 500);
+    return error(res, 'Failed to update role: ' + errorMessage, 500);
   }
 }
 
 async function deactivateUser(req, res) {
   const { userId } = req.params;
 
-  if (req.user.id === parseInt(userId)) {
+  if (req.user.id === Number.parseInt(userId)) {
     return error(res, 'Cannot deactivate your own account', 403);
   }
 
@@ -97,8 +100,9 @@ async function deactivateUser(req, res) {
 
     return success(res, { message: 'User deactivated successfully' }, 200);
   } catch (err) {
+    const errorMessage = err.message || 'Failed to deactivate user';
     console.error('Deactivate user error:', err);
-    return error(res, 'Failed to deactivate user: ' + err.message, 500);
+    return error(res, 'Failed to deactivate user: ' + errorMessage, 500);
   }
 }
 

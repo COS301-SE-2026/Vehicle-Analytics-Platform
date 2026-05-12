@@ -23,19 +23,20 @@ async function getFleetKPIs(req, res) {
     const row = result.rows[0];
 
     return success(res, {
-      total_vehicles: parseInt(row.total_vehicles) || 0,
-      active_vehicles: parseInt(row.active_vehicles) || 0,
-      alerts_today: parseInt(row.alerts_today) || 0,
+      total_vehicles: Number.parseInt(row.total_vehicles) || 0,
+      active_vehicles: Number.parseInt(row.active_vehicles) || 0,
+      alerts_today: Number.parseInt(row.alerts_today) || 0,
       last_updated: new Date().toISOString(),
     }, 200);
   } catch (err) {
+    const errorMessage = err.message || 'Failed to fetch KPIs';
     console.error('Get fleet KPIs error:', err);
-    return error(res, 'Failed to fetch KPIs: ' + err.message, 500);
+    return error(res, 'Failed to fetch KPIs: ' + errorMessage, 500);
   }
 }
 
 async function getActiveAlerts(req, res) {
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = Number.parseInt(req.query.limit) || 50;
 
   try {
     const result = await pool.query(`
@@ -52,16 +53,17 @@ async function getActiveAlerts(req, res) {
       type: alert.type,
       severity: alert.type === 'harsh_braking' ? 'high' : 'medium',
       message: `${alert.vehicle_id}: ${alert.type} at ${alert.speed} km/h`,
-      latitude: parseFloat(alert.latitude),
-      longitude: parseFloat(alert.longitude),
+      latitude: Number.parseFloat(alert.latitude),
+      longitude: Number.parseFloat(alert.longitude),
       speed: alert.speed,
       timestamp: alert.timestamp,
     }));
 
     return success(res, { total: alerts.length, alerts }, 200);
   } catch (err) {
+    const errorMessage = err.message || 'Failed to fetch alerts';
     console.error('Get active alerts error:', err);
-    return error(res, 'Failed to fetch alerts: ' + err.message, 500);
+    return error(res, 'Failed to fetch alerts: ' + errorMessage, 500);
   }
 }
 

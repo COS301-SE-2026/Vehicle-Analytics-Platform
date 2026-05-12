@@ -37,20 +37,20 @@ async function authenticate(req, res, next) {
       return error(res, 'User not found', 401);
     }
 
-    if (!userResult.rows[0].is_active) {
+    const user = userResult.rows[0];
+    if (!user.is_active) {
       return error(res, 'Account deactivated', 403);
     }
 
     req.user = {
-      id: userResult.rows[0].id,
+      id: user.id,
       sub: payload.sub,
       email: payload.email,
-      role: userResult.rows[0].role,
+      role: user.role,
     };
 
     next();
   } catch (err) {
-    console.error('Auth error:', err.message);
     return error(res, 'Invalid or expired token', 401);
   }
 }

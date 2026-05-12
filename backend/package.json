@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "jest --coverage",
+    "test": "jest --coverage --forceExit --detectOpenHandles --maxWorkers=2 --passWithNoTests ",
     "lint": "eslint ."
   },
   "dependencies": {

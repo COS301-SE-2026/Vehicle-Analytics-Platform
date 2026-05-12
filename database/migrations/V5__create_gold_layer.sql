@@ -1,29 +1,38 @@
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
--- Latest position per vehicle
--- Used by: GET /vehicles (map markers)
+-- Continuous aggregate for vehicle positions
+-- Buckets telemetry into 5-second windows
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CREATE MATERIALIZED VIEW vehicle_latest_position AS
-SELECT DISTINCT ON (vehicle_id)
+CREATE MATERIALIZED VIEW vehicle_position_5s
+WITH (timescaledb.continuous) AS
+SELECT
+  time_bucket('5 seconds', time) AS bucket,
   vehicle_id,
   device_id,
-  latitude,
-  longitude,
-  speed,
-  time AS last_seen
+  LAST(latitude, time)  AS latitude,
+  LAST(longitude, time) AS longitude,
+  LAST(speed, time)     AS speed,
+  MAX(time)             AS last_seen
 FROM clean_telemetry
 WHERE latitude IS NOT NULL
   AND longitude IS NOT NULL
-ORDER BY vehicle_id, time DESC;
+GROUP BY bucket, vehicle_id, device_id;
 
-CREATE UNIQUE INDEX ON vehicle_latest_position (vehicle_id);
+-- Refresh policy
+SELECT add_continuous_aggregate_policy(
+  'vehicle_position_5s',
+  start_offset => NULL,
+  end_offset   => INTERVAL '5 seconds',
+  schedule_interval => INTERVAL '5 seconds'
+);
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
--- Harsh driving event counts per vehicle
--- Used by: GET /vehicles/:id (detail panel)
---          GET /alerts (alert list)
+-- Continuous aggregate for harsh driving
+-- Counts events per vehicle per hour
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CREATE MATERIALIZED VIEW vehicle_harsh_driving AS
+CREATE MATERIALIZED VIEW vehicle_events_hourly
+WITH (timescaledb.continuous) AS
 SELECT
+  time_bucket('1 hour', time) AS bucket,
   vehicle_id,
   COUNT(*) FILTER (
     WHERE event_detail = 'harsh_braking'
@@ -39,41 +48,12 @@ SELECT
   ) AS crash_count,
   COUNT(*) AS total_harsh_events
 FROM vehicle_events
-WHERE time > NOW() - INTERVAL '24 hours'
-GROUP BY vehicle_id;
+GROUP BY bucket, vehicle_id;
 
-CREATE UNIQUE INDEX ON vehicle_harsh_driving (vehicle_id);
-
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
--- Fleet KPIs
--- Used by: GET /analytics/kpis
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CREATE MATERIALIZED VIEW fleet_kpis AS
-SELECT
-  COUNT(DISTINCT vlp.vehicle_id) AS total_vehicles,
-  COUNT(DISTINCT vlp.vehicle_id) FILTER (
-    WHERE vlp.last_seen > NOW() - INTERVAL '10 minutes'
-  ) AS active_vehicles,
-  COUNT(DISTINCT vlp.vehicle_id) FILTER (
-    WHERE vlp.last_seen <= NOW() - INTERVAL '10 minutes'
-  ) AS inactive_vehicles,
-  COALESCE(SUM(vhd.total_harsh_events), 0) AS total_harsh_events_today,
-  COALESCE(SUM(vhd.harsh_braking_count), 0) AS total_harsh_braking,
-  COALESCE(SUM(vhd.harsh_acceleration_count), 0) AS total_harsh_acceleration,
-  COALESCE(SUM(vhd.harsh_cornering_count), 0) AS total_harsh_cornering,
-  COALESCE(SUM(vhd.crash_count), 0) AS total_crashes
-FROM vehicle_latest_position vlp
-LEFT JOIN vehicle_harsh_driving vhd
-  ON vlp.vehicle_id = vhd.vehicle_id;
-
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
--- Refresh function — called every 5 seconds
--- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CREATE OR REPLACE FUNCTION refresh_gold_layer()
-RETURNS void AS $$
-BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY vehicle_latest_position;
-  REFRESH MATERIALIZED VIEW CONCURRENTLY vehicle_harsh_driving;
-  REFRESH MATERIALIZED VIEW fleet_kpis;
-END;
-$$ LANGUAGE plpgsql;
+-- Refresh policy
+SELECT add_continuous_aggregate_policy(
+  'vehicle_events_hourly',
+  start_offset => NULL,
+  end_offset   => INTERVAL '1 hour',
+  schedule_interval => INTERVAL '1 hour'
+);

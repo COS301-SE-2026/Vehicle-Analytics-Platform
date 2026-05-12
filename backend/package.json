@@ -10,6 +10,10 @@
     "testEnvironment": "node",
     "coverageReporters": ["text", "lcov"],
     "coverageDirectory": "coverage",
+    "forceCoverageMatch": [
+      "**/__tests__/**/*.js",
+      "**/*.test.js"
+    ],
     "collectCoverageFrom": [
       "src/**/*.js",
       "!**/__tests__/**",

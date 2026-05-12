@@ -19,7 +19,7 @@ async function register(req, res) {
     return error(res, 'Password must be at least 8 characters', 400);
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return error(res, 'Invalid email format', 400);
   }
@@ -46,7 +46,7 @@ async function register(req, res) {
 
     return success(res, { message: 'User registered successfully', userSub: cognitoResponse.UserSub }, 201);
   } catch (err) {
-    const errorMessage = err.message || 'Registration failed';
+    const errorMessage = (err && err.message) ? err.message : 'Registration failed';
     console.error('Cognito registration error:', err);
     return error(res, 'Registration failed: ' + errorMessage, 500);
   }
@@ -98,13 +98,13 @@ async function login(req, res) {
       },
     }, 200);
   } catch (err) {
+    const errorMessage = (err && err.message) ? err.message : 'Login failed';
     if (err.name === 'NotAuthorizedException') {
       return error(res, 'Invalid email or password', 401);
     }
     if (err.name === 'UserNotFoundException') {
       return error(res, 'User not found', 404);
     }
-    const errorMessage = err.message || 'Login failed';
     console.error('Cognito login error:', err);
     return error(res, 'Login failed: ' + errorMessage, 500);
   }
@@ -112,7 +112,11 @@ async function login(req, res) {
 
 async function logout(req, res) {
   const authHeader = req.headers.authorization;
-  const token = authHeader.split(' ')[1];
+  const token = authHeader ? authHeader.split(' ')[1] : null;
+
+  if (!token) {
+    return success(res, { message: 'Logged out successfully' }, 200);
+  }
 
   try {
     const logoutCommand = new GlobalSignOutCommand({ AccessToken: token });

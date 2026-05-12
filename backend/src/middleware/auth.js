@@ -33,7 +33,7 @@ async function authenticate(req, res, next) {
       [payload.sub]
     );
 
-    if (userResult.rows.length === 0) {
+    if (!userResult || !userResult.rows || userResult.rows.length === 0) {
       return error(res, 'User not found', 401);
     }
 
@@ -51,6 +51,8 @@ async function authenticate(req, res, next) {
 
     next();
   } catch (err) {
+    const errorMsg = (err && err.message) ? err.message : 'Invalid or expired token';
+    console.error('Auth error:', errorMsg);
     return error(res, 'Invalid or expired token', 401);
   }
 }

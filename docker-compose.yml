@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: fleet_analytics
       POSTGRES_USER: fleet_admin
-      POSTGRES_PASSWORD: Capstone2026
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Capstone2026}
     volumes:
       - ./database/migrations:/docker-entrypoint-initdb.d
       - fleet_db_data:/var/lib/postgresql/data
@@ -30,7 +30,7 @@ services:
       DB_PORT: 5432
       DB_NAME: fleet_analytics
       DB_USER: fleet_admin
-      DB_PASSWORD: Capstone2026
+      DB_PASSWORD: ${DB_PASSWORD:-Capstone2026}
       COGNITO_REGION: af-south-1
       COGNITO_USER_POOL_ID: af-south-1_dlcqW8WIA
       COGNITO_CLIENT_ID: 33gvnl0c4db2h6smmp86p7qb6d

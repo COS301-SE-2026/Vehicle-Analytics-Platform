@@ -46,7 +46,7 @@ async function register(req, res) {
 
     return success(res, { message: 'User registered successfully', userSub: cognitoResponse.UserSub }, 201);
   } catch (err) {
-    const errorMessage = (err && err.message) ? err.message : 'Registration failed';
+    const errorMessage = err?.message || 'Registration failed';
     console.error('Cognito registration error:', err);
     return error(res, 'Registration failed: ' + errorMessage, 500);
   }
@@ -76,12 +76,12 @@ async function login(req, res) {
       [email]
     );
 
-    if (userResult.rows.length === 0) {
+    if (!userResult?.rows?.length) {
       return error(res, 'User not found', 404);
     }
 
     const user = userResult.rows[0];
-    if (!user.is_active) {
+    if (!user?.is_active) {
       return error(res, 'Account deactivated', 403);
     }
 
@@ -98,11 +98,11 @@ async function login(req, res) {
       },
     }, 200);
   } catch (err) {
-    const errorMessage = (err && err.message) ? err.message : 'Login failed';
-    if (err.name === 'NotAuthorizedException') {
+    const errorMessage = err?.message || 'Login failed';
+    if (err?.name === 'NotAuthorizedException') {
       return error(res, 'Invalid email or password', 401);
     }
-    if (err.name === 'UserNotFoundException') {
+    if (err?.name === 'UserNotFoundException') {
       return error(res, 'User not found', 404);
     }
     console.error('Cognito login error:', err);
@@ -112,7 +112,7 @@ async function login(req, res) {
 
 async function logout(req, res) {
   const authHeader = req.headers.authorization;
-  const token = authHeader ? authHeader.split(' ')[1] : null;
+  const token = authHeader?.split(' ')[1];
 
   if (!token) {
     return success(res, { message: 'Logged out successfully' }, 200);

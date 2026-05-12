@@ -6,13 +6,13 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_DB: fleet_analytics
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-localdev}
+      POSTGRES_USER: fleet_admin
+      POSTGRES_PASSWORD: Capstone2026
     volumes:
       - ./database/migrations:/docker-entrypoint-initdb.d
       - fleet_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d fleet_analytics"]
+      test: ["CMD-SHELL", "pg_isready -U fleet_admin -d fleet_analytics"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,32 +24,23 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - NODE_ENV=development
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=fleet_analytics
-      - DB_USER=admin
-      - DB_PASSWORD=${DB_PASSWORD:-localdev}
+      NODE_ENV: development
+      PORT: 4000
+      DB_HOST: 13.246.7.45
+      DB_PORT: 5432
+      DB_NAME: fleet_analytics
+      DB_USER: fleet_admin
+      DB_PASSWORD: Capstone2026
+      COGNITO_REGION: af-south-1
+      COGNITO_USER_POOL_ID: af-south-1_dlcqW8WIA
+      COGNITO_CLIENT_ID: 33gvnl0c4db2h6smmp86p7qb6d
+      JWT_SECRET: kilimanjaro_super_secret_key_2026
     volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
+      - ./backend:/app
+      - /app/node_modules
     depends_on:
       db:
         condition: service_healthy
-
-  frontend:
-    build:
-      context: ./frontend
-    container_name: fleet_frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:4000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
 
 volumes:
   fleet_db_data:

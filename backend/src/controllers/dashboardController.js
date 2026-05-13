@@ -11,7 +11,11 @@ async function getFleetKPIs(req, res) {
           THEN v.vehicle_id
         END) as active_vehicles,
         COUNT(CASE
-          WHEN e.event_detail IN ('harsh_braking', 'harsh_acceleration')
+          WHEN e.event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering')
+          AND e.time > CURRENT_DATE
+          THEN 1
+        END) + COUNT(CASE
+          WHEN e.event_category = 'crash_detection'
           AND e.time > CURRENT_DATE
           THEN 1
         END) as alerts_today
@@ -40,9 +44,17 @@ async function getActiveAlerts(req, res) {
 
   try {
     const result = await pool.query(`
-      SELECT vehicle_id, event_detail as type, latitude, longitude, speed, time as timestamp
+      SELECT
+        vehicle_id,
+        event_detail as type,
+        event_category,
+        latitude,
+        longitude,
+        speed,
+        time as timestamp
       FROM vehicle_events
-      WHERE event_detail IN ('harsh_braking', 'harsh_acceleration')
+      WHERE event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering')
+        OR event_category = 'crash_detection'
       ORDER BY time DESC
       LIMIT $1
     `, [limit]);
@@ -50,9 +62,9 @@ async function getActiveAlerts(req, res) {
     const alerts = result.rows.map((alert, index) => ({
       id: index + 1,
       vehicle_id: alert.vehicle_id,
-      type: alert.type,
-      severity: alert.type === 'harsh_braking' ? 'high' : 'medium',
-      message: `${alert.vehicle_id}: ${alert.type} at ${alert.speed} km/h`,
+      type: alert.type || alert.event_category,
+      severity: alert.type === 'harsh_braking' ? 'high' : (alert.event_category === 'crash_detection' ? 'critical' : 'medium'),
+      message: `${alert.vehicle_id}: ${alert.type || alert.event_category} at ${alert.speed} km/h`,
       latitude: Number.parseFloat(alert.latitude),
       longitude: Number.parseFloat(alert.longitude),
       speed: alert.speed,

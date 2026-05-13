@@ -26,15 +26,15 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4000
-      DB_HOST: 13.246.7.45
+      DB_HOST: db
       DB_PORT: 5432
       DB_NAME: fleet_analytics
       DB_USER: fleet_admin
       DB_PASSWORD: ${DB_PASSWORD:-Capstone2026}
-      COGNITO_REGION: af-south-1
-      COGNITO_USER_POOL_ID: af-south-1_dlcqW8WIA
-      COGNITO_CLIENT_ID: 33gvnl0c4db2h6smmp86p7qb6d
-      JWT_SECRET: kilimanjaro_super_secret_key_2026
+      COGNITO_REGION: ${COGNITO_REGION}
+      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET}
     volumes:
       - ./backend:/app
       - /app/node_modules

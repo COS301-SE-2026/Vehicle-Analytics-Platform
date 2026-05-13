@@ -4,7 +4,7 @@ const { success, error } = require('../utils/response');
 async function getLiveLocations(req, res) {
   try {
     const result = await pool.query(`
-      SELECT
+      SELECT DISTINCT ON (v.vehicle_id)
         v.vehicle_id as id,
         v.device_id,
         v.driver_name,
@@ -16,7 +16,7 @@ async function getLiveLocations(req, res) {
       FROM vehicles v
       LEFT JOIN vehicle_position_5s pos ON v.vehicle_id = pos.vehicle_id
       WHERE pos.last_seen > NOW() - INTERVAL '1 minute'
-      ORDER BY v.vehicle_id
+      ORDER BY v.vehicle_id, pos.bucket DESC
     `);
 
     return success(res, {
@@ -54,7 +54,11 @@ async function getVehicleById(req, res) {
         pos.speed,
         pos.last_seen as last_update
       FROM vehicles v
-      LEFT JOIN vehicle_position_5s pos ON v.vehicle_id = pos.vehicle_id
+      LEFT JOIN (
+        SELECT DISTINCT ON (vehicle_id) *
+        FROM vehicle_position_5s
+        ORDER BY vehicle_id, bucket DESC
+      ) pos ON v.vehicle_id = pos.vehicle_id
       WHERE v.vehicle_id = $1
     `, [vehicleId]);
 

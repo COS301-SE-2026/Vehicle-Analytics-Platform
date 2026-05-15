@@ -16,4 +16,33 @@ const pool = new Pool({
 
 const s3 = new S3Client({});
 
-// parse one raw jsonlline into a db row
+// parse one raw jsonl line into a db row
+function parseRecord(raw) {
+  if (!raw.time || !raw.vehicle_id) {
+    console.warn("Skipping record missing time or vehicle_id:", raw);
+    return null;
+  }
+ 
+  return [ // the columns of the table
+    raw.time,
+    raw.vehicle_id,
+    raw.measurement        || null,
+    raw.device_id          || null,
+    raw.event              || null,
+    raw.lat_lng            || null,
+    raw.spd                || null,
+    raw.total_odometer     || null,
+    raw.ignition           || null,
+    raw.movement           || null,
+    raw.green_driving_type || null,
+    raw.crash_detection    || null,
+  ];
+}
+
+// 
+
+async function processS3Object(bucket, key){
+    // console.log(`Processing s3://${bucket}/${key}`);
+
+}
+

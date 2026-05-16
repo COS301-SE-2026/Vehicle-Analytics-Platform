@@ -12,7 +12,10 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "coverageReporters": ["text", "lcov"],
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ],
     "coverageDirectory": "coverage",
     "forceCoverageMatch": [
       "**/__tests__/**/*.js",
@@ -25,8 +28,10 @@
     ]
   },
   "dependencies": {
+    "aws-amplify": "^6.17.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
+import { signIn } from 'aws-amplify/auth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -19,9 +20,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      //Still need to wire up cognito:
-      //await signIn({ username: form.email, password: form.password });
-      navigate('/dashboard');
+      const { isSignedIn } = await signIn({ username: form.email, password: form.password });
+      if (isSignedIn) navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Sign in failed. Please check your credentials.');
     } finally {

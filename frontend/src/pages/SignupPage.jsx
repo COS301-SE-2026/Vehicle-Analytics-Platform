@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
-
-//import { signUp } from 'aws-amplify/auth';
+import { signUp } from 'aws-amplify/auth';
 
 function getStrength(password) {
   return [
@@ -37,11 +36,11 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      // await signUp({
-      //   username: form.email,
-      //   password: form.password,
-      //   options: { userAttributes: { name: form.name, email: form.email } },
-      // });
+      await signUp({
+        username: form.email,
+        password: form.password,
+        options: { userAttributes: { name: form.name, email: form.email } },
+      });
       navigate('/verify', { state: { email: form.email } });
     } catch (err) {
       setError(err.message || 'Sign up failed. Please try again.');

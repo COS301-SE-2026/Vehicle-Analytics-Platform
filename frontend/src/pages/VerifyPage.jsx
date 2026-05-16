@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import './VerifyPage.css';
-
-//import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
+import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 
 const CODE_LENGTH = 6;
 const EXPIRY_SECONDS = 9 * 60 + 47;
@@ -58,8 +57,7 @@ export default function VerifyPage() {
     if (code.length < CODE_LENGTH) return setError('Please enter all 6 digits.');
     setLoading(true);
     try {
-      //when Cognito is wired up
-      // await confirmSignUp({ username: email, confirmationCode: code });
+      await confirmSignUp({ username: email, confirmationCode: code });
       navigate('/login');
     } catch (err) {
       setError(err.message || 'Invalid code. Please try again.');
@@ -70,7 +68,7 @@ export default function VerifyPage() {
 
   async function handleResend() {
     try {
-      //await resendSignUpCode({ username: email });
+      await resendSignUpCode({ username: email });
       setResent(true);
       setTimeLeft(EXPIRY_SECONDS);
       setDigits(Array(CODE_LENGTH).fill(''));

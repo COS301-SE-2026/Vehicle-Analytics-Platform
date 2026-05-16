@@ -10,18 +10,18 @@ const navItems = [
 export default function Sidebar({ role, collapsed, onToggle }) {
     return (
         <aside className={`${collapsed ? 'w-[64px]' : 'w-[220px]'} min-h-screen bg-fleet-green flex flex-col justify-between py-6 px-3 fixed left-0 top-0 transition-all duration-300 z-20`}>
-
+            {/* Top Section */}
             <div>
+                {/* logo and toggle  */}
                 <div className="flex items-center justify-between mb-10 px-1">
                     {!collapsed && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             <Truck className="w-5 h-5 text-white" />
                             <span className="text-white font-bold text-lg">FleetTracker</span>
                         </div>
                     )}
-                    {collapsed && (
-                        <Truck className="w-5 h-5 text-white mx-auto" />
-                    )}
+
+                    {/* Toggle Button */}
                     <button
                         onClick={onToggle}
                         className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors ml-auto"

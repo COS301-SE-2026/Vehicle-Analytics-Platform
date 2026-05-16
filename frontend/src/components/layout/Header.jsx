@@ -1,8 +1,6 @@
-import { Bell } from 'lucide-react'
-
-export default function Header({ title }) {
+export default function Header({ title, collapsed }) {
   return (
-    <header className="h-[60px] bg-fleet-surface border-b border-fleet-border fixed top-0 right-0 left-[220px] z-10 flex items-center justify-between px-6">
+    <header className={`h-[60px] bg-fleet-surface border-b border-fleet-border fixed top-0 right-0 ${collapsed ? 'left-[64px]' : 'left-[220px]'} transition-all duration-300 z-10 flex items-center justify-between px-6`}>
       
       {/* Page Title */}
       <h1 className="font-display font-bold text-xl text-fleet-text">

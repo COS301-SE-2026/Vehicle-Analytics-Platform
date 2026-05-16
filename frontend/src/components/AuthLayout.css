@@ -1,0 +1,361 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.auth-root {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* ── Left panel ── */
+.auth-left {
+  width: 240px;
+  min-width: 240px;
+  background-color: #2c4a1e;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-left::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  margin-bottom: auto;
+}
+
+.auth-hero {
+  margin-bottom: 28px;
+}
+
+.auth-hero h1 {
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+}
+
+/* Fleet status grid */
+.fleet-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 8px;
+}
+
+.fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-bottom: 28px;
+}
+
+.fleet-tile {
+  height: 14px;
+  border-radius: 2px;
+}
+
+.fleet-tile--active  { background: rgba(255,255,255,0.55); }
+.fleet-tile--warning { background: #e07b39; }
+.fleet-tile--offline { background: rgba(255,255,255,0.18); }
+
+/* Stats row */
+.auth-stats {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 16px;
+}
+
+.auth-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 3px;
+  color: rgba(255,255,255,0.65);
+}
+
+.auth-stat svg {
+  opacity: 0.7;
+  margin-bottom: 2px;
+}
+
+.stat-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 9px;
+  letter-spacing: 0.3px;
+}
+
+/* ── Right panel ── */
+.auth-right {
+  flex: 1;
+  background: #f5f3ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+/* ── Shared form card ── */
+.auth-card {
+  background: white;
+  border-radius: 10px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 380px;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.auth-card h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.4px;
+  margin-bottom: 4px;
+}
+
+.auth-card .auth-subtitle {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 24px;
+}
+
+/* Google button */
+.btn-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-google:hover { background: #fafafa; }
+
+/* Divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.auth-divider span {
+  font-size: 12px;
+  color: #bbb;
+  white-space: nowrap;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8e8e8;
+}
+
+/* Form fields */
+.field-group {
+  margin-bottom: 14px;
+}
+
+.field-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 5px;
+  letter-spacing: 0.2px;
+}
+
+.field-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.field-group input:focus {
+  border-color: #3a6b1f;
+  box-shadow: 0 0 0 3px rgba(58,107,31,0.08);
+}
+
+/* Password wrapper */
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap input {
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #aaa;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Password strength bar */
+.strength-bar {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 4px;
+}
+
+.strength-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: #eee;
+  transition: background 0.3s;
+}
+
+.strength-seg.active { background: #3a6b1f; }
+
+.strength-hints {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+  margin-top: 4px;
+}
+
+.strength-hint {
+  font-size: 11px;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.strength-hint.met { color: #3a6b1f; }
+
+.strength-hint::before {
+  content: '●';
+  font-size: 8px;
+}
+
+/* Checkbox row */
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.checkbox-row input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: #3a6b1f;
+}
+
+.checkbox-row a { color: #3a6b1f; text-decoration: none; }
+
+/* Primary CTA */
+.btn-primary {
+  width: 100%;
+  padding: 11px;
+  background: #2c4a1e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+
+.btn-primary:hover { background: #3a6b1f; }
+.btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+
+/* Footer link */
+.auth-footer-link {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #888;
+}
+
+.auth-footer-link a {
+  color: #3a6b1f;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Row utility */
+.space-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.space-between a {
+  color: #3a6b1f;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Error message */
+.auth-error {
+  background: #fff0f0;
+  border: 1px solid #fcc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #c00;
+  margin-bottom: 14px;
+}

@@ -7,10 +7,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    files: ['jest.setup.js'],
+    files: ['jest.setup.js', 'src/__tests__/**/*.{js,jsx}'],
     languageOptions: {
       globals: {
         ...globals.node,
+        ...globals.jest,
       },
     },
   },

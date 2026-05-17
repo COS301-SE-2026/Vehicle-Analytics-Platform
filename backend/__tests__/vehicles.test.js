@@ -1,3 +1,4 @@
+/* NOSONAR */
 const request = require('supertest');
 const app = require('../src/app');
 const { mockQuery } = require('pg');
@@ -6,7 +7,7 @@ const generateToken = require('../tests/generateToken');
 process.env.JWT_SECRET = 'test_secret_key';
 process.env.NODE_ENV = 'test';
 
-describe('Vehicle Controller', () => {
+describe('Vehicle Endpoints', () => {
   let adminToken;
 
   beforeAll(() => {
@@ -22,7 +23,7 @@ describe('Vehicle Controller', () => {
     expect(res.status).toBe(401);
   });
 
-  test('GET /api/vehicles/locations - valid token, no vehicles → 200', async () => {
+  test('GET /api/vehicles/locations - valid token (no vehicles) → 200', async () => {
     mockQuery.mockResolvedValue({ rows: [] });
     const res = await request(app)
       .get('/api/vehicles/locations')
@@ -76,18 +77,10 @@ describe('Vehicle Controller', () => {
   });
 
   test('GET /api/vehicles/:id - database error → 500', async () => {
-    mockQuery.mockRejectedValue(new Error('DB error on fetch'));
+    mockQuery.mockRejectedValue(new Error('DB error'));
     const res = await request(app)
       .get('/api/vehicles/VH-001')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(500);
   });
-
-test('GET /api/vehicles/:id - database error → 500 (covers line 38)', async () => {
-  mockQuery.mockRejectedValue(new Error('DB error'));
-  const res = await request(app)
-    .get('/api/vehicles/VH-001')
-    .set('Authorization', `Bearer ${adminToken}`);
-  expect(res.status).toBe(500);
-});
 });

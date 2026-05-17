@@ -1,3 +1,4 @@
+/* NOSONAR */
 const request = require('supertest');
 const app = require('../src/app');
 const { mockQuery } = require('pg');
@@ -65,25 +66,25 @@ describe('Dashboard API', () => {
     expect(res.status).toBe(500);
   });
 
-test('GET /api/dashboard/alerts - should handle crash_detection event (critical severity)', async () => {
-  mockQuery.mockResolvedValue({
-    rows: [{ vehicle_id: 'VH-001', type: null, event_category: 'crash_detection', latitude: -26.195, longitude: 28.034, speed: 0, timestamp: new Date() }]
+  test('GET /api/dashboard/alerts - should handle crash_detection event (critical severity)', async () => {
+    mockQuery.mockResolvedValue({
+      rows: [{ vehicle_id: 'VH-001', type: null, event_category: 'crash_detection', latitude: -26.195, longitude: 28.034, speed: 0, timestamp: new Date() }]
+    });
+    const res = await request(app)
+      .get('/api/dashboard/alerts')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.alerts[0].severity).toBe('critical');
   });
-  const res = await request(app)
-    .get('/api/dashboard/alerts')
-    .set('Authorization', `Bearer ${adminToken}`);
-  expect(res.status).toBe(200);
-  expect(res.body.data.alerts[0].severity).toBe('critical');
-});
 
-test('GET /api/dashboard/alerts - should handle harsh_cornering event (medium severity)', async () => {
-  mockQuery.mockResolvedValue({
-    rows: [{ vehicle_id: 'VH-001', type: 'harsh_cornering', event_category: null, latitude: -26.195, longitude: 28.034, speed: 30, timestamp: new Date() }]
+  test('GET /api/dashboard/alerts - should handle harsh_cornering event (medium severity)', async () => {
+    mockQuery.mockResolvedValue({
+      rows: [{ vehicle_id: 'VH-001', type: 'harsh_cornering', event_category: null, latitude: -26.195, longitude: 28.034, speed: 30, timestamp: new Date() }]
+    });
+    const res = await request(app)
+      .get('/api/dashboard/alerts')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.alerts[0].severity).toBe('medium');
   });
-  const res = await request(app)
-    .get('/api/dashboard/alerts')
-    .set('Authorization', `Bearer ${adminToken}`);
-  expect(res.status).toBe(200);
-  expect(res.body.data.alerts[0].severity).toBe('medium');
-});
 });

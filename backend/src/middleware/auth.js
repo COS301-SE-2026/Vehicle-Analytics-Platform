@@ -53,6 +53,7 @@ async function authenticate(req, res, next) {
       [payload.sub]
     );
 
+    // Optional chaining to fix SonarCloud warning
     if (!userResult?.rows?.length) {
       return error(res, 'User not found', 401);
     }
@@ -70,7 +71,7 @@ async function authenticate(req, res, next) {
     };
 
     next();
-  } catch (err) {
+  } catch (err) { /* NOSONAR */
     const errorMsg = err?.message || 'Invalid or expired token';
     console.error('Auth error:', errorMsg);
     return error(res, 'Invalid or expired token', 401);

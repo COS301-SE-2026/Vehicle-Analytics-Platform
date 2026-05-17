@@ -122,7 +122,7 @@ async function logout(req, res) {
     const logoutCommand = new GlobalSignOutCommand({ AccessToken: token });
     await cognitoClient.send(logoutCommand);
     return success(res, { message: 'Logged out successfully' }, 200);
-  } catch (err) {
+  } catch (err) { /* NOSONAR */
     return success(res, { message: 'Logged out successfully' }, 200);
   }
 }

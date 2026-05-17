@@ -59,17 +59,28 @@ async function getActiveAlerts(req, res) {
       LIMIT $1
     `, [limit]);
 
-    const alerts = result.rows.map((alert, index) => ({
-      id: index + 1,
-      vehicle_id: alert.vehicle_id,
-      type: alert.type || alert.event_category,
-      severity: alert.type === 'harsh_braking' ? 'high' : (alert.event_category === 'crash_detection' ? 'critical' : 'medium'),
-      message: `${alert.vehicle_id}: ${alert.type || alert.event_category} at ${alert.speed} km/h`,
-      latitude: Number.parseFloat(alert.latitude),
-      longitude: Number.parseFloat(alert.longitude),
-      speed: alert.speed,
-      timestamp: alert.timestamp,
-    }));
+    const alerts = result.rows.map((alert, index) => {
+      let severity = 'medium';
+      if (alert.type === 'harsh_braking') {
+        severity = 'high';
+      } else if (alert.event_category === 'crash_detection') {
+        severity = 'critical';
+      }
+
+      const alertType = alert.type || alert.event_category;
+
+      return {
+        id: index + 1,
+        vehicle_id: alert.vehicle_id,
+        type: alertType,
+        severity: severity,
+        message: `${alert.vehicle_id}: ${alertType} at ${alert.speed} km/h`,
+        latitude: Number.parseFloat(alert.latitude),
+        longitude: Number.parseFloat(alert.longitude),
+        speed: alert.speed,
+        timestamp: alert.timestamp,
+      };
+    });
 
     return success(res, { total: alerts.length, alerts }, 200);
   } catch (err) {

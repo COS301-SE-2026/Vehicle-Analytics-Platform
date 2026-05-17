@@ -69,6 +69,7 @@ async function getVehicleById(req, res) {
     const eventsResult = await pool.query(`
       SELECT
         event_detail as type,
+        event_category,
         speed,
         latitude,
         longitude,

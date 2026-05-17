@@ -1,4 +1,5 @@
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
+const jwt = require('jsonwebtoken');
 const { pool } = require('../db/pool');
 const { error } = require('../utils/response');
 
@@ -24,15 +25,15 @@ async function authenticate(req, res, next) {
 
   const token = authHeader.split(' ')[1];
 
+  // ----- TEST MODE: bypass Cognito verification -----
   if (process.env.NODE_ENV === 'test') {
     try {
-      const jwt = require('jsonwebtoken');
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_secret_key');
       req.user = {
         id: decoded.id,
-        sub: decoded.sub,
         email: decoded.email,
         role: decoded.role,
+        sub: decoded.sub,
       };
       return next();
     } catch (err) {
@@ -40,6 +41,7 @@ async function authenticate(req, res, next) {
     }
   }
 
+  // ----- PRODUCTION MODE: use Cognito verifier -----
   try {
     const verifier = getVerifier();
     const payload = await verifier.verify(token);

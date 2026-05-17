@@ -6,7 +6,7 @@ jest.mock('aws-amplify/auth', () => ({
   signUp: jest.fn(),
 }));
 
-jest.mock('../components/AuthLayout', () => ({ children }) => <div>{children}</div>);
+jest.mock('../components/AuthLayout', () => function MockAuthLayout({ children }) { return <div>{children}</div>; });
 
 describe('SignupPage', () => {
   test('renders signup form correctly', () => {
@@ -50,5 +50,46 @@ describe('SignupPage', () => {
     const nameInput = screen.getByLabelText('Full Name');
     fireEvent.change(nameInput, { target: { value: 'Jane Doe' } });
     expect(nameInput.value).toBe('Jane Doe');
+  });
+
+  test('shows error when password is too weak', () => {
+    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'weak' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'weak' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+    expect(screen.getByText(/please choose a stronger password/i)).toBeInTheDocument();
+  });
+
+  test('shows error when signup fails', async () => {
+    const { signUp } = require('aws-amplify/auth');
+    signUp.mockRejectedValueOnce(new Error('An account with the given email already exists.'));
+
+    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Test@1234' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByText(/already exists/i)).toBeInTheDocument();
+  });
+
+  test('shows loading state when signing up', async () => {
+    const { signUp } = require('aws-amplify/auth');
+    signUp.mockImplementationOnce(() => new Promise(() => {}));
+
+    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Test@1234' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByText(/creating account/i)).toBeInTheDocument();
   });
 });

@@ -14,6 +14,9 @@ export default defineConfig([
         ...globals.jest,
       },
     },
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
   },
   {
     files: ['**/*.{js,jsx}'],

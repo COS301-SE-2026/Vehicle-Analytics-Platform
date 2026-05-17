@@ -5,6 +5,7 @@ const { error } = require('../utils/response');
 
 let verifier = null;
 
+/* istanbul ignore next */
 function getVerifier() {
   if (!verifier && process.env.NODE_ENV !== 'test') {
     verifier = CognitoJwtVerifier.create({

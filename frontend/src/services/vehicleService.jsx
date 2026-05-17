@@ -55,3 +55,24 @@ export async function getAlerts() {
         ],
     }
 }
+
+export async function getUsers() {
+  // Mock data — remove this block and uncomment the fetch below when ready
+  return [
+    { id: 1, name: "Zoe Nelly", email: "Zoe@example.com", role: "admin" },
+    { id: 2, name: "Bob Smith",    email: "bob@example.com",   role: "user"  },
+    { id: 3, name: "Carol White",  email: "carol@example.com", role: "user"  },
+  ];
+}
+// export async function getUsers() {
+//   try {
+//     const response = await fetch(`${API_BASE}/users`, {
+//       headers: { Authorization: `Bearer ${getToken()}` }
+//     })
+//     const data = await response.json()
+//     return data.users ?? data ?? []
+//   } catch (error) {
+//     console.error('getUsers error:', error)
+//     return []
+//   }
+// }

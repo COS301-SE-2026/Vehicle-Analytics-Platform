@@ -7,7 +7,7 @@ export default function DonutChart({ active, idle, offline, total }) {
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <h3 className="font-semibold text-gray-700 mb-4">Vehicle Status</h3>
+      <h3 className="font-semibold text-gray-700 mb-4">Fleet Status</h3>
       <div className="flex flex-col items-center gap-4">
         <svg viewBox="0 0 140 140" className="w-36 h-36">
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth="16" />

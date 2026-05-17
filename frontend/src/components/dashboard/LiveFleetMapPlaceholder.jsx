@@ -137,19 +137,8 @@ export default function FleetMapPlaceholder({ active, idle, offline, total, vehi
           <p className="text-[10px] text-gray-400 mt-2">Last updated: just now</p>
         </div>
 
-        {/* Search Bar */}
-        <div className="absolute bottom-4 left-4 right-4 z-10">
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search vehicle ID..."
-              className="w-80  bg-white rounded-xl px-4 py-2.5 text-sm text-gray-600 shadow border border-gray-100 outline-none focus:ring-2 focus:ring-green-700/20 pl-9"
-            />
-          </div>
-        </div>
+         {/* Search Bar */}
+        {/* ADD SEARCH BAR AND FUNCTIONALITY LATER  */}
 
         {/* Real Map */}
         <FleetMap

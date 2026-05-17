@@ -1,7 +1,7 @@
-import { Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
-import { useLocation } from 'react-router-dom'
 
 const pageTitles = {
   '/dashboard/viewer': 'Dashboard',
@@ -11,22 +11,25 @@ const pageTitles = {
   '/settings': 'Settings',
 }
 
+const noHeader = ['/map']
+
 export default function AppShell({ role = 'viewer' }) {
+  const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
   const title = pageTitles[location.pathname] || 'FleetTracker'
+  const hideHeader = noHeader.includes(location.pathname)
 
   return (
     <div className="min-h-screen bg-fleet-bg">
-      {/* Sidebar */}
-      <Sidebar role={role} />
+      <Sidebar
+        role={role}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(prev => !prev)}
+      />
 
-      {/* Main Content */}
-      <div className="ml-[220px]">
-        {/* Header */}
-        <Header title={title} />
-
-        {/* Page Content */}
-        <main className="pt-[60px] p-6">
+      <div className={`${collapsed ? 'ml-[64px]' : 'ml-[220px]'} transition-all duration-300`}>
+        {!hideHeader && <Header title={title} collapsed={collapsed} />}
+        <main className={`${hideHeader ? 'pt-0 p-0' : 'pt-[60px] p-6'}`}>
           <Outlet />
         </main>
       </div>

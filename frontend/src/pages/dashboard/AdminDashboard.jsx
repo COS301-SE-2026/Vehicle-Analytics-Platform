@@ -1,12 +1,163 @@
+import { useState, useEffect } from 'react'
+import { Truck, Waypoints, Users, RefreshCw } from 'lucide-react'
+import { getKPIs, getVehicleLocations, getUsers } from '../../services/vehicleService'
+import StatCard from '../../components/dashboard/StatCard'
+import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
+import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
+import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
+import UserManagementTable from '../../components/dashboard/UserManagementTable'
+import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
+import EditUserModal from '../../components/dashboard/EditUserModal'
+
 export default function AdminDashboard() {
+  const [kpis, setKpis] = useState(null)
+  const [locations, setLocations] = useState(null)
+  const [users, setUsers] = useState([])
+  const [editingUser, setEditingUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  async function fetchAll() {
+    try {
+      const [k, l, u] = await Promise.all([
+        getKPIs(),
+        getVehicleLocations(),
+        getUsers(),
+      ])
+      setKpis(k)
+      setLocations(l)
+      setUsers(u)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAll()
+    const interval = setInterval(fetchAll, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-6 h-6 text-fleet-secondary animate-spin" />
+      </div>
+    )
+  }
+
+  // if (error) {
+  //   return (
+  //     <div className="flex items-center justify-center h-64">
+  //       <p className="text-fleet-alert text-sm">{error}</p>
+  //     </div>
+  //   )
+  // }
+
+  if (!kpis || !locations) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-fleet-secondary">No data available</p>
+      </div>
+    )
+  }
+
+  const vehicles = locations.vehicles ?? []
+  const active = vehicles.filter(v => v.status === 'active').length
+  const idle = vehicles.filter(v => v.status === 'idle').length
+  const offline = vehicles.filter(v => v.status === 'offline').length
+  const total = kpis.totalVehicles ?? vehicles.length
+
+  const mostActive = [...vehicles]
+    .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
+    .slice(0, 5)
+
+  const adminCount = users.filter(u => u.role === 'admin').length
+  const managerCount = users.filter(u => u.role === 'manager').length
+  const viewerCount = users.filter(u => u.role === 'viewer').length
+
+  function handleEdit(user) {
+    setEditingUser(user) 
+    // Wire up modal later
+  }
+
+  function handleDeactivate(user) {
+    console.log('Deactivate user:', user)
+    // Wire up API call later
+  }
+
+  function handleActivate(user) {
+    console.log('Activate user:', user)
+    // Wire up API call later
+  }
+
+  async function handleSaveRole(user, newRole) {
+  setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u))
+}
+
   return (
-    <div className="p-6">
-      <p className="font-display text-fleet-text text-2xl font-bold">
-        Admin Dashboard
-      </p>
-      <p className="text-fleet-secondary mt-2">
-        Admin dashboard content goes here
-      </p>
+    <div className="space-y-4">
+
+      {/* Row 1 — Four KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={Truck}
+          label="Active Vehicles"
+          value={kpis.activeVehicles ?? active}
+          sub={`of ${total} total`}
+        />
+        <StatCard
+          icon={Waypoints}
+          label="Total Distance Today"
+          value={kpis.totalDistance ?? 847}
+          sub="km across fleet"
+        />
+        <StatCard
+          icon={Users}
+          label="Registered Users"
+          value={users.length}
+          sub={`${adminCount} Admin · ${managerCount} Mgr · ${viewerCount} Vwr`}
+        />
+        <DataFeedStatusCard
+          isLive={true}
+          lastReceived="3 seconds ago"
+        />
+      </div>
+
+      {/* Row 2 — Fleet Status + Most Active */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1">
+          <FleetStatusCard
+            active={active}
+            idle={idle}
+            offline={offline}
+            total={total}
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <MostActiveVehiclesTable vehicles={mostActive} />
+        </div>
+      </div>
+
+      {/* Row 3 — User Management */}
+      <UserManagementTable
+        users={users}
+        onEdit={handleEdit}
+        onDeactivate={handleDeactivate}
+        onActivate={handleActivate}
+      />
+
+      {/* Row 4 — Fleet Activity Chart */}
+      <FleetActivityChart />
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={handleSaveRole}
+        />
+      )}
+
     </div>
   )
 }

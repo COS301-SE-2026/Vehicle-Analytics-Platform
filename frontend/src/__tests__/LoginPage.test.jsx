@@ -6,7 +6,7 @@ jest.mock('aws-amplify/auth', () => ({
   signIn: jest.fn(),
 }));
 
-jest.mock('../components/AuthLayout', () => ({ children }) => <div>{children}</div>);
+jest.mock('../components/AuthLayout', () => function MockAuthLayout({ children }) { return <div>{children}</div>; });
 
 describe('LoginPage', () => {
   test('renders login form correctly', () => {
@@ -44,5 +44,41 @@ describe('LoginPage', () => {
     expect(passwordInput.type).toBe('password');
     fireEvent.click(toggleBtn);
     expect(passwordInput.type).toBe('text');
+  });
+
+  test('shows error message when sign in fails', async () => {
+    const { signIn } = require('aws-amplify/auth');
+    signIn.mockRejectedValueOnce(new Error('Incorrect username or password.'));
+
+    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Wrong@1234' } });
+    fireEvent.click(screen.getByRole('button', { name: /sign in to dashboard/i }));
+
+    expect(await screen.findByText(/incorrect username or password/i)).toBeInTheDocument();
+  });
+
+  test('shows loading state when signing in', async () => {
+    const { signIn } = require('aws-amplify/auth');
+    signIn.mockImplementationOnce(() => new Promise(() => {}));
+
+    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
+    fireEvent.click(screen.getByRole('button', { name: /sign in to dashboard/i }));
+
+    expect(await screen.findByText(/signing in/i)).toBeInTheDocument();
+  });
+
+  test('navigates to dashboard on successful sign in', async () => {
+    const { signIn } = require('aws-amplify/auth');
+    signIn.mockResolvedValueOnce({ isSignedIn: true });
+
+    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
+    fireEvent.click(screen.getByRole('button', { name: /sign in to dashboard/i }));
+
+    await screen.findByText(/signing in/i);
   });
 });

@@ -11,18 +11,18 @@
     "preview": "vite preview"
   },
   "jest": {
-    "testEnvironment": "node",
-    "coverageReporters": [
-      "text",
-      "lcov"
-    ],
+    "testEnvironment": "jsdom",
+    "setupFilesAfterFramework": ["@testing-library/jest-dom"],
+    "transform": {
+      "^.+\\.(js|jsx)$": "babel-jest"
+    },
+    "moduleNameMapper": {
+      "\\.(css|svg|png)$": "identity-obj-proxy"
+    },
+    "coverageReporters": ["text", "lcov"],
     "coverageDirectory": "coverage",
-    "forceCoverageMatch": [
-      "**/__tests__/**/*.js",
-      "**/*.test.js"
-    ],
     "collectCoverageFrom": [
-      "src/**/*.js",
+      "src/**/*.{js,jsx}",
       "!**/__tests__/**",
       "!node_modules/**"
     ]
@@ -34,15 +34,24 @@
     "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.5",
+    "@babel/preset-react": "^7.28.5",
     "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "babel-jest": "^30.4.1",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "identity-obj-proxy": "^3.0.0",
     "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.4.1",
     "pg": "^8.20.0",
     "vite": "^8.0.10"
   },

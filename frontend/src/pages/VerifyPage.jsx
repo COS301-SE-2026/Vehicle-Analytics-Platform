@@ -12,7 +12,7 @@ export default function VerifyPage() {
   const location = useLocation();
   const email = location.state?.email || 'user@example.com';
 
-  const [digits, setDigits] = useState(Array(CODE_LENGTH).fill(''));
+  const [digits, setDigits] = useState(new Array(CODE_LENGTH).fill(''));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resent, setResent] = useState(false);
@@ -71,7 +71,7 @@ export default function VerifyPage() {
       await resendSignUpCode({ username: email });
       setResent(true);
       setTimeLeft(EXPIRY_SECONDS);
-      setDigits(Array(CODE_LENGTH).fill(''));
+      setDigits(new Array(CODE_LENGTH).fill(''));
       setTimeout(() => setResent(false), 3000);
     } catch (err) {
       setError(err.message || 'Could not resend code.');
@@ -100,7 +100,7 @@ export default function VerifyPage() {
         <div className="code-inputs" onPaste={handlePaste}>
           {digits.map((d, i) => (
             <input
-              key={i}
+              key={`digit-${i}`}
               ref={(el) => (inputRefs.current[i] = el)}
               className="code-input"
               type="text"
@@ -124,7 +124,7 @@ export default function VerifyPage() {
 
         <p className="auth-footer-link" style={{ marginTop: '14px' }}>
           Did not receive a code?{' '}
-          <a href="#" onClick={(e) => { e.preventDefault(); handleResend(); }}>Resend code</a>
+          <button type="button" className="link-btn" onClick={handleResend}>Resend code</button>
         </p>
 
         <p className="auth-footer-link" style={{ marginTop: '6px' }}>

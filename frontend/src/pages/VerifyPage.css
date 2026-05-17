@@ -55,3 +55,14 @@
   color: #2a7a2a;
   margin-bottom: 14px;
 }
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #4D7C5F;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: none;
+}

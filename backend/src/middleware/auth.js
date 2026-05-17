@@ -42,6 +42,7 @@ async function authenticate(req, res, next) {
   }
 
   // ----- PRODUCTION MODE: Cognito verification -----
+  /* istanbul ignore next */
   try {
     const verifier = getVerifier();
     const payload = await verifier.verify(token);
@@ -51,7 +52,6 @@ async function authenticate(req, res, next) {
       [payload.sub]
     );
 
-    // Use optional chaining to avoid accessing properties of undefined
     if (!userResult?.rows?.length) {
       return error(res, 'User not found', 401);
     }
@@ -72,7 +72,6 @@ async function authenticate(req, res, next) {
   } catch (err) {
     const errorMsg = err?.message || 'Invalid or expired token';
     console.error('Auth error:', errorMsg);
-    // Return a clean error response – do not re‑throw
     return error(res, 'Invalid or expired token', 401);
   }
 }

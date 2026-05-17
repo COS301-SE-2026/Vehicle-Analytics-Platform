@@ -10,13 +10,7 @@ export default function AuthLayout({ children }) {
     <div className="auth-root">
       <div className="auth-left">
         <div className="auth-logo">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="1" y="6" width="18" height="10" rx="2" fill="white" fillOpacity="0.9"/>
-            <rect x="4" y="3" width="5" height="4" rx="1" fill="white" fillOpacity="0.6"/>
-            <circle cx="5" cy="17" r="2" fill="#2D5016"/>
-            <circle cx="15" cy="17" r="2" fill="#2D5016"/>
-          </svg>
-          <span>FleetTracker</span>
+          <span>V.A.P.O.R</span>
         </div>
 
         <div className="auth-hero">

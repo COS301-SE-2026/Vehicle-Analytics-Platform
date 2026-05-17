@@ -5,7 +5,7 @@ import './VerifyPage.css';
 import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 
 const CODE_LENGTH = 6;
-const EXPIRY_SECONDS = 9 * 60 + 47;
+const EXPIRY_SECONDS = 5 * 60;
 
 export default function VerifyPage() {
   const navigate = useNavigate();

@@ -65,7 +65,6 @@ export default function LoginPage() {
               <input
                 id="password" name="password"
                 type={showPass ? 'text' : 'password'}
-                placeholder="••••••••"
                 value={form.password} onChange={handleChange} required
               />
               <button type="button" className="password-toggle" onClick={() => setShowPass((v) => !v)} aria-label="Toggle password">

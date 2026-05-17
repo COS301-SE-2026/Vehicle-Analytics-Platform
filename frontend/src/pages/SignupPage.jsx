@@ -74,7 +74,6 @@ export default function SignupPage() {
             <label htmlFor="name">Full Name</label>
             <input
               id="name" name="name" type="text"
-              placeholder="John Doe"
               value={form.name} onChange={handleChange} required
             />
           </div>
@@ -83,7 +82,6 @@ export default function SignupPage() {
             <label htmlFor="email">Email</label>
             <input
               id="email" name="email" type="email"
-              placeholder="john@company.com"
               value={form.email} onChange={handleChange} required
             />
           </div>
@@ -140,8 +138,7 @@ export default function SignupPage() {
 
           <label className="checkbox-row">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-            By creating an account you agree to our{' '}
-            <a href="/terms">Terms</a>&nbsp;and&nbsp;<a href="/privacy">Privacy Policy</a>
+              By creating an account you agree to our <a href="/terms">Terms and Privacy Policy</a>
           </label>
 
           <button className="btn-primary" type="submit" disabled={loading}>

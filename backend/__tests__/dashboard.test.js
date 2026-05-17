@@ -1,52 +1,67 @@
 const request = require('supertest');
-const jwt = require('jsonwebtoken');
 const app = require('../src/app');
-const { pool } = require('../src/db/pool');
+const { mockQuery } = require('pg');
+const generateToken = require('../tests/generateToken');
+
+process.env.JWT_SECRET = 'test_secret_key';
+process.env.NODE_ENV = 'test';
 
 describe('Dashboard API', () => {
-  let token;
+  let adminToken;
 
   beforeAll(() => {
-    // Generate a valid token for testing
-    token = jwt.sign(
-      { id: '1', sub: 'test-user', email: 'test@example.com', role: 'admin' },
-      process.env.JWT_SECRET || 'test_secret_key'
-    );
+    adminToken = generateToken(1, 'admin@test.com', 'admin');
   });
 
-  afterAll(async () => {
-     await pool.end();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  describe('GET /api/dashboard/kpis', () => {
-    it('should return fleet KPIs (200)', async () => {
-      const res = await request(app)
-        .get('/api/dashboard/kpis')
-        .set('Authorization', `Bearer ${token}`);
-      
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveProperty('total_vehicles');
-      expect(res.body.data).toHaveProperty('active_vehicles');
-      expect(res.body.data).toHaveProperty('alerts_today');
-    });
-
-    it('should decline missing token (401)', async () => {
-      const res = await request(app).get('/api/dashboard/kpis');
-      expect(res.status).toBe(401);
-    });
+  test('GET /api/dashboard/kpis - should return 401 without token', async () => {
+    const res = await request(app).get('/api/dashboard/kpis');
+    expect(res.status).toBe(401);
   });
 
-  describe('GET /api/dashboard/alerts', () => {
-    it('should return recent alerts (200)', async () => {
-      const res = await request(app)
-        .get('/api/dashboard/alerts?limit=10')
-        .set('Authorization', `Bearer ${token}`);
-      
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveProperty('alerts');
-      expect(Array.isArray(res.body.data.alerts)).toBe(true);
+  test('GET /api/dashboard/kpis - should return fleet KPIs (200)', async () => {
+    mockQuery.mockResolvedValue({ rows: [{ total_vehicles: '10', active_vehicles: '7', alerts_today: '3' }] });
+    const res = await request(app)
+      .get('/api/dashboard/kpis')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.total_vehicles).toBe(10);
+  });
+
+  test('GET /api/dashboard/alerts - should return 401 without token', async () => {
+    const res = await request(app).get('/api/dashboard/alerts');
+    expect(res.status).toBe(401);
+  });
+
+  test('GET /api/dashboard/alerts - should return recent alerts (200)', async () => {
+    mockQuery.mockResolvedValue({
+      rows: [{ vehicle_id: 'VH-001', type: 'harsh_braking', event_category: null, latitude: -26.195, longitude: 28.034, speed: 45, timestamp: new Date() }]
     });
+    const res = await request(app)
+      .get('/api/dashboard/alerts')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.alerts.length).toBe(1);
+  });
+
+  test('GET /api/dashboard/kpis - should handle database error (500)', async () => {
+    mockQuery.mockRejectedValue(new Error('DB error'));
+    const res = await request(app)
+      .get('/api/dashboard/kpis')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(500);
+  });
+
+  test('GET /api/dashboard/alerts - should handle database error (500)', async () => {
+    mockQuery.mockRejectedValue(new Error('DB error'));
+    const res = await request(app)
+      .get('/api/dashboard/alerts')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(500);
   });
 });

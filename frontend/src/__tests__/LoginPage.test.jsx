@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithRouter } from './testUtils';
 import LoginPage from '../pages/LoginPage';
 
 jest.mock('aws-amplify/auth', () => ({
@@ -10,7 +10,7 @@ jest.mock('../components/AuthLayout', () => function MockAuthLayout({ children }
 
 describe('LoginPage', () => {
   test('renders login form correctly', () => {
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     expect(screen.getByText('Welcome back')).toBeInTheDocument();
     expect(screen.getByLabelText('Email Address')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
@@ -18,27 +18,27 @@ describe('LoginPage', () => {
   });
 
   test('shows error when fields are empty and submitted', async () => {
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     fireEvent.click(screen.getByRole('button', { name: /sign in to dashboard/i }));
     expect(screen.queryByText(/sign in failed/i)).not.toBeInTheDocument();
   });
 
   test('updates email field on change', () => {
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     const emailInput = screen.getByLabelText('Email Address');
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     expect(emailInput.value).toBe('test@example.com');
   });
 
   test('updates password field on change', () => {
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     const passwordInput = screen.getByLabelText('Password');
     fireEvent.change(passwordInput, { target: { value: 'Test@1234' } });
     expect(passwordInput.value).toBe('Test@1234');
   });
 
   test('toggles password visibility', () => {
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     const passwordInput = screen.getByLabelText('Password');
     const toggleBtn = screen.getByLabelText('Toggle password');
     expect(passwordInput.type).toBe('password');
@@ -50,7 +50,7 @@ describe('LoginPage', () => {
     const { signIn } = require('aws-amplify/auth');
     signIn.mockRejectedValueOnce(new Error('Incorrect username or password.'));
 
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Wrong@1234' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in to dashboard/i }));
@@ -62,7 +62,7 @@ describe('LoginPage', () => {
     const { signIn } = require('aws-amplify/auth');
     signIn.mockImplementationOnce(() => new Promise(() => {}));
 
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in to dashboard/i }));
@@ -74,7 +74,7 @@ describe('LoginPage', () => {
     const { signIn } = require('aws-amplify/auth');
     signIn.mockResolvedValueOnce({ isSignedIn: true });
 
-    render(<MemoryRouter><LoginPage /></MemoryRouter>);
+    renderWithRouter(<LoginPage />);
     fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in to dashboard/i }));

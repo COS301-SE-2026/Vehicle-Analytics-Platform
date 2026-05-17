@@ -22,6 +22,10 @@
     "moduleNameMapper": {
       "\\.(css|svg|png)$": "identity-obj-proxy"
     },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "src/__tests__/testUtils.jsx"
+    ],
     "coverageReporters": [
       "text",
       "lcov"

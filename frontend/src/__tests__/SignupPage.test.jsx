@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithRouter } from './testUtils';
 import SignupPage from '../pages/SignupPage';
 
 jest.mock('aws-amplify/auth', () => ({
@@ -10,7 +10,7 @@ jest.mock('../components/AuthLayout', () => function MockAuthLayout({ children }
 
 describe('SignupPage', () => {
   test('renders signup form correctly', () => {
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     expect(screen.getByText('Create Your Account')).toBeInTheDocument();
     expect(screen.getByLabelText('Full Name')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
@@ -19,7 +19,7 @@ describe('SignupPage', () => {
   });
 
   test('shows error when terms not agreed', async () => {
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
@@ -29,7 +29,7 @@ describe('SignupPage', () => {
   });
 
     test('shows error when passwords do not match', () => {
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
@@ -40,20 +40,20 @@ describe('SignupPage', () => {
     });
 
   test('shows password strength indicators when typing', () => {
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
     expect(screen.getByText('At least 8 characters')).toBeInTheDocument();
   });
 
   test('updates fields on change', () => {
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     const nameInput = screen.getByLabelText('Full Name');
     fireEvent.change(nameInput, { target: { value: 'Jane Doe' } });
     expect(nameInput.value).toBe('Jane Doe');
   });
 
   test('shows error when password is too weak', () => {
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'weak' } });
@@ -67,7 +67,7 @@ describe('SignupPage', () => {
     const { signUp } = require('aws-amplify/auth');
     signUp.mockRejectedValueOnce(new Error('An account with the given email already exists.'));
 
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
@@ -82,7 +82,7 @@ describe('SignupPage', () => {
     const { signUp } = require('aws-amplify/auth');
     signUp.mockImplementationOnce(() => new Promise(() => {}));
 
-    render(<MemoryRouter><SignupPage /></MemoryRouter>);
+    renderWithRouter(<SignupPage />);
     fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import VerifyPage from '../pages/VerifyPage';
+import { VerifyPageWrapper } from './testUtils';
 
 jest.mock('aws-amplify/auth', () => ({
   confirmSignUp: jest.fn(),
@@ -10,13 +10,7 @@ jest.mock('aws-amplify/auth', () => ({
 jest.mock('../components/AuthLayout', () => function MockAuthLayout({ children }) { return <div>{children}</div>; });
 
 const renderVerifyPage = () => {
-  render(
-    <MemoryRouter initialEntries={[{ pathname: '/verify', state: { email: 'test@example.com' } }]}>
-      <Routes>
-        <Route path="/verify" element={<VerifyPage />} />
-      </Routes>
-    </MemoryRouter>
-  );
+  render(<VerifyPageWrapper><VerifyPage /></VerifyPageWrapper>);
 };
 
 describe('VerifyPage', () => {

@@ -40,7 +40,7 @@
 - **FR-6.6:** The system shall display the timestamp of the last telemetry update for each vehicle.
 - **FR-6.7:** The system shall refresh dashboard data automatically without requiring a manual page reload.
 
-## 1. User Stories (US)
+## 2. User Stories (US)
 
 ### US01: User Registration
 
@@ -140,7 +140,7 @@
 
 ---
 
-## 2. Use Cases (UC)
+## 3. Use Cases (UC)
 
 ### UC01: User Registration
 

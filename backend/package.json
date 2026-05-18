@@ -1,32 +1,48 @@
 {
-  "name": "backend",
+  "name": "vehicle-analytics-backend",
   "version": "1.0.0",
+  "description": "Vehicle Analytics Platform REST API with AWS Cognito",
   "main": "index.js",
   "scripts": {
-    "test": "jest --coverage",
-    "lint": "eslint ."
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "NODE_ENV=test jest --coverage --forceExit --detectOpenHandles --runInBand",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "coverageReporters": ["text", "lcov"],
-    "coverageDirectory": "coverage",
-    "forceCoverageMatch": [
-      "**/__tests__/**/*.js",
-      "**/*.test.js"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.js",
-      "!**/__tests__/**",
-      "!node_modules/**"
-    ]
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.600.0",
+    "aws-jwt-verify": "^4.0.1",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.20.0",
+    "serverless-http": "^4.0.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "devDependencies": {
     "eslint": "^10.3.0",
     "jest": "^30.3.0",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
   }
 }

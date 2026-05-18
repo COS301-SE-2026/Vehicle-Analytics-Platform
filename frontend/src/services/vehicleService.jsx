@@ -1,3 +1,5 @@
+// API suggestion: GET /api/kpis
+// Response shape: { totalVehicles, activeVehicles, averageSpeed, alertsToday, lastUpdated }
 export async function getKPIs() {
     return{
         totalVehicles: 15,
@@ -8,6 +10,8 @@ export async function getKPIs() {
     }
 }
 
+// API suggestion: GET /api/vehicles/locations or GET /api/telemetry/latest
+// Response shape: { timestamp, vehicles: [{ id, lat, lng, speed, status, lastUpdated?, distanceToday? }, ...] }
 export async function getVehicleLocations(){
     return {
         timestamp : new Date().toISOString,
@@ -22,6 +26,8 @@ export async function getVehicleLocations(){
     }
 }
 
+// API suggestion: GET /api/alerts?since=...&limit=...
+// Response shape: { total, alerts: [{ id, vehicleId, type, severity, message, timestamp }, ...] }
 export async function getAlerts() {
     return {
         total: 2,
@@ -46,6 +52,9 @@ export async function getAlerts() {
     }
 }
 
+// API suggestion: GET /api/users
+// Other user endpoints: POST /api/users, PUT /api/users/:id, DELETE /api/users/:id
+// Response: array of users [{ id, name, email, role, status? }, ...]
 export async function getUsers() {
   // Mock data — remove this block and uncomment the fetch below when ready
   return [

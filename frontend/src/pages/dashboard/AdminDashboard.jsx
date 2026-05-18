@@ -18,7 +18,7 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState(null)
   const [deactivatingUser, setDeactivatingUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [events, setEvents] = useState([])
+  const [events] = useState([])
 
   async function fetchAll() {
     try {

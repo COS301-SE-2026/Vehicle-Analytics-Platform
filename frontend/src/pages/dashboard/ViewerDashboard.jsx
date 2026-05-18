@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react'
 import { Truck, Waypoints, RefreshCw } from 'lucide-react'
-import { getKPIs, getVehicleLocations, getAlerts } from '../../services/vehicleService'
+import { getKPIs, getVehicleLocations } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import DonutChart from '../../components/dashboard/DonutChart'
 import MapSection from '../../components/dashboard/MapPlaceholder'
 
-// ---- Viewer Dashboard ----------
 export default function ViewerDashboard() {
   const [kpis, setKpis]           = useState(null)
   const [locations, setLocations] = useState(null)
   const [loading, setLoading]     = useState(true)
-  const [lastUpdated, setLastUpdated] = useState(null)
 
   async function fetchAll() {
     try {
       const[k, l] = await Promise.all([getKPIs(), getVehicleLocations()])
       setKpis(k)
       setLocations(l)
-      setLastUpdated(new Date())
     } finally {
       setLoading(false)
     }

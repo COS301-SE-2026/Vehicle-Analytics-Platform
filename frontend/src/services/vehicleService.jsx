@@ -1,10 +1,3 @@
-// src/services/vehicleServices.js
-//TODO: replace mock data with real API call when auth is merged 
-// Real calls will look like this:
-// const res = await fetch(`${import.meta.env.VITE_API_URL}/dashboard/kpis`, {
-// headers: {Authorization: `Bearer ${tocken}`}
-// })
-
 export async function getKPIs() {
     // Matches GET /dashboard/kpis response shape exactly
     return{

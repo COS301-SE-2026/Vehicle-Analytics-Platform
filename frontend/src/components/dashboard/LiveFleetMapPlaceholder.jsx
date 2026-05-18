@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Truck, X, MapPin, User, Clock, Waypoints, Wifi, ZoomIn, ZoomOut, Layers, Search } from 'lucide-react'
+import { Truck, X, MapPin, Clock, Waypoints } from 'lucide-react'
 import FleetMap from '../map/FleetMap'
+import PropTypes from 'prop-types'
 
 const mockVehicleDetail = {
   id: 'VH-0042',
@@ -155,4 +156,12 @@ export default function FleetMapPlaceholder({ active, idle, offline, total, vehi
       )}
     </div>
   )
+}
+
+FleetMapPlaceholder.propTypes = {
+  active:   PropTypes.number,
+  idle:     PropTypes.number,
+  offline:  PropTypes.number,
+  total:    PropTypes.number,
+  vehicles: PropTypes.array,
 }

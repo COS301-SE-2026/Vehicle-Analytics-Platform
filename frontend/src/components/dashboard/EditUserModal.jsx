@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import PropTypes from 'prop-types'
 
 const ROLES = [
   {
@@ -175,4 +176,12 @@ export default function EditUserModal({ user, onClose, onSave }) {
       </div>
     </>
   )
+}
+
+EditUserModal.propTypes = {
+  user:    PropTypes.shape({
+    role: PropTypes.string,
+  }),
+  onClose: PropTypes.func,
+  onSave:  PropTypes.func,
 }

@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import PropTypes from 'prop-types'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -99,4 +100,8 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
   return (
     <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
   )
+}
+
+FleetMap.propTypes = {
+  vehicles: PropTypes.array,
 }

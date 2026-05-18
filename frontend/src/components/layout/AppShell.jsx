@@ -4,19 +4,19 @@ import Sidebar from './Sidebar'
 import Header from './Header'
 
 const pageTitles = {
-  '/dashboard/viewer': 'Dashboard',
+  '/dashboard/viewer':  'Dashboard',
   '/dashboard/manager': 'Dashboard',
-  '/dashboard/admin': 'Admin Dashboard',
-  '/map': 'Live Map',
-  } 
+  '/dashboard/admin':   'Admin Dashboard',
+  '/map':               'Live Map',
+}
 
-const noHeader = ['/map']
+const noHeader = new Set(['/login', '/register'])
 
 export default function AppShell({ role = 'viewer' }) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
   const title = pageTitles[location.pathname] || 'FleetTracker'
-  const hideHeader = noHeader.includes(location.pathname)
+  const hideHeader = noHeader.has(location.pathname)
 
   return (
     <div className="min-h-screen bg-fleet-bg">

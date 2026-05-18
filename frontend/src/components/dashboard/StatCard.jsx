@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types'
+
 export default function StatCard({ icon: Icon, label, value, sub }) {
   return (
     <div className="bg-white rounded-2xl p-6 flex items-start justify-between shadow-sm border border-gray-100">
@@ -13,4 +15,9 @@ export default function StatCard({ icon: Icon, label, value, sub }) {
       <Icon className="w-8 h-8 text-green-700 opacity-70" />
     </div>
   )
+}
+
+StatCard.propTypes = {
+  value: PropTypes.number,
+  sub:   PropTypes.string,
 }

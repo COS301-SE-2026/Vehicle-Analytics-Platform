@@ -5,8 +5,8 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e) => e.key === "Escape" && onCancel();
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    globalThis.addEventListener("keydown", handleKey);
+    return () =>globalThis.addEventListener("keydown", handleKey);
   }, [isOpen, onCancel]);
 
   if (!isOpen || !user) return null;

@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types'
+
 const ROLE_STYLES = {
   admin: 'bg-fleet-alert text-white',
   manager: 'bg-fleet-green text-white',
@@ -125,4 +127,11 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
       </p>
     </div>
   )
+}
+
+UserManagementTable.propTypes = {
+  users:        PropTypes.array,
+  onEdit:       PropTypes.func,
+  onDeactivate: PropTypes.func,
+  onActivate:   PropTypes.func,
 }

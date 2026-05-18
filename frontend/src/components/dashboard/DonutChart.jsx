@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types'
+
 export default function DonutChart({ active, idle, offline, total }) {
   const r = 54, cx = 70, cy = 70
   const circumference = 2 * Math.PI * r
@@ -55,4 +57,8 @@ export default function DonutChart({ active, idle, offline, total }) {
       </div>
     </div>
   )
+}
+
+DonutChart.propTypes = {
+  offline:  PropTypes.number,
 }

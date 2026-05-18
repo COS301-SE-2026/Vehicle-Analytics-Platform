@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Map, Truck, ChevronLeft, ChevronRight } from 'lucide-react'
+import PropTypes from 'prop-types'
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/viewer' },
@@ -70,4 +71,8 @@ export default function Sidebar({ role, collapsed, onToggle }) {
             </div>
         </aside>
     )
+}
+
+Sidebar.propTypes = {
+  onToggle: PropTypes.func,
 }

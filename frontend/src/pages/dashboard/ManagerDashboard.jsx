@@ -10,10 +10,10 @@ import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 export default function ManagerDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
-  const [activityData, setActivityData] = useState([])
+  const [activityData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [events, setEvents] = useState([])
+  const [events] = useState([])
 
   async function fetchAll() {
     try {

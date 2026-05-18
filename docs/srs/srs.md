@@ -19,26 +19,15 @@
 - **FR-4.5:** The system shall allow the fleet manager to click a vehicle marker to view its current speed and status.
 - **FR-4.6:** The system shall centre the map on the fleet manager's monitored fleet by default on login.
 
-### UC05 — Driver Safety Score
+### UC05 — Fleet Dashboard and Analytics
 
-- **FR-5.1:** The system shall calculate a driver safety score between 0 and 100 for each vehicle.
-- **FR-5.2:** The system shall detect a speeding event when a vehicle exceeds the defined speed threshold.
-- **FR-5.3:** The system shall detect a harsh braking event when deceleration exceeds the defined threshold.
-- **FR-5.4:** The system shall detect a rapid acceleration event when acceleration exceeds the defined threshold.
-- **FR-5.5:** The system shall deduct points from the safety score for each detected unsafe driving event.
-- **FR-5.6:** The system shall classify each safety score as Good, Fair, or Poor based on defined thresholds.
-- **FR-5.7:** The system shall store each detected unsafe driving event with a timestamp and vehicle ID.
-- **FR-5.8:** The system shall recalculate the safety score in real time as new telemetry events are received.
-
-### UC06 — Fleet Dashboard and Analytics
-
-- **FR-6.1:** The system shall display a KPI summary showing total active vehicles, average fleet speed, and total unsafe events.
-- **FR-6.2:** The system shall display a time-series chart of vehicle speed over a selectable time range.
-- **FR-6.3:** The system shall display a ranked list of drivers ordered by safety score from lowest to highest.
-- **FR-6.4:** The system shall display a breakdown of unsafe driving events by type — speeding, harsh braking, rapid acceleration.
-- **FR-6.5:** The system shall allow the fleet manager to filter dashboard data by individual vehicle or entire fleet.
-- **FR-6.6:** The system shall display the timestamp of the last telemetry update for each vehicle.
-- **FR-6.7:** The system shall refresh dashboard data automatically without requiring a manual page reload.
+- **FR-5.1:** The system shall display a KPI summary showing total active vehicles, average fleet speed, and total unsafe events.
+- **FR-5.2:** The system shall display a time-series chart of vehicle speed over a selectable time range.
+- **FR-5.3:** The system shall display a ranked list of drivers ordered by safety score from lowest to highest.
+- **FR-5.4:** The system shall display a breakdown of unsafe driving events by type — speeding, harsh braking, rapid acceleration.
+- **FR-5.5:** The system shall allow the fleet manager to filter dashboard data by individual vehicle or entire fleet.
+- **FR-5.6:** The system shall display the timestamp of the last telemetry update for each vehicle.
+- **FR-5.7:** The system shall refresh dashboard data automatically without requiring a manual page reload.
 
 ## 2. User Stories (US)
 
@@ -110,22 +99,7 @@
 
 ---
 
-### US05: View Driver Safety Score
-
-**As a** fleet manager  
-**I want to** view a safety score for each driver in my fleet  
-**So that** I can identify dangerous drivers and take action before an incident occurs.
-
-**Acceptance Criteria:**
-* Each vehicle/driver has a visible safety score.
-* Score is calculated based on speeding, harsh braking and rapid acceleration.
-* Fleet manager can click on a driver to see a breakdown of their score.
-* Score updates as new telemetry data comes in.
-* Low scoring drivers are visually highlighted as a warning.
-
----
-
-### US06: View Fleet Dashboard and KPIs
+### US05: View Fleet Dashboard and KPIs
 
 **As a** fleet manager  
 **I want to** see a summary dashboard showing key metrics about my entire fleet  
@@ -238,38 +212,7 @@
 
 ---
 
-### UC04: View Live Vehicle Map
-
-**Actor:** Fleet Manager
-
-**Description:** A logged in fleet manager views a live interactive map showing the real time positions of all vehicles in their fleet, updated every 5-10 seconds from the AWS Kinesis data stream.
-
-**Pre-conditions:**
-* The fleet manager is logged in with a valid session.
-* Vehicle telemetry data is being streamed via AWS Kinesis.
-* At least one vehicle is active and transmitting data.
-
-**Main Flow:**
-1. Fleet manager navigates to the live map page.
-2. System fetches the latest vehicle positions from the data pipeline.
-3. System renders the interactive map with vehicle markers at their current positions.
-4. Map automatically refreshes vehicle positions every 5-10 seconds.
-5. Fleet manager can zoom, pan and interact with the map.
-6. Fleet manager clicks on a vehicle marker to see basic vehicle information.
-
-**Alternate Flows:**
-* **No Active Vehicles:** If no vehicles are currently active, the map displays an empty state message.
-* **Stream Unavailable:** If the data stream is unavailable, the system displays the last known positions with a warning.
-
-**Post-conditions:** The fleet manager has an up to date view of all vehicle locations.
-
-**Diagram:**
-
-![Live Vehicle Map Use Case](./images/uc_live_map.svg)
-
----
-
-### UC05: View Driver Safety Score
+### UC04: View Driver Safety Score
 
 **Actor:** Fleet Manager
 
@@ -299,7 +242,7 @@
 
 ---
 
-### UC06: View Fleet Dashboard and KPIs
+### UC05: View Fleet Dashboard and KPIs
 
 **Actor:** Fleet Manager
 

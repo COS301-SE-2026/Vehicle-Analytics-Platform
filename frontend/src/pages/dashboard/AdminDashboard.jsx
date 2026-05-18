@@ -18,7 +18,7 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState(null)
   const [deactivatingUser, setDeactivatingUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [events] = useState([])
+  const [lastDataReceived, setLastDataReceived] = useState(new Date())
 
   async function fetchAll() {
     try {
@@ -30,6 +30,7 @@ export default function AdminDashboard() {
       setKpis(k)
       setLocations(l)
       setUsers(u)
+      setLastDataReceived(new Date())
     } finally {
       setLoading(false)
     }
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
         <StatCard
           icon={Waypoints}
           label="Total Distance Today"
-          value={kpis.totalDistance ?? 847}
+          value={kpis.totalDistance ?? 0}
           sub="km across fleet"
         />
         <StatCard
@@ -120,8 +121,8 @@ export default function AdminDashboard() {
           sub={`${adminCount} Admin · ${managerCount} Mgr · ${viewerCount} Vwr`}
         />
         <DataFeedStatusCard
-          isLive={true}
-          lastReceived="3 seconds ago"
+          isLive={kpis !== null}
+          lastReceived={lastDataReceived.toISOString()}
         />
       </div>
 

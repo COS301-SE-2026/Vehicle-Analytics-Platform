@@ -14,7 +14,7 @@ export async function getKPIs() {
 // Response shape: { timestamp, vehicles: [{ id, lat, lng, speed, status, lastUpdated?, distanceToday? }, ...] }
 export async function getVehicleLocations(){
     return {
-        timestamp : new Date().toISOString,
+        timestamp : new Date().toISOString(),
         vehicles: [
             { id: '1000', lat: -27.98763, lng: 28.37466, speed: 65, status: 'active' },
             { id: '1001', lat: -28.12345, lng: 28.56789, speed: 42, status: 'active' },
@@ -58,9 +58,9 @@ export async function getAlerts() {
 export async function getUsers() {
   // Mock data — remove this block and uncomment the fetch below when ready
   return [
-    { id: 1, name: "Zoe Nelly", email: "Zoe@example.com", role: "admin" },
-    { id: 2, name: "Bob Smith",    email: "bob@example.com",   role: "user"  },
-    { id: 3, name: "Carol White",  email: "carol@example.com", role: "user"  },
+    { id: 1, name: "Zoe Nelly", email: "zoe.nelly@fleet.local", role: "admin" },
+    { id: 2, name: "Bob Smith", email: "bob.smith@fleet.local", role: "manager" },
+    { id: 3, name: "Carol White", email: "carol.white@fleet.local", role: "viewer" },
   ];
 }
 

@@ -106,4 +106,18 @@ describe('SignupPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
     expect(await screen.findByText(/creating account/i)).toBeInTheDocument();
   });
+
+  test('shows default error message when signup fails without message', async () => {
+    const { signUp } = require('aws-amplify/auth');
+    signUp.mockRejectedValueOnce({});
+
+    renderWithRouter(<SignupPage />);
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Test@1234' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+    expect(await screen.findByText(/sign up failed/i)).toBeInTheDocument();
+  });
 });

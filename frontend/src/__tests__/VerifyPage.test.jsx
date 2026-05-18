@@ -114,4 +114,13 @@ describe('VerifyPage', () => {
     });
     expect(inputs[0].value).toBe('1');
   });
+
+  test('shows error when resend fails', async () => {
+    const { resendSignUpCode } = require('aws-amplify/auth');
+    resendSignUpCode.mockRejectedValueOnce(new Error('Could not resend code.'));
+
+    renderVerifyPage();
+    fireEvent.click(screen.getByText(/resend code/i));
+    expect(await screen.findByText(/could not resend code/i)).toBeInTheDocument();
+  });
 });

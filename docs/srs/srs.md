@@ -19,15 +19,15 @@
 - **FR-4.5:** The system shall allow the fleet manager to click a vehicle marker to view its current speed and status.
 - **FR-4.6:** The system shall centre the map on the fleet manager's monitored fleet by default on login.
 
-### UC05 — Fleet Dashboard and Analytics
+### UC06 — Fleet Dashboard and Analytics
 
-- **FR-5.1:** The system shall display a KPI summary showing total active vehicles, average fleet speed, and total unsafe events.
-- **FR-5.2:** The system shall display a time-series chart of vehicle speed over a selectable time range.
-- **FR-5.3:** The system shall display a ranked list of drivers ordered by safety score from lowest to highest.
-- **FR-5.4:** The system shall display a breakdown of unsafe driving events by type — speeding, harsh braking, rapid acceleration.
-- **FR-5.5:** The system shall allow the fleet manager to filter dashboard data by individual vehicle or entire fleet.
-- **FR-5.6:** The system shall display the timestamp of the last telemetry update for each vehicle.
-- **FR-5.7:** The system shall refresh dashboard data automatically without requiring a manual page reload.
+- **FR-6.1:** The system shall display a KPI summary showing total active vehicles, average fleet speed, and total unsafe events.
+- **FR-6.2:** The system shall display a time-series chart of vehicle speed over a selectable time range.
+- **FR-6.3:** The system shall display a ranked list of drivers ordered by safety score from lowest to highest.
+- **FR-6.4:** The system shall display a breakdown of unsafe driving events by type — speeding, harsh braking, rapid acceleration.
+- **FR-6.5:** The system shall allow the fleet manager to filter dashboard data by individual vehicle or entire fleet.
+- **FR-6.6:** The system shall display the timestamp of the last telemetry update for each vehicle.
+- **FR-6.7:** The system shall refresh dashboard data automatically without requiring a manual page reload.
 
 ## 2. User Stories (US)
 
@@ -212,33 +212,34 @@
 
 ---
 
-### UC04: View Driver Safety Score
+### UC04: View Live Vehicle Map
 
 **Actor:** Fleet Manager
 
-**Description:** A fleet manager views the safety score of a specific driver, calculated from telemetry data including speeding, harsh braking and rapid acceleration.
+**Description:** A logged in fleet manager views a live interactive map showing the real time positions of all vehicles in their fleet, updated every 5-10 seconds from the AWS Kinesis data stream.
 
 **Pre-conditions:**
 * The fleet manager is logged in with a valid session.
-* Telemetry data has been received and processed for the selected vehicle.
-* The driver safety scoring algorithm has run on the available data.
+* Vehicle telemetry data is being streamed via AWS Kinesis.
+* At least one vehicle is active and transmitting data.
 
 **Main Flow:**
-1. Fleet manager navigates to the driver safety section or clicks a vehicle on the map.
-2. System retrieves the safety score for the selected driver from the database.
-3. System displays the overall safety score prominently.
-4. System displays a breakdown showing speeding, harsh braking, and rapid acceleration events.
-5. System visually highlights drivers with low scores as a warning.
-6. Fleet manager can view the score history over time.
+1. Fleet manager navigates to the live map page.
+2. System fetches the latest vehicle positions from the data pipeline.
+3. System renders the interactive map with vehicle markers at their current positions.
+4. Map automatically refreshes vehicle positions every 5-10 seconds.
+5. Fleet manager can zoom, pan and interact with the map.
+6. Fleet manager clicks on a vehicle marker to see basic vehicle information.
 
 **Alternate Flows:**
-* **Insufficient Data:** If insufficient telemetry data exists, the system indicates the score cannot yet be calculated.
+* **No Active Vehicles:** If no vehicles are currently active, the map displays an empty state message.
+* **Stream Unavailable:** If the data stream is unavailable, the system displays the last known positions with a warning.
 
-**Post-conditions:** The fleet manager has a clear view of the selected driver's safety performance.
+**Post-conditions:** The fleet manager has an up to date view of all vehicle locations.
 
 **Diagram:**
 
-![Driver Safety Score Use Case](./images/uc_safety_score.svg)
+![Live Vehicle Map Use Case](./images/uc_live_map.svg)
 
 ---
 

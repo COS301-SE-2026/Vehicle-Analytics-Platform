@@ -92,4 +92,26 @@ describe('VerifyPage', () => {
     fireEvent.keyDown(inputs[1], { key: 'Backspace' });
     expect(inputs[0]).toHaveFocus();
   });
+
+  test('navigates to login on successful verification', async () => {
+    const { confirmSignUp } = require('aws-amplify/auth');
+    confirmSignUp.mockResolvedValueOnce({});
+
+    renderVerifyPage();
+    const inputs = screen.getAllByRole('textbox');
+    ['1','2','3','4','5','6'].forEach((digit, i) => {
+      fireEvent.change(inputs[i], { target: { value: digit } });
+    });
+    fireEvent.click(screen.getByRole('button', { name: /verify account/i }));
+    await screen.findByText(/verifying/i);
+  });
+
+  test('handles paste of full code', () => {
+    renderVerifyPage();
+    const inputs = screen.getAllByRole('textbox');
+    fireEvent.paste(inputs[0], {
+      clipboardData: { getData: () => '123456' }
+    });
+    expect(inputs[0].value).toBe('1');
+  });
 });

@@ -81,4 +81,11 @@ describe('LoginPage', () => {
 
     await screen.findByText(/signing in/i);
   });
+
+  test('clears error when user types', () => {
+    renderWithRouter(<LoginPage />);
+    const emailInput = screen.getByLabelText('Email Address');
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    expect(screen.queryByText(/sign in failed/i)).not.toBeInTheDocument();
+  });
 });

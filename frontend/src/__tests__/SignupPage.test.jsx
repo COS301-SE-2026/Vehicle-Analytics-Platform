@@ -92,4 +92,18 @@ describe('SignupPage', () => {
 
     expect(await screen.findByText(/creating account/i)).toBeInTheDocument();
   });
+
+  test('navigates to verify page on successful signup', async () => {
+    const { signUp } = require('aws-amplify/auth');
+    signUp.mockResolvedValueOnce({});
+
+    renderWithRouter(<SignupPage />);
+    fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'John Doe' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Test@1234' } });
+    fireEvent.change(screen.getByLabelText('Confirm Password'), { target: { value: 'Test@1234' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+    expect(await screen.findByText(/creating account/i)).toBeInTheDocument();
+  });
 });

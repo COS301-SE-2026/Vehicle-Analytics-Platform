@@ -30,7 +30,7 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
               <th className="text-left pb-3 font-medium">Email</th>
               <th className="text-left pb-3 font-medium">Role</th>
               <th className="text-left pb-3 font-medium">Status</th>
-              <th className="pb-3 font-medium">Actions</th>
+              <th className=" text-left pb-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-fleet-border">

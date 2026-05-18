@@ -16,7 +16,7 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
     // Backdrop
     <div
       className="du-backdrop"
-      role="presentation"
+      aria-hidden="true"
       onClick={onCancel}
       onKeyDown={(e) => e.key === 'Escape' && onCancel()}
     >

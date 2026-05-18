@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 import { CheckIcon, ChevronRightIcon } from "lucide-react"
@@ -217,6 +218,11 @@ function DropdownMenuSubContent({
       {...props} />
   );
 }
+
+DropdownMenuContent.propTypes = { className: PropTypes.string, variant: PropTypes.string }
+DropdownMenuTrigger.propTypes = { className: PropTypes.string }
+DropdownMenuLabel.propTypes = { className: PropTypes.string, inset: PropTypes.bool }
+DropdownMenuSeparator.propTypes = { className: PropTypes.string }
 
 export {
   DropdownMenu,

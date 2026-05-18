@@ -1,7 +1,6 @@
 import * as React from "react"
 import { cva } from "class-variance-authority";
-import { Slot } from "radix-ui"
-
+import { Slot } from "radix-ui"import PropTypes from "prop-types"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
@@ -43,5 +42,7 @@ function Badge({
       {...props} />
   );
 }
+
+Badge.propTypes = { className: PropTypes.string, variant: PropTypes.string, asChild: PropTypes.bool }
 
 export { Badge, badgeVariants }

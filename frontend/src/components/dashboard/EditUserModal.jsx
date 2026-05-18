@@ -104,13 +104,14 @@ export default function EditUserModal({ user, onClose, onSave }) {
 
           {/* Role Selector */}
           <div className="px-6 py-4">
-            <label className="text-xs uppercase tracking-wide font-medium text-fleet-secondary block mb-3">
+            <label htmlFor="role-select" className="text-xs uppercase tracking-wide font-medium text-fleet-secondary block mb-3">
               Assign New Role
             </label>
 
             {/* Dropdown */}
             <div className="relative mb-4">
               <select
+                id="role-select"
                 value={selectedRole}
                 onChange={e => setSelectedRole(e.target.value)}
                 className="w-full h-10 px-3 pr-8 border border-fleet-border rounded-lg bg-fleet-surface text-fleet-text text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:border-fleet-green transition-colors"

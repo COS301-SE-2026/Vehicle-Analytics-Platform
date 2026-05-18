@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Separator as SeparatorPrimitive } from "radix-ui"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 
@@ -21,5 +22,7 @@ function Separator({
       {...props} />
   );
 }
+
+Separator.propTypes = { className: PropTypes.string }
 
 export { Separator }

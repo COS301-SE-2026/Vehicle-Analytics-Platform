@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "radix-ui"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -125,6 +126,12 @@ function SheetDescription({
       {...props} />
   );
 }
+
+SheetContent.propTypes = { className: PropTypes.string, showCloseButton: PropTypes.bool }
+SheetHeader.propTypes = { className: PropTypes.string }
+SheetTitle.propTypes = { className: PropTypes.string }
+SheetDescription.propTypes = { className: PropTypes.string }
+SheetFooter.propTypes = { className: PropTypes.string }
 
 export {
   Sheet,

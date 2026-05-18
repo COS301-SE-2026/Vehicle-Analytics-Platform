@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -136,6 +137,12 @@ function DialogDescription({
       {...props} />
   );
 }
+
+DialogContent.propTypes = { children: PropTypes.node, showCloseButton: PropTypes.bool }
+DialogHeader.propTypes = { className: PropTypes.string }
+DialogTitle.propTypes = { className: PropTypes.string }
+DialogDescription.propTypes = { className: PropTypes.string }
+DialogFooter.propTypes = { className: PropTypes.string }
 
 export {
   Dialog,

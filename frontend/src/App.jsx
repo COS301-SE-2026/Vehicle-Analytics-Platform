@@ -9,7 +9,8 @@ import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
 
 function ProtectedRoute({ children, allowedRoles }) {
-  // TODO: re-enable when auth is merged
+  // FIXME: re-enable auth validation when auth module is merged
+  // Temporarily bypassing role checks for development
   return children
 }
 

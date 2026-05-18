@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "radix-ui"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 
@@ -47,5 +48,10 @@ function TooltipContent({
     </TooltipPrimitive.Portal>
   );
 }
+
+TooltipProvider.propTypes = { delayDuration: PropTypes.number }
+Tooltip.propTypes = {}
+TooltipTrigger.propTypes = { className: PropTypes.string, delayDuration: PropTypes.number }
+TooltipContent.propTypes = { className: PropTypes.string, sideOffset: PropTypes.number }
 
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }

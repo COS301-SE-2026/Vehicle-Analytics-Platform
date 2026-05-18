@@ -2,6 +2,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
 } from 'recharts'
+import PropTypes from 'prop-types'
 
 const DEFAULT_DATA = [
   { time: '06:00', vehicles: 3 },
@@ -93,3 +94,5 @@ export default function FleetActivityChart({ data = [] }) {
     </div>
   )
 }
+
+FleetActivityChart.propTypes = { data: PropTypes.array }

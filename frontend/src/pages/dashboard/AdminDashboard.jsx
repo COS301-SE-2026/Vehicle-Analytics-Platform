@@ -9,12 +9,14 @@ import UserManagementTable from '../../components/dashboard/UserManagementTable'
 import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
+import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
 
 export default function AdminDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
   const [users, setUsers] = useState([])
   const [editingUser, setEditingUser] = useState(null)
+  const [deactivatingUser, setDeactivatingUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState([])
 
@@ -83,7 +85,7 @@ export default function AdminDashboard() {
   }
 
   function handleDeactivate(user) {
-    console.log('Deactivate user:', user)
+    setDeactivatingUser(user)
     // Wire up API call later
   }
 
@@ -92,9 +94,15 @@ export default function AdminDashboard() {
     // Wire up API call later
   }
 
+  function handleDeactivateConfirm(user) {
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: 'inactive' } : u))
+    setDeactivatingUser(null)
+    // Wire up API call here later
+  }
+
   async function handleSaveRole(user, newRole) {
-  setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u))
-}
+   setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u))
+  }
 
   return (
     <div className="space-y-4">
@@ -163,6 +171,14 @@ export default function AdminDashboard() {
           onSave={handleSaveRole}
         />
       )}
+
+       {/* Deactivate User Modal */}
+      <DeactivateUserModal
+        isOpen={!!deactivatingUser}
+        user={deactivatingUser}
+        onConfirm={handleDeactivateConfirm}
+        onCancel={() => setDeactivatingUser(null)}
+      />
 
     </div>
   )

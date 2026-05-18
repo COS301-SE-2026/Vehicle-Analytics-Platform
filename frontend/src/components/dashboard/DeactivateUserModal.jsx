@@ -1,34 +1,50 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import PropTypes from 'prop-types';
 
 export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel }) {
-  // Close on Escape key
+  const dialogRef = useRef(null)
+
+  // Open/close the native dialog when `isOpen` changes. Prefer showModal when available.
   useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e) => e.key === "Escape" && onCancel();
-    globalThis.addEventListener("keydown", handleKey);
-    return () =>globalThis.addEventListener("keydown", handleKey);
-  }, [isOpen, onCancel]);
+    const d = dialogRef.current
+    if (!d) return
+
+    if (isOpen) {
+      if (typeof d.showModal === 'function') {
+        d.showModal()
+      } else {
+        d.setAttribute('open', '')
+      }
+      d.focus()
+    } else if (typeof d.close === 'function') {
+      d.close()
+    } else {
+      d.removeAttribute('open')
+    }
+
+    return () => {
+      if (d) {
+        if (typeof d.close === 'function') d.close()
+        else d.removeAttribute('open')
+      }
+    }
+  }, [isOpen])
 
   if (!isOpen || !user) return null;
 
   return (
-    // Backdrop
-    <div
-      className="du-backdrop"
-      role="presentation"
-      onClick={onCancel}
-      onKeyDown={(e) => e.key === 'Escape' && onCancel()}
-    >
-  <div
+    <dialog
+      ref={dialogRef}
+      open
       className="du-card"
-      role="dialog"
       aria-modal="true"
       aria-labelledby="du-title"
-      onClick={(e) => e.stopPropagation()}
+      onCancel={(e) => {
+        // Ensure onCancel handler is called when dialog is dismissed (Escape)
+        e.preventDefault()
+        onCancel()
+      }}
     >
-      {/* Modal card – stop click propagation so clicking inside doesn't close */}
-      <div className="du-card" onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="du-header">
@@ -65,24 +81,28 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
             Yes, Deactivate
           </button>
         </div>
-      </div>
-
       {/* Scoped styles */}
       <style>{`
-        .du-backdrop {
-          position: fixed;
-          inset: 0;
+        dialog::backdrop {
           background: rgba(0, 0, 0, 0.45);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
           animation: du-fade-in 0.15s ease;
         }
 
         @keyframes du-fade-in {
           from { opacity: 0; }
           to   { opacity: 1; }
+        }
+
+        dialog {
+          border: none;
+          padding: 0;
+          background: transparent;
+          width: 100%;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
         }
 
         .du-card {
@@ -219,8 +239,7 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
         }
         .du-btn-confirm:hover { background: #991b1b; }
       `}</style>
-    </div>
-  </div>
+    </dialog>
   );
 }
 

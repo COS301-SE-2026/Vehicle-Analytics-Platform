@@ -75,7 +75,6 @@ export default function Sidebar({ role, collapsed, onToggle }) {
 
 Sidebar.propTypes = {
   onToggle: PropTypes.func,
-  role:      PropTypes.string,
+  role: PropTypes.string,
   collapsed: PropTypes.bool,
-  onToggle:  PropTypes.func,
 }

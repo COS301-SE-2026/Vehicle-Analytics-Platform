@@ -1,6 +1,17 @@
 import PropTypes from 'prop-types'
 
-export default function DataFeedStatusCard({ isLive = true, lastReceived = '3 seconds ago' }) {
+function formatLastReceived(timestamp) {
+  if (!timestamp) return 'Unknown'
+  const date = new Date(timestamp)
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (diff < 60) return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return date.toLocaleDateString()
+}
+
+export default function DataFeedStatusCard({ isLive = false, lastReceived = null }) {
+  const displayTime = formatLastReceived(lastReceived)
   return (
     <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5 flex flex-col justify-between">
       <p className="text-fleet-secondary text-xs uppercase tracking-wide font-medium">
@@ -14,7 +25,7 @@ export default function DataFeedStatusCard({ isLive = true, lastReceived = '3 se
           </span>
         </div>
         <p className="text-fleet-secondary text-xs mt-1">
-          Last received {lastReceived}
+          Last received {displayTime}
         </p>
       </div>
     </div>

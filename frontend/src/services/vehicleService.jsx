@@ -1,3 +1,5 @@
+// API suggestion: GET /api/kpis
+// Response shape: { totalVehicles, activeVehicles, averageSpeed, alertsToday, lastUpdated }
 export async function getKPIs() {
     return{
         totalVehicles: 15,
@@ -8,9 +10,11 @@ export async function getKPIs() {
     }
 }
 
+// API suggestion: GET /api/vehicles/locations or GET /api/telemetry/latest
+// Response shape: { timestamp, vehicles: [{ id, lat, lng, speed, status, lastUpdated?, distanceToday? }, ...] }
 export async function getVehicleLocations(){
     return {
-        timestamp : new Date().toISOString,
+        timestamp : new Date().toISOString(),
         vehicles: [
             { id: '1000', lat: -27.98763, lng: 28.37466, speed: 65, status: 'active' },
             { id: '1001', lat: -28.12345, lng: 28.56789, speed: 42, status: 'active' },
@@ -22,6 +26,8 @@ export async function getVehicleLocations(){
     }
 }
 
+// API suggestion: GET /api/alerts?since=...&limit=...
+// Response shape: { total, alerts: [{ id, vehicleId, type, severity, message, timestamp }, ...] }
 export async function getAlerts() {
     return {
         total: 2,
@@ -46,12 +52,15 @@ export async function getAlerts() {
     }
 }
 
+// API suggestion: GET /api/users
+// Other user endpoints: POST /api/users, PUT /api/users/:id, DELETE /api/users/:id
+// Response: array of users [{ id, name, email, role, status? }, ...]
 export async function getUsers() {
   // Mock data — remove this block and uncomment the fetch below when ready
   return [
-    { id: 1, name: "Zoe Nelly", email: "Zoe@example.com", role: "admin" },
-    { id: 2, name: "Bob Smith",    email: "bob@example.com",   role: "user"  },
-    { id: 3, name: "Carol White",  email: "carol@example.com", role: "user"  },
+    { id: 1, name: "Zoe Nelly", email: "zoe.nelly@fleet.local", role: "admin" },
+    { id: 2, name: "Bob Smith", email: "bob.smith@fleet.local", role: "manager" },
+    { id: 3, name: "Carol White", email: "carol.white@fleet.local", role: "viewer" },
   ];
 }
 

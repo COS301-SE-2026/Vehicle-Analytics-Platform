@@ -77,8 +77,8 @@ function formatTime(timestamp) {
 }
 
 export default function RecentVehicleEvents({ events, limit = 10 }) {
-  // Use passed events if available, otherwise fall back to mock data
-  const data = events && events.length > 0 ? events : MOCK_EVENTS
+  // Only use passed events; empty array if none provided (no mock fallback for production)
+  const data = events && Array.isArray(events) ? events : []
   const displayed = data.slice(0, limit)
 
   return (

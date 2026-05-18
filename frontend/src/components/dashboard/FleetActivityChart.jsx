@@ -2,6 +2,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
 } from 'recharts'
+import PropTypes from 'prop-types'
 
 const DEFAULT_DATA = [
   { time: '06:00', vehicles: 3 },
@@ -14,7 +15,15 @@ const DEFAULT_DATA = [
   { time: '20:00', vehicles: 4 },
 ]
 
-export default function FleetActivityChart({ data = DEFAULT_DATA }) {
+export default function FleetActivityChart({ data = [] }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5 flex items-center justify-center h-64">
+        <p className="text-fleet-secondary text-sm">No fleet activity data available</p>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5">
       <div className="flex items-center justify-between mb-4">
@@ -85,3 +94,5 @@ export default function FleetActivityChart({ data = DEFAULT_DATA }) {
     </div>
   )
 }
+
+FleetActivityChart.propTypes = { data: PropTypes.array }

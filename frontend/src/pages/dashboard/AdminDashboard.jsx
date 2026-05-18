@@ -11,6 +11,12 @@ import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
 
+// Placeholder activation handler kept at module scope to satisfy linting rules.
+function handleActivate(user) {
+  // Wire up API call later
+  // Intentionally module-scoped to avoid redefining inside the component.
+}
+
 export default function AdminDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
@@ -18,7 +24,7 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState(null)
   const [deactivatingUser, setDeactivatingUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [events] = useState([])
+  const [lastDataReceived, setLastDataReceived] = useState(new Date())
 
   async function fetchAll() {
     try {
@@ -30,6 +36,7 @@ export default function AdminDashboard() {
       setKpis(k)
       setLocations(l)
       setUsers(u)
+      setLastDataReceived(new Date())
     } finally {
       setLoading(false)
     }
@@ -82,9 +89,7 @@ export default function AdminDashboard() {
     // Wire up API call later
   }
 
-  function handleActivate(user) {
-    // Wire up API call later
-  }
+  // Uses module-scoped `handleActivate`
 
   function handleDeactivateConfirm(user) {
     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: 'inactive' } : u))
@@ -110,7 +115,7 @@ export default function AdminDashboard() {
         <StatCard
           icon={Waypoints}
           label="Total Distance Today"
-          value={kpis.totalDistance ?? 847}
+          value={kpis.totalDistance ?? 0}
           sub="km across fleet"
         />
         <StatCard
@@ -120,8 +125,8 @@ export default function AdminDashboard() {
           sub={`${adminCount} Admin · ${managerCount} Mgr · ${viewerCount} Vwr`}
         />
         <DataFeedStatusCard
-          isLive={true}
-          lastReceived="3 seconds ago"
+          isLive={kpis !== null}
+          lastReceived={lastDataReceived.toISOString()}
         />
       </div>
 

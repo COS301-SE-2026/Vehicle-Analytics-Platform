@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppShell from './components/layout/AppShell'
+import PropTypes from 'prop-types'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import VerifyEmail from './pages/auth/VerifyEmail'
@@ -7,10 +8,32 @@ import ViewerDashboard from './pages/dashboard/ViewerDashboard'
 import ManagerDashboard from './pages/dashboard/ManagerDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
+import useAuthStore from './store/authStore'
 
 function ProtectedRoute({ children, allowedRoles }) {
-  // TODO: re-enable when auth is merged
+  // Enforce simple auth + role-based access using the local auth store.
+  const { user, role } = useAuthStore()
+
+  // Not authenticated -> send to login
+  if (!user) return <Navigate to="/login" replace />
+
+  // If allowedRoles provided, verify role membership
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    // Redirect user to their appropriate dashboard
+    const redirect = useAuthStore.getState().getDashboardPath()
+    return <Navigate to={redirect} replace />
+  }
+
   return children
+}
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  allowedRoles: PropTypes.arrayOf(PropTypes.string)
+}
+
+ProtectedRoute.defaultProps = {
+  allowedRoles: []
 }
 
 function App() {

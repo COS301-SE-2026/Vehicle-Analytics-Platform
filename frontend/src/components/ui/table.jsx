@@ -1,4 +1,5 @@
 import * as React from "react"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 
@@ -119,3 +120,12 @@ export {
   TableCell,
   TableCaption,
 }
+
+Table.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableHeader.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableBody.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableFooter.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableRow.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableHead.propTypes = { className: PropTypes.string }
+TableCell.propTypes = { className: PropTypes.string }
+TableCaption.propTypes = { className: PropTypes.string }

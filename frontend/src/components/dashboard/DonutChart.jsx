@@ -3,8 +3,8 @@ import PropTypes from 'prop-types'
 export default function DonutChart({ active, idle, offline, total }) {
   const r = 54, cx = 70, cy = 70
   const circumference = 2 * Math.PI * r
-  const activeDash  = (active  / total) * circumference
-  const idleDash    = (idle    / total) * circumference
+  const activeDash = (active / total) * circumference
+  const idleDash = (idle / total) * circumference
   const offlineDash = (offline / total) * circumference
 
   return (
@@ -35,6 +35,7 @@ export default function DonutChart({ active, idle, offline, total }) {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-sm bg-green-700 inline-block" />
+              {' '}
               Active
             </span>
             <span className="font-bold text-gray-700">{active}</span>
@@ -42,6 +43,7 @@ export default function DonutChart({ active, idle, offline, total }) {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-sm bg-amber-400 inline-block" />
+              {' '}
               Idle
             </span>
             <span className="font-bold text-gray-700">{idle}</span>
@@ -49,6 +51,7 @@ export default function DonutChart({ active, idle, offline, total }) {
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-sm bg-gray-400 inline-block" />
+              {' '}
               Offline
             </span>
             <span className="font-bold text-gray-700">{offline}</span>

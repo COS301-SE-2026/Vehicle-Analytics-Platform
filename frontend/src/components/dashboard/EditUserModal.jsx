@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { X } from 'lucide-react'
 import PropTypes from 'prop-types'
 
@@ -26,6 +26,27 @@ const ROLES = [
 export default function EditUserModal({ user, onClose, onSave }) {
   const [selectedRole, setSelectedRole] = useState(user?.role ?? 'viewer')
   const [saving, setSaving] = useState(false)
+  const dialogRef = useRef(null)
+
+  useEffect(() => {
+    const d = dialogRef.current
+    if (!d) return
+    if (user) {
+      if (typeof d.showModal === 'function') d.showModal()
+      else d.setAttribute('open', '')
+      d.focus()
+    } else if (typeof d.close === 'function') {
+      d.close()
+    } else {
+      d.removeAttribute('open')
+    }
+    return () => {
+      if (d) {
+        if (typeof d.close === 'function') d.close()
+        else d.removeAttribute('open')
+      }
+    }
+  }, [user])
 
   if (!user) return null
 
@@ -48,23 +69,14 @@ export default function EditUserModal({ user, onClose, onSave }) {
   }
 
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-fleet-text/40 z-40"
-        role="presentation"
-        onClick={onClose}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      />
-
-    {/* Modal */}
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="bg-fleet-surface rounded-2xl border border-fleet-border w-full max-w-[440px] shadow-lg"
-        role="dialog"
+      <dialog
+        ref={dialogRef}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
         aria-modal="true"
         aria-labelledby="eu-title"
-      >   
+        onCancel={(e) => { e.preventDefault(); onClose() }}
+      >
+        <div className="bg-fleet-surface rounded-2xl border border-fleet-border w-full max-w-[440px] shadow-lg">
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-fleet-border">
             <h2 id="eu-title" className="font-display font-bold text-fleet-text text-lg">
@@ -82,11 +94,11 @@ export default function EditUserModal({ user, onClose, onSave }) {
           <div className="px-6 py-4 border-b border-fleet-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-fleet-green flex items-center justify-center shrink-0">
-                  <span className="text-white text-sm font-bold">
-                    {initials}
-                  </span>
-                </div>
+                  <div className="w-10 h-10 rounded-lg bg-fleet-green flex items-center justify-center shrink-0" aria-hidden>
+                    <span className="text-white text-sm font-bold">
+                      {initials}
+                    </span>
+                  </div>
                 <div>
                   <p className="font-medium text-fleet-text text-sm">
                     {user.name}
@@ -104,13 +116,14 @@ export default function EditUserModal({ user, onClose, onSave }) {
 
           {/* Role Selector */}
           <div className="px-6 py-4">
-            <label className="text-xs uppercase tracking-wide font-medium text-fleet-secondary block mb-3">
+            <label htmlFor="role-select" className="text-xs uppercase tracking-wide font-medium text-fleet-secondary block mb-3">
               Assign New Role
             </label>
 
             {/* Dropdown */}
             <div className="relative mb-4">
               <select
+                id="role-select"
                 value={selectedRole}
                 onChange={e => setSelectedRole(e.target.value)}
                 className="w-full h-10 px-3 pr-8 border border-fleet-border rounded-lg bg-fleet-surface text-fleet-text text-sm font-medium appearance-none cursor-pointer focus:outline-none focus:border-fleet-green transition-colors"
@@ -131,15 +144,17 @@ export default function EditUserModal({ user, onClose, onSave }) {
             {/* Role descriptions */}
             <div className="flex flex-col gap-2 mb-4">
               {ROLES.map(role => (
-                <div
+                <button
                   key={role.value}
-                  className={`flex items-center gap-2 text-xs cursor-pointer ${selectedRole === role.value ? 'text-fleet-text font-medium' : 'text-fleet-secondary'}`}
+                  type="button"
                   onClick={() => setSelectedRole(role.value)}
+                  aria-pressed={selectedRole === role.value}
+                  className={`flex items-center gap-2 text-xs text-left w-full p-2 rounded ${selectedRole === role.value ? 'text-fleet-text font-medium bg-fleet-surface' : 'text-fleet-secondary hover:bg-fleet-panel'}`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${role.color} shrink-0`} />
+                  <span className={`w-2 h-2 rounded-full ${role.color} shrink-0`} aria-hidden />
                   <span className="font-medium">{role.label}</span>
                   <span className="text-fleet-secondary">({role.description})</span>
-                </div>
+                </button>
               ))}
             </div>
 
@@ -179,8 +194,7 @@ export default function EditUserModal({ user, onClose, onSave }) {
           </div>
 
         </div>
-      </div>
-    </>
+      </dialog>
   )
 }
 

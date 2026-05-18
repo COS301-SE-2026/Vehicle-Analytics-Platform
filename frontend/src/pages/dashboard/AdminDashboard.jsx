@@ -8,6 +8,7 @@ import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import UserManagementTable from '../../components/dashboard/UserManagementTable'
 import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import EditUserModal from '../../components/dashboard/EditUserModal'
+import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 
 export default function AdminDashboard() {
   const [kpis, setKpis] = useState(null)
@@ -15,6 +16,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([])
   const [editingUser, setEditingUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [events, setEvents] = useState([])
 
   async function fetchAll() {
     try {
@@ -146,7 +148,11 @@ export default function AdminDashboard() {
         onActivate={handleActivate}
       />
 
-      {/* Row 4 — Fleet Activity Chart */}
+      {/* Row 4 — Recent Vehicle Events */}
+      <RecentVehicleEvents events={events} limit={10} />
+
+
+      {/* Row 5 — Fleet Activity Chart */}
       <FleetActivityChart />
 
       {/* Edit User Modal */}

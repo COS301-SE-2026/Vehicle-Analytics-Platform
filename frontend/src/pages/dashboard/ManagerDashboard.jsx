@@ -5,6 +5,7 @@ import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
 import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
+import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 
 export default function ManagerDashboard() {
   const [kpis, setKpis] = useState(null)
@@ -12,6 +13,7 @@ export default function ManagerDashboard() {
   const [activityData, setActivityData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [events, setEvents] = useState([])
 
   async function fetchAll() {
     try {
@@ -114,7 +116,10 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Row 3 — Fleet Activity Chart */}
+      {/* Row 3 — Recent Vehicle Events */}
+      <RecentVehicleEvents events={events} limit={10} />
+
+      {/* Row 4 — Fleet Activity Chart */}
       <FleetActivityChart data={activityData} />
 
     </div>

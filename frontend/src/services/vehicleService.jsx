@@ -64,15 +64,4 @@ export async function getUsers() {
     { id: 3, name: "Carol White",  email: "carol@example.com", role: "user"  },
   ];
 }
-// export async function getUsers() {
-//   try {
-//     const response = await fetch(`${API_BASE}/users`, {
-//       headers: { Authorization: `Bearer ${getToken()}` }
-//     })
-//     const data = await response.json()
-//     return data.users ?? data ?? []
-//   } catch (error) {
-//     console.error('getUsers error:', error)
-//     return []
-//   }
-// }
+

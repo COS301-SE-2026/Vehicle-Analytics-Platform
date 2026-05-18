@@ -103,5 +103,7 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
 }
 
 FleetMap.propTypes = {
-  vehicles: PropTypes.array,
+  vehicles:       PropTypes.array,
+  onVehicleClick: PropTypes.func,
+  minimal:        PropTypes.bool,
 }

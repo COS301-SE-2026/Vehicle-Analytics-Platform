@@ -60,5 +60,8 @@ export default function DonutChart({ active, idle, offline, total }) {
 }
 
 DonutChart.propTypes = {
-  offline:  PropTypes.number,
+  active:  PropTypes.number,
+  idle:    PropTypes.number,
+  offline: PropTypes.number,
+  total:   PropTypes.number,
 }

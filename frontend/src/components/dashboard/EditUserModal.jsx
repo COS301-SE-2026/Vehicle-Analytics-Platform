@@ -52,16 +52,22 @@ export default function EditUserModal({ user, onClose, onSave }) {
       {/* Overlay */}
       <div
         className="fixed inset-0 bg-fleet-text/40 z-40"
+        role="presentation"
         onClick={onClose}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-fleet-surface rounded-2xl border border-fleet-border w-full max-w-[440px] shadow-lg">
-
+    {/* Modal */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="bg-fleet-surface rounded-2xl border border-fleet-border w-full max-w-[440px] shadow-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="eu-title"
+      >   
           {/* Header */}
           <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-fleet-border">
-            <h2 className="font-display font-bold text-fleet-text text-lg">
+            <h2 id="eu-title" className="font-display font-bold text-fleet-text text-lg">
               Edit User Access
             </h2>
             <button
@@ -180,7 +186,9 @@ export default function EditUserModal({ user, onClose, onSave }) {
 
 EditUserModal.propTypes = {
   user:    PropTypes.shape({
-    role: PropTypes.string,
+    name:  PropTypes.string,
+    email: PropTypes.string,
+    role:  PropTypes.string,
   }),
   onClose: PropTypes.func,
   onSave:  PropTypes.func,

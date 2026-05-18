@@ -49,13 +49,6 @@ export default function AdminDashboard() {
     )
   }
 
-  // if (error) {
-  //   return (
-  //     <div className="flex items-center justify-center h-64">
-  //       <p className="text-fleet-alert text-sm">{error}</p>
-  //     </div>
-  //   )
-  // }
 
   if (!kpis || !locations) {
     return (
@@ -90,7 +83,6 @@ export default function AdminDashboard() {
   }
 
   function handleActivate(user) {
-    console.log('Activate user:', user)
     // Wire up API call later
   }
 

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import PropTypes from 'prop-types';
 
 export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel }) {
   // Close on Escape key
@@ -15,10 +16,16 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
     // Backdrop
     <div
       className="du-backdrop"
+      role="presentation"
       onClick={onCancel}
+      onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+    >
+  <div
+      className="du-card"
       role="dialog"
       aria-modal="true"
       aria-labelledby="du-title"
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Modal card – stop click propagation so clicking inside doesn't close */}
       <div className="du-card" onClick={(e) => e.stopPropagation()}>
@@ -213,5 +220,15 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
         .du-btn-confirm:hover { background: #991b1b; }
       `}</style>
     </div>
+  </div>
   );
+}
+
+DeactivateUserModal.propTypes = {
+  isOpen:    PropTypes.bool,
+  user:      PropTypes.shape({
+    name: PropTypes.string,
+  }),
+  onConfirm: PropTypes.func,
+  onCancel:  PropTypes.func,
 }

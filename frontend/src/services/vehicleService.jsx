@@ -1,5 +1,4 @@
 export async function getKPIs() {
-    // Matches GET /dashboard/kpis response shape exactly
     return{
         totalVehicles: 15,
         activeVehicles: 11,
@@ -10,7 +9,6 @@ export async function getKPIs() {
 }
 
 export async function getVehicleLocations(){
-    // Matches GET /dashboard/kpis response shape exactly
     return {
         timestamp : new Date().toISOString,
         vehicles: [
@@ -25,7 +23,6 @@ export async function getVehicleLocations(){
 }
 
 export async function getAlerts() {
-    // Matches GET /dashboard/alerts response shape exactly
     return {
         total: 2,
         alerts: [

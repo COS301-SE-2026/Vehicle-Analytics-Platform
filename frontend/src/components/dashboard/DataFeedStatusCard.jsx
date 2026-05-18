@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types'
+
 export default function DataFeedStatusCard({ isLive = true, lastReceived = '3 seconds ago' }) {
   return (
     <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5 flex flex-col justify-between">
@@ -17,4 +19,9 @@ export default function DataFeedStatusCard({ isLive = true, lastReceived = '3 se
       </div>
     </div>
   )
+}
+
+DataFeedStatusCard.propTypes = {
+  isLive:       PropTypes.bool,
+  lastReceived: PropTypes.string,
 }

@@ -20,11 +20,9 @@ export default function ManagerDashboard() {
       const [k, l] = await Promise.all([
         getKPIs(),
         getVehicleLocations(),
-        // TODO: add getFleetActivity() here when endpoint is ready
       ])
       setKpis(k)
       setLocations(l)
-      // TODO: setActivityData(activity) when endpoint is ready
       setError(null)
     } catch (err) {
       console.error('ManagerDashboard fetch error:', err)

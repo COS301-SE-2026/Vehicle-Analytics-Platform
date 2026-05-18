@@ -18,6 +18,8 @@ export default function StatCard({ icon: Icon, label, value, sub }) {
 }
 
 StatCard.propTypes = {
+  icon:  PropTypes.elementType,
+  label: PropTypes.string,
   value: PropTypes.number,
   sub:   PropTypes.string,
 }

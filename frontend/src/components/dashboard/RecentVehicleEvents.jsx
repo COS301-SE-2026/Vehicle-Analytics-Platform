@@ -1,4 +1,5 @@
 import { AlertTriangle, Zap, Power, PlayCircle } from 'lucide-react'
+import PropTypes from 'prop-types'
 
 const MOCK_EVENTS = [
   {
@@ -134,4 +135,9 @@ export default function RecentVehicleEvents({ events, limit = 10 }) {
       </div>
     </div>
   )
+}
+
+RecentVehicleEvents.propTypes = {
+  events: PropTypes.array,
+  limit:  PropTypes.number,
 }

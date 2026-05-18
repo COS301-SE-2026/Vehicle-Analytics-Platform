@@ -1,3 +1,5 @@
+import PropTypes from "prop-types"
+
 const STATUS_STYLES = {
   moving: 'bg-fleet-green text-white',
   idle: 'bg-fleet-warning text-white',
@@ -90,4 +92,8 @@ export default function MostActiveVehiclesTable({ vehicles = [] }) {
       </div>
     </div>
   )
+}
+
+MostActiveVehiclesTable.propTypes = {
+  vehicles: PropTypes.array,
 }

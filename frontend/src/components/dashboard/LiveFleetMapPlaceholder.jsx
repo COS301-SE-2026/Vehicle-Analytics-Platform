@@ -104,11 +104,6 @@ function VehiclePanel({ vehicle, onClose }) {
 
 export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles = [] }) {
   const [selectedVehicle, setSelectedVehicle] = useState(null)
-  const [search, setSearch] = useState('')
-
-  const filtered = search
-    ? vehicles.filter(v => v.id.toLowerCase().includes(search.toLowerCase()))
-    : vehicles
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
@@ -142,7 +137,7 @@ export default function FleetMapPlaceholder({ active, idle, offline, total, vehi
 
         {/* Real Map */}
         <FleetMap
-          vehicles={filtered}
+          vehicles={vehicles}
           onVehicleClick={setSelectedVehicle}
           minimal={false}
         />
@@ -164,4 +159,14 @@ FleetMapPlaceholder.propTypes = {
   offline:  PropTypes.number,
   total:    PropTypes.number,
   vehicles: PropTypes.array,
+}
+
+VehiclePanel.propTypes = {
+  vehicle: PropTypes.object,
+  onClose: PropTypes.func,
+}
+DetailRow.propTypes = {
+  icon:  PropTypes.elementType,
+  label: PropTypes.string,
+  value: PropTypes.string,
 }

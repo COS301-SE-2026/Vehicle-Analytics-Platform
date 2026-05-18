@@ -1,4 +1,5 @@
 import FleetMap from '../map/FleetMap'
+import PropTypes from 'prop-types'
 
 export default function MapSection({ active, idle, offline, vehicles = [] }) {
   return (
@@ -29,4 +30,12 @@ export default function MapSection({ active, idle, offline, vehicles = [] }) {
       </div>
     </div>
   )
+}
+
+MapSection.propTypes = {
+  active:   PropTypes.number,
+  idle:     PropTypes.number,
+  offline:  PropTypes.number,
+  total:    PropTypes.number,
+  vehicles: PropTypes.array,
 }

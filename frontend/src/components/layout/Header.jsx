@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types'
+
 export default function Header({ title, collapsed }) {
   return (
     <header className={`h-[60px] bg-fleet-surface border-b border-fleet-border fixed top-0 right-0 ${collapsed ? 'left-[64px]' : 'left-[220px]'} transition-all duration-300 z-10 flex items-center justify-between px-6`}>
@@ -16,4 +18,9 @@ export default function Header({ title, collapsed }) {
       </div>
     </header>
   )
+}
+
+Header.propTypes = {
+  collapsed: PropTypes.bool,
+  title:     PropTypes.string,
 }

@@ -29,6 +29,23 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
+function setSidebarCookie(openState) {
+  const cookieValue = encodeURIComponent(String(openState))
+  const isSecure = globalThis.location?.protocol === 'https:'
+  const cookieParts = [
+    `${SIDEBAR_COOKIE_NAME}=${cookieValue}`,
+    'path=/',
+    `max-age=${SIDEBAR_COOKIE_MAX_AGE}`,
+    'samesite=lax',
+  ]
+
+  if (isSecure) {
+    cookieParts.push('secure')
+  }
+
+  document.cookie = cookieParts.join('; ')
+}
+
 const SidebarContext = React.createContext(null)
 
 function useSidebar() {
@@ -65,7 +82,7 @@ function SidebarProvider({
     }
 
     // This sets the cookie to keep the sidebar state.
-    document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+    setSidebarCookie(openState)
   }, [setOpenProp, open])
 
   // Helper to toggle the sidebar.

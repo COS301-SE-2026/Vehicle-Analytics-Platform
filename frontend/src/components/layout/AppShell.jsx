@@ -8,8 +8,7 @@ const pageTitles = {
   '/dashboard/manager': 'Dashboard',
   '/dashboard/admin': 'Admin Dashboard',
   '/map': 'Live Map',
-  '/settings': 'Settings',
-}
+  } 
 
 const noHeader = ['/map']
 

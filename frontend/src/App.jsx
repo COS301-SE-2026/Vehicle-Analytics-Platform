@@ -7,8 +7,6 @@ import ViewerDashboard from './pages/dashboard/ViewerDashboard'
 import ManagerDashboard from './pages/dashboard/ManagerDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
-import Settings from './pages/settings/Settings'
-import useAuthStore from './store/authStore'
 
 function ProtectedRoute({ children, allowedRoles }) {
   // TODO: re-enable when auth is merged
@@ -55,14 +53,6 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['viewer', 'manager', 'admin']}>
                 <LiveMap />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute allowedRoles={['viewer', 'manager', 'admin']}>
-                <Settings />
               </ProtectedRoute>
             }
           />

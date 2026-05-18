@@ -1,10 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Map, Settings, Truck, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Map, Truck, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/viewer' },
     { icon: Map, label: 'Live Map', path: '/map' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
 ]
 
 export default function Sidebar({ role, collapsed, onToggle }) {

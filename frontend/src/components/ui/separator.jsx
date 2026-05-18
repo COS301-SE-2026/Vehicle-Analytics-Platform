@@ -23,6 +23,6 @@ function Separator({
   );
 }
 
-Separator.propTypes = { className: PropTypes.string }
+Separator.propTypes = { className: PropTypes.string, orientation: PropTypes.oneOf(['horizontal','vertical']), decorative: PropTypes.bool }
 
 export { Separator }

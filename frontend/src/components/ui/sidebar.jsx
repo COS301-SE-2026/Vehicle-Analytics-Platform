@@ -85,8 +85,8 @@ function SidebarProvider({
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown)
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [toggleSidebar])
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
@@ -656,3 +656,47 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+// PropTypes
+import PropTypes from 'prop-types'
+
+SidebarProvider.propTypes = {
+  defaultOpen: PropTypes.bool,
+  open: PropTypes.bool,
+  onOpenChange: PropTypes.func,
+  className: PropTypes.string,
+  style: PropTypes.object,
+  children: PropTypes.node,
+}
+
+Sidebar.propTypes = {
+  side: PropTypes.oneOf(['left','right']),
+  variant: PropTypes.string,
+  collapsible: PropTypes.string,
+  className: PropTypes.string,
+  children: PropTypes.node,
+  dir: PropTypes.string,
+}
+
+SidebarTrigger.propTypes = { className: PropTypes.string, onClick: PropTypes.func }
+SidebarRail.propTypes = { className: PropTypes.string }
+SidebarInset.propTypes = { className: PropTypes.string, children: PropTypes.node }
+SidebarInput.propTypes = { className: PropTypes.string }
+SidebarHeader.propTypes = { className: PropTypes.string }
+SidebarFooter.propTypes = { className: PropTypes.string }
+SidebarSeparator.propTypes = { className: PropTypes.string }
+SidebarContent.propTypes = { className: PropTypes.string, children: PropTypes.node }
+SidebarGroup.propTypes = { className: PropTypes.string, children: PropTypes.node }
+SidebarGroupLabel.propTypes = { className: PropTypes.string, asChild: PropTypes.bool, children: PropTypes.node }
+SidebarGroupAction.propTypes = { className: PropTypes.string, asChild: PropTypes.bool }
+SidebarGroupContent.propTypes = { className: PropTypes.string }
+SidebarMenu.propTypes = { className: PropTypes.string, children: PropTypes.node }
+SidebarMenuItem.propTypes = { className: PropTypes.string }
+SidebarMenuButton.propTypes = { asChild: PropTypes.bool, isActive: PropTypes.bool, variant: PropTypes.string, size: PropTypes.string, tooltip: PropTypes.oneOfType([PropTypes.string, PropTypes.object]), className: PropTypes.string }
+SidebarMenuAction.propTypes = { className: PropTypes.string, asChild: PropTypes.bool, showOnHover: PropTypes.bool }
+SidebarMenuBadge.propTypes = { className: PropTypes.string }
+SidebarMenuSkeleton.propTypes = { className: PropTypes.string, showIcon: PropTypes.bool }
+SidebarMenuSub.propTypes = { className: PropTypes.string }
+SidebarMenuSubItem.propTypes = { className: PropTypes.string }
+SidebarMenuSubButton.propTypes = { asChild: PropTypes.bool, size: PropTypes.string, isActive: PropTypes.bool, className: PropTypes.string }
+

@@ -219,10 +219,25 @@ function DropdownMenuSubContent({
   );
 }
 
-DropdownMenuContent.propTypes = { className: PropTypes.string, variant: PropTypes.string }
-DropdownMenuTrigger.propTypes = { className: PropTypes.string }
+DropdownMenu.propTypes = { children: PropTypes.node }
+DropdownMenuPortal.propTypes = { children: PropTypes.node }
+DropdownMenuTrigger.propTypes = { children: PropTypes.node, className: PropTypes.string }
+DropdownMenuContent.propTypes = {
+  className: PropTypes.string,
+  align: PropTypes.oneOf(['start', 'center', 'end', 'stretch']),
+  sideOffset: PropTypes.number,
+}
+DropdownMenuGroup.propTypes = { children: PropTypes.node }
+DropdownMenuItem.propTypes = { className: PropTypes.string, inset: PropTypes.bool, variant: PropTypes.string, children: PropTypes.node }
+DropdownMenuCheckboxItem.propTypes = { className: PropTypes.string, children: PropTypes.node, checked: PropTypes.bool, inset: PropTypes.bool }
+DropdownMenuRadioGroup.propTypes = { children: PropTypes.node }
+DropdownMenuRadioItem.propTypes = { className: PropTypes.string, children: PropTypes.node, inset: PropTypes.bool }
 DropdownMenuLabel.propTypes = { className: PropTypes.string, inset: PropTypes.bool }
 DropdownMenuSeparator.propTypes = { className: PropTypes.string }
+DropdownMenuShortcut.propTypes = { className: PropTypes.string }
+DropdownMenuSub.propTypes = { children: PropTypes.node }
+DropdownMenuSubTrigger.propTypes = { className: PropTypes.string, inset: PropTypes.bool, children: PropTypes.node }
+DropdownMenuSubContent.propTypes = { className: PropTypes.string }
 
 export {
   DropdownMenu,

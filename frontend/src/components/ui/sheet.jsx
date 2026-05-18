@@ -127,11 +127,16 @@ function SheetDescription({
   );
 }
 
-SheetContent.propTypes = { className: PropTypes.string, showCloseButton: PropTypes.bool }
-SheetHeader.propTypes = { className: PropTypes.string }
+Sheet.propTypes = { children: PropTypes.node }
+SheetTrigger.propTypes = { children: PropTypes.node }
+SheetClose.propTypes = { children: PropTypes.node }
+SheetPortal.propTypes = { children: PropTypes.node }
+SheetOverlay.propTypes = { className: PropTypes.string }
+SheetContent.propTypes = { className: PropTypes.string, children: PropTypes.node, side: PropTypes.oneOf(['top','right','bottom','left']), showCloseButton: PropTypes.bool }
+SheetHeader.propTypes = { className: PropTypes.string, children: PropTypes.node }
 SheetTitle.propTypes = { className: PropTypes.string }
 SheetDescription.propTypes = { className: PropTypes.string }
-SheetFooter.propTypes = { className: PropTypes.string }
+SheetFooter.propTypes = { className: PropTypes.string, children: PropTypes.node }
 
 export {
   Sheet,

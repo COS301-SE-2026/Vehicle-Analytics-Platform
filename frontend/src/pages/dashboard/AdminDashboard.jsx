@@ -11,6 +11,12 @@ import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
 
+// Placeholder activation handler kept at module scope to satisfy linting rules.
+function handleActivate(user) {
+  // Wire up API call later
+  // Intentionally module-scoped to avoid redefining inside the component.
+}
+
 export default function AdminDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
@@ -83,9 +89,7 @@ export default function AdminDashboard() {
     // Wire up API call later
   }
 
-  function handleActivate(user) {
-    // Wire up API call later
-  }
+  // Uses module-scoped `handleActivate`
 
   function handleDeactivateConfirm(user) {
     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: 'inactive' } : u))

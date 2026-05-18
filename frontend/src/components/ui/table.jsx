@@ -121,11 +121,11 @@ export {
   TableCaption,
 }
 
-Table.propTypes = { className: PropTypes.string }
-TableHead.propTypes = { className: PropTypes.string }
-TableBody.propTypes = { className: PropTypes.string }
-TableFooter.propTypes = { className: PropTypes.string }
-TableRow.propTypes = { className: PropTypes.string }
+Table.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableHeader.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableBody.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableFooter.propTypes = { className: PropTypes.string, children: PropTypes.node }
+TableRow.propTypes = { className: PropTypes.string, children: PropTypes.node }
 TableHead.propTypes = { className: PropTypes.string }
 TableCell.propTypes = { className: PropTypes.string }
 TableCaption.propTypes = { className: PropTypes.string }

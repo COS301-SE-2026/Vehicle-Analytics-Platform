@@ -138,11 +138,16 @@ function DialogDescription({
   );
 }
 
-DialogContent.propTypes = { children: PropTypes.node, showCloseButton: PropTypes.bool }
-DialogHeader.propTypes = { className: PropTypes.string }
+Dialog.propTypes = { children: PropTypes.node }
+DialogTrigger.propTypes = { children: PropTypes.node }
+DialogPortal.propTypes = { children: PropTypes.node }
+DialogClose.propTypes = { children: PropTypes.node }
+DialogOverlay.propTypes = { className: PropTypes.string }
+DialogContent.propTypes = { children: PropTypes.node, showCloseButton: PropTypes.bool, className: PropTypes.string }
+DialogHeader.propTypes = { className: PropTypes.string, children: PropTypes.node }
 DialogTitle.propTypes = { className: PropTypes.string }
 DialogDescription.propTypes = { className: PropTypes.string }
-DialogFooter.propTypes = { className: PropTypes.string }
+DialogFooter.propTypes = { className: PropTypes.string, children: PropTypes.node, showCloseButton: PropTypes.bool }
 
 export {
   Dialog,

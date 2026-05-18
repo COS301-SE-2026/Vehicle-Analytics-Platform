@@ -50,8 +50,8 @@ function TooltipContent({
 }
 
 TooltipProvider.propTypes = { delayDuration: PropTypes.number }
-Tooltip.propTypes = {}
-TooltipTrigger.propTypes = { className: PropTypes.string, delayDuration: PropTypes.number }
-TooltipContent.propTypes = { className: PropTypes.string, sideOffset: PropTypes.number }
+Tooltip.propTypes = { children: PropTypes.node }
+TooltipTrigger.propTypes = { className: PropTypes.string, delayDuration: PropTypes.number, children: PropTypes.node }
+TooltipContent.propTypes = { className: PropTypes.string, sideOffset: PropTypes.number, children: PropTypes.node }
 
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }

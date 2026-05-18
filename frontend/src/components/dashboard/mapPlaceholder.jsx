@@ -36,6 +36,5 @@ MapSection.propTypes = {
   active:   PropTypes.number,
   idle:     PropTypes.number,
   offline:  PropTypes.number,
-  total:    PropTypes.number,
   vehicles: PropTypes.array,
 }

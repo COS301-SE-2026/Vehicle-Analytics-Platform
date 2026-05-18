@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import PropTypes from 'prop-types'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
@@ -34,4 +35,8 @@ export default function AppShell({ role = 'viewer' }) {
       </div>
     </div>
   )
+}
+
+AppShell.propTypes = {
+  role: PropTypes.string,
 }

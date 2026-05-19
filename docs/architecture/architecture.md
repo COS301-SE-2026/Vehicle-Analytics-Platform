@@ -54,6 +54,7 @@ The current scaling targets are:
 - PgBouncer maintaining connection pool stability under burst traffic
 - TimescaleDB continuous aggregates refreshing automatically
 - ON CONFLICT DO NOTHING preventing duplicate Kinesis records from creating duplicate rows
+- Dead Letter Queues capturing failed telemetry events after retry exhaustion, preventing data loss and enabling later inspection or replay
 - CloudWatch logs detecting service and pipeline failures
 
 ### 1.1.6 Security

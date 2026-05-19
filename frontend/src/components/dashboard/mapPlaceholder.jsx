@@ -1,5 +1,21 @@
+import { Component } from 'react'
 import FleetMap from '../map/FleetMap'
 import PropTypes from 'prop-types'
+
+class MapErrorBoundary extends Component {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-72 flex items-center justify-center bg-gray-50 text-gray-400 text-sm">
+          Map unavailable — Mapbox token not configured
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 export default function MapSection({ active, idle, offline, vehicles = [] }) {
   return (
@@ -21,13 +37,14 @@ export default function MapSection({ active, idle, offline, vehicles = [] }) {
           </span>
         </div>
       </div>
-      <div className="h-72">
-        <FleetMap 
-        vehicles={vehicles}
-        // onVehicleClick={setSelectedVehicle}
-        minimal={true} 
-        />
-      </div>
+      <MapErrorBoundary>
+        <div className="h-72">
+          <FleetMap
+            vehicles={vehicles}
+            minimal={true}
+          />
+        </div>
+      </MapErrorBoundary>
     </div>
   )
 }

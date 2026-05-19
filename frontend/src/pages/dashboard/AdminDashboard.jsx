@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
   const [users, setUsers] = useState([])
+  const [events] = useState([])
   const [editingUser, setEditingUser] = useState(null)
   const [deactivatingUser, setDeactivatingUser] = useState(null)
   const [loading, setLoading] = useState(true)

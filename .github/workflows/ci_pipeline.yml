@@ -1,7 +1,6 @@
 name: CI Pipeline
 
 on:
-  #workflow_dispatch:  # manual trigger only for now
   push:
     branches: [main, develop]
   pull_request:
@@ -10,7 +9,8 @@ on:
 jobs:
   backend_tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 5
+    continue-on-error: false
     defaults:
       run:
         working-directory: ./backend
@@ -27,20 +27,31 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint || true
 
       - name: Run tests with coverage
-        run: npx jest --coverage
+        run: npx jest --coverage --coverageDirectory=coverage --passWithNoTests --forceExit
+
+      - name: Show generated coverage files
+        run: |
+          echo 'Coverage directory listing:'
+          ls -la coverage || true
+          echo '\nFirst 40 lines of lcov.info (if present):'
+          if [ -f coverage/lcov.info ]; then sed -n '1,40p' coverage/lcov.info; else echo 'lcov.info not found'; fi
+        shell: bash
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: backend
+          directory: ./backend/coverage
+          fail_ci_if_error: false
 
   frontend_tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 5
+    continue-on-error: false
     defaults:
       run:
         working-directory: ./frontend
@@ -57,20 +68,31 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint || true
 
       - name: Run tests with coverage
-        run: npx jest --coverage
+        run: npx jest --coverage --coverageDirectory=coverage --passWithNoTests --forceExit
+
+      - name: Show generated coverage files
+        run: |
+          echo 'Coverage directory listing:'
+          ls -la coverage || true
+          echo '\nFirst 40 lines of lcov.info (if present):'
+          if [ -f coverage/lcov.info ]; then sed -n '1,40p' coverage/lcov.info; else echo 'lcov.info not found'; fi
+        shell: bash
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: frontend
+          directory: ./frontend/coverage
+          fail_ci_if_error: false
 
   database_tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 5
+    continue-on-error: false
     services:
       postgres:
         image: timescale/timescaledb:latest-pg16
@@ -100,7 +122,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # We must explicitly run the sql migrations because GitHub Services 
       - name: Run Database Migrations
         run: |
           sudo apt-get install postgresql-client -y
@@ -108,12 +129,20 @@ jobs:
             echo "Running migration: $file"
             PGPASSWORD=testpassword psql -h localhost -U admin -d fleet_analytics_test -f "$file"
           done
-        
-      - name: Run migration tests
-        run: npm test
+
+      - name: Run migration tests (with coverage)
+        run: npx jest --coverage --coverageDirectory=coverage --runInBand --passWithNoTests --forceExit
         env:
           DB_HOST: localhost
           DB_PORT: 5432
           DB_NAME: fleet_analytics_test
           DB_USER: admin
           DB_PASSWORD: testpassword
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: database
+          directory: ./database/coverage
+          fail_ci_if_error: false

@@ -16,7 +16,7 @@ describe('Gold Layer and Querying Integration', () => {
     }
   });
 
-  test('should correctly aggregate gold layer materialized views', async () => {
+  test('should correctly aggregate continuous aggregates', async () => {
     // 1. Insert multiple raw_telemetry points to simulate motion and events for a couple of vehicles
     const now = new Date();
     
@@ -47,15 +47,35 @@ describe('Gold Layer and Querying Integration', () => {
         ($1, 'GOLD_TEST-002', 'DEV-002', 'avl_event', 'crash_detection', '-25.020,28.020', '0', 'severe')
     `, [time3]);
 
-    // 2. Refresh materialized views
-    await client.query("SELECT refresh_gold_layer()");
+    // 2. Refresh timescaledb continuous aggregates manually for the test
+    // Background policies might kick in automatically causing concurrency locks. We retry if so.
+    async function safeRefresh(viewName) {
+      for (let i = 0; i < 5; i++) {
+        try {
+          await client.query(`CALL refresh_continuous_aggregate('${viewName}', NULL, NULL);`);
+          return;
+        } catch (error) {
+          if (error.message && error.message.includes('concurrent refresh')) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            throw error;
+          }
+        }
+      }
+      throw new Error(`Failed to refresh ${viewName} after 5 retries due to concurrent refreshes.`);
+    }
 
-    // 3. Assert vehicle_latest_position
-    const positionRes = await client.query("SELECT * FROM vehicle_latest_position WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id");
-    expect(positionRes.rows.length).toBe(2);
+    await safeRefresh('vehicle_position_5s');
+    await safeRefresh('vehicle_events_hourly');
+
+    // 3. Assert vehicle_position_5s
+    const positionRes = await client.query("SELECT * FROM vehicle_position_5s WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
+    
+    // Vehicle 1 has 2 points in different 5s buckets, Vehicle 2 has 1 point.
+    expect(positionRes.rows.length).toBe(3);
     
     // Vehicle 1 should have latest position from time2
-    const v1Pos = positionRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-001');
+    const v1Pos = positionRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').pop(); // get the latest active bucket
     expect(Number(v1Pos.latitude)).toBe(-25.010);
     expect(Number(v1Pos.longitude)).toBe(28.010);
     expect(v1Pos.speed).toBe(80);
@@ -65,24 +85,21 @@ describe('Gold Layer and Querying Integration', () => {
     expect(Number(v2Pos.latitude)).toBe(-25.020);
     expect(v2Pos.speed).toBe(0);
 
-    // 4. Assert vehicle_harsh_driving
-    const harshRes = await client.query("SELECT * FROM vehicle_harsh_driving WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id");
-    expect(harshRes.rows.length).toBe(2);
+    // 4. Assert vehicle_events_hourly
+    const harshRes = await client.query("SELECT * FROM vehicle_events_hourly WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
 
-    const v1Harsh = harshRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-001');
+    const v1Harsh = harshRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').reduce((acc, row) => {
+        acc.harsh_braking_count += Number(row.harsh_braking_count);
+        acc.harsh_acceleration_count += Number(row.harsh_acceleration_count);
+        acc.total_harsh_events += Number(row.total_harsh_events);
+        return acc;
+    }, { harsh_braking_count: 0, harsh_acceleration_count: 0, total_harsh_events: 0 });
+
     expect(Number(v1Harsh.harsh_braking_count)).toBe(1);
     expect(Number(v1Harsh.harsh_acceleration_count)).toBe(1);
     expect(Number(v1Harsh.total_harsh_events)).toBe(2);
 
     const v2Harsh = harshRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-002');
     expect(Number(v2Harsh.crash_count)).toBe(1);
-
-    // 5. Assert fleet_kpis aggregates correctly
-    // Note: We test with LIKE filters to ensure our test data is counted
-    const v1CountRes = await client.query("SELECT COUNT(*) FROM vehicle_latest_position WHERE vehicle_id LIKE 'GOLD_TEST-001'");
-    expect(Number(v1CountRes.rows[0].count)).toBe(1);
-
-    const v2CountRes = await client.query("SELECT COUNT(*) FROM vehicle_latest_position WHERE vehicle_id LIKE 'GOLD_TEST-002'");
-    expect(Number(v2CountRes.rows[0].count)).toBe(1);
   });
 });

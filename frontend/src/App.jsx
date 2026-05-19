@@ -1,121 +1,90 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import AppShell from './components/layout/AppShell'
+import PropTypes from 'prop-types'
+import Login from './pages/auth/Login'
+import Signup from './pages/auth/Signup'
+import VerifyEmail from './pages/auth/VerifyEmail'
+import ViewerDashboard from './pages/dashboard/ViewerDashboard'
+import ManagerDashboard from './pages/dashboard/ManagerDashboard'
+import AdminDashboard from './pages/dashboard/AdminDashboard'
+import LiveMap from './pages/map/LiveMap'
+import useAuthStore from './store/authStore'
+
+function ProtectedRoute({ children, allowedRoles }) {
+  // Enforce simple auth + role-based access using the local auth store.
+  const { user, role } = useAuthStore()
+
+  // Not authenticated -> send to login
+  if (!user) return <Navigate to="/login" replace />
+
+  // If allowedRoles provided, verify role membership
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    // Redirect user to their appropriate dashboard
+    const redirect = useAuthStore.getState().getDashboardPath()
+    return <Navigate to={redirect} replace />
+  }
+
+  return children
+}
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  allowedRoles: PropTypes.arrayOf(PropTypes.string)
+}
+
+ProtectedRoute.defaultProps = {
+  allowedRoles: []
+}
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <Routes>
+        {/* Auth routes - no sidebar */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify" element={<VerifyEmail />} />
 
-      <div className="ticks"></div>
+        {/* All protected routes wrapped in AppShell */}
+        <Route element={<AppShell role="viewer" />}>
+          <Route
+            path="/dashboard/viewer"
+            element={
+              <ProtectedRoute allowedRoles={['viewer']}>
+                <ViewerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/manager"
+            element={
+              <ProtectedRoute allowedRoles={['manager']}>
+                <ManagerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/map"
+            element={
+              <ProtectedRoute allowedRoles={['viewer', 'manager', 'admin']}>
+                <LiveMap />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        {/* Default redirect - TEMP for testing */}
+        <Route path="/" element={<Navigate to="/dashboard/viewer" />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

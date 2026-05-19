@@ -1,4 +1,5 @@
 import * as React from "react"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 
@@ -102,6 +103,14 @@ function CardFooter({
       {...props} />
   );
 }
+
+Card.propTypes = { className: PropTypes.string, size: PropTypes.string }
+CardHeader.propTypes = { className: PropTypes.string }
+CardTitle.propTypes = { className: PropTypes.string }
+CardDescription.propTypes = { className: PropTypes.string }
+CardAction.propTypes = { className: PropTypes.string }
+CardContent.propTypes = { className: PropTypes.string }
+CardFooter.propTypes = { className: PropTypes.string }
 
 export {
   Card,

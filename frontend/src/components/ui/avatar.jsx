@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Avatar as AvatarPrimitive } from "radix-ui"
+import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"
 
@@ -94,6 +95,13 @@ function AvatarGroupCount({
       {...props} />
   );
 }
+
+Avatar.propTypes = { className: PropTypes.string, size: PropTypes.string }
+AvatarImage.propTypes = { className: PropTypes.string }
+AvatarFallback.propTypes = { className: PropTypes.string }
+AvatarBadge.propTypes = { className: PropTypes.string }
+AvatarGroup.propTypes = { className: PropTypes.string }
+AvatarGroupCount.propTypes = { className: PropTypes.string }
 
 export {
   Avatar,

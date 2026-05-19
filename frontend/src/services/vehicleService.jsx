@@ -1,66 +1,82 @@
-// API suggestion: GET /api/kpis
-// Response shape: { totalVehicles, activeVehicles, averageSpeed, alertsToday, lastUpdated }
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+async function getAuthHeaders() {
+  try {
+    const { fetchAuthSession } = await import('aws-amplify/auth')
+    const session = await fetchAuthSession()
+    const token = session.tokens?.idToken?.toString()
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    }
+  } catch {
+    return { 'Content-Type': 'application/json' }
+  }
+}
+
+// GET /api/dashboard/kpis
 export async function getKPIs() {
-    return{
-        totalVehicles: 15,
-        activeVehicles: 11,
-        averageSpeed: 54,
-        alertsToday: 2, // need to look into this alert situation -> can we actually return alerts without crashing?
-        lastUpdated: new Date().toISOString(),
-    }
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers })
+  if (!res.ok) throw new Error('Failed to fetch KPIs')
+  const data = await res.json()
+  return {
+    totalVehicles: data.data.total_vehicles,
+    activeVehicles: data.data.active_vehicles,
+    alertsToday: data.data.alerts_today,
+    lastUpdated: data.data.last_updated,
+  }
 }
 
-// API suggestion: GET /api/vehicles/locations or GET /api/telemetry/latest
-// Response shape: { timestamp, vehicles: [{ id, lat, lng, speed, status, lastUpdated?, distanceToday? }, ...] }
-export async function getVehicleLocations(){
-    return {
-        timestamp : new Date().toISOString(),
-        vehicles: [
-            { id: '1000', lat: -27.98763, lng: 28.37466, speed: 65, status: 'active' },
-            { id: '1001', lat: -28.12345, lng: 28.56789, speed: 42, status: 'active' },
-            { id: '1002', lat: -27.75432, lng: 28.12345, speed: 0,  status: 'idle' },
-            { id: '1003', lat: -28.34521, lng: 28.89012, speed: 78, status: 'active' },
-            { id: '1004', lat: -27.65432, lng: 28.45678, speed: 0,  status: 'offline' },
-            { id: '1005', lat: -28.56789, lng: 28.23456, speed: 55, status: 'active' },
-        ],
-    }
+// GET /api/vehicles/locations
+export async function getVehicleLocations() {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/locations`, { headers })
+  if (!res.ok) throw new Error('Failed to fetch vehicle locations')
+  const data = await res.json()
+  return {
+    timestamp: data.data.timestamp,
+    vehicles: data.data.vehicles.map(v => ({
+      id: v.id,
+      lat: parseFloat(v.latitude),
+      lng: parseFloat(v.longitude),
+      speed: v.speed,
+      status: v.status,
+      driver_name: v.driver_name,
+      last_update: v.last_update,
+    })),
+  }
 }
 
-// API suggestion: GET /api/alerts?since=...&limit=...
-// Response shape: { total, alerts: [{ id, vehicleId, type, severity, message, timestamp }, ...] }
-export async function getAlerts() {
-    return {
-        total: 2,
-        alerts: [
-            {
-              id: 'alert_001',
-              vehicleId: '1000',
-              type: 'speeding',
-              severity: 'high',
-              message: 'Vehicle exceeded speed limit: 95 km/h in 80 zone',
-              timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-            },
-            {
-              id: 'alert_002',
-              vehicleId: '1003',
-              type: 'speeding',
-              severity: 'medium',
-              message: 'Vehicle exceeded speed limit: 85 km/h in 80 zone',
-              timestamp: new Date(Date.now() - 111 * 60000).toISOString(),
-            },
-        ],
-    }
+// GET /api/dashboard/alerts
+export async function getAlerts(limit = 50) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/dashboard/alerts?limit=${limit}`, { headers })
+  if (!res.ok) throw new Error('Failed to fetch alerts')
+  const data = await res.json()
+  return {
+    total: data.data.total,
+    alerts: data.data.alerts,
+  }
 }
 
-// API suggestion: GET /api/users
-// Other user endpoints: POST /api/users, PUT /api/users/:id, DELETE /api/users/:id
-// Response: array of users [{ id, name, email, role, status? }, ...]
+// GET /api/vehicles/:vehicleId
+export async function getVehicleById(vehicleId) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}`, { headers })
+  if (!res.ok) throw new Error('Failed to fetch vehicle details')
+  const data = await res.json()
+  return {
+    vehicle: data.data.vehicle,
+    recent_events: data.data.recent_events,
+  }
+}
+
+// GET /api/users (admin only)
 export async function getUsers() {
-  // Mock data — remove this block and uncomment the fetch below when ready
-  return [
-    { id: 1, name: "Zoe Nelly", email: "zoe.nelly@fleet.local", role: "admin" },
-    { id: 2, name: "Bob Smith", email: "bob.smith@fleet.local", role: "manager" },
-    { id: 3, name: "Carol White", email: "carol.white@fleet.local", role: "viewer" },
-  ];
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/admin/users`, { headers })
+  if (!res.ok) throw new Error('Failed to fetch users')
+  const data = await res.json()
+  return data.data
 }
-

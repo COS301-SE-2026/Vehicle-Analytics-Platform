@@ -1,5 +1,5 @@
 jest.mock('../components/map/FleetMap', () => ({ default: () => 'FleetMap' }))
-jest.mock('../components/dashboard/MapPlaceholder', () => ({ default: () => 'MapSection' }))
+jest.mock('../components/dashboard/mapPlaceholder', () => ({ default: () => 'MapSection' }))
 jest.mock('../components/dashboard/DonutChart', () => ({ default: () => 'DonutChart' }))
 jest.mock('../components/dashboard/StatCard', () => ({ default: ({ label }) => label }))
 jest.mock('lucide-react', () => ({

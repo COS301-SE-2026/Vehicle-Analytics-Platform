@@ -15,7 +15,7 @@ jest.mock('@/components/map/FleetMap', () =>
 )
 
 // File is MapPlaceholder.jsx, exported function is MapSection
-import MapSection from '@/components/dashboard/MapPlaceholder'
+import MapSection from '@/components/dashboard/mapPlaceholder'
 
 const VEHICLES = [
   { id: '1000', lat: -27.98763, lng: 28.37466, speed: 65,  status: 'active'  },

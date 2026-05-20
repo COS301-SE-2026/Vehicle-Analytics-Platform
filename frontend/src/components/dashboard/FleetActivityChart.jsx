@@ -16,13 +16,7 @@ const DEFAULT_DATA = [
 ]
 
 export default function FleetActivityChart({ data = [] }) {
-  if (!data || data.length === 0) {
-    return (
-      <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5 flex items-center justify-center h-64">
-        <p className="text-fleet-secondary text-sm">No fleet activity data available</p>
-      </div>
-    )
-  }
+  const chartData = data && data.length > 0 ? data : DEFAULT_DATA
 
   return (
     <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5">
@@ -38,7 +32,7 @@ export default function FleetActivityChart({ data = [] }) {
 
       <ResponsiveContainer width="100%" height={220}>
         <BarChart
-          data={data}
+          data={chartData}
           margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
           barCategoryGap="30%"
           barGap={4}

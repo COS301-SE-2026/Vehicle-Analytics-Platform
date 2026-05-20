@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Truck, Waypoints, Users, RefreshCw } from 'lucide-react'
-import { getKPIs, getVehicleLocations, getUsers } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
 import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
@@ -10,6 +9,7 @@ import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
+import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deactivateUser } from '../../services/vehicleService'
 
 // Placeholder activation handler kept at module scope to satisfy linting rules.
 function handleActivate(user) {
@@ -25,17 +25,28 @@ export default function AdminDashboard() {
   const [deactivatingUser, setDeactivatingUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [lastDataReceived, setLastDataReceived] = useState(new Date())
+  const [events, setEvents] = useState([])
 
   async function fetchAll() {
     try {
-      const [k, l, u] = await Promise.all([
+      const [k, l, u, a] = await Promise.all([
         getKPIs(),
         getVehicleLocations(),
         getUsers(),
+        getAlerts(10),
       ])
       setKpis(k)
       setLocations(l)
-      setUsers(u)
+      setUsers(u.users ?? [])
+      setEvents(a.alerts.map(alert => ({
+        id: alert.id,
+        vehicleId: alert.vehicle_id,
+        eventType: alert.type,
+        description: alert.message,
+        location: `${alert.latitude?.toFixed(4)}, ${alert.longitude?.toFixed(4)}`,
+        severity: alert.severity?.toUpperCase(),
+        timestamp: alert.timestamp,
+      })) ?? [])
       setLastDataReceived(new Date())
     } finally {
       setLoading(false)
@@ -91,14 +102,24 @@ export default function AdminDashboard() {
 
   // Uses module-scoped `handleActivate`
 
-  function handleDeactivateConfirm(user) {
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: 'inactive' } : u))
-    setDeactivatingUser(null)
-    // Wire up API call here later
+  async function handleDeactivateConfirm(user) {
+    try {
+      await deactivateUser(user.id)
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: false } : u))
+      setDeactivatingUser(null)
+    } catch (err) {
+      console.error('Failed to deactivate user:', err)
+    }
   }
 
   async function handleSaveRole(user, newRole) {
-   setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u))
+    try {
+      await updateUserRole(user.id, newRole)
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u))
+      setEditingUser(null)
+    } catch (err) {
+      console.error('Failed to update role:', err)
+    }
   }
 
   return (

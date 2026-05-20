@@ -10,7 +10,7 @@ const ROLES = [
     color: 'bg-fleet-idle',
   },
   {
-    value: 'manager',
+    value: 'fleet_manager',
     label: 'Fleet Manager',
     description: 'Vehicle and trip management',
     color: 'bg-fleet-green',

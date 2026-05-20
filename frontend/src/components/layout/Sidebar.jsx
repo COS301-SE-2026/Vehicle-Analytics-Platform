@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Map, Truck, ChevronLeft, ChevronRight } from 'lucide-react'
 import PropTypes from 'prop-types'
+import useAuthStore from '../../store/authStore'
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/viewer' },
@@ -8,6 +9,11 @@ const navItems = [
 ]
 
 export default function Sidebar({ role, collapsed, onToggle }) {
+    const { user, role: storeRole } = useAuthStore()
+    const displayRole = storeRole ?? role
+    const name = user?.name ?? 'User Name'
+    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
     return (
         <aside className={`${collapsed ? 'w-[64px]' : 'w-[220px]'} min-h-screen bg-fleet-green flex flex-col justify-between py-6 px-3 fixed left-0 top-0 transition-all duration-300 z-20`}>
             {/* Top Section */}
@@ -20,7 +26,6 @@ export default function Sidebar({ role, collapsed, onToggle }) {
                             <span className="text-white font-bold text-lg">FleetTracker</span>
                         </div>
                     )}
-
                     {/* Toggle Button */}
                     <button
                         onClick={onToggle}
@@ -60,12 +65,12 @@ export default function Sidebar({ role, collapsed, onToggle }) {
             {/* USER PROFILE */}
             <div className={`flex items-center gap-3 px-1 ${collapsed ? 'justify-center' : ''}`}>
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                    <span className="text-white text-xs font-bold">ZN</span>
+                    <span className="text-white text-xs font-bold">{initials}</span>
                 </div>
                 {!collapsed && (
                     <div>
-                        <p className="text-white text-xs font-medium">User Name</p>
-                        <span className="text-white text-xs capitalize">{role}</span>
+                        <p className="text-white text-xs font-medium">{name}</p>
+                        <span className="text-white text-xs capitalize">{displayRole}</span>
                     </div>
                 )}
             </div>

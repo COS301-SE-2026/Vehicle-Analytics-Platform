@@ -44,6 +44,7 @@ ProtectedRoute.defaultProps = {
 }
 
 function App() {
+  const { role, user } = useAuthStore()
   return (
     <BrowserRouter>
       <Routes>
@@ -51,17 +52,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
-
         {/* All protected routes wrapped in AppShell */}
-        <Route element={<AppShell role="viewer" />}>
-          <Route
-            path="/dashboard/viewer"
-            element={
-              <ProtectedRoute allowedRoles={['viewer']}>
-                <ViewerDashboard />
-              </ProtectedRoute>
-            }
-          />
+        <Route element={<AppShell role={role} />}>
           <Route
             path="/dashboard/manager"
             element={
@@ -75,6 +67,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/viewer"
+            element={
+              <ProtectedRoute allowedRoles={['viewer']}>
+                <ViewerDashboard />
               </ProtectedRoute>
             }
           />

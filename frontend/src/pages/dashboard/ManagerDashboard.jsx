@@ -13,7 +13,6 @@ export default function ManagerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [events, setEvents] = useState([])
-  const [activityData] = useState([])
 
   async function fetchAll() {
     try {
@@ -24,7 +23,15 @@ export default function ManagerDashboard() {
       ])
       setKpis(k)
       setLocations(l)
-      setEvents(a)
+      setEvents(a.alerts.map(alert => ({
+        id: alert.id,
+        vehicleId: alert.vehicle_id,
+        eventType: alert.type,
+        description: alert.message,
+        location: `${alert.latitude?.toFixed(4)}, ${alert.longitude?.toFixed(4)}`,
+        severity: alert.severity?.toUpperCase(),
+        timestamp: alert.timestamp,
+      })) ?? [])
       setError(null)
     } catch (err) {
       console.error('ManagerDashboard fetch error:', err)

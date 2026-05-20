@@ -13,6 +13,7 @@ export default function ManagerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [events, setEvents] = useState([])
+  const [activityData] = useState([])
 
   async function fetchAll() {
     try {
@@ -120,7 +121,7 @@ export default function ManagerDashboard() {
       <RecentVehicleEvents events={events} limit={10} />
 
       {/* Row 4 — Fleet Activity Chart (pending /dashboard/activity endpoint) */}
-      {/* <FleetActivityChart data={activityData} /> */}
+      <FleetActivityChart data={activityData} />
 
     </div>
   )

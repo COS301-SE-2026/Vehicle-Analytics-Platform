@@ -123,8 +123,8 @@ git push origin feature/your-feature-name
 
 | Name | Role | LinkedIn |
 |------|------|----------|
-| Name | Cloud/DevOps/DB Lead | [LinkedIn](link) |
-| Name | Frontend/UX Lead | [LinkedIn](link) |
-| Name | Data Viz/Geospatial Lead | [LinkedIn](link) |
-| Name | Backend/API Lead | [LinkedIn](link) |
-| Name | Data/Real-Time Lead | [LinkedIn](link) |
+| Christopher Adolph | Backend/API | [LinkedIn](link) |
+| Zipho Maduna | Frontend/UX | [LinkedIn](link) |
+| Warona Moleboge | Data Engineer  | [LinkedIn](link) |
+| Kwanele Phakathi | Fullstack | [LinkedIn](link) |
+| Marchant Grootboom | Data Engineer| [LinkedIn](link) |

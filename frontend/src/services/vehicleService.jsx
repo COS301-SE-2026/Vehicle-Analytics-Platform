@@ -13,7 +13,6 @@ export async function getKPIs(){
     return {
         totalVehicles : result.data.total_vehicles,
         activeVehicles: result.data.active_vehicles,
-        averageSpeed: result.data.average_speed,
         alertsToday: result.data.alerts_today,
         lastUpdated: result.data.last_updated,
     }
@@ -38,27 +37,15 @@ export async function getVehicleLocations(){
 // API suggestion: GET /api/alerts?since=...&limit=...
 // Response shape: { total, alerts: [{ id, vehicleId, type, severity, message, timestamp }, ...] }
 export async function getAlerts() {
-    return {
-        total: 2,
-        alerts: [
-            {
-              id: 'alert_001',
-              vehicleId: '1000',
-              type: 'speeding',
-              severity: 'high',
-              message: 'Vehicle exceeded speed limit: 95 km/h in 80 zone',
-              timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-            },
-            {
-              id: 'alert_002',
-              vehicleId: '1003',
-              type: 'speeding',
-              severity: 'medium',
-              message: 'Vehicle exceeded speed limit: 85 km/h in 80 zone',
-              timestamp: new Date(Date.now() - 111 * 60000).toISOString(),
-            },
-        ],
+    const response = await fetch(`${API_BASE}/dashboard/alerts`,{
+        headers : getAuthHeaders(),
+    })
+    if (!response.ok) {
+        throw new Error('Failed to fetch alerts')
     }
+    const result = await response.json()
+
+    return result.data
 }
 
 // API suggestion: GET /api/users

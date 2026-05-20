@@ -115,60 +115,7 @@ export default function Login() {
         <p className="auth-footer-link">
           No account yet? <a href="/signup">Create one</a>
         </p>
-    <AuthLayout>
-      <div className="auth-card">
-        <h2>Welcome back</h2>
-        <p className="auth-subtitle">Sign in to your fleet dashboard</p>
-
-        <GoogleButton />
-
-        <div className="auth-divider"><span>OR</span></div>
-
-        {error && <div className="auth-error">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="field-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              id="email" name="email" type="email"
-              placeholder="manager@fleet.com"
-              value={form.email} onChange={handleChange} required
-            />
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="password">Password</label>
-            <div className="password-wrap">
-              <input
-                id="password" name="password"
-                type={showPass ? 'text' : 'password'}
-                value={form.password} onChange={handleChange} required
-              />
-              <button type="button" className="password-toggle" onClick={() => setShowPass((v) => !v)} aria-label="Toggle password">
-                <PasswordToggleIcon showPass={showPass} />
-              </button>
-            </div>
-          </div>
-
-          <div className="space-between" style={{ marginBottom: '18px' }}>
-            <label className="checkbox-row" style={{ margin: 0 }}>
-              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-              Remember me
-            </label>
-            <a href="/forgot-password">Forgot password?</a>
-          </div>
-
-          <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in to dashboard'}
-          </button>
-        </form>
-
-        <p className="auth-footer-link">
-          No account yet? <a href="/signup">Create one</a>
-        </p>
       </div>
-    </AuthLayout>
-  );
     </AuthLayout>
   );
 }

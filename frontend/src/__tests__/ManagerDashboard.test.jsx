@@ -1,14 +1,11 @@
+import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
-import ManagerDashboard from '../pages/dashboard/ManagerDashboard'
 
-// Mock every component imported by ManagerDashboard
-jest.mock('../components/dashboard/StatCard', () => ({
-  default: ({ label }) => <span>{label}</span>
-}))
-jest.mock('../components/dashboard/FleetStatusCard', () => ({
-  default: () => <div>FleetStatusCard</div>
-}))
-jest.mock('../components/dashboard/MostActiveVehiclesTable', () => ({
+jest.mock('@/components/dashboard/DonutChart', () => ({ __esModule: true, default: () => <div>DonutChart</div> }))
+jest.mock('@/components/dashboard/StatCard', () => ({ __esModule: true, default: ({ label }) => <div>{label}</div> }))
+jest.mock('@/components/dashboard/FleetStatusCard', () => ({ __esModule: true, default: () => <div>FleetStatusCard</div> }))
+jest.mock('@/components/dashboard/MostActiveVehiclesTable', () => ({
+  __esModule: true,
   default: ({ vehicles }) => (
     <div>
       <span>Most Active Vehicles Today</span>
@@ -16,27 +13,22 @@ jest.mock('../components/dashboard/MostActiveVehiclesTable', () => ({
     </div>
   )
 }))
-jest.mock('../components/dashboard/FleetActivityChart', () => ({
-  default: () => <div>FleetActivityChart</div>
-}))
-jest.mock('../components/dashboard/RecentVehicleEvents', () => ({
-  default: () => <div>Recent Vehicle Events</div>
-}))
-
-jest.mock('../services/vehicleService', () => ({
+jest.mock('@/components/dashboard/FleetActivityChart', () => ({ __esModule: true, default: () => <div>FleetActivityChart</div> }))
+jest.mock('@/components/dashboard/RecentVehicleEvents', () => ({ __esModule: true, default: () => <div>Recent Vehicle Events</div> }))
+jest.mock('@/services/vehicleService', () => ({
   getKPIs: jest.fn(),
   getVehicleLocations: jest.fn(),
 }))
-
 jest.mock('lucide-react', () => ({
-  Truck:     () => <svg data-testid="icon-truck" />,
-  Waypoints: () => <svg data-testid="icon-waypoints" />,
-  Users:     () => <svg data-testid="icon-users" />,
-  RefreshCw: () => <svg className="animate-spin" data-testid="icon-refresh" />,
-  Activity:  () => <svg data-testid="icon-activity" />,
+  Truck: () => <svg />,
+  Waypoints: () => <svg />,
+  Activity: () => <svg />,
+  RefreshCw: () => <svg data-testid="spinner" className="animate-spin" />,
+  Users: () => <svg />,
 }))
 
-const { getKPIs, getVehicleLocations } = require('../services/vehicleService')
+import ManagerDashboard from '@/pages/dashboard/ManagerDashboard'
+const { getKPIs, getVehicleLocations } = require('@/services/vehicleService')
 
 const mockKpis = { activeVehicles: 4, totalVehicles: 8, totalDistance: 210 }
 const mockLocations = {
@@ -60,7 +52,7 @@ afterEach(() => {
 describe('ManagerDashboard', () => {
   test('shows loading spinner initially', () => {
     render(<ManagerDashboard />)
-    expect(document.querySelector('svg.animate-spin')).toBeInTheDocument()
+    expect(screen.getByTestId('spinner')).toBeInTheDocument()
   })
 
   test('renders KPI stat cards after loading', async () => {

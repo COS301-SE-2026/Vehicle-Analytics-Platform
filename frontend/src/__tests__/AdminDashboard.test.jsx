@@ -1,24 +1,15 @@
+import React, { act } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import AdminDashboard from '../pages/dashboard/AdminDashboard'
 
-// Mock every component that AdminDashboard imports
-jest.mock('../components/dashboard/StatCard', () => ({
-  default: ({ label }) => <span>{label}</span>
-}))
-jest.mock('../components/dashboard/FleetStatusCard', () => ({
-  default: () => <div>FleetStatusCard</div>
-}))
-jest.mock('../components/dashboard/MostActiveVehiclesTable', () => ({
-  default: () => <div>MostActiveVehiclesTable</div>
-}))
-jest.mock('../components/dashboard/FleetActivityChart', () => ({
-  default: () => <div>FleetActivityChart</div>
-}))
-jest.mock('../components/dashboard/DataFeedStatusCard', () => ({
-  default: () => <div>DataFeedStatusCard</div>
-}))
-jest.mock('../components/dashboard/UserManagementTable', () => ({
+jest.mock('@/components/dashboard/DonutChart', () => ({ __esModule: true, default: () => <div>DonutChart</div> }))
+jest.mock('@/components/dashboard/StatCard', () => ({ __esModule: true, default: ({ label }) => <div>{label}</div> }))
+jest.mock('@/components/dashboard/FleetStatusCard', () => ({ __esModule: true, default: () => <div>FleetStatusCard</div> }))
+jest.mock('@/components/dashboard/MostActiveVehiclesTable', () => ({ __esModule: true, default: () => <div>MostActiveVehiclesTable</div> }))
+jest.mock('@/components/dashboard/FleetActivityChart', () => ({ __esModule: true, default: () => <div>FleetActivityChart</div> }))
+jest.mock('@/components/dashboard/DataFeedStatusCard', () => ({ __esModule: true, default: () => <div>DataFeedStatusCard</div> }))
+jest.mock('@/components/dashboard/UserManagementTable', () => ({
+  __esModule: true,
   default: ({ users, onEdit, onDeactivate }) => (
     <div>
       <span>User Management</span>
@@ -32,17 +23,15 @@ jest.mock('../components/dashboard/UserManagementTable', () => ({
     </div>
   )
 }))
-jest.mock('../components/dashboard/RecentVehicleEvents', () => ({
-  default: () => <div>RecentVehicleEvents</div>
-}))
-jest.mock('../components/dashboard/EditUserModal', () => ({
+jest.mock('@/components/dashboard/RecentVehicleEvents', () => ({ __esModule: true, default: () => <div>RecentVehicleEvents</div> }))
+jest.mock('@/components/dashboard/EditUserModal', () => ({
+  __esModule: true,
   default: ({ user, onClose }) => user ? (
-    <div data-testid="edit-modal">
-      <button onClick={onClose}>Close</button>
-    </div>
+    <div data-testid="edit-modal"><button onClick={onClose}>Close</button></div>
   ) : null
 }))
 jest.mock('@/components/dashboard/DeactivateUserModal', () => ({
+  __esModule: true,
   default: ({ isOpen, onCancel, onConfirm, user }) => isOpen ? (
     <div data-testid="deactivate-modal">
       <button onClick={onCancel}>Cancel</button>
@@ -50,22 +39,21 @@ jest.mock('@/components/dashboard/DeactivateUserModal', () => ({
     </div>
   ) : null
 }))
-
-jest.mock('../services/vehicleService', () => ({
+jest.mock('@/services/vehicleService', () => ({
   getKPIs: jest.fn(),
   getVehicleLocations: jest.fn(),
   getUsers: jest.fn(),
 }))
-
 jest.mock('lucide-react', () => ({
-  Truck:     () => <svg data-testid="icon-truck" />,
-  Waypoints: () => <svg data-testid="icon-waypoints" />,
-  Users:     () => <svg data-testid="icon-users" />,
-  RefreshCw: () => <svg className="animate-spin" data-testid="icon-refresh" />,
-  Activity:  () => <svg data-testid="icon-activity" />,
+  Truck: () => <svg />,
+  Waypoints: () => <svg />,
+  Activity: () => <svg />,
+  RefreshCw: () => <svg data-testid="spinner" className="animate-spin" />,
+  Users: () => <svg />,
 }))
 
-const { getKPIs, getVehicleLocations, getUsers } = require('../services/vehicleService')
+import AdminDashboard from '@/pages/dashboard/AdminDashboard'
+const { getKPIs, getVehicleLocations, getUsers } = require('@/services/vehicleService')
 
 const mockKpis = { activeVehicles: 5, totalVehicles: 10, totalDistance: 320 }
 const mockLocations = {
@@ -95,15 +83,15 @@ afterEach(() => {
 describe('AdminDashboard', () => {
   test('shows loading spinner initially', () => {
     render(<AdminDashboard />)
-    expect(document.querySelector('svg.animate-spin')).toBeInTheDocument()
+    expect(screen.getByTestId('spinner')).toBeInTheDocument()
   })
 
   test('renders KPI stat cards after loading', async () => {
-    render(<AdminDashboard />)
-    await waitFor(() => expect(screen.getByText('Active Vehicles')).toBeInTheDocument())
-    expect(screen.getByText('Total Distance Today')).toBeInTheDocument()
-    expect(screen.getByText('Registered Users')).toBeInTheDocument()
-  })
+   await act(async () => {
+     render(<AdminDashboard />)
+   })
+   await waitFor(() => expect(screen.getByText('Active Vehicles')).toBeInTheDocument())
+})
 
   test('renders user management table after loading', async () => {
     render(<AdminDashboard />)

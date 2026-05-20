@@ -72,7 +72,7 @@ describe('LiveFleetMapPlaceholder', () => {
   describe('FleetMap integration', () => {
     it('renders the FleetMap with minimal=false', () => {
       render(<LiveFleetMapPlaceholder {...defaultProps} />)
-      expect(screen.getByTestId('fleet-map')).toHaveAttribute('data-minimal', 'false')
+      expect(screen.getByTestId('live-map')).toHaveAttribute('data-minimal', 'false')
     })
 
     it('does not show VehiclePanel initially', () => {

@@ -1,30 +1,54 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import useAuthStore from '../store/authStore';
 
 async function getAuthHeaders() {
   try {
-    const { fetchAuthSession } = await import('aws-amplify/auth')
-    const session = await fetchAuthSession()
-    const token = session.tokens?.idToken?.toString()
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+    const token = useAuthStore.getState().token;
+    if (token) {
+       return {
+         'Content-Type': 'application/json',
+         Authorization: `Bearer ${token}`,
+       }
     }
-  } catch {
-    return { 'Content-Type': 'application/json' }
+  } catch (err) {
+    console.error('Error fetching token from store', err);
   }
+  return { 'Content-Type': 'application/json' };
 }
 
 // GET /api/dashboard/kpis
 export async function getKPIs() {
-  const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, { headers })
-  if (!res.ok) throw new Error('Failed to fetch KPIs')
-  const data = await res.json()
-  return {
-    totalVehicles: data.data.total_vehicles,
-    activeVehicles: data.data.active_vehicles,
-    alertsToday: data.data.alerts_today,
-    lastUpdated: data.data.last_updated,
+  const headers = await getAuthHeaders();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, {
+      headers,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error('Failed to fetch KPIs');
+
+    const data = await res.json();
+    return {
+      totalVehicles: data.data.total_vehicles,
+      activeVehicles: data.data.active_vehicles,
+      alertsToday: data.data.alerts_today,
+      lastUpdated: data.data.last_updated,
+    };
+  } catch (err) {
+    if (err.name === 'AbortError' || err.message === 'Failed to fetch KPIs') {
+      console.warn('KPI fetch timed out — using fallback');
+      return {
+        totalVehicles: 0,
+        activeVehicles: 0,
+        alertsToday: 0,
+        lastUpdated: new Date().toISOString()
+      };
+    }
+    throw err;
   }
 }
 

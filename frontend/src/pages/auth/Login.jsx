@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
 import GoogleButton from "../../components/GoogleButton";
 import PasswordToggleIcon from "../../components/PasswordToggleIcon";
-import { signIn, signOut } from 'aws-amplify/auth';
 import useAuthStore from '../../store/authStore';
 
 export default function Login() {
@@ -22,32 +21,43 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setError('');
+    
     try {
-      await signOut({ global: false });
-      const { isSignedIn } = await signIn({ username: form.email, password: form.password });
-      if (isSignedIn) {
-        const { fetchAuthSession, fetchUserAttributes } = await import('aws-amplify/auth');
-        const session = await fetchAuthSession();
-        const attributes = await fetchUserAttributes();
-        const token = session.tokens?.idToken?.toString();
+      // Establish the correct endpoint base URL
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
 
-        //Get role from backend
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.email, password: form.password }),
-        });
-        const data = await res.json();
-        const role = data.data.user.role;
+      // Hit your custom unified backend login controller
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
 
-        useAuthStore.getState().setUser(attributes);
-        useAuthStore.getState().setRole(role);
-        useAuthStore.getState().setToken(token);
-        console.log('Role from backend:', role);
-        navigate(useAuthStore.getState().getDashboardPath());
+      const data = await res.json();
+
+      // Handle application/controller level errors smoothly
+      if (!res.ok) {
+        throw new Error(data.message || 'Sign in failed. Please check your credentials.');
       }
+
+      // Sync your global Zustand store with data returned from your backend
+      useAuthStore.getState().setUser({
+        id: data.data.user.id,
+        name: data.data.user.name,
+        email: data.data.user.email,
+      });
+      useAuthStore.getState().setRole(data.data.user.role);
+      useAuthStore.getState().setToken(data.data.idToken);
+
+      console.log('Successfully logged in! Role assigned:', data.data.user.role);
+      
+      // Redirect to the appropriate dashboard home
+      navigate(useAuthStore.getState().getDashboardPath());
+
     } catch (err) {
-      setError(err.message || 'Sign in failed. Please check your credentials.');
+      console.error('Login Interaction Error:', err);
+      setError(err.message || 'An unexpected connection error occurred.');
     } finally {
       setLoading(false);
     }

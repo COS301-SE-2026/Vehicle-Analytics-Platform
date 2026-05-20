@@ -15,13 +15,13 @@ export async function getKPIs() {
 export async function getVehicleLocations(){
     return {
         timestamp : new Date().toISOString(),
-        vehicles: [
-            { id: '1000', lat: -27.98763, lng: 28.37466, speed: 65, status: 'active' },
-            { id: '1001', lat: -28.12345, lng: 28.56789, speed: 42, status: 'active' },
-            { id: '1002', lat: -27.75432, lng: 28.12345, speed: 0,  status: 'idle' },
-            { id: '1003', lat: -28.34521, lng: 28.89012, speed: 78, status: 'active' },
-            { id: '1004', lat: -27.65432, lng: 28.45678, speed: 0,  status: 'offline' },
-            { id: '1005', lat: -28.56789, lng: 28.23456, speed: 55, status: 'active' },
+        vehicles: [ // this is the mock data
+            { id: '1000', lat: -27.98763, lng: 28.37466, speed: 65, status: 'active', distanceToday: 300 },
+            { id: '1001', lat: -28.12345, lng: 28.56789, speed: 42, status: 'active', distanceToday: 249 },
+            { id: '1002', lat: -27.75432, lng: 28.12345, speed: 0,  status: 'idle' , distanceToday: 129},
+            { id: '1003', lat: -28.34521, lng: 28.89012, speed: 78, status: 'active' , distanceToday: 288},
+            { id: '1004', lat: -27.65432, lng: 28.45678, speed: 0,  status: 'offline', distanceToday: 5 },
+            { id: '1005', lat: -28.56789, lng: 28.23456, speed: 55, status: 'active' , distanceToday: 240},
         ],
     }
 }

@@ -23,7 +23,9 @@
     },
     "moduleNameMapper": {
       "\\.(css|svg|png)$": "identity-obj-proxy",
-      "^@/(.*)$": "<rootDir>/src/$1"
+      "^@/lib/utils$": "<rootDir>/src/pages/dashboard/lib/utils.js",
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^mapbox-gl$": "<rootDir>/__mocks__/mapbox-gl.js"
     },
     "testPathIgnorePatterns": [
       "/node_modules/",

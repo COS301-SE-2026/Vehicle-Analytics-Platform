@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Truck, Waypoints, Activity, RefreshCw } from 'lucide-react'
-import { getKPIs, getVehicleLocations } from '../../services/vehicleService'
+import { getKPIs, getVehicleLocations, getAlerts } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
 import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
@@ -10,19 +10,19 @@ import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 export default function ManagerDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
-  const [activityData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [events] = useState([])
 
   async function fetchAll() {
     try {
-      const [k, l] = await Promise.all([
+      const [k, l, a] = await Promise.all([
         getKPIs(),
         getVehicleLocations(),
+        getAlerts(10),
       ])
       setKpis(k)
       setLocations(l)
+      setEvents(a)
       setError(null)
     } catch (err) {
       console.error('ManagerDashboard fetch error:', err)
@@ -34,7 +34,7 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 10000)
+    const interval = setInterval(fetchAll, 10_000)
     return () => clearInterval(interval)
   }, [])
 
@@ -63,11 +63,12 @@ export default function ManagerDashboard() {
   }
 
   const vehicles = locations.vehicles ?? []
-  const active = vehicles.filter(v => v.status === 'active').length
-  const idle = vehicles.filter(v => v.status === 'idle').length
+  const active  = vehicles.filter(v => v.status === 'active').length
+  const idle    = vehicles.filter(v => v.status === 'idle').length
   const offline = vehicles.filter(v => v.status === 'offline').length
-  const total = kpis.totalVehicles ?? vehicles.length
+  const total   = kpis.totalVehicles ?? vehicles.length
   const inMotion = active
+
 
   const mostActive = [...vehicles]
     .sort((a, b) => (b.distanceToday ?? b.distance ?? 0) - (a.distanceToday ?? a.distance ?? 0))
@@ -114,10 +115,10 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Row 3 — Recent Vehicle Events */}
+      {/* Row 3 — Recent Vehicle Events (sourced from /dashboard/alerts) */}
       <RecentVehicleEvents events={events} limit={10} />
 
-      {/* Row 4 — Fleet Activity Chart */}
+      {/* Row 4 — Fleet Activity Chart (pending /dashboard/activity endpoint) */}
       <FleetActivityChart data={activityData} />
 
     </div>

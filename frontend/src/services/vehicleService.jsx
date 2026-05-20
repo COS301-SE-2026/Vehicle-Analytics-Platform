@@ -1,56 +1,82 @@
+// import useAuthStore from '../store/authStore'
+
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api`
+
+function getAuthHeaders() {
+    const token = localStorage.getItem('token')
+    return {
+        'Content-Type' : 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
+}
 // API suggestion: GET /api/kpis
 // Response shape: { totalVehicles, activeVehicles, averageSpeed, alertsToday, lastUpdated }
 //replacing the mock data with that of actual api calls
-export async function getKPIs(){
-    const response = await fetch(`${API_BASE}/dashboard/kpis`, {
-        headers: { 'Content-Type' : 'application/json',},
-    })
-    if(!response.ok){
-        throw new Error('Failed to fetch KPIs')
-    }
+export async function getKPIs() {
+  const response = await fetch(`${API_BASE}/dashboard/kpis`, {
+    headers: getAuthHeaders(),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch KPIs (${response.status})`)
+  }
 
-    const result = await response.json()
-    return {
-        totalVehicles : result.data.total_vehicles,
-        activeVehicles: result.data.active_vehicles,
-        alertsToday: result.data.alerts_today,
-        lastUpdated: result.data.last_updated,
-    }
+  const result = await response.json()
+  const d = result.data
+
+  return {
+    totalVehicles:  Number(d.total_vehicles)  || 0,
+    activeVehicles: Number(d.active_vehicles) || 0,
+    alertsToday:    Number(d.alerts_today)    || 0,
+    lastUpdated:    d.last_updated ?? new Date().toISOString(),
+    // totalDistance intentionally absent — see note above
+  }
 }
 
 // API suggestion: GET /api/vehicles/locations or GET /api/telemetry/latest
 // Response shape: { timestamp, vehicles: [{ id, lat, lng, speed, status, lastUpdated?, distanceToday? }, ...] }
 export async function getVehicleLocations(){
-    return {
-        timestamp : new Date().toISOString(),
-        vehicles: [ // this is the mock data
-            { id: '1000', lat: -27.98763, lng: 28.37466, speed: 65, status: 'active', distanceToday: 300 },
-            { id: '1001', lat: -28.12345, lng: 28.56789, speed: 42, status: 'active', distanceToday: 249 },
-            { id: '1002', lat: -27.75432, lng: 28.12345, speed: 0,  status: 'idle' , distanceToday: 129},
-            { id: '1003', lat: -28.34521, lng: 28.89012, speed: 78, status: 'active' , distanceToday: 288},
-            { id: '1004', lat: -27.65432, lng: 28.45678, speed: 0,  status: 'offline', distanceToday: 5 },
-            { id: '1005', lat: -28.56789, lng: 28.23456, speed: 55, status: 'active' , distanceToday: 240},
-        ],
-    }
+  const response = await fetch(`${API_BASE}/vehicles/locations`, {
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+  })
+  if (!response.ok) {
+    throw new Error('Failed to fetch vehicle locations')
+  }
+
+  const result = await response.json()
+  const vehicles = (result.data?.vehicles ?? []).map(vehicle => ({
+    id: vehicle.id,
+    lat: vehicle.latitude ?? vehicle.lat,
+    lng: vehicle.longitude ?? vehicle.lng,
+    speed: vehicle.speed,
+    status: vehicle.status,
+    lastUpdated: vehicle.last_update ?? vehicle.lastUpdated ?? vehicle.last_updated,
+    distanceToday: vehicle.distance_today ?? vehicle.distanceToday ?? vehicle.distance,
+  }))
+
+  return {
+    timestamp: result.data?.timestamp ?? new Date().toISOString(),
+    vehicles,
+  }
 }
 
 // API suggestion: GET /api/alerts?since=...&limit=...
 // Response shape: { total, alerts: [{ id, vehicleId, type, severity, message, timestamp }, ...] }
-export async function getAlerts() {
-    const response = await fetch(`${API_BASE}/dashboard/alerts`,{
-        headers : getAuthHeaders(),
-    })
-    if (!response.ok) {
-        throw new Error('Failed to fetch alerts')
-    }
-    const result = await response.json()
+export async function getAlerts(limit = 50) {
+  const response = await fetch(`${API_BASE}/dashboard/alerts?limit=${limit}`, {
+    headers: getAuthHeaders(),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch alerts (${response.status})`)
+  }
 
-    return result.data
+  const result = await response.json()
+  return result.data.alerts ?? []
 }
 
 // API suggestion: GET /api/users
 // Other user endpoints: POST /api/users, PUT /api/users/:id, DELETE /api/users/:id
 // Response: array of users [{ id, name, email, role, status? }, ...]
+
 export async function getUsers() {
   // Mock data — remove this block and uncomment the fetch below when ready
   return [

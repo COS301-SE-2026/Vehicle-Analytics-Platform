@@ -1,12 +1,21 @@
 // API suggestion: GET /api/kpis
 // Response shape: { totalVehicles, activeVehicles, averageSpeed, alertsToday, lastUpdated }
-export async function getKPIs() {
-    return{
-        totalVehicles: 15,
-        activeVehicles: 11,
-        averageSpeed: 54,
-        alertsToday: 2, // need to look into this alert situation -> can we actually return alerts without crashing?
-        lastUpdated: new Date().toISOString(),
+//replacing the mock data with that of actual api calls
+export async function getKPIs(){
+    const response = await fetch(`${API_BASE}/dashboard/kpis`, {
+        headers: { 'Content-Type' : 'application/json',},
+    })
+    if(!response.ok){
+        throw new Error('Failed to fetch KPIs')
+    }
+
+    const result = await response.json()
+    return {
+        totalVehicles : result.data.total_vehicles,
+        activeVehicles: result.data.active_vehicles,
+        averageSpeed: result.data.average_speed,
+        alertsToday: result.data.alerts_today,
+        lastUpdated: result.data.last_updated,
     }
 }
 
@@ -59,7 +68,7 @@ export async function getUsers() {
   // Mock data — remove this block and uncomment the fetch below when ready
   return [
     { id: 1, name: "Zoe Nelly", email: "zoe.nelly@fleet.local", role: "admin" },
-    { id: 2, name: "Bob Smith", email: "bob.smith@fleet.local", role: "manager" },
+    { id: 2, name: "Bob Smith", email: "bob.smith@fleet.local", role: "fleet_manager" },
     { id: 3, name: "Carol White", email: "carol.white@fleet.local", role: "viewer" },
   ];
 }

@@ -158,25 +158,27 @@ Inside the Time-Series Database.
 
 We adopt the Medallion pattern to guarantee data quality as telemetry moves from raw dumps to business-ready views:
 
+```text
 [ Message Stream / Serverless Processor ]
-	│
-	▼
+        │
+        ▼
 ┌────────────────────────────────────────────────────────┐
 │  BRONZE LAYER (Raw Telemetry)                          │
 │  - Raw JSON payloads, append-only landing zone.        │
 └───────────────────────┬────────────────────────────────┘
-			│ (Postgres insert triggers)
-			▼
+                        │ (Postgres insert triggers)
+                        ▼
 ┌────────────────────────────────────────────────────────┐
 │  SILVER LAYER (Clean Telemetry)                        │
-│  - Cleansed, validated, structured hypertable records.  │
+│  - Cleansed, validated, structured hypertable records. │
 └───────────────────────┬────────────────────────────────┘
-			│ (TimescaleDB continuous aggregates)
-			▼
+                        │ (TimescaleDB continuous aggregates)
+                        ▼
 ┌────────────────────────────────────────────────────────┐
 │  GOLD LAYER (Vehicle Position 5s)                      │
 │  - Business-ready, aggregated map view for the UI.     │
 └────────────────────────────────────────────────────────┘
+```
 
 Details:
 - Bronze (Raw): Lambda inserts raw payloads into the landing table. Data is append-only to preserve provenance.

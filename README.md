@@ -128,3 +128,53 @@ git push origin feature/your-feature-name
 | Warona Moleboge | Data Engineer  | [LinkedIn](link) |
 | Kwanele Phakathi | Fullstack | [LinkedIn](link) |
 | Marchant Grootboom | Data Engineer| [LinkedIn](link) |
+
+
+## Project Structure
+```plaintext
+.
+├── backend
+│   ├── __mocks__
+│   ├── __tests__
+│   ├── src
+│   │   ├── controllers
+│   │   ├── db
+│   │   ├── middleware
+│   │   ├── routes
+│   │   └── utils
+│   └── tests
+├── database
+│   ├── __tests__
+│   └── migrations
+├── docs
+│   ├── api
+│   ├── architecture
+│   ├── design
+│   ├── meeting-minutes
+│   └── srs
+│       └── images
+├── frontend
+│   ├── public
+│   └── src
+│       ├── __tests__
+│       ├── assets
+│       ├── components
+│       │   ├── auth
+│       │   ├── dashboard
+│       │   ├── layout
+│       │   ├── map
+│       │   ├── shared
+│       │   └── ui
+│       ├── hooks
+│       ├── pages
+│       │   ├── auth
+│       │   ├── dashboard
+│       │   │   └── lib
+│       │   ├── map
+│       │   └── settings
+│       ├── services
+│       └── store
+└── lambdas
+    └── kinesis_telemetry_ingestion
+        └── tests
+```

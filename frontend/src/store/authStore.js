@@ -16,7 +16,7 @@ const useAuthStore = create((set) => ({
   getDashboardPath: () => {
     const role = useAuthStore.getState().role
     if (role === 'admin') return '/dashboard/admin'
-    if (role === 'manager') return '/dashboard/manager'
+    if (role === 'manager' || role === 'fleet_manager') return '/dashboard/manager'
     return '/dashboard/viewer'
   }
 }))

@@ -51,21 +51,13 @@ async function updateUserRole(req, res) {
   }
 
   try {
-    const userResult = await pool.query('SELECT cognito_sub FROM users WHERE id = $1', [userId]);
+    const userResult = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return error(res, 'User not found', 404);
     }
 
-    const updateAttributesCommand = new AdminUpdateUserAttributesCommand({
-      UserPoolId: USER_POOL_ID,
-      Username: userResult.rows[0].cognito_sub,
-      UserAttributes: [{ Name: 'custom:role', Value: role }],
-    });
-
-    await cognitoClient.send(updateAttributesCommand);
-
-    await pool.query('UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2', [role, userId]);
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, userId]);
 
     return success(res, { message: 'User role updated successfully' }, 200);
   } catch (err) {

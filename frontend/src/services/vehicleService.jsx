@@ -80,3 +80,26 @@ export async function getUsers() {
   const data = await res.json()
   return data.data
 }
+
+// PATCH /api/admin/users/:userId/role
+export async function updateUserRole(userId, role) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/role`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ role }),
+  })
+  if (!res.ok) throw new Error('Failed to update user role')
+  return await res.json()
+}
+
+// DELETE /api/admin/users/:userId
+export async function deactivateUser(userId) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers,
+  })
+  if (!res.ok) throw new Error('Failed to deactivate user')
+  return await res.json()
+}

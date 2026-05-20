@@ -29,17 +29,21 @@ export default function Login() {
         const { fetchAuthSession, fetchUserAttributes } = await import('aws-amplify/auth');
         const session = await fetchAuthSession();
         const attributes = await fetchUserAttributes();
-        const groups = session.tokens?.idToken?.payload['cognito:groups'] || [];
         const token = session.tokens?.idToken?.toString();
 
-        const role = groups.includes('admin') ? 'admin'
-          : groups.includes('fleet_manager') ? 'manager'
-          : 'viewer';
+        //Get role from backend
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email, password: form.password }),
+        });
+        const data = await res.json();
+        const role = data.data.user.role;
 
         useAuthStore.getState().setUser(attributes);
         useAuthStore.getState().setRole(role);
         useAuthStore.getState().setToken(token);
-
+        console.log('Role from backend:', role);
         navigate(useAuthStore.getState().getDashboardPath());
       }
     } catch (err) {

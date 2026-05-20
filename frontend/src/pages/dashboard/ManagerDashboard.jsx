@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Truck, Waypoints, Activity, RefreshCw } from 'lucide-react'
-import { getKPIs, getVehicleLocations } from '../../services/vehicleService'
+import { getKPIs, getVehicleLocations, getAlerts } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
 import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
@@ -13,16 +13,26 @@ export default function ManagerDashboard() {
   const [activityData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [events] = useState([])
+  const [events, setEvents] = useState([])
 
   async function fetchAll() {
     try {
-      const [k, l] = await Promise.all([
+      const [k, l, a] = await Promise.all([
         getKPIs(),
         getVehicleLocations(),
+        getAlerts(10),
       ])
       setKpis(k)
       setLocations(l)
+      setEvents(a.alerts.map(alert => ({
+        id: alert.id,
+        vehicleId: alert.vehicle_id,
+        eventType: alert.type,
+        description: alert.message,
+        location: `${alert.latitude?.toFixed(4)}, ${alert.longitude?.toFixed(4)}`,
+        severity: alert.severity?.toUpperCase(),
+        timestamp: alert.timestamp,
+      })) ?? [])
       setError(null)
     } catch (err) {
       console.error('ManagerDashboard fetch error:', err)

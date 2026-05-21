@@ -1,104 +1,193 @@
 import React from 'react'
-import { render, fireEvent } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import FleetMap from '../components/map/FleetMap'
 
 jest.mock('mapbox-gl', () => ({
-  Map: jest.fn().mockImplementation(() => ({
-    addControl: jest.fn(),
-    remove: jest.fn(),
-  })),
-  NavigationControl: jest.fn(),
-  Marker: jest.fn().mockImplementation(function({ element }) {
-    const markerEl = element
-    return {
-      setLngLat: jest.fn().mockReturnThis(),
-      addTo: jest.fn().mockImplementation(function() {
-        global.document.body.appendChild(markerEl)
-        return this
-      }),
-      remove: jest.fn().mockImplementation(function() {
-        if (markerEl && markerEl.parentNode) {
-          markerEl.parentNode.removeChild(markerEl)
-        }
-      }),
-    }
-  }),
+  __esModule: true,
+  default: {
+    Map: jest.fn(),
+    Marker: jest.fn(),
+    NavigationControl: jest.fn(),
+    accessToken: '',
+  },
 }))
 
-describe('FleetMap Component', () => {
-  const sampleVehicles = [
-    { id: 1, lat: -26.2041, lng: 28.0473, status: 'active' },
-    { id: 2, lat: -26.2100, lng: 28.0500, status: 'idle' },
-  ]
+jest.mock('mapbox-gl/dist/mapbox-gl.css', () => {})
+
+import FleetMap from '@/components/map/FleetMap'
+import mapboxgl from 'mapbox-gl'
+
+const VEHICLES = [
+  { id: '1', lat: -26.2, lng: 28.0, status: 'active' },
+  { id: '2', lat: -26.3, lng: 28.1, status: 'idle' },
+  { id: '3', lat: -26.4, lng: 28.2, status: 'offline' },
+]
+
+describe('FleetMap', () => {
+  let mockMapInstance
+  let mockMarkerInstance
 
   beforeEach(() => {
     jest.clearAllMocks()
+
+    mockMarkerInstance = {
+      setLngLat: jest.fn().mockReturnThis(),
+      addTo: jest.fn().mockReturnThis(),
+      remove: jest.fn(),
+    }
+
+    mockMapInstance = {
+      addControl: jest.fn(),
+      remove: jest.fn(),
+    }
+
+    mapboxgl.Map.mockReturnValue(mockMapInstance)
+    mapboxgl.Marker.mockReturnValue(mockMarkerInstance)
   })
 
-  afterEach(() => {
-    document.body.innerHTML = ''
+  //  Map initialisation 
+  describe('map initialisation', () => {
+    it('creates a mapbox Map on mount', () => {
+      render(<FleetMap />)
+      expect(mapboxgl.Map).toHaveBeenCalledTimes(1)
+    })
+
+    it('uses zoom 10 when minimal is false (default)', () => {
+      render(<FleetMap minimal={false} />)
+      expect(mapboxgl.Map).toHaveBeenCalledWith(
+        expect.objectContaining({ zoom: 10 })
+      )
+    })
+
+    it('uses zoom 9 when minimal is true', () => {
+      render(<FleetMap minimal={true} />)
+      expect(mapboxgl.Map).toHaveBeenCalledWith(
+        expect.objectContaining({ zoom: 9 })
+      )
+    })
+
+    it('adds a NavigationControl when minimal is false', () => {
+      render(<FleetMap minimal={false} />)
+      expect(mockMapInstance.addControl).toHaveBeenCalledTimes(1)
+      expect(mapboxgl.NavigationControl).toHaveBeenCalledWith({ showCompass: false })
+    })
+
+    it('does not add a NavigationControl when minimal is true', () => {
+      render(<FleetMap minimal={true} />)
+      expect(mockMapInstance.addControl).not.toHaveBeenCalled()
+    })
+
+    it('does not reinitialise the map if already mounted (map.current guard)', () => {
+      const { rerender } = render(<FleetMap vehicles={VEHICLES} />)
+      rerender(<FleetMap vehicles={VEHICLES} />)
+      expect(mapboxgl.Map).toHaveBeenCalledTimes(1)
+    })
   })
 
-  test('renders without crashing and instantiates Mapbox container', () => {
-    const mapboxgl = require('mapbox-gl')
-    const { container } = render(<FleetMap vehicles={sampleVehicles} />)
+  //  Marker rendering 
 
-    expect(container.firstChild).toBeInTheDocument()
-    expect(mapboxgl.Map).toHaveBeenCalledTimes(1)
+  describe('markers', () => {
+    it('creates a marker for each vehicle', () => {
+      render(<FleetMap vehicles={VEHICLES} />)
+      expect(mapboxgl.Marker).toHaveBeenCalledTimes(VEHICLES.length)
+    })
+
+    it('renders no markers when vehicles list is empty', () => {
+      render(<FleetMap vehicles={[]} />)
+      expect(mapboxgl.Marker).not.toHaveBeenCalled()
+    })
+
+    it('uses the offline fallback color for an unknown status', () => {
+      let capturedEl
+      mapboxgl.Marker.mockImplementation(({ element }) => {
+        capturedEl = element
+        return mockMarkerInstance
+      })
+
+      render(<FleetMap vehicles={[{ id: '99', lat: -26.2, lng: 28.0, status: 'maintenance' }]} />)
+      expect(capturedEl.style.background).toBe('rgb(156, 163, 175)')
+    })
+
+    it('removes old markers before adding new ones on vehicle update', () => {
+      const { rerender } = render(<FleetMap vehicles={VEHICLES} />)
+      rerender(<FleetMap vehicles={[VEHICLES[0]]} />)
+      expect(mockMarkerInstance.remove).toHaveBeenCalled()
+    })
   })
 
-  test('adds control elements only when minimal mode is false', () => {
-    const mapboxgl = require('mapbox-gl')
+  //  Click handling 
 
-    const { rerender } = render(<FleetMap vehicles={sampleVehicles} minimal={false} />)
+  describe('onVehicleClick', () => {
+    it('attaches a click listener when not minimal and onVehicleClick is provided', () => {
+      let capturedEl
+      mapboxgl.Marker.mockImplementation(({ element }) => {
+        capturedEl = element
+        return mockMarkerInstance
+      })
 
-    const mapInstance = mapboxgl.Map.mock.results[0].value
-    expect(mapInstance.addControl).toHaveBeenCalled()
-    expect(mapboxgl.NavigationControl).toHaveBeenCalled()
+      const onVehicleClick = jest.fn()
+      render(<FleetMap vehicles={[VEHICLES[0]]} onVehicleClick={onVehicleClick} minimal={false} />)
 
-    jest.clearAllMocks()
+      capturedEl.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(onVehicleClick).toHaveBeenCalledWith(VEHICLES[0])
+    })
 
-    rerender(<FleetMap vehicles={sampleVehicles} minimal={true} />)
-    expect(mapInstance.addControl).not.toHaveBeenCalled()
+    it('does not attach a click listener when minimal is true', () => {
+      let capturedEl
+      mapboxgl.Marker.mockImplementation(({ element }) => {
+        capturedEl = element
+        return mockMarkerInstance
+      })
+
+      const onVehicleClick = jest.fn()
+      render(<FleetMap vehicles={[VEHICLES[0]]} onVehicleClick={onVehicleClick} minimal={true} />)
+
+      capturedEl.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(onVehicleClick).not.toHaveBeenCalled()
+    })
+
+    it('does not throw when clicked with no onVehicleClick provided', () => {
+      let capturedEl
+      mapboxgl.Marker.mockImplementation(({ element }) => {
+        capturedEl = element
+        return mockMarkerInstance
+      })
+
+      render(<FleetMap vehicles={[VEHICLES[0]]} minimal={false} />)
+      expect(() =>
+        capturedEl.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      ).not.toThrow()
+    })
   })
 
-  test('creates browser markers and handles mouse hover styling rules', () => {
-    render(<FleetMap vehicles={sampleVehicles} />)
+  //  Marker hover styles
 
-    const DOMMarkers = document.getElementsByClassName('vehicle-marker')
-    expect(DOMMarkers.length).toBe(2)
+  describe('marker hover styles', () => {
+    it('enlarges the marker on mouseenter', () => {
+      let capturedEl
+      mapboxgl.Marker.mockImplementation(({ element }) => {
+        capturedEl = element
+        return mockMarkerInstance
+      })
 
-    const firstMarker = DOMMarkers[0]
+      render(<FleetMap vehicles={[VEHICLES[0]]} />)
+      capturedEl.dispatchEvent(new MouseEvent('mouseenter'))
+      expect(capturedEl.style.width).toBe('36px')
+      expect(capturedEl.style.height).toBe('36px')
+    })
 
-    fireEvent.mouseEnter(firstMarker)
-    expect(firstMarker.style.width).toBe('36px')
+    it('restores marker size on mouseleave', () => {
+      let capturedEl
+      mapboxgl.Marker.mockImplementation(({ element }) => {
+        capturedEl = element
+        return mockMarkerInstance
+      })
 
-    fireEvent.mouseLeave(firstMarker)
-    expect(firstMarker.style.width).toBe('32px')
-  })
-
-  test('triggers callback upon vehicle marker element selection', () => {
-    const mockClickHandler = jest.fn()
-    render(
-      <FleetMap vehicles={sampleVehicles} onVehicleClick={mockClickHandler} minimal={false} />
-    )
-
-    const DOMMarkers = document.getElementsByClassName('vehicle-marker')
-    fireEvent.click(DOMMarkers[0])
-
-    expect(mockClickHandler).toHaveBeenCalledTimes(1)
-    expect(mockClickHandler).toHaveBeenCalledWith(sampleVehicles[0])
-  })
-
-  test('cleans old markers out when the vehicle records mutate', () => {
-    const mapboxgl = require('mapbox-gl')
-    const { rerender } = render(<FleetMap vehicles={sampleVehicles} />)
-
-    rerender(<FleetMap vehicles={[sampleVehicles[0]]} />)
-
-    const allMarkers = mapboxgl.Marker.mock.results.map(r => r.value)
-    const removeCalls = allMarkers.filter(m => m.remove.mock.calls.length > 0)
-    expect(removeCalls.length).toBeGreaterThan(0)
+      render(<FleetMap vehicles={[VEHICLES[0]]} />)
+      capturedEl.dispatchEvent(new MouseEvent('mouseenter'))
+      capturedEl.dispatchEvent(new MouseEvent('mouseleave'))
+      expect(capturedEl.style.width).toBe('32px')
+      expect(capturedEl.style.height).toBe('32px')
+    })
   })
 })

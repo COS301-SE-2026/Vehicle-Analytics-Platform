@@ -19,7 +19,7 @@ jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () =>
         <span data-testid="stat-idle">{idle}</span>
         <span data-testid="stat-offline">{offline}</span>
         <span data-testid="stat-total">{total}</span>
-        <span data-testid="vehicle-count">{vehicles.length}</span>
+        <span data-testid="vehicle-count">{(vehicles ?? []).length}</span>
       </div>
     )
   }
@@ -243,4 +243,59 @@ describe('LiveMap', () => {
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(3)
     })
   })
+
+  describe('null locations guard', () => {
+    it('renders an empty container when fetch resolves with null', async () => {
+      vehicleService.getVehicleLocations.mockResolvedValue(null)
+
+      let container
+      await act(async () => {
+        ;({ container } = render(<LiveMap />))
+      })
+
+      // loading cleared → locations is null → early return null
+      expect(container.firstChild).toBeNull()
+      expect(screen.queryByTestId('live-fleet-placeholder')).not.toBeInTheDocument()
+      expect(document.querySelector('.animate-spin')).not.toBeInTheDocument()
+    })
+
+    it('stays empty after a poll also returns null', async () => {
+      vehicleService.getVehicleLocations.mockResolvedValue(null)
+
+      let container
+      await act(async () => {
+        ;({ container } = render(<LiveMap />))
+      })
+
+      await act(async () => { jest.advanceTimersByTime(10_000) })
+
+      expect(container.firstChild).toBeNull()
+    })
+
+    it('renders with zero counts when locations has no vehicles property', async () => {
+    vehicleService.getVehicleLocations.mockResolvedValue({ timestamp: new Date().toISOString() })
+    await renderLiveMap()
+
+    expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+    expect(screen.getByTestId('stat-active')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-idle')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
+    expect(screen.getByTestId('vehicle-count')).toHaveTextContent('0')
+  })
+
+  it('renders with zero counts when locations.vehicles is null', async () => {
+    vehicleService.getVehicleLocations.mockResolvedValue({ 
+      timestamp: new Date().toISOString(), 
+      vehicles: null 
+    })
+    await renderLiveMap()
+
+    expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+    expect(screen.getByTestId('stat-active')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-idle')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
+  })
+})
 })

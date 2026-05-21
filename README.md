@@ -301,7 +301,7 @@ cd backend && npm run test
 <br/>
 <b>Warona Moleboge</b>
 <br/><br/>
-<img src="https://cdn.simpleicons.org/amazonaws/FF9900" width="14"/> Cloud / DevOps / DB Lead
+<img src="https://cdn.simpleicons.org/amazonaws/FF9900" width="14"/> Cloud & Data Eng
 <br/><br/>
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/warona-moleboge-6855161b8)
@@ -312,7 +312,7 @@ cd backend && npm run test
 <br/>
 <b>Ziphozinhle Maduna</b>
 <br/><br/>
-<img src="https://cdn.simpleicons.org/react/61DAFB" width="14"/> Frontend / UX Lead
+<img src="https://cdn.simpleicons.org/react/61DAFB" width="14"/> Frontend & UX
 <br/><br/>
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/ziphozinhle-maduna)
@@ -323,7 +323,7 @@ cd backend && npm run test
 <br/>
 <b>Kwanele Phakathi</b>
 <br/><br/>
-<img src="https://cdn.simpleicons.org/docker/2496ED" width="14"/> Cloud, DevOps & Infrastructure Lead
+<img src="https://cdn.simpleicons.org/docker/2496ED" width="14"/> Frontend & Integration
 <br/><br/>
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/kwanele-phakathi-77028b231/)
@@ -334,7 +334,7 @@ cd backend && npm run test
 <br/>
 <b>Marchant Grootboom</b>
 <br/><br/>
-<img src="https://cdn.simpleicons.org/amazonkinesis/FF9900" width="14"/> Data / Real-Time Systems Lead
+<img src="https://cdn.simpleicons.org/amazonkinesis/FF9900" width="14"/> Data Eng & Integration
 <br/><br/>
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/marchant-grootboom-246513234)
@@ -345,7 +345,7 @@ cd backend && npm run test
 <br/>
 <b>Christopher Adolph</b>
 <br/><br/>
-<img src="https://cdn.simpleicons.org/nodedotjs/339933" width="14"/> Backend / API Lead
+<img src="https://cdn.simpleicons.org/nodedotjs/339933" width="14"/> Backend & Testing
 <br/><br/>
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/christopher-adolph-aa2069402/)

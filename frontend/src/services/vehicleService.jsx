@@ -84,6 +84,15 @@ export async function getAlerts(limit = 50) {
   }
 }
 
+// GET /api/dashboard/activity
+export async function getActivityHistory(range = 'day') {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/dashboard/activity?range=${encodeURIComponent(range)}`, { headers })
+  if (!res.ok) throw new Error('Failed to fetch activity history')
+  const data = await res.json()
+  return data.data.points || []
+}
+
 // GET /api/vehicles/:vehicleId
 export async function getVehicleById(vehicleId) {
   const headers = await getAuthHeaders()

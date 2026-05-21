@@ -15,14 +15,22 @@ const DEFAULT_DATA = [
   { time: '20:00', vehicles: 4 },
 ]
 
-export default function FleetActivityChart({ data = [] }) {
-  const chartData = data && data.length > 0 ? data : DEFAULT_DATA
+export default function FleetActivityChart({
+  data = [],
+  title = 'Fleet Activity Today',
+  xLabel = 'Time of Day',
+  yLabel = 'Vehicles Active',
+  yDomain = [0, 15],
+  useFallback = true,
+}) {
+  const hasData = Array.isArray(data) && data.length > 0
+  const chartData = hasData ? data : (useFallback ? DEFAULT_DATA : [])
 
   return (
     <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display font-bold text-fleet-text text-base">
-          Fleet Activity Today
+          {title}
         </h2>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm bg-fleet-green inline-block" />
@@ -30,63 +38,76 @@ export default function FleetActivityChart({ data = [] }) {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart
-          data={chartData}
-          margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
-          barCategoryGap="30%"
-          barGap={4}
-        >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            vertical={false}
-            stroke="#D9D8D2"
-          />
-          <XAxis
-            dataKey="time"
-            tick={{ fontSize: 11, fill: '#6B6B63' }}
-            axisLine={false}
-            tickLine={false}
-            label={{
-              value: 'Time of Day',
-              position: 'insideBottom',
-              offset: -2,
-              fontSize: 11,
-              fill: '#6B6B63'
-            }}
-          />
-          <YAxis
-            tick={{ fontSize: 11, fill: '#6B6B63' }}
-            axisLine={false}
-            tickLine={false}
-            domain={[0, 15]}
-            label={{
-              value: 'Vehicles Active',
-              angle: -90,
-              position: 'insideLeft',
-              fontSize: 11,
-              fill: '#6B6B63'
-            }}
-          />
-          <Tooltip
-            contentStyle={{
-              background: '#FFFFFF',
-              border: '1px solid #D9D8D2',
-              borderRadius: '8px',
-              fontSize: '12px',
-            }}
-            formatter={(value) => [`${value} vehicles`, 'Active']}
-          />
-          <Bar
-            dataKey="vehicles"
-            fill="#4D7C5F"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={48}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      {chartData.length === 0 ? (
+        <div className="h-[220px] flex items-center justify-center text-fleet-secondary text-sm">
+          No activity data available
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart
+            data={chartData}
+            margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+            barCategoryGap="30%"
+            barGap={4}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="#D9D8D2"
+            />
+            <XAxis
+              dataKey="time"
+              tick={{ fontSize: 11, fill: '#6B6B63' }}
+              axisLine={false}
+              tickLine={false}
+              label={{
+                value: xLabel,
+                position: 'insideBottom',
+                offset: -2,
+                fontSize: 11,
+                fill: '#6B6B63'
+              }}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: '#6B6B63' }}
+              axisLine={false}
+              tickLine={false}
+              domain={yDomain}
+              label={{
+                value: yLabel,
+                angle: -90,
+                position: 'insideLeft',
+                fontSize: 11,
+                fill: '#6B6B63'
+              }}
+            />
+            <Tooltip
+              contentStyle={{
+                background: '#FFFFFF',
+                border: '1px solid #D9D8D2',
+                borderRadius: '8px',
+                fontSize: '12px',
+              }}
+              formatter={(value) => [`${value} vehicles`, 'Active']}
+            />
+            <Bar
+              dataKey="vehicles"
+              fill="#4D7C5F"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={48}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   )
 }
 
-FleetActivityChart.propTypes = { data: PropTypes.array }
+FleetActivityChart.propTypes = {
+  data: PropTypes.array,
+  title: PropTypes.string,
+  xLabel: PropTypes.string,
+  yLabel: PropTypes.string,
+  yDomain: PropTypes.array,
+  useFallback: PropTypes.bool,
+}

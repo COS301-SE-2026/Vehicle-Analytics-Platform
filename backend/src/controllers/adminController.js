@@ -1,4 +1,4 @@
-const { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminDisableUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
+const { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminDisableUserCommand, AdminDeleteUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
 
@@ -98,4 +98,39 @@ async function deactivateUser(req, res) {
   }
 }
 
-module.exports = { getAllUsers, updateUserRole, deactivateUser };
+
+const { AdminDeleteUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
+
+async function deleteUser(req, res) {
+  const { userId } = req.params;
+
+  if (req.user.id === Number.parseInt(userId)) {
+    return error(res, 'Cannot delete your own account', 403);
+  }
+
+  try {
+    const userResult = await pool.query(
+      'SELECT cognito_sub FROM users WHERE id = $1', [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return error(res, 'User not found', 404);
+    }
+
+    // Delete from Cognito first
+    await cognitoClient.send(new AdminDeleteUserCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: userResult.rows[0].cognito_sub,
+    }));
+
+    // Then delete from DB
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+
+    return success(res, { message: 'User deleted successfully' }, 200);
+  } catch (err) {
+    console.error('Delete user error:', err);
+    return error(res, 'Failed to delete user: ' + err.message, 500);
+  }
+}
+
+module.exports = { getAllUsers, updateUserRole, deactivateUser, deleteUser };

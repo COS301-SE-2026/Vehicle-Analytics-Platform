@@ -1,5 +1,4 @@
 # Software Requirements Specification (SRS)
-
 ## Vehicle Analytics Platform
 
 ## Introduction 
@@ -78,7 +77,7 @@
 * Admin can view a list of all registered users and their current roles.
 * Admin can promote a Viewer to Fleet Manager.
 * Admin can demote a Fleet Manager to Viewer.
-* Admin can deactivate any user account.
+* Admin can delete any user account.
 * Admin cannot change or remove their own Admin role.
 * Role changes take effect on the affected user's next login.
 

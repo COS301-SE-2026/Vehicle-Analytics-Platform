@@ -87,4 +87,4 @@ jest.mock('radix-ui', () => {
         React.createElement('svg', { 'data-testid': 'tooltip-arrow', className }),
     },
   }
-})
+}, { virtual: true })

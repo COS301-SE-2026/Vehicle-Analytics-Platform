@@ -10,6 +10,7 @@ import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 export default function ManagerDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
+  const [activityData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [events, setEvents] = useState([])
@@ -43,7 +44,7 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 10_000)
+    const interval = setInterval(fetchAll, 10000)
     return () => clearInterval(interval)
   }, [])
 
@@ -73,11 +74,10 @@ export default function ManagerDashboard() {
 
   const vehicles = locations.vehicles ?? []
   const active  = vehicles.filter(v => v.status === 'active').length
-  const idle    = vehicles.filter(v => v.status === 'idle').length
+  const idle = vehicles.filter(v => v.status === 'idle').length
   const offline = vehicles.filter(v => v.status === 'offline').length
-  const total   = kpis.totalVehicles ?? vehicles.length
+  const total = kpis.totalVehicles ?? vehicles.length
   const inMotion = active
-
 
   const mostActive = [...vehicles]
     .sort((a, b) => (b.distanceToday ?? b.distance ?? 0) - (a.distanceToday ?? a.distance ?? 0))
@@ -124,10 +124,10 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Row 3 — Recent Vehicle Events (sourced from /dashboard/alerts) */}
+      {/* Row 3 — Recent Vehicle Events */}
       <RecentVehicleEvents events={events} limit={10} />
 
-      {/* Row 4 — Fleet Activity Chart (pending /dashboard/activity endpoint) */}
+      {/* Row 4 — Fleet Activity Chart */}
       <FleetActivityChart data={activityData} />
 
     </div>

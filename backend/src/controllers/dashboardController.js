@@ -1,6 +1,11 @@
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
 
+const ACTIVITY_RANGES = {
+  day: { bucket: '1 hour', interval: '1 day' },
+  week: { bucket: '1 day', interval: '7 days' },
+};
+
 async function getFleetKPIs(req, res) {
   try {
     // Query 1 — active vs total vehicles (Gold layer, instant)
@@ -96,4 +101,43 @@ async function getActiveAlerts(req, res) {
   }
 }
 
-module.exports = { getFleetKPIs, getActiveAlerts };
+async function getFleetActivityHistory(req, res) {
+  const range = (req.query.range || 'day').toLowerCase();
+  const config = ACTIVITY_RANGES[range];
+
+  if (!config) {
+    return error(res, 'Invalid range. Use day or week.', 400);
+  }
+
+  const minSpeed = Number.parseFloat(req.query.minSpeed);
+  const speedThreshold = Number.isFinite(minSpeed) ? minSpeed : 5;
+
+  try {
+    const result = await pool.query(`
+      SELECT
+        time_bucket($1::interval, bucket) AS bucket,
+        COUNT(DISTINCT vehicle_id) FILTER (WHERE speed >= $3) AS active_vehicles
+      FROM vehicle_position_5s
+      WHERE bucket >= NOW() - $2::interval
+      GROUP BY 1
+      ORDER BY 1
+    `, [config.bucket, config.interval, speedThreshold]);
+
+    const points = result.rows.map((row) => ({
+      bucket: row.bucket,
+      active_vehicles: parseInt(row.active_vehicles) || 0,
+    }));
+
+    return success(res, {
+      range,
+      bucket: config.bucket,
+      min_speed: speedThreshold,
+      points,
+    }, 200);
+  } catch (err) {
+    console.error('Get fleet activity history error:', err);
+    return error(res, 'Failed to fetch activity history: ' + err.message, 500);
+  }
+}
+
+module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory };

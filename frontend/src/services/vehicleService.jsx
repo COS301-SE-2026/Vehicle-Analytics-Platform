@@ -122,12 +122,12 @@ export async function updateUserRole(userId, role) {
 }
 
 // DELETE /api/admin/users/:userId
-export async function deactivateUser(userId) {
+export async function deleteUser(userId) {
   const headers = await getAuthHeaders()
   const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
     method: 'DELETE',
     headers,
   })
-  if (!res.ok) throw new Error('Failed to deactivate user')
+  if (!res.ok) throw new Error('Failed to delete user')
   return await res.json()
 }

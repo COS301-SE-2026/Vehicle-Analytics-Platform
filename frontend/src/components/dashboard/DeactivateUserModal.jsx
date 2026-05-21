@@ -1,20 +1,17 @@
 import { useEffect, useRef } from "react";
+import { X, AlertTriangle } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel }) {
   const dialogRef = useRef(null)
 
-  // Open/close the native dialog when `isOpen` changes. Prefer showModal when available.
   useEffect(() => {
     const d = dialogRef.current
     if (!d) return
 
     if (isOpen) {
-      if (typeof d.showModal === 'function') {
-        d.showModal()
-      } else {
-        d.setAttribute('open', '')
-      }
+      if (typeof d.showModal === 'function') d.showModal()
+      else d.setAttribute('open', '')
       d.focus()
     } else if (typeof d.close === 'function') {
       d.close()
@@ -32,213 +29,102 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
 
   if (!isOpen || !user) return null;
 
+  const initials = user.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : '??'
+
   return (
     <dialog
       ref={dialogRef}
-      open
-      className="du-card"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       aria-modal="true"
       aria-labelledby="du-title"
-      onCancel={(e) => {
-        // Ensure onCancel handler is called when dialog is dismissed (Escape)
-        e.preventDefault()
-        onCancel()
-      }}
+      onCancel={(e) => { e.preventDefault(); onCancel() }}
     >
+      <div className="bg-fleet-surface rounded-2xl border border-fleet-border w-full max-w-[440px] shadow-lg">
 
         {/* Header */}
-        <div className="du-header">
-          <h2 id="du-title" className="du-heading">Deactivate User</h2>
-          <button className="du-close" onClick={onCancel} aria-label="Close">✕</button>
-        </div>
-
-        <hr className="du-divider" />
-
-        {/* Warning icon */}
-        <div className="du-icon-wrap">
-          <span className="du-icon" aria-hidden="true">⚠</span>
-        </div>
-
-        {/* Body copy */}
-        <p className="du-question">Are you sure?</p>
-        <p className="du-body">
-          You are about to deactivate the account for <strong>{user.name}</strong>.
-          This user will lose access to FleetTracker immediately and will not be able
-          to log in until reactivated.
-        </p>
-
-        {/* Info banner */}
-        <div className="du-info-banner">
-          The user account will be preserved and can be reactivated at any time by an Admin.
-        </div>
-
-        <hr className="du-divider" />
-
-        {/* Actions */}
-        <div className="du-actions">
-          <button className="du-btn du-btn-cancel" onClick={onCancel}>Cancel</button>
-          <button className="du-btn du-btn-confirm" onClick={() => onConfirm(user)}>
-            Yes, Deactivate
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-fleet-border">
+          <h2 id="du-title" className="font-display font-bold text-fleet-text text-lg">
+            Delete User
+          </h2>
+          <button
+            onClick={onCancel}
+            className="text-fleet-secondary hover:text-fleet-text transition-colors p-1 rounded-lg hover:bg-fleet-panel"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
-      {/* Scoped styles */}
-      <style>{`
-        dialog::backdrop {
-          background: rgba(0, 0, 0, 0.45);
-          animation: du-fade-in 0.15s ease;
-        }
 
-        @keyframes du-fade-in {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
+        {/* User Info */}
+        <div className="px-6 py-4 border-b border-fleet-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-fleet-alert flex items-center justify-center shrink-0" aria-hidden>
+                <span className="text-white text-sm font-bold">{initials}</span>
+              </div>
+              <div>
+                <p className="font-medium text-fleet-text text-sm">{user.name}</p>
+                <p className="font-mono text-xs text-fleet-secondary">{user.email}</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-1 rounded-full uppercase bg-fleet-idle text-white">
+              {user.role}
+            </span>
+          </div>
+        </div>
 
-        dialog {
-          border: none;
-          padding: 0;
-          background: transparent;
-          width: 100%;
-          height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
+        {/* Warning Body */}
+        <div className="px-6 py-4">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-fleet-alert" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="font-medium text-fleet-text text-sm mb-1">Are you sure?</p>
+              <p className="text-sm text-fleet-secondary leading-relaxed">
+                You are about to delete the account for{' '}
+                <span className="font-medium text-fleet-text">{user.name}</span>.
+                This user will lose access to V.A.P.O.R. immediately and will not be
+                able to log in again.
+              </p>
+            </div>
+          </div>
 
-        .du-card {
-          background: #ffffff;
-          border-radius: 12px;
-          width: 100%;
-          max-width: 480px;
-          padding: 24px 28px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-          animation: du-slide-up 0.2s ease;
-        }
+          {/* Permanent action banner */}
+          <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
+            <svg className="w-4 h-4 text-fleet-alert shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p className="text-xs text-fleet-alert">
+              This action is permanent and cannot be undone.
+            </p>
+          </div>
+        </div>
 
-        @keyframes du-slide-up {
-          from { transform: translateY(12px); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
-        }
+        {/* Footer */}
+        <div className="px-6 pb-6 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 h-10 border border-fleet-border rounded-lg text-sm text-fleet-text hover:bg-fleet-panel transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onConfirm(user)}
+              className="flex-1 h-10 bg-fleet-alert text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+            >
+              Yes, Delete User
+            </button>
+          </div>
+          <p className="text-xs text-fleet-secondary text-center">
+            This will immediately revoke all access for this user.
+          </p>
+        </div>
 
-        /* Header */
-        .du-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 16px;
-        }
-
-        .du-heading {
-          font-size: 17px;
-          font-weight: 600;
-          color: #111827;
-          margin: 0;
-        }
-
-        .du-close {
-          background: none;
-          border: none;
-          font-size: 16px;
-          color: #6b7280;
-          cursor: pointer;
-          padding: 4px 8px;
-          border-radius: 6px;
-          transition: background 0.15s;
-        }
-        .du-close:hover { background: #f3f4f6; color: #111827; }
-
-        /* Divider */
-        .du-divider {
-          border: none;
-          border-top: 1px solid #e5e7eb;
-          margin: 0 -28px;
-        }
-
-        /* Icon */
-        .du-icon-wrap {
-          display: flex;
-          justify-content: center;
-          margin: 24px 0 12px;
-        }
-
-        .du-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
-          background: #d97706;
-          color: #ffffff;
-          font-size: 26px;
-          line-height: 1;
-        }
-
-        /* Body */
-        .du-question {
-          text-align: center;
-          font-size: 16px;
-          font-weight: 700;
-          color: #111827;
-          margin: 0 0 10px;
-        }
-
-        .du-body {
-          text-align: center;
-          font-size: 14px;
-          color: #374151;
-          line-height: 1.55;
-          margin: 0 0 16px;
-        }
-
-        .du-body strong { color: #111827; }
-
-        /* Info banner */
-        .du-info-banner {
-          background: #fff7ed;
-          border: 1px solid #fed7aa;
-          border-radius: 8px;
-          color: #c2410c;
-          font-size: 13.5px;
-          line-height: 1.5;
-          padding: 12px 14px;
-          margin-bottom: 20px;
-          text-align: center;
-        }
-
-        /* Actions */
-        .du-actions {
-          display: flex;
-          gap: 12px;
-          justify-content: center;
-          padding-top: 16px;
-        }
-
-        .du-btn {
-          padding: 10px 28px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          border: 1.5px solid transparent;
-          transition: background 0.15s, border-color 0.15s, transform 0.1s;
-        }
-
-        .du-btn:active { transform: scale(0.97); }
-
-        .du-btn-cancel {
-          background: #ffffff;
-          border-color: #d1d5db;
-          color: #374151;
-        }
-        .du-btn-cancel:hover { background: #f9fafb; border-color: #9ca3af; }
-
-        .du-btn-confirm {
-          background: #b91c1c;
-          color: #ffffff;
-        }
-        .du-btn-confirm:hover { background: #991b1b; }
-      `}</style>
+      </div>
     </dialog>
   );
 }
@@ -246,7 +132,9 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
 DeactivateUserModal.propTypes = {
   isOpen:    PropTypes.bool,
   user:      PropTypes.shape({
-    name: PropTypes.string,
+    name:  PropTypes.string,
+    email: PropTypes.string,
+    role:  PropTypes.string,
   }),
   onConfirm: PropTypes.func,
   onCancel:  PropTypes.func,

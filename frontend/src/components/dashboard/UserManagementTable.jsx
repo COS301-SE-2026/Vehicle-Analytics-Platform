@@ -31,7 +31,6 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
               <th className="text-left pb-3 font-medium">Name</th>
               <th className="text-left pb-3 font-medium">Email</th>
               <th className="text-left pb-3 font-medium">Role</th>
-              <th className="text-left pb-3 font-medium">Status</th>
               <th className=" text-left pb-3 font-medium">Actions</th>
             </tr>
           </thead>
@@ -100,7 +99,7 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
                             onClick={() => onDeactivate(user)}
                             className="text-xs text-fleet-alert hover:text-fleet-alert/80 transition-colors font-medium"
                           >
-                            Deactivate
+                            Delete
                           </button>
                         )}
                       </div>

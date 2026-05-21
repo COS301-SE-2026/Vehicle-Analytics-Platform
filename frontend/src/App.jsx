@@ -11,15 +11,11 @@ import LiveMap from './pages/map/LiveMap'
 import useAuthStore from './store/authStore'
 
 function ProtectedRoute({ children, allowedRoles }) {
-  // Enforce simple auth + role-based access using the local auth store.
   const { user, role } = useAuthStore()
 
-  // Not authenticated -> send to login
   if (!user) return <Navigate to="/login" replace />
 
-  // If allowedRoles provided, verify role membership
   if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    // Redirect user to their appropriate dashboard
     const redirect = useAuthStore.getState().getDashboardPath()
     return <Navigate to={redirect} replace />
   }
@@ -45,12 +41,13 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
+
         {/* All protected routes wrapped in AppShell */}
         <Route element={<AppShell role={role} />}>
           <Route
             path="/dashboard/manager"
             element={
-              <ProtectedRoute allowedRoles={['manager']}>
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
                 <ManagerDashboard />
               </ProtectedRoute>
             }

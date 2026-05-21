@@ -9,7 +9,7 @@ import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
-import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deactivateUser } from '../../services/vehicleService'
+import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deleteUser } from '../../services/vehicleService'
 
 // Placeholder activation handler kept at module scope to satisfy linting rules.
 function handleActivate(user) {
@@ -104,11 +104,11 @@ export default function AdminDashboard() {
 
   async function handleDeactivateConfirm(user) {
     try {
-      await deactivateUser(user.id)
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: false } : u))
+      await deleteUser(user.id)
+      setUsers(prev => prev.filter(u => u.id !== user.id))
       setDeactivatingUser(null)
     } catch (err) {
-      console.error('Failed to deactivate user:', err)
+      console.error('Failed to delete user:', err)
     }
   }
 

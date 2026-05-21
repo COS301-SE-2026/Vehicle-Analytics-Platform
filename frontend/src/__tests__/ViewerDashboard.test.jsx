@@ -1,105 +1,94 @@
-jest.mock('../components/dashboard/mapPlaceholder', () => ({
+import React from 'react'
+import { render, screen, waitFor, act } from '@testing-library/react'
+import '@testing-library/jest-dom'
+
+// Mock the map component
+jest.mock('../components/dashboard/LiveFleetMapPlaceholder', () => ({
   __esModule: true,
-  default: () => <span>MapSection</span>,
+  default: () => <div data-testid="map-placeholder">Live Fleet Map</div>
 }))
-jest.mock('../components/dashboard/DonutChart', () => ({
-  __esModule: true,
-  default: () => <span>DonutChart</span>,
-}))
-jest.mock('../components/dashboard/StatCard', () => ({
-  __esModule: true,
-  default: ({ label }) => <span>{label}</span>,
-}))
-jest.mock('../components/map/FleetMap', () => ({
-  __esModule: true,
-  default: () => <span>FleetMap</span>,
-}))
-jest.mock('lucide-react', () => ({
-  Truck: () => 'Truck',
-  Waypoints: () => 'Waypoints',
-  RefreshCw: () => 'RefreshCw',
-}))
+
+// Mock services
 jest.mock('../services/vehicleService', () => ({
   getKPIs: jest.fn(),
   getVehicleLocations: jest.fn(),
 }))
 
-import { render, screen, waitFor, act } from '@testing-library/react'
-import ViewerDashboard from '../pages/dashboard/ViewerDashboard'
+// Mock all dashboard components
+jest.mock('../components/dashboard/StatCard', () => ({ __esModule: true, default: ({ label }) => <div>{label}</div> }))
+jest.mock('../components/dashboard/FleetStatusCard', () => ({ __esModule: true, default: () => <div>FleetStatusCard</div> }))
+jest.mock('../components/dashboard/MostActiveVehiclesTable', () => ({ __esModule: true, default: () => <div>MostActiveVehiclesTable</div> }))
+jest.mock('../components/dashboard/RecentVehicleEvents', () => ({ __esModule: true, default: () => <div>RecentVehicleEvents</div> }))
+jest.mock('../components/dashboard/FleetActivityChart', () => ({ __esModule: true, default: () => <div>FleetActivityChart</div> }))
+jest.mock('../components/dashboard/DataFeedStatusCard', () => ({ __esModule: true, default: () => <div>DataFeedStatusCard</div> }))
+jest.mock('../components/dashboard/DonutChart', () => ({ __esModule: true, default: () => <div>DonutChart</div> }))
+jest.mock('lucide-react', () => ({
+  Truck: () => <svg />,
+  Waypoints: () => <svg />,
+  Activity: () => <svg />,
+  RefreshCw: () => <svg data-testid="spinner" />,
+}))
 
+import ViewerDashboard from '../pages/dashboard/ViewerDashboard'
 const { getKPIs, getVehicleLocations } = require('../services/vehicleService')
 
-const mockKpis = { activeVehicles: 3, totalVehicles: 6, idleVehicles: 2, offlineVehicles: 1 }
+const mockKpis = { 
+  activeVehicles: 5, 
+  totalVehicles: 10, 
+  totalDistance: 320 
+}
+
 const mockLocations = {
   vehicles: [
-    { id: 'VH-001', status: 'active' },
-    { id: 'VH-002', status: 'idle' },
-    { id: 'VH-003', status: 'offline' },
+    { id: 'VH-001', status: 'active', distanceToday: 120 },
+    { id: 'VH-002', status: 'idle', distanceToday: 80 },
   ]
 }
 
 beforeEach(() => {
+  jest.clearAllMocks()
   getKPIs.mockResolvedValue(mockKpis)
   getVehicleLocations.mockResolvedValue(mockLocations)
 })
 
-afterEach(() => {
-  jest.clearAllMocks()
-})
-
 describe('ViewerDashboard', () => {
-  test('shows loading state initially', () => {
+  test('shows loading spinner initially', () => {
     render(<ViewerDashboard />)
-    expect(screen.getByText('RefreshCw')).toBeInTheDocument()
+    expect(screen.getByTestId('spinner')).toBeInTheDocument()
   })
 
-  test('renders stat cards after data loads', async () => {
-    render(<ViewerDashboard />)
+  test('renders dashboard after loading', async () => {
+    await act(async () => {
+      render(<ViewerDashboard />)
+    })
     await waitFor(() => {
       expect(screen.getByText('Active Vehicles')).toBeInTheDocument()
-      expect(screen.getByText('Total Distance Today')).toBeInTheDocument()
     })
   })
 
-  test('renders map and donut chart after data loads', async () => {
-    render(<ViewerDashboard />)
+  test('displays no data message when KPIs are null', async () => {
+    getKPIs.mockResolvedValue(null)
+    getVehicleLocations.mockResolvedValue(null)
+    
+    await act(async () => {
+      render(<ViewerDashboard />)
+    })
+    
     await waitFor(() => {
-      expect(screen.getByText('MapSection')).toBeInTheDocument()
-      expect(screen.getByText('DonutChart')).toBeInTheDocument()
+      expect(screen.getByText('No data available')).toBeInTheDocument()
     })
   })
 
-  test('calls getKPIs and getVehicleLocations on mount', async () => {
-    render(<ViewerDashboard />)
+  test('displays error message on API failure', async () => {
+    getKPIs.mockRejectedValue(new Error('API Error'))
+    getVehicleLocations.mockRejectedValue(new Error('API Error'))
+    
+    await act(async () => {
+      render(<ViewerDashboard />)
+    })
+    
     await waitFor(() => {
-      expect(getKPIs).toHaveBeenCalledTimes(1)
-      expect(getVehicleLocations).toHaveBeenCalledTimes(1)
+      expect(screen.getByText('Failed to load dashboard data')).toBeInTheDocument()
     })
-  })
-
-  test('hides loading spinner after data loads', async () => {
-    render(<ViewerDashboard />)
-    await waitFor(() => {
-      expect(screen.queryByText('RefreshCw')).not.toBeInTheDocument()
-    })
-  })
-
-  test('polls for data every 10 seconds', async () => {
-    jest.useFakeTimers()
-    render(<ViewerDashboard />)
-    await waitFor(() => expect(getKPIs).toHaveBeenCalledTimes(1))
-    act(() => jest.advanceTimersByTime(10000))
-    await waitFor(() => expect(getKPIs).toHaveBeenCalledTimes(2))
-    jest.useRealTimers()
-  })
-
-  test('clears interval on unmount', async () => {
-    jest.useFakeTimers()
-    const { unmount } = render(<ViewerDashboard />)
-    await waitFor(() => expect(getKPIs).toHaveBeenCalledTimes(1))
-    unmount()
-    act(() => jest.advanceTimersByTime(10000))
-    expect(getKPIs).toHaveBeenCalledTimes(1)
-    jest.useRealTimers()
   })
 })

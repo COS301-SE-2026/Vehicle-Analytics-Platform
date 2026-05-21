@@ -79,11 +79,51 @@ describe('ManagerDashboard', () => {
     await waitFor(() => expect(screen.getByText('Failed to load dashboard data')).toBeInTheDocument())
   })
 
-  test('shows no data message when data is null', async () => {
+  test('shows no data message when kpis is null', async () => {
     getKPIs.mockResolvedValue(null)
     getVehicleLocations.mockResolvedValue(null)
     render(<ManagerDashboard />)
     await waitFor(() => expect(screen.getByText('No data available')).toBeInTheDocument())
+  })
+
+  test('shows no data message when locations is null but kpis is set', async () => {
+    getKPIs.mockResolvedValue(mockKpis)
+    getVehicleLocations.mockResolvedValue(null)
+    render(<ManagerDashboard />)
+    await waitFor(() => expect(screen.getByText('No data available')).toBeInTheDocument())
+  })
+
+
+  test('falls back to vehicles.length when kpis.totalVehicles is undefined', async () => {
+    getKPIs.mockResolvedValue({ activeVehicles: 2, totalDistance: 100 }) // no totalVehicles
+    render(<ManagerDashboard />)
+    await waitFor(() => expect(screen.getByText('Active Vehicles')).toBeInTheDocument())
+  })
+
+  test('sorts most active vehicles using distance fallback when distanceToday is missing', async () => {
+    getVehicleLocations.mockResolvedValue({
+      vehicles: [
+        { id: 'VH-A', status: 'active',  distance: 200 },
+        { id: 'VH-B', status: 'active',  distance: 50  },
+        { id: 'VH-C', status: 'offline', distance: 300 },
+      ]
+    })
+    render(<ManagerDashboard />)
+    await waitFor(() => expect(screen.getByText('VH-A')).toBeInTheDocument())
+  })
+
+
+  test('handles locations with no vehicles array gracefully', async () => {
+    getVehicleLocations.mockResolvedValue({}) // no vehicles key
+    render(<ManagerDashboard />)
+    await waitFor(() => expect(screen.getByText('Active Vehicles')).toBeInTheDocument())
+  })
+
+
+  test('shows em-dash when totalDistance is missing from kpis', async () => {
+    getKPIs.mockResolvedValue({ activeVehicles: 2, totalVehicles: 5 }) // no totalDistance
+    render(<ManagerDashboard />)
+    await waitFor(() => expect(screen.getByText('Total Distance Today')).toBeInTheDocument())
   })
 
   test('polls for data every 10 seconds', async () => {

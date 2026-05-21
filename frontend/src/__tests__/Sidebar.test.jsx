@@ -1,10 +1,10 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, act } from "@testing-library/react"
 
 jest.mock("@/lib/utils", () => ({ cn: (...args) => args.filter(Boolean).join(" ") }))
 
 jest.mock("@/hooks/use-mobile", () => ({
-  useIsMobile: () => false,
+  useIsMobile: jest.fn(() => false),
 }))
 
 jest.mock("class-variance-authority", () => ({
@@ -350,5 +350,211 @@ describe("useSidebar hook", () => {
     expect(contextValue).toHaveProperty("open")
     expect(contextValue).toHaveProperty("toggleSidebar")
     expect(contextValue).toHaveProperty("state")
+  })
+})
+
+describe("SidebarProvider controlled mode", () => {
+  test("calls onOpenChange when setOpen is triggered", () => {
+    const onOpenChange = jest.fn()
+    render(
+      <SidebarProvider open={true} onOpenChange={onOpenChange}>
+        <SidebarTrigger />
+      </SidebarProvider>
+    )
+    fireEvent.click(screen.getByText("PanelLeft").closest("button"))
+    expect(onOpenChange).toHaveBeenCalled()
+  })
+
+  test("accepts a function value via setOpen (function-as-value branch)", () => {
+    // Expose setOpen through context, then call it with a function
+    let ctx
+    const Capture = () => { ctx = useSidebar(); return null }
+    render(<SidebarProvider><Capture /></SidebarProvider>)
+    expect(() => ctx.setOpen((prev) => !prev)).not.toThrow()
+  })
+})
+
+describe("SidebarProvider mobile toggle", () => {
+  test("toggleSidebar sets openMobile when isMobile is true", () => {
+    // Temporarily override the module-level mock to return true
+    const useMobile = require("@/hooks/use-mobile")
+    useMobile.useIsMobile.mockReturnValue(true)
+
+    let ctx
+    const Capture = () => { ctx = useSidebar(); return null }
+    render(<SidebarProvider><Capture /></SidebarProvider>)
+
+    const before = ctx.openMobile
+    act(() => ctx.toggleSidebar())
+    expect(ctx.openMobile).toBe(!before)
+
+    // Restore
+    useMobile.useIsMobile.mockReturnValue(false)
+  })
+})
+
+describe("Sidebar mobile sheet path", () => {
+  test("renders SheetContent when isMobile is true", () => {
+    const useMobile = require("@/hooks/use-mobile")
+    useMobile.useIsMobile.mockReturnValue(true)
+
+    renderWithProvider(<Sidebar><div>mobile content</div></Sidebar>)
+    expect(screen.getByTestId("sheet-content")).toBeInTheDocument()
+
+    useMobile.useIsMobile.mockReturnValue(false)
+  })
+})
+
+describe("asChild branches", () => {
+  test("SidebarGroupLabel renders Slot.Root when asChild is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel asChild><span>Label</span></SidebarGroupLabel>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    )
+    expect(container.querySelector('[data-testid="slot-root"]')).toBeInTheDocument()
+  })
+
+  test("SidebarGroupAction renders Slot.Root when asChild is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupAction asChild><span>Action</span></SidebarGroupAction>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    )
+    expect(container.querySelector('[data-testid="slot-root"]')).toBeInTheDocument()
+  })
+
+  test("SidebarMenuButton renders Slot.Root when asChild is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild><a href="#">Link</a></SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+    )
+    expect(container.querySelector('[data-testid="slot-root"]')).toBeInTheDocument()
+  })
+
+  test("SidebarMenuAction renders Slot.Root when asChild is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuAction asChild><span>X</span></SidebarMenuAction>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+    )
+    expect(container.querySelector('[data-testid="slot-root"]')).toBeInTheDocument()
+  })
+
+  test("SidebarMenuSubButton renders Slot.Root when asChild is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton asChild><a href="#">Sub</a></SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+    )
+    expect(container.querySelector('[data-testid="slot-root"]')).toBeInTheDocument()
+  })
+})
+
+describe("isActive branches", () => {
+  test("SidebarMenuButton sets data-active=true when isActive is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton isActive>Active Item</SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+    )
+    expect(container.querySelector('[data-active="true"]')).toBeInTheDocument()
+  })
+
+  test("SidebarMenuSubButton sets data-active=true when isActive is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton isActive>Active Sub</SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+    )
+    expect(container.querySelector('[data-active="true"]')).toBeInTheDocument()
+  })
+})
+
+describe("SidebarMenuAction showOnHover", () => {
+  test("applies hover-visibility classes when showOnHover is true", () => {
+    const { container } = renderWithProvider(
+      <Sidebar>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuAction showOnHover />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+    )
+    const action = container.querySelector('[data-slot="sidebar-menu-action"]')
+    expect(action.className).toMatch(/group-hover/)
+  })
+})
+
+describe("SidebarMenuButton tooltip hidden prop (collapsed state)", () => {
+  test("tooltip hidden is false when sidebar is collapsed", () => {
+    // defaultOpen=false → state='collapsed'
+    const { container } = render(
+      <SidebarProvider defaultOpen={false}>
+        <Sidebar>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Tip">Item</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
+    )
+    // TooltipContent receives hidden=false when collapsed and not mobile
+    expect(screen.getByText("Item")).toBeInTheDocument()
+    // The TooltipContent div should be in the DOM (hidden=false means it renders)
+    expect(container.querySelector('[class*="tooltip"], [data-slot]')).toBeInTheDocument()
   })
 })

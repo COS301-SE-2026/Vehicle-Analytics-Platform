@@ -9,7 +9,7 @@ import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
-import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deleteUser } from '../../services/vehicleService'
+import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deleteUser} from '../../services/vehicleService'
 
 // Placeholder activation handler kept at module scope to satisfy linting rules.
 function handleActivate(user) {
@@ -26,6 +26,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [lastDataReceived, setLastDataReceived] = useState(new Date())
   const [events, setEvents] = useState([])
+  const [activityData, setActivityData] = useState([])
 
   async function fetchAll() {
     try {
@@ -103,6 +104,7 @@ export default function AdminDashboard() {
   // Uses module-scoped `handleActivate`
 
   async function handleDeactivateConfirm(user) {
+    console.log('Deleting user:', user)  // add this
     try {
       await deleteUser(user.id)
       setUsers(prev => prev.filter(u => u.id !== user.id))
@@ -179,7 +181,7 @@ export default function AdminDashboard() {
 
 
       {/* Row 5 — Fleet Activity Chart */}
-      <FleetActivityChart />
+      <FleetActivityChart data={activityData} />
 
       {/* Edit User Modal */}
       {editingUser && (

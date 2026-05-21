@@ -37,73 +37,88 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
   useEffect(() => {
     if (!map.current) return
 
-    Object.values(markers.current).forEach(m => m.remove())
-    markers.current = {}
+    const nextMarkerIds = new Set()
 
     vehicles.forEach(vehicle => {
-      const el = document.createElement('div')
-      el.className = 'vehicle-marker'
+      nextMarkerIds.add(vehicle.id)
 
-      Object.assign(el.style, {
-        width: '32px',
-        height: '32px',
-        borderRadius: '50%',
-        background: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
-        border: '2px solid white',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        zIndex: '1',
-        pointerEvents: 'auto',
-        transition: 'box-shadow 0.15s',
-      })
+      const existingMarker = markers.current[vehicle.id]
+      if (existingMarker) {
+        existingMarker.setLngLat([vehicle.lng, vehicle.lat])
+        const existingElement = existingMarker.getElement()
+        existingElement.style.background = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline
+      } else {
+        const el = document.createElement('div')
+        el.className = 'vehicle-marker'
 
-      const svgNamespace = 'http://www.w3.org/2000/svg'
-      const icon = document.createElementNS(svgNamespace, 'svg')
-      icon.setAttribute('width', '14')
-      icon.setAttribute('height', '14')
-      icon.setAttribute('viewBox', '0 0 24 24')
-      icon.setAttribute('fill', 'white')
-
-      const path = document.createElementNS(svgNamespace, 'path')
-      path.setAttribute(
-        'd',
-        'M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z'
-      )
-
-      icon.appendChild(path)
-      el.appendChild(icon)
-      
-      el.addEventListener('mouseenter', () => {
-        el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.5)'
-        el.style.width = '36px'
-        el.style.height = '36px'
-      })
-
-      el.addEventListener('mouseleave', () => {
-        el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
-        el.style.width = '32px'
-        el.style.height = '32px'
-      })
-
-      if (!minimal && onVehicleClick) {
-        el.addEventListener('click', (e) => {
-          e.stopPropagation()
-          onVehicleClick(vehicle)
+        Object.assign(el.style, {
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          background: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
+          border: '2px solid white',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          zIndex: '1',
+          pointerEvents: 'auto',
+          transition: 'box-shadow 0.15s, width 0.15s, height 0.15s, background 0.15s',
         })
+
+        const svgNamespace = 'http://www.w3.org/2000/svg'
+        const icon = document.createElementNS(svgNamespace, 'svg')
+        icon.setAttribute('width', '14')
+        icon.setAttribute('height', '14')
+        icon.setAttribute('viewBox', '0 0 24 24')
+        icon.setAttribute('fill', 'white')
+
+        const path = document.createElementNS(svgNamespace, 'path')
+        path.setAttribute(
+          'd',
+          'M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z'
+        )
+
+        icon.appendChild(path)
+        el.appendChild(icon)
+
+        el.addEventListener('mouseenter', () => {
+          el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.5)'
+          el.style.width = '36px'
+          el.style.height = '36px'
+        })
+
+        el.addEventListener('mouseleave', () => {
+          el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+          el.style.width = '32px'
+          el.style.height = '32px'
+        })
+
+        if (!minimal && onVehicleClick) {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation()
+            onVehicleClick(vehicle)
+          })
+        }
+
+        const marker = new mapboxgl.Marker({
+          element: el,
+          anchor: 'center',
+        })
+          .setLngLat([vehicle.lng, vehicle.lat])
+          .addTo(map.current)
+
+        markers.current[vehicle.id] = marker
       }
+    })
 
-      const marker = new mapboxgl.Marker({
-        element: el,
-        anchor: 'center',
-      })
-        .setLngLat([vehicle.lng, vehicle.lat])
-        .addTo(map.current)
-
-      markers.current[vehicle.id] = marker
+    Object.entries(markers.current).forEach(([vehicleId, marker]) => {
+      if (!nextMarkerIds.has(vehicleId)) {
+        marker.remove()
+        delete markers.current[vehicleId]
+      }
     })
   }, [vehicles, minimal, onVehicleClick])
 

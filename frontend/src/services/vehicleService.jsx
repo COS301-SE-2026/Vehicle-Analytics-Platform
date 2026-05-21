@@ -58,9 +58,8 @@ export async function getVehicleLocations() {
   const res = await fetch(`${API_BASE_URL}/api/vehicles/locations`, { headers })
   if (!res.ok) throw new Error('Failed to fetch vehicle locations')
   const data = await res.json()
-  return {
-    timestamp: data.data.timestamp,
-    vehicles: data.data.vehicles.map(v => ({
+  const vehicles = (data.data.vehicles || [])
+    .map(v => ({
       id: v.id,
       lat: parseFloat(v.latitude),
       lng: parseFloat(v.longitude),
@@ -68,7 +67,12 @@ export async function getVehicleLocations() {
       status: v.status,
       driver_name: v.driver_name,
       last_update: v.last_update,
-    })),
+    }))
+    .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
+
+  return {
+    timestamp: data.data.timestamp,
+    vehicles,
   }
 }
 

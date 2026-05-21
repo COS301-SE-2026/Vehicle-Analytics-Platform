@@ -33,7 +33,7 @@ ProtectedRoute.defaultProps = {
 }
 
 function App() {
-  const { role, user } = useAuthStore()
+  const { role } = useAuthStore()
   return (
     <BrowserRouter>
       <Routes>
@@ -71,7 +71,7 @@ function App() {
           <Route
             path="/map"
             element={
-              <ProtectedRoute allowedRoles={['viewer', 'manager', 'admin']}>
+              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager', 'admin']}>
                 <LiveMap />
               </ProtectedRoute>
             }

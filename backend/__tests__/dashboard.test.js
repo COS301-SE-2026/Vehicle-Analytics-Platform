@@ -87,4 +87,37 @@ describe('Dashboard API', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.alerts[0].severity).toBe('medium');
   });
+
+  test('GET /api/dashboard/activity - should return 401 without token', async () => {
+    const res = await request(app).get('/api/dashboard/activity');
+    expect(res.status).toBe(401);
+  });
+
+  test('GET /api/dashboard/activity - should return activity history (200)', async () => {
+    mockQuery.mockResolvedValue({
+      rows: [{ bucket: new Date('2026-05-01T00:00:00Z'), active_vehicles: '5' }]
+    });
+    const res = await request(app)
+      .get('/api/dashboard/activity?range=day')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.points.length).toBe(1);
+    expect(res.body.data.points[0].active_vehicles).toBe(5);
+  });
+
+  test('GET /api/dashboard/activity - should reject invalid range (400)', async () => {
+    const res = await request(app)
+      .get('/api/dashboard/activity?range=month')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(400);
+  });
+
+  test('GET /api/dashboard/activity - should handle database error (500)', async () => {
+    mockQuery.mockRejectedValue(new Error('DB error'));
+    const res = await request(app)
+      .get('/api/dashboard/activity?range=day')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(res.status).toBe(500);
+  });
 });

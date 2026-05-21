@@ -3,7 +3,7 @@ import { Truck, Waypoints, RefreshCw } from 'lucide-react'
 import { getKPIs, getVehicleLocations } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import DonutChart from '../../components/dashboard/DonutChart'
-import MapSection from '../../components/dashboard/MapPlaceholder'
+import MapSection from '../../components/dashboard/mapPlaceholder'
 
 export default function ViewerDashboard() {
   const [kpis, setKpis]           = useState(null)

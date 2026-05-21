@@ -2,16 +2,30 @@ import { useState, useEffect } from 'react'
 import { Truck, Waypoints, Users, RefreshCw } from 'lucide-react'
 import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
-import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
+//import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import UserManagementTable from '../../components/dashboard/UserManagementTable'
 import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
-import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deleteUser} from '../../services/vehicleService'
+import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deleteUser, getActivityHistory } from '../../services/vehicleService'
+
+function formatActivityPoints(points, range) {
+  return points.map((point) => {
+    const date = new Date(point.bucket)
+    const timeLabel = range === 'week'
+      ? date.toLocaleDateString('en-US', { weekday: 'short' })
+      : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    return {
+      time: timeLabel,
+      vehicles: point.active_vehicles ?? 0,
+    }
+  })
+}
 
 // Placeholder activation handler kept at module scope to satisfy linting rules.
+
 function handleActivate(user) {
   // Wire up API call later
   // Intentionally module-scoped to avoid redefining inside the component.
@@ -48,8 +62,10 @@ export default function AdminDashboard() {
         severity: alert.severity?.toUpperCase(),
         timestamp: alert.timestamp,
       })) ?? [])
-      setLastDataReceived(new Date())
-    } finally {
+      const activityPoints = await getActivityHistory('day').catch(() => [])
+        setActivityData(formatActivityPoints(activityPoints, 'day'))
+        setLastDataReceived(new Date())
+      } finally {
       setLoading(false)
     }
   }
@@ -153,7 +169,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Row 2 — Fleet Status + Most Active */}
+    {/* Row 2 — Fleet Status + User Management */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1">
           <FleetStatusCard
@@ -164,17 +180,14 @@ export default function AdminDashboard() {
           />
         </div>
         <div className="lg:col-span-2">
-          <MostActiveVehiclesTable vehicles={mostActive} />
+          <UserManagementTable
+            users={users}
+            onEdit={handleEdit}
+            onDeactivate={handleDeactivate}
+            onActivate={handleActivate}
+          />
         </div>
       </div>
-
-      {/* Row 3 — User Management */}
-      <UserManagementTable
-        users={users}
-        onEdit={handleEdit}
-        onDeactivate={handleDeactivate}
-        onActivate={handleActivate}
-      />
 
       {/* Row 4 — Recent Vehicle Events */}
       <RecentVehicleEvents events={events} limit={10} />

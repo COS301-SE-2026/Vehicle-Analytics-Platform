@@ -1,120 +1,176 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import '@testing-library/jest-dom'
 
-// Mocks
+// ── Mocks ─────────────────────────────────────────────────────────────────────
+
 jest.mock('../store/authStore', () => {
   const mock = jest.fn()
   mock.getState = jest.fn()
   return mock
 })
 
+// Replace BrowserRouter with MemoryRouter so we control the initial path
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom')
+  return {
+    ...actual,
+    BrowserRouter: ({ children }) => {
+      const { MemoryRouter } = actual
+      const path = global.__TEST_PATH__ || '/'
+      return <MemoryRouter initialEntries={[path]}>{children}</MemoryRouter>
+    },
+  }
+})
+
 jest.mock('../components/layout/AppShell', () =>
-  function MockAppShell({ role }) {
+  function MockAppShell() {
     const { Outlet } = require('react-router-dom')
-    return (
-      <div data-testid="appshell" data-role={role}>
-        <Outlet />
-      </div>
-    )
+    return <div data-testid="appshell"><Outlet /></div>
   }
 )
 
-jest.mock('../store/authStore')
-jest.mock('../components/layout/AppShell')
-jest.mock('../pages/auth/Login')
-jest.mock('../pages/auth/Signup')
-jest.mock('../pages/auth/VerifyEmail')
-jest.mock('../pages/dashboard/ViewerDashboard')
-jest.mock('../pages/dashboard/ManagerDashboard')
-jest.mock('../pages/dashboard/AdminDashboard')
-jest.mock('../pages/map/LiveMap')
+jest.mock('../pages/auth/Login',                 () => () => <div data-testid="login-page" />)
+jest.mock('../pages/auth/Signup',                () => () => <div data-testid="signup-page" />)
+jest.mock('../pages/auth/VerifyEmail',            () => () => <div data-testid="verify-page" />)
+jest.mock('../pages/dashboard/ViewerDashboard',  () => () => <div data-testid="viewer-dashboard" />)
+jest.mock('../pages/dashboard/ManagerDashboard', () => () => <div data-testid="manager-dashboard" />)
+jest.mock('../pages/dashboard/AdminDashboard',   () => () => <div data-testid="admin-dashboard" />)
+jest.mock('../pages/map/LiveMap',                () => () => <div data-testid="live-map" />)
 
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
+import App from '../App'
 
-// Helpers
-// Re-import App after mocks are set up
-let App
-beforeAll(() => {
-  App = require('../App').default
-})
+// ── Helper ────────────────────────────────────────────────────────────────────
 
-const renderAt = (initialPath, { user = null, role = null, getDashboardPath = () => '/login' } = {}) => {
+const renderAt = (path, { user = null, role = null, getDashboardPath = () => '/login' } = {}) => {
+  global.__TEST_PATH__ = path
   useAuthStore.mockReturnValue({ user, role })
   useAuthStore.getState.mockReturnValue({ getDashboardPath })
-  return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route path="*" element={<App />} />
-      </Routes>
-    </MemoryRouter>
-  )
+  return render(<App />)
 }
 
-describe('App – auth routes', () => {
+afterEach(() => {
+  global.__TEST_PATH__ = '/'
+  jest.clearAllMocks()
+})
+
+// ── Public auth routes ────────────────────────────────────────────────────────
+
+describe('App – public auth routes', () => {
   test('renders Login page at /login', () => {
-    useAuthStore.mockReturnValue({ user: null, role: null })
-    useAuthStore.getState.mockReturnValue({ getDashboardPath: () => '/login' })
-    render(<App />)
-    // navigate to /login via default redirect then check
+    renderAt('/login')
+    expect(screen.getByTestId('login-page')).toBeInTheDocument()
   })
 
   test('renders Signup page at /signup', () => {
-    useAuthStore.mockReturnValue({ user: null, role: null })
-    useAuthStore.getState.mockReturnValue({ getDashboardPath: () => '/login' })
-    const { container } = render(<App />)
-    expect(container).toBeInTheDocument()
+    renderAt('/signup')
+    expect(screen.getByTestId('signup-page')).toBeInTheDocument()
+  })
+
+  test('renders VerifyEmail page at /verify', () => {
+    renderAt('/verify')
+    expect(screen.getByTestId('verify-page')).toBeInTheDocument()
   })
 })
 
-describe('App – unauthenticated access', () => {
-  beforeEach(() => {
-    useAuthStore.mockReturnValue({ user: null, role: null })
-    useAuthStore.getState.mockReturnValue({ getDashboardPath: () => '/login' })
-  })
+// ── Default redirect ──────────────────────────────────────────────────────────
 
-  test('redirects unauthenticated user from /dashboard/viewer to /login', () => {
-    render(<App />)
-    // default route redirects to /dashboard/viewer which then redirects to /login
-    expect(document.body).toBeInTheDocument()
+describe('App – default redirect', () => {
+  test('redirects / to /dashboard/viewer then to /login when unauthenticated', () => {
+    renderAt('/', { user: null, role: null })
+    expect(screen.getByTestId('login-page')).toBeInTheDocument()
   })
 })
 
-describe('App – protected routes render for correct roles', () => {
+// ── Unauthenticated ProtectedRoute ────────────────────────────────────────────
+
+describe('App – unauthenticated ProtectedRoute redirects to /login', () => {
+  const paths = ['/dashboard/viewer', '/dashboard/manager', '/dashboard/admin', '/map']
+
+  paths.forEach(path => {
+    test(`redirects ${path} to /login when not logged in`, () => {
+      renderAt(path, { user: null, role: null })
+      expect(screen.getByTestId('login-page')).toBeInTheDocument()
+    })
+  })
+})
+
+// ── Authenticated – correct role ──────────────────────────────────────────────
+
+describe('App – authenticated user with correct role', () => {
   test('viewer can access /dashboard/viewer', () => {
-    useAuthStore.mockReturnValue({ user: { id: 1 }, role: 'viewer' })
-    useAuthStore.getState.mockReturnValue({ getDashboardPath: () => '/dashboard/viewer' })
-
-    render(<App />)
-    expect(document.body).toBeInTheDocument()
+    renderAt('/dashboard/viewer', { user: { id: 1 }, role: 'viewer' })
+    expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
   })
 
   test('manager can access /dashboard/manager', () => {
-    useAuthStore.mockReturnValue({ user: { id: 2 }, role: 'manager' })
-    useAuthStore.getState.mockReturnValue({ getDashboardPath: () => '/dashboard/manager' })
-
-    render(<App />)
-    expect(document.body).toBeInTheDocument()
+    renderAt('/dashboard/manager', { user: { id: 2 }, role: 'manager' })
+    expect(screen.getByTestId('manager-dashboard')).toBeInTheDocument()
   })
 
   test('admin can access /dashboard/admin', () => {
-    useAuthStore.mockReturnValue({ user: { id: 3 }, role: 'admin' })
-    useAuthStore.getState.mockReturnValue({ getDashboardPath: () => '/dashboard/admin' })
+    renderAt('/dashboard/admin', { user: { id: 3 }, role: 'admin' })
+    expect(screen.getByTestId('admin-dashboard')).toBeInTheDocument()
+  })
 
-    render(<App />)
-    expect(document.body).toBeInTheDocument()
+  test('viewer can access /map', () => {
+    renderAt('/map', { user: { id: 1 }, role: 'viewer' })
+    expect(screen.getByTestId('live-map')).toBeInTheDocument()
+  })
+
+  test('manager can access /map', () => {
+    renderAt('/map', { user: { id: 2 }, role: 'manager' })
+    expect(screen.getByTestId('live-map')).toBeInTheDocument()
+  })
+
+  test('admin can access /map', () => {
+    renderAt('/map', { user: { id: 3 }, role: 'admin' })
+    expect(screen.getByTestId('live-map')).toBeInTheDocument()
   })
 })
 
+// ── Authenticated – wrong role (redirect) ─────────────────────────────────────
 
-describe('ProtectedRoute', () => {
-  test('redirects to /login when user is null', () => {
-    useAuthStore.mockReturnValue({ user: null, role: null })
-    useAuthStore.getState.mockReturnValue({ getDashboardPath: () => '/login' })
+describe('App – authenticated user with WRONG role is redirected', () => {
+  test('viewer trying /dashboard/manager is redirected to viewer dashboard', () => {
+    renderAt('/dashboard/manager', {
+      user: { id: 1 },
+      role: 'viewer',
+      getDashboardPath: () => '/dashboard/viewer',
+    })
+    expect(screen.queryByTestId('manager-dashboard')).not.toBeInTheDocument()
+    expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
+  })
 
-    const { ProtectedRoute } = require('../App')
-    // ProtectedRoute is not exported but its behaviour is tested via App routing
-    expect(true).toBe(true)
+  test('viewer trying /dashboard/admin is redirected to viewer dashboard', () => {
+    renderAt('/dashboard/admin', {
+      user: { id: 1 },
+      role: 'viewer',
+      getDashboardPath: () => '/dashboard/viewer',
+    })
+    expect(screen.queryByTestId('admin-dashboard')).not.toBeInTheDocument()
+    expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
+  })
+
+  test('manager trying /dashboard/admin is redirected to manager dashboard', () => {
+    renderAt('/dashboard/admin', {
+      user: { id: 2 },
+      role: 'manager',
+      getDashboardPath: () => '/dashboard/manager',
+    })
+    expect(screen.queryByTestId('admin-dashboard')).not.toBeInTheDocument()
+    expect(screen.getByTestId('manager-dashboard')).toBeInTheDocument()
+  })
+
+  test('admin trying /dashboard/viewer is redirected to admin dashboard', () => {
+    renderAt('/dashboard/viewer', {
+      user: { id: 3 },
+      role: 'admin',
+      getDashboardPath: () => '/dashboard/admin',
+    })
+    expect(screen.queryByTestId('viewer-dashboard')).not.toBeInTheDocument()
+    expect(screen.getByTestId('admin-dashboard')).toBeInTheDocument()
   })
 })

@@ -86,6 +86,7 @@
     "globals": "^17.5.0",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.3.0",
+    "jest-cli": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "pg": "^8.20.0",
     "postcss": "^8.5.14",

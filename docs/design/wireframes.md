@@ -1,236 +1,171 @@
-# Screen Reference
-
-The sections below document each screen in the Vehicle Analytics, Processing & Operation in Real Time (V.A.P.O.R). Web wireframes are landscape.
----
 
 ## 1. Login Page
+**Annotations:**
+This screen authenticates existing users with their email and password, offering access recovery options and integration with Google OAuth to streamline access.
 
-**Purpose:** Authenticates existing users with email and password. Provides access recovery options and integration with Google OAuth.
+**Screen Layouts & Component Placement:**
+The interface utilizes a split-screen layout. 
+**Left Pane:** Features a solid dark green background containing the V.A.P.O.R branding, a "Monitor every vehicle. Every second." tagline, and visual live fleet status indicators.
+**Right Pane:** Centers the interactive elements. From top to bottom, it contains a "Welcome back" header, a "Continue with Google" button, an "OR" divider, an Email Address input field, a Password input field with a visibility icon, a "Remember me" checkbox paired with a "Forgot password?" link, a primary "Sign in to dashboard" action button, and a "No account yet? Create one" link at the bottom.
 
-**Key UI Elements:**
-- "Welcome back" header
-- Email address input field
-- Password input field with visibility toggle
-- "Remember me" checkbox
-- "Forgot password?" link
-- Primary "Sign in to dashboard" action button
-- "Continue with Google" OAuth button
-- Link to registration page ("No account yet? Create one")
+**User Interaction Points:**
+* Users input credentials into the email and password text fields. 
+* Clicking the eye icon in the password field triggers a visibility toggle.
+* Clicking "Sign in to dashboard" triggers system authentication.
 
-**User Interactions:**
-- If valid credentials submitted then user redirected to role-based dashboard
-- If invalid credentials then error message displayed
-- "Forgot password?" clicked then redirected to password recovery flow
-- "Continue with Google" clicked then Google OAuth authentication initiated
-- "No account yet? Create one" clicked then navigated to Registration page
+**Navigation Flow:**
+* Successful login directs the user to their designated role-based dashboard.
+* Clicking the registration link navigates the user to the Registration Page.
 
-**Wireframes**
-
-Web (Desktop)
-
+**Wireframe:**
 ![Login Page](../images/Signin.png)
 
 ---
 
 ## 2. Registration Page
 
-**Purpose:** Allows new users to create an account. Collects full name, email, and password. Enforces password strength requirements and prevents duplicate email registration.
+**Annotations:**
+This page allows new users to create an account by collecting necessary details and enforcing strong password requirements to ensure system security.
 
-**Key UI Elements:**
-- "Create Your Account" header
-- Full Name input field
-- Email input field
-- Password input field with strength indicator
-- Password confirmation field
-- Password requirements checklist (8+ chars, letter, number, special char)
-- "Continue with Google" OAuth button
-- Terms and Privacy Policy acceptance checkbox
-- Primary "CREATE ACCOUNT" action button
-- "Already have an account? Sign in" link
+**Screen Layouts & Component Placement:**
+Maintains the split-screen design of the Login page.
+**Right Pane:** Displays a "Create Your Account" header followed by a Google OAuth button and an "OR" divider. Below this are input fields for Full Name, Email, and Password. Beneath the password field is a segmented visual strength indicator and a bulleted password requirements checklist. This is followed by a Confirm Password field, a Terms and Privacy Policy checkbox, a "CREATE ACCOUNT" button, and a "Sign in" link.
 
-**User Interactions:**
-- Valid details submitted → account created, email verification OTP sent, user redirected to OTP verification page
-- Already-registered email submitted → error message displayed
-- Weak password submitted → inline error specifying requirements
-- Password requirements checklist updates in real-time
-- "Already have an account? Sign in" clicked → navigated to Login page
+**User Interaction Points:**
+* Users input their personal data into the forms.
+* Typing in the password field triggers real-time system feedback, updating the visual strength bar and checking off requirements dynamically.
 
-**Wireframes**
+**Navigation Flow:**
+* Submitting valid registration details navigates the user to the Email Verification Page.
+* Clicking "Sign in" returns the user to the Login Page.
 
-Web (Desktop)
-
+**Wireframe:**
 ![Registration Page](../images/Signup.png)
 
 ---
 
 ## 3. Email Verification Page
 
-**Purpose:** Prompts users to enter the 6-character OTP sent to their email. Used for both account activation on registration and for password recovery. Users can request a resend if the OTP expires.
+**Annotations:**
+This screen prompts users to verify their identity by entering a time-sensitive 6-digit OTP sent to their registered email address.
 
-**Key UI Elements:**
-- Email verification header with envelope icon
-- Message showing email address where code was sent
-- 6-digit OTP input fields (individual boxes)
-- Primary "Verify account" action button
-- Timer showing remaining OTP validity (Code expires in MM:SS)
-- "Resend code" link (available after expiry or on demand)
-- "Back to sign up" link for returning to registration
+**Screen Layouts & Component Placement:**
+Follows the established split-screen layout.
+* **Right Pane:** Centers a clean verification card. It features a prominent envelope icon, a "Verify your email" header, and a subtitle displaying the user's email. Below this are six distinct square input boxes for the OTP, an expiry timer (e.g., "Code expires in 09:47"), a green "Verify account" button, a "Resend code" link, and a "<- Back to sign up" link.
 
-**User Interactions:**
-- Correct OTP entered → account activated, user redirected to dashboard
-- Incorrect or expired OTP entered → error shown with resend option
-- "Resend code" clicked → new OTP sent, timer resets (subject to rate limits)
-- "Back to sign up" clicked → returned to Registration page
-- Timer expires → "Resend code" option becomes enabled
+**User Interaction Points:**
+* Users input data into the 6-digit OTP boxes.
+* If the timer expires, clicking "Resend code" triggers the system to issue a new OTP.
 
-**Wireframes**
+**Navigation Flow:**
+* Successful verification flows the user into their respective dashboard.
+* Clicking "Back to sign up" reverses the flow to the Registration Page.
 
-Web (Desktop)
-
+**Wireframe:**
 ![Email Verification Page](../images/emailverf.png)
 
 ---
 
 ## 4. Viewer Dashboard
 
-**Purpose:** Read-only dashboard for fleet viewers. Displays high-level fleet metrics, live map, and vehicle status summary. Focused on visibility without management capabilities.
+**Annotations:**
+A read-only overview designed for fleet viewers to monitor high-level fleet metrics and active locations without editing capabilities.
 
-**Key UI Elements:**
-- Dashboard header with user greeting ("Viewer Dashboard")
-- Key Performance Indicators (KPIs) cards:
-  - Active Vehicles (11 of 15 total)
-  - Total Distance Today (847 kilometres)
-- Live Fleet Map showing vehicle locations with status indicators:
-  - Green: Moving (9 vehicles)
-  - Orange: Speeding (2 vehicles)
-  - Gray: Offline (4 vehicles)
-- Vehicle Status pie chart showing breakdown by status (Active, Idle, Offline)
-- Last updated timestamp (2 seconds ago)
-- Left sidebar navigation with Dashboard and Live Map options
-- User profile section showing current user name
+**Screen Layouts & Component Placement:**
+A full-width dashboard layout. 
+- **Left Sidebar:** Contains the V.A.P.O.R header, "Dashboard" and "Live Map" navigation links, and the user's profile badge (e.g., "Matthew Stevens, Viewer") at the bottom.
+- **Main Content Area:** The top row displays two large Key Performance Indicator (KPI) cards: Active Vehicles and Total Distance Today. The bottom section is split between a wide "Live Fleet Map" (displaying moving, speeding, and offline dots) on the left, and a "Vehicle Status" donut chart on the right.
 
-**User Interactions:**
-- Clicking on vehicle on map → displays vehicle details panel with speed, location, trip duration, distance today
-- "Live Map" navigation → full-screen map view
-- Map zoom and pan controls available
-- Vehicle marker indicators update in real-time
+**User Interaction Points:**
+- Users receive visual system feedback via the real-time map markers.
+- Interacting with the map triggers pan and zoom controls.
 
-**Wireframes**
+**Navigation Flow:**
+- Selecting "Live Map" from the sidebar navigates the user to a dedicated full-screen map view.
 
-Web (Desktop)
-
+**Wireframe:**
 ![Viewer Dashboard](../images/viewerDashboard.png)
 
+---
 
-Web (Desktop - Live Map Focus)
+## 5. Live Fleet Tracking (Live Map)
 
+**Annotations:**
+A full-screen geographic view for detailed tracking, providing immediate situational awareness of the entire fleet's current positions.
+
+**Screen Layouts & Component Placement:**
+- **Main Content Area:** The screen is dominated by a dark-themed geographic map.
+- **Overlays:** A floating "Live Fleet" summary card sits in the top left, displaying counts for Moving, Idle, Offline, and Alerts, along with a "Last updated" timestamp. 
+- **Slide-out Panel:** A white panel on the right side displays specific details for a selected vehicle (Current Speed, Location, Trip Duration, Distance Today), with an 'X' button in the top right.
+
+**User Interaction Points:**
+- Clicking a vehicle marker on the map triggers the right-side details panel to open.
+- Clicking the 'X' button triggers the panel to close.
+
+**Navigation Flow:**
+* Users use the persistent left sidebar to navigate back to the main Dashboard view.
+
+**Wireframe:**
 ![Live Fleet Tracking](../images/liveMap.png)
 
 ---
 
-## 5. Manager Dashboard
+## 6. Manager Dashboard
 
-**Purpose:** Operational dashboard for fleet managers. Provides fleet status overview, top performing vehicles, recent events, and activity analytics. Enables vehicle and trip management without user administration.
+**Annotations:**
+An operational interface for fleet managers that expands on viewer metrics by adding event tracking and historical daily activity data.
 
-**Key UI Elements:**
-- Dashboard header showing role ("Manager Dashboard")
-- Key Performance Indicators (KPIs) cards:
-  - Active Vehicles (11 of 15 total)
-  - Total Distance Today (847 kilometres)
-  - Registered Users (8 users)
-  - Data Feed Status (Live indicator)
-- Fleet Status pie chart (Active: 11, Idle: 3, Offline: 1)
-- Most Active Vehicles Today table showing:
-  - Rank, Vehicle ID, Distance, Status, Last Updated timestamp
-- Recent Vehicle Events list showing:
-  - Event type, severity level, timestamp, vehicle location
-  - Events include: Exceeded speed limit, left designated zone, hard braking, engine turned off, engine started
-- Fleet Activity Today bar chart showing hourly active vehicle count
-- Left sidebar navigation with Dashboard and Live Map options
-- User profile section
+**Screen Layouts & Component Placement:**
+- **Main Content Area:** The top row features four KPI cards: Active Vehicles, Total Distance Today, Registered Users, and Data Feed Status. The middle section is horizontally split between a "Fleet Status" donut chart and a "Most Active Vehicles Today" data table. The bottom section contains a vertically stacked "Recent Vehicle Events" list and a "Fleet Activity Today" bar chart.
 
-**User Interactions:**
-- Clicking on vehicle in "Most Active Vehicles" table → navigates to vehicle detail view
-- Clicking on event in "Recent Vehicle Events" → displays event details and location
-- Bar chart interaction → hover for hourly breakdown
-- "Live Map" navigation → full-screen map view with all vehicles
-- Data automatically refreshes (last received timestamp updates)
+**User Interaction Points:**
+- The dashboard widgets trigger automatic updates, providing passive system feedback.
 
-**Wireframes**
+**Navigation Flow:**
+- Follows standard sidebar navigation between the dashboard and map views.
 
-Web (Desktop)
-
+**Wireframe:**
 ![Manager Dashboard](../images/managerDashboard.png)
 
 ---
 
-## 6. Admin Dashboard
+## 7. Admin Dashboard
 
-**Purpose:** System administration dashboard with full platform oversight. Manages users, vehicle assignments, system health, and access control. Restricted to administrators only.
+**Annotations:**
+A system administration interface that provides full platform oversight, including the necessary tools for access control and personnel management.
 
-**Key UI Elements:**
-- Dashboard header showing role ("Admin Dashboard")
-- Key Performance Indicators (KPIs) cards:
-  - Active Vehicles (11 of 15 total)
-  - Total Distance Today (847 kilometres)
-  - Registered Users (8 users)
-  - Data Feed Status (Live indicator)
-- Fleet Status pie chart (Active: 11, Idle: 3, Offline: 1)
-- Most Active Vehicles Today table with same structure as Manager Dashboard
-- User Management section showing:
-  - User table with columns: Name, Email, Role, Status, Last Active, Actions
-  - Role badges: Viewer, Fleet Manager, Admin
-  - Status indicators: Active, Inactive
-  - Action buttons: Edit, Deactivate for each user
-  - "Add User" and "Export" action buttons
-- Recent Vehicle Events list
-- Fleet Activity Today bar chart
-- Left sidebar navigation
-- User profile section
+**Screen Layouts & Component Placement:**
+Shares the structure of the Manager Dashboard but integrates an additional management layer.
+- **User Management Section:** Positioned directly below the top KPI cards, this section includes an "Add User" and "Export" button aligned to the right. Below the buttons is a comprehensive data table with columns for Name, Email, Role, Status, Last Active, and Actions (Edit/Deactivate). 
 
-**User Interactions:**
-- Clicking "Add User" → opens user creation modal
-- Clicking "Edit" on user row → opens user edit modal with role assignment options
-- Clicking "Deactivate" on user row → deactivates user account (with confirmation)
-- Role dropdown in user edit → shows options: Viewer, Fleet Manager, Admin
-- Admin role assignment → shows warning about full system access
-- "Export" button → exports user list to CSV/Excel
-- All manager dashboard interactions also available
+**User Interaction Points:**
+- Administrators trigger account modifications by clicking "Edit" or "Deactivate" text links within the user table.
+- Clicking "Export" triggers the system to download a user list report.
 
-**Wireframes**
+**Navigation Flow:**
+- Clicking "Edit" or "Add User" triggers a modal overlay, keeping the user on the current screen rather than navigating away.
 
-Web (Desktop)
-
+**Wireframe:**
 ![Admin Dashboard](../images/adminDash.png)
 
 ---
 
-## 7. User Role Assignment Modal
+## 8. User Role Assignment Modal
 
-**Purpose:** Allows administrators to assign or modify user roles. Displays role descriptions and warns about full system access for Admin role.
+**Annotations:**
+A pop-up overlay used to securely assign or modify user privileges, explicitly warning administrators when granting full system access.
 
-**Key UI Elements:**
-- "Edit User Access" modal header
-- User email display
-- "ASSIGN NEW ROLE" dropdown/selector
-- Role options with descriptions:
-  - Viewer (Read-only data access)
-  - Fleet Manager (Vehicle and trip management)
-  - Admin (Full system and user control)
-- Warning message for Admin role: "This user will have full system access including user management and the ability to modify other accounts."
-- "Cancel" and "Save Changes" action buttons
-- Note: "Role changes take effect on the affected users next login."
+**Screen Layouts & Component Placement:**
+This is a centered modal window overlaying the main dashboard. 
+- **Modal Content:** It features an "Edit User Access" title at the bottom, and the user's name/email at the top. The core form contains an "ASSIGN NEW ROLE" dropdown, followed by grey text explaining the roles. If "Admin" is selected, a red warning box appears below the descriptions. "Cancel" and "Save Changes" action buttons are positioned at the bottom right.
 
-**User Interactions:**
-- Clicking role dropdown → displays available role options
-- Selecting different role → updates displayed description and warning (if Admin)
-- "Save Changes" → applies role change, modal closes, user list updates
-- "Cancel" → closes modal without saving changes
-- Admin role selection → displays red warning message
+**User Interaction Points:**
+* Selecting a new role from the dropdown inputs data into the form.
+* Selecting the "Admin" role triggers conditional system feedback by displaying the red warning box.
+* Clicking "Save Changes" triggers the system to update the database.
 
-**Wireframes**
+**Navigation Flow:**
+* Clicking "Cancel" or "Save Changes" closes the modal, returning focus to the underlying Admin Dashboard.
 
-Web (Desktop)
-
+**Wireframe:**
 ![User Role Assignment](../images/adminEditAccess.png)
-

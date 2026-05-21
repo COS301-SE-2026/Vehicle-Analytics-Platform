@@ -1,240 +1,244 @@
-import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+jest.mock('@/lib/utils', () => ({
+  cn: (...args) => args.filter(Boolean).join(' '),
+}))
+
+import { render, screen } from '@testing-library/react'
 import {
-  SidebarProvider, Sidebar, SidebarTrigger, SidebarInset,
-  SidebarHeader, SidebarFooter, SidebarContent, SidebarGroup,
-  SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem,
-  SidebarMenuButton, SidebarMenuBadge, SidebarMenuSkeleton,
-  SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton,
-  SidebarSeparator, SidebarInput, useSidebar,
-} from "@/components/ui/sidebar"
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from '../components/ui/table'
 
-jest.mock("@/hooks/use-mobile", () => ({ useIsMobile: jest.fn(() => false) }))
-jest.mock("@/lib/utils", () => ({ cn: (...args) => args.filter(Boolean).join(" ") }))
-jest.mock("class-variance-authority", () => ({ cva: (base) => () => base }))
-jest.mock("lucide-react", () => ({ PanelLeftIcon: () => <svg data-testid="panel-left-icon" /> }))
-jest.mock("@/components/ui/button", () => ({
-  Button: ({ children, onClick, className, ...props }) => (
-    <button onClick={onClick} className={className} {...props}>{children}</button>
-  ),
-}))
-jest.mock("@/components/ui/input", () => ({
-  Input: ({ className, ...props }) => <input className={className} {...props} />,
-}))
-jest.mock("@/components/ui/separator", () => ({
-  Separator: ({ className, ...props }) => <hr className={className} {...props} />,
-}))
-jest.mock("@/components/ui/skeleton", () => ({
-  Skeleton: ({ className, ...props }) => <div className={className} data-testid="skeleton" {...props} />,
-}))
-jest.mock("@/components/ui/sheet", () => ({
-  Sheet: ({ children, ...props }) => <div data-testid="sheet" {...props}>{children}</div>,
-  SheetContent: ({ children, ...props }) => <div data-testid="sheet-content" {...props}>{children}</div>,
-  SheetHeader: ({ children, ...props }) => <div {...props}>{children}</div>,
-  SheetTitle: ({ children, ...props }) => <h2 {...props}>{children}</h2>,
-  SheetDescription: ({ children, ...props }) => <p {...props}>{children}</p>,
-}))
-jest.mock("@/components/ui/tooltip", () => ({
-  Tooltip: ({ children }) => <div>{children}</div>,
-  TooltipTrigger: ({ children }) => <div>{children}</div>,
-  TooltipContent: ({ children, ...props }) => <div data-testid="tooltip-content" {...props}>{children}</div>,
-}))
+describe('Table', () => {
+  test('renders a table element', () => {
+    const { container } = render(<Table />)
+    expect(container.querySelector('table')).toBeInTheDocument()
+  })
 
-const renderWithProvider = (ui, providerProps = {}) =>
-  render(<SidebarProvider {...providerProps}>{ui}</SidebarProvider>)
+  test('renders with data-slot="table"', () => {
+    const { container } = render(<Table />)
+    expect(container.querySelector('[data-slot="table"]')).toBeInTheDocument()
+  })
 
-describe("SidebarProvider", () => {
-  it("renders with data-slot='sidebar-wrapper'", () => {
-    const { container } = render(<SidebarProvider><div /></SidebarProvider>)
-    expect(container.querySelector("[data-slot='sidebar-wrapper']")).toBeInTheDocument()
+  test('wraps table in a container div', () => {
+    const { container } = render(<Table />)
+    expect(container.querySelector('[data-slot="table-container"]')).toBeInTheDocument()
   })
-  it("renders children", () => {
-    render(<SidebarProvider><span>provider child</span></SidebarProvider>)
-    expect(screen.getByText("provider child")).toBeInTheDocument()
+
+  test('renders children', () => {
+    render(<Table><tbody><tr><td>Cell content</td></tr></tbody></Table>)
+    expect(screen.getByText('Cell content')).toBeInTheDocument()
   })
-  it("defaults to open=true (expanded)", () => {
-    let ctx
-    const T = () => { ctx = useSidebar(); return null }
-    renderWithProvider(<T />)
-    expect(ctx.open).toBe(true)
-    expect(ctx.state).toBe("expanded")
+
+  test('applies custom className', () => {
+    const { container } = render(<Table className="custom-table" />)
+    expect(container.querySelector('.custom-table')).toBeInTheDocument()
   })
-  it("respects defaultOpen=false", () => {
-    let ctx
-    const T = () => { ctx = useSidebar(); return null }
-    renderWithProvider(<T />, { defaultOpen: false })
-    expect(ctx.open).toBe(false)
-    expect(ctx.state).toBe("collapsed")
+
+  test('passes additional props', () => {
+    const { container } = render(<Table aria-label="vehicle table" />)
+    expect(container.querySelector('[aria-label="vehicle table"]')).toBeInTheDocument()
   })
 })
 
-describe("useSidebar", () => {
-  it("throws when used outside SidebarProvider", () => {
-    const T = () => { useSidebar(); return null }
-    const spy = jest.spyOn(console, "error").mockImplementation(() => {})
-    expect(() => render(<T />)).toThrow("useSidebar must be used within a SidebarProvider.")
-    spy.mockRestore()
+describe('TableHeader', () => {
+  test('renders a thead element', () => {
+    const { container } = render(<table><TableHeader /></table>)
+    expect(container.querySelector('thead')).toBeInTheDocument()
   })
-  it("returns context values", () => {
-    let ctx
-    const T = () => { ctx = useSidebar(); return null }
-    renderWithProvider(<T />)
-    expect(ctx).toHaveProperty("open")
-    expect(ctx).toHaveProperty("toggleSidebar")
-    expect(ctx).toHaveProperty("state")
+
+  test('renders with data-slot="table-header"', () => {
+    const { container } = render(<table><TableHeader /></table>)
+    expect(container.querySelector('[data-slot="table-header"]')).toBeInTheDocument()
+  })
+
+  test('renders children', () => {
+    render(<table><TableHeader><tr><th>Name</th></tr></TableHeader></table>)
+    expect(screen.getByText('Name')).toBeInTheDocument()
+  })
+
+  test('applies custom className', () => {
+    const { container } = render(<table><TableHeader className="header-custom" /></table>)
+    expect(container.querySelector('.header-custom')).toBeInTheDocument()
   })
 })
 
-describe("SidebarTrigger", () => {
-  it("renders with data-slot='sidebar-trigger'", () => {
-    const { container } = renderWithProvider(<SidebarTrigger />)
-    expect(container.querySelector("[data-slot='sidebar-trigger']")).toBeInTheDocument()
+describe('TableBody', () => {
+  test('renders a tbody element', () => {
+    const { container } = render(<table><TableBody /></table>)
+    expect(container.querySelector('tbody')).toBeInTheDocument()
   })
-  it("renders PanelLeftIcon", () => {
-    renderWithProvider(<SidebarTrigger />)
-    expect(screen.getByTestId("panel-left-icon")).toBeInTheDocument()
+
+  test('renders with data-slot="table-body"', () => {
+    const { container } = render(<table><TableBody /></table>)
+    expect(container.querySelector('[data-slot="table-body"]')).toBeInTheDocument()
   })
-  it("toggles sidebar on click", () => {
-    let ctx
-    const T = () => { ctx = useSidebar(); return <SidebarTrigger /> }
-    renderWithProvider(<T />)
-    expect(ctx.open).toBe(true)
-    fireEvent.click(screen.getByRole("button"))
-    expect(ctx.open).toBe(false)
+
+  test('renders children', () => {
+    render(<table><TableBody><tr><td>Row data</td></tr></TableBody></table>)
+    expect(screen.getByText('Row data')).toBeInTheDocument()
   })
-  it("calls custom onClick handler", () => {
-    const handleClick = jest.fn()
-    renderWithProvider(<SidebarTrigger onClick={handleClick} />)
-    fireEvent.click(screen.getByRole("button"))
-    expect(handleClick).toHaveBeenCalledTimes(1)
+
+  test('applies custom className', () => {
+    const { container } = render(<table><TableBody className="body-custom" /></table>)
+    expect(container.querySelector('.body-custom')).toBeInTheDocument()
   })
 })
 
-describe("SidebarInset", () => {
-  it("renders as a main element", () => {
-    renderWithProvider(<SidebarInset />)
-    expect(screen.getByRole("main")).toBeInTheDocument()
+describe('TableFooter', () => {
+  test('renders a tfoot element', () => {
+    const { container } = render(<table><TableFooter /></table>)
+    expect(container.querySelector('tfoot')).toBeInTheDocument()
   })
-  it("renders children", () => {
-    renderWithProvider(<SidebarInset><p>page content</p></SidebarInset>)
-    expect(screen.getByText("page content")).toBeInTheDocument()
+
+  test('renders with data-slot="table-footer"', () => {
+    const { container } = render(<table><TableFooter /></table>)
+    expect(container.querySelector('[data-slot="table-footer"]')).toBeInTheDocument()
+  })
+
+  test('renders children', () => {
+    render(<table><TableFooter><tr><td>Footer data</td></tr></TableFooter></table>)
+    expect(screen.getByText('Footer data')).toBeInTheDocument()
+  })
+
+  test('applies custom className', () => {
+    const { container } = render(<table><TableFooter className="footer-custom" /></table>)
+    expect(container.querySelector('.footer-custom')).toBeInTheDocument()
   })
 })
 
-describe("SidebarHeader / Footer / Content", () => {
-  it("renders SidebarHeader", () => {
-    const { container } = renderWithProvider(<SidebarHeader />)
-    expect(container.querySelector("[data-slot='sidebar-header']")).toBeInTheDocument()
+describe('TableRow', () => {
+  test('renders a tr element', () => {
+    const { container } = render(<table><tbody><TableRow /></tbody></table>)
+    expect(container.querySelector('tr')).toBeInTheDocument()
   })
-  it("renders SidebarFooter", () => {
-    const { container } = renderWithProvider(<SidebarFooter />)
-    expect(container.querySelector("[data-slot='sidebar-footer']")).toBeInTheDocument()
+
+  test('renders with data-slot="table-row"', () => {
+    const { container } = render(<table><tbody><TableRow /></tbody></table>)
+    expect(container.querySelector('[data-slot="table-row"]')).toBeInTheDocument()
   })
-  it("renders SidebarContent with children", () => {
-    renderWithProvider(<SidebarContent><span>content child</span></SidebarContent>)
-    expect(screen.getByText("content child")).toBeInTheDocument()
+
+  test('renders children', () => {
+    render(<table><tbody><TableRow><td>Row content</td></TableRow></tbody></table>)
+    expect(screen.getByText('Row content')).toBeInTheDocument()
+  })
+
+  test('applies custom className', () => {
+    const { container } = render(<table><tbody><TableRow className="row-custom" /></tbody></table>)
+    expect(container.querySelector('.row-custom')).toBeInTheDocument()
   })
 })
 
-describe("SidebarGroup / Label / Content", () => {
-  it("renders SidebarGroup", () => {
-    const { container } = renderWithProvider(<SidebarGroup />)
-    expect(container.querySelector("[data-slot='sidebar-group']")).toBeInTheDocument()
+describe('TableHead', () => {
+  test('renders a th element', () => {
+    const { container } = render(<table><thead><tr><TableHead /></tr></thead></table>)
+    expect(container.querySelector('th')).toBeInTheDocument()
   })
-  it("renders SidebarGroupLabel text", () => {
-    renderWithProvider(<SidebarGroupLabel>Navigation</SidebarGroupLabel>)
-    expect(screen.getByText("Navigation")).toBeInTheDocument()
+
+  test('renders with data-slot="table-head"', () => {
+    const { container } = render(<table><thead><tr><TableHead /></tr></thead></table>)
+    expect(container.querySelector('[data-slot="table-head"]')).toBeInTheDocument()
   })
-  it("renders SidebarGroupLabel as Slot when asChild=true", () => {
-    renderWithProvider(<SidebarGroupLabel asChild>Label</SidebarGroupLabel>)
-    expect(screen.getByTestId("slot-root")).toBeInTheDocument()
+
+  test('renders children', () => {
+    render(<table><thead><tr><TableHead>Status</TableHead></tr></thead></table>)
+    expect(screen.getByText('Status')).toBeInTheDocument()
+  })
+
+  test('applies custom className', () => {
+    const { container } = render(<table><thead><tr><TableHead className="head-custom" /></tr></thead></table>)
+    expect(container.querySelector('.head-custom')).toBeInTheDocument()
   })
 })
 
-describe("SidebarMenu / MenuItem / MenuButton", () => {
-  it("renders SidebarMenu as ul", () => {
-    const { container } = renderWithProvider(<SidebarMenu />)
-    expect(container.querySelector("ul[data-slot='sidebar-menu']")).toBeInTheDocument()
+describe('TableCell', () => {
+  test('renders a td element', () => {
+    const { container } = render(<table><tbody><tr><TableCell /></tr></tbody></table>)
+    expect(container.querySelector('td')).toBeInTheDocument()
   })
-  it("renders SidebarMenuItem as li", () => {
-    const { container } = renderWithProvider(<SidebarMenu><SidebarMenuItem /></SidebarMenu>)
-    expect(container.querySelector("li[data-slot='sidebar-menu-item']")).toBeInTheDocument()
+
+  test('renders with data-slot="table-cell"', () => {
+    const { container } = render(<table><tbody><tr><TableCell /></tr></tbody></table>)
+    expect(container.querySelector('[data-slot="table-cell"]')).toBeInTheDocument()
   })
-  it("renders SidebarMenuButton children", () => {
-    renderWithProvider(<SidebarMenu><SidebarMenuItem><SidebarMenuButton>Dashboard</SidebarMenuButton></SidebarMenuItem></SidebarMenu>)
-    expect(screen.getByText("Dashboard")).toBeInTheDocument()
+
+  test('renders children', () => {
+    render(<table><tbody><tr><TableCell>Vehicle 001</TableCell></tr></tbody></table>)
+    expect(screen.getByText('Vehicle 001')).toBeInTheDocument()
   })
-  it("sets data-active when isActive=true", () => {
-    const { container } = renderWithProvider(
-      <SidebarMenu><SidebarMenuItem><SidebarMenuButton isActive>Active</SidebarMenuButton></SidebarMenuItem></SidebarMenu>
+
+  test('applies custom className', () => {
+    const { container } = render(<table><tbody><tr><TableCell className="cell-custom" /></tr></tbody></table>)
+    expect(container.querySelector('.cell-custom')).toBeInTheDocument()
+  })
+})
+
+describe('TableCaption', () => {
+  test('renders a caption element', () => {
+    const { container } = render(<table><TableCaption /></table>)
+    expect(container.querySelector('caption')).toBeInTheDocument()
+  })
+
+  test('renders with data-slot="table-caption"', () => {
+    const { container } = render(<table><TableCaption /></table>)
+    expect(container.querySelector('[data-slot="table-caption"]')).toBeInTheDocument()
+  })
+
+  test('renders children', () => {
+    render(<table><TableCaption>Fleet vehicle list</TableCaption></table>)
+    expect(screen.getByText('Fleet vehicle list')).toBeInTheDocument()
+  })
+
+  test('applies custom className', () => {
+    const { container } = render(<table><TableCaption className="caption-custom" /></table>)
+    expect(container.querySelector('.caption-custom')).toBeInTheDocument()
+  })
+})
+
+describe('Table composition', () => {
+  test('renders a fully composed table', () => {
+    render(
+      <Table>
+        <TableCaption>Vehicle Fleet Status</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Location</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>V-001</TableCell>
+            <TableCell>Active</TableCell>
+            <TableCell>Johannesburg</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>V-002</TableCell>
+            <TableCell>Idle</TableCell>
+            <TableCell>Pretoria</TableCell>
+          </TableRow>
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell>Total: 2 vehicles</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
     )
-    expect(container.querySelector("[data-slot='sidebar-menu-button']")).toHaveAttribute("data-active", "true")
-  })
-  it("renders tooltip when tooltip prop provided", () => {
-    renderWithProvider(
-      <SidebarMenu><SidebarMenuItem><SidebarMenuButton tooltip="Dashboard">DB</SidebarMenuButton></SidebarMenuItem></SidebarMenu>
-    )
-    expect(screen.getByTestId("tooltip-content")).toBeInTheDocument()
-  })
-})
 
-describe("SidebarMenuBadge", () => {
-  it("renders badge content", () => {
-    renderWithProvider(<SidebarMenuBadge>12</SidebarMenuBadge>)
-    expect(screen.getByText("12")).toBeInTheDocument()
-  })
-})
-
-describe("SidebarMenuSkeleton", () => {
-  it("renders skeleton text by default", () => {
-    const { container } = renderWithProvider(<SidebarMenuSkeleton />)
-    expect(container.querySelector("[data-sidebar='menu-skeleton-text']")).toBeInTheDocument()
-  })
-  it("renders icon skeleton when showIcon=true", () => {
-    const { container } = renderWithProvider(<SidebarMenuSkeleton showIcon />)
-    expect(container.querySelector("[data-sidebar='menu-skeleton-icon']")).toBeInTheDocument()
-  })
-})
-
-describe("SidebarMenuSub", () => {
-  it("renders as ul", () => {
-    const { container } = renderWithProvider(<SidebarMenuSub />)
-    expect(container.querySelector("ul[data-slot='sidebar-menu-sub']")).toBeInTheDocument()
-  })
-})
-
-describe("SidebarMenuSubButton", () => {
-  it("renders children", () => {
-    renderWithProvider(<SidebarMenuSubButton>Sub item</SidebarMenuSubButton>)
-    expect(screen.getByText("Sub item")).toBeInTheDocument()
-  })
-  it("sets data-active when isActive=true", () => {
-    const { container } = renderWithProvider(<SidebarMenuSubButton isActive>Active sub</SidebarMenuSubButton>)
-    expect(container.querySelector("[data-slot='sidebar-menu-sub-button']")).toHaveAttribute("data-active", "true")
-  })
-})
-
-describe("SidebarInput", () => {
-  it("renders an input", () => {
-    renderWithProvider(<SidebarInput placeholder="Search..." />)
-    expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument()
-  })
-})
-
-describe("Keyboard shortcut", () => {
-  it("toggles sidebar on Ctrl+B", () => {
-    let ctx
-    const T = () => { ctx = useSidebar(); return null }
-    renderWithProvider(<T />)
-    expect(ctx.open).toBe(true)
-    fireEvent.keyDown(window, { key: "b", ctrlKey: true })
-    expect(ctx.open).toBe(false)
-  })
-  it("does not toggle on unrelated key", () => {
-    let ctx
-    const T = () => { ctx = useSidebar(); return null }
-    renderWithProvider(<T />)
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true })
-    expect(ctx.open).toBe(true)
+    expect(screen.getByText('Vehicle Fleet Status')).toBeInTheDocument()
+    expect(screen.getByText('ID')).toBeInTheDocument()
+    expect(screen.getByText('Status')).toBeInTheDocument()
+    expect(screen.getByText('V-001')).toBeInTheDocument()
+    expect(screen.getByText('Active')).toBeInTheDocument()
+    expect(screen.getByText('Johannesburg')).toBeInTheDocument()
+    expect(screen.getByText('V-002')).toBeInTheDocument()
+    expect(screen.getByText('Total: 2 vehicles')).toBeInTheDocument()
   })
 })

@@ -4,7 +4,6 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import '@testing-library/jest-dom'
 import AppShell from '../components/layout/AppShell'
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
 // Paths must match the imports used inside AppShell, not the test file location.
 
 jest.mock('../components/layout/Sidebar', () =>

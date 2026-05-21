@@ -47,14 +47,6 @@ function App() {
         <Route path="/verify" element={<VerifyEmail />} />
         {/* All protected routes wrapped in AppShell */}
         <Route element={<AppShell role={role} />}>
-        <Route
-          path="/dashboard/manager"
-          element={
-            <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
-              <ManagerDashboard />
-            </ProtectedRoute>
-          }
-        />
           <Route
             path="/dashboard/manager"
             element={
@@ -68,6 +60,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/viewer"
+            element={
+              <ProtectedRoute allowedRoles={['viewer']}>
+                <ViewerDashboard />
               </ProtectedRoute>
             }
           />

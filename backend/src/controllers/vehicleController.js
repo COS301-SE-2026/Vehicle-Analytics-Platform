@@ -4,19 +4,29 @@ const { success, error } = require('../utils/response');
 async function getLiveLocations(req, res) {
   try {
     const result = await pool.query(`
-      SELECT DISTINCT ON (v.vehicle_id)
+      SELECT
         v.vehicle_id as id,
         v.device_id,
         v.driver_name,
-        v.status,
+        CASE
+          WHEN pos.last_seen IS NULL THEN 'offline'
+          WHEN pos.last_seen < NOW() - INTERVAL '5 minutes' THEN 'offline'
+          WHEN COALESCE(pos.speed, 0) > 0 THEN 'active'
+          ELSE 'idle'
+        END as status,
         pos.latitude,
         pos.longitude,
         pos.speed,
         pos.last_seen as last_update
       FROM vehicles v
-      LEFT JOIN vehicle_position_5s pos ON v.vehicle_id = pos.vehicle_id
-      WHERE pos.last_seen > NOW() - INTERVAL '1 minute'
-      ORDER BY v.vehicle_id, pos.bucket DESC
+      LEFT JOIN LATERAL (
+        SELECT latitude, longitude, speed, last_seen
+        FROM vehicle_position_5s
+        WHERE vehicle_id = v.vehicle_id
+        ORDER BY last_seen DESC, bucket DESC
+        LIMIT 1
+      ) pos ON true
+      ORDER BY v.vehicle_id
     `);
 
     return success(res, {
@@ -57,7 +67,7 @@ async function getVehicleById(req, res) {
       LEFT JOIN (
         SELECT DISTINCT ON (vehicle_id) *
         FROM vehicle_position_5s
-        ORDER BY vehicle_id, bucket DESC
+        ORDER BY vehicle_id, last_seen DESC, bucket DESC
       ) pos ON v.vehicle_id = pos.vehicle_id
       WHERE v.vehicle_id = $1
     `, [vehicleId]);

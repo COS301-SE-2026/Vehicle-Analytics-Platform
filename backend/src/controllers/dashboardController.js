@@ -3,39 +3,45 @@ const { success, error } = require('../utils/response');
 
 async function getFleetKPIs(req, res) {
   try {
-    const result = await pool.query(`
+    // Query 1 — active vs total vehicles (Gold layer, instant)
+    const vehicles_result = await pool.query(`
       SELECT
-        COUNT(DISTINCT v.vehicle_id) as total_vehicles,
-        COUNT(DISTINCT CASE
-          WHEN pos.last_seen > NOW() - INTERVAL '10 minutes'
-          THEN v.vehicle_id
-        END) as active_vehicles,
-        COUNT(CASE
-          WHEN e.event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering')
-          AND e.time > CURRENT_DATE
-          THEN 1
-        END) + COUNT(CASE
-          WHEN e.event_category = 'crash_detection'
-          AND e.time > CURRENT_DATE
-          THEN 1
-        END) as alerts_today
-      FROM vehicles v
-      LEFT JOIN vehicle_position_5s pos ON v.vehicle_id = pos.vehicle_id
-      LEFT JOIN vehicle_events e ON v.vehicle_id = e.vehicle_id AND e.time > CURRENT_DATE
+        COUNT(DISTINCT vehicle_id) as total_vehicles,
+        COUNT(DISTINCT vehicle_id) FILTER (
+          WHERE last_seen > NOW() - INTERVAL '10 minutes'
+        ) as active_vehicles
+      FROM (
+        SELECT DISTINCT ON (vehicle_id)
+          vehicle_id, last_seen
+        FROM vehicle_position_5s
+        ORDER BY vehicle_id, bucket DESC
+      ) latest
     `);
 
-    const row = result.rows[0];
+    // Query 2 — alerts today (vehicle_events_hourly, pre-aggregated)
+    const alerts_result = await pool.query(`
+      SELECT
+        COALESCE(SUM(harsh_braking_count), 0) +
+        COALESCE(SUM(harsh_acceleration_count), 0) +
+        COALESCE(SUM(harsh_cornering_count), 0) +
+        COALESCE(SUM(crash_count), 0) as alerts_today
+      FROM vehicle_events_hourly
+      WHERE bucket >= CURRENT_DATE
+    `);
+
+    const v = vehicles_result.rows[0];
+    const a = alerts_result.rows[0];
 
     return success(res, {
-      total_vehicles: Number.parseInt(row.total_vehicles) || 0,
-      active_vehicles: Number.parseInt(row.active_vehicles) || 0,
-      alerts_today: Number.parseInt(row.alerts_today) || 0,
-      last_updated: new Date().toISOString(),
+      total_vehicles:  parseInt(v.total_vehicles)  || 0,
+      active_vehicles: parseInt(v.active_vehicles) || 0,
+      alerts_today:    parseInt(a.alerts_today)    || 0,
+      last_updated:    new Date().toISOString()
     }, 200);
+
   } catch (err) {
-    const errorMessage = err.message || 'Failed to fetch KPIs';
     console.error('Get fleet KPIs error:', err);
-    return error(res, 'Failed to fetch KPIs: ' + errorMessage, 500);
+    return error(res, 'Failed to fetch KPIs: ' + err.message, 500);
   }
 }
 

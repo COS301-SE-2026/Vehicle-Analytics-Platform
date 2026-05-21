@@ -90,4 +90,31 @@ async function getActiveAlerts(req, res) {
   }
 }
 
-module.exports = { getFleetKPIs, getActiveAlerts };
+async function getTotalDistanceToday(req, res) {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        COALESCE(SUM(daily_distance), 0) as total_distance
+      FROM (
+        SELECT 
+          vehicle_id,
+          MAX(total_odometer) - MIN(total_odometer) as daily_distance
+        FROM clean_telemetry
+        WHERE time > NOW() - INTERVAL '1 day'
+          AND total_odometer IS NOT NULL
+        GROUP BY vehicle_id
+      ) as vehicle_distances
+    `);
+    
+    return success(res, { 
+      total_distance: parseFloat(result.rows[0]?.total_distance) || 0,
+      unit: 'km'
+    }, 200);
+  } catch (err) {
+    const errorMessage = err.message || 'Failed to fetch total distance';
+    console.error('Get total distance error:', err);
+    return error(res, 'Failed to fetch total distance: ' + errorMessage, 500);
+  }
+}
+
+module.exports = { getFleetKPIs, getActiveAlerts, getTotalDistanceToday };

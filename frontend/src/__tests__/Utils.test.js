@@ -6,7 +6,8 @@ describe('cn utility', () => {
   })
 
   test('handles conditional classes', () => {
-    expect(cn('foo', false && 'bar')).toBe('foo')
+    // resulting booleans directly instead of using a constant && expression
+    expect(cn('foo', false, true && 'baz')).toBe('foo baz')
   })
 
   test('deduplicates tailwind classes', () => {

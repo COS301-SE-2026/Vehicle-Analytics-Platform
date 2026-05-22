@@ -140,4 +140,16 @@ async function getFleetActivityHistory(req, res) {
   }
 }
 
-module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory };
+async function getTotalDistance(req, res) {
+  try {
+    const result = await pool.query('SELECT SUM(distance_km) AS total_distance FROM vehicle_trips');
+    const raw = result.rows[0]?.total_distance;
+    const total_distance = raw !== null && raw !== undefined ? parseFloat(raw) : 0;
+    return success(res, { total_distance, unit: 'km' });
+  } catch (err) {
+    console.error('Get total distance error:', err);
+    return error(res, 'Failed to fetch total distance: ' + err.message, 500);
+  }
+}
+
+module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistance };

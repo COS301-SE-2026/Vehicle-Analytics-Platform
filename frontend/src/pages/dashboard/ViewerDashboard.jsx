@@ -8,7 +8,7 @@ import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import DonutChart from '../../components/dashboard/DonutChart'
-import MapSection from '../../components/dashboard/LiveFleetMapPlaceholder'
+import MapSection from '../../components/dashboard/mapPlaceholder'
 
 export default function ViewerDashboard() {
   const [kpis, setKpis] = useState(null)

@@ -207,6 +207,7 @@ npm run dev
 | <img src="https://cdn.simpleicons.org/git/F05032" width="14"/> `main` | Production - stable, release-ready code |
 | <img src="https://cdn.simpleicons.org/git/F05032" width="14"/> `develop` | Integration - latest development changes |
 | <img src="https://cdn.simpleicons.org/git/F05032" width="14"/> `feature/*` | Feature branches - branch from develop, merge back to develop |
+| <img src="https://cdn.simpleicons.org/git/F05032" width="14"/> `doc/*` | Documentation branches - branch from develop, merge back to develop |
 
 > All development work is done on `feature/*` branches. No direct commits to `main` or `develop`.
 

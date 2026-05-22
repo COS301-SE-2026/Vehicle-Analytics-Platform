@@ -1,6 +1,7 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-const useAuthStore = create((set) => ({
+const useAuthStore = create(persist((set, get) => ({
   user: null,
   role: null,
   token: null,
@@ -14,11 +15,13 @@ const useAuthStore = create((set) => ({
   }),
   // Helper to get redirect path based on role
   getDashboardPath: () => {
-    const role = useAuthStore.getState().role
+    const role = get().role
     if (role === 'admin') return '/dashboard/admin'
-    if (role === 'manager') return '/dashboard/manager'
+    if (role === 'manager' || role === 'fleet_manager') return '/dashboard/manager'
     return '/dashboard/viewer'
   }
+}), {
+  name: 'auth-store'
 }))
 
 export default useAuthStore

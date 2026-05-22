@@ -18,6 +18,8 @@ jest.mock('@/components/dashboard/RecentVehicleEvents', () => ({ __esModule: tru
 jest.mock('@/services/vehicleService', () => ({
   getKPIs: jest.fn(),
   getVehicleLocations: jest.fn(),
+  getAlerts: jest.fn().mockResolvedValue({ total: 0, alerts: [] }),
+  getActivityHistory: jest.fn().mockResolvedValue([]),
 }))
 jest.mock('lucide-react', () => ({
   Truck: () => <svg />,
@@ -28,7 +30,7 @@ jest.mock('lucide-react', () => ({
 }))
 
 import ManagerDashboard from '@/pages/dashboard/ManagerDashboard'
-const { getKPIs, getVehicleLocations } = require('@/services/vehicleService')
+const { getKPIs, getVehicleLocations, getAlerts, getActivityHistory } = require('@/services/vehicleService')
 
 const mockKpis = { activeVehicles: 4, totalVehicles: 8, totalDistance: 210 }
 const mockLocations = {

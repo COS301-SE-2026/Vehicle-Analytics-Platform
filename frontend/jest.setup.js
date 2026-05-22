@@ -4,6 +4,7 @@ globalThis.TextEncoder = TextEncoder;
 globalThis.TextDecoder = TextDecoder;
 
 process.env.VITE_MAPBOX_TOKEN = 'mock-mapbox-token';
+process.env.VITE_API_URL = 'http://localhost:5000';
 
 require('@testing-library/jest-dom');
 
@@ -87,4 +88,4 @@ jest.mock('radix-ui', () => {
         React.createElement('svg', { 'data-testid': 'tooltip-arrow', className }),
     },
   }
-})
+}, { virtual: true })

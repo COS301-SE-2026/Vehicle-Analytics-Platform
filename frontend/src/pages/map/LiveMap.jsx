@@ -20,7 +20,7 @@ export default function LiveMap() {
 
   useEffect(() => {
     fetchLocations()
-    const interval = setInterval(fetchLocations, 10000)
+    const interval = setInterval(fetchLocations, 5000)
     return () => clearInterval(interval)
   }, [])
 

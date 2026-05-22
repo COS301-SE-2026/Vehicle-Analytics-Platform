@@ -1,41 +1,52 @@
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
 
+const ACTIVITY_RANGES = {
+  day: { bucket: '1 hour', interval: '1 day' },
+  week: { bucket: '1 day', interval: '7 days' },
+};
+
 async function getFleetKPIs(req, res) {
   try {
-    const result = await pool.query(`
+    // Query 1 — active vs total vehicles (Gold layer, instant)
+    const vehicles_result = await pool.query(`
       SELECT
-        COUNT(DISTINCT v.vehicle_id) as total_vehicles,
-        COUNT(DISTINCT CASE
-          WHEN pos.last_seen > NOW() - INTERVAL '10 minutes'
-          THEN v.vehicle_id
-        END) as active_vehicles,
-        COUNT(CASE
-          WHEN e.event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering')
-          AND e.time > CURRENT_DATE
-          THEN 1
-        END) + COUNT(CASE
-          WHEN e.event_category = 'crash_detection'
-          AND e.time > CURRENT_DATE
-          THEN 1
-        END) as alerts_today
-      FROM vehicles v
-      LEFT JOIN vehicle_position_5s pos ON v.vehicle_id = pos.vehicle_id
-      LEFT JOIN vehicle_events e ON v.vehicle_id = e.vehicle_id AND e.time > CURRENT_DATE
+        COUNT(DISTINCT vehicle_id) as total_vehicles,
+        COUNT(DISTINCT vehicle_id) FILTER (
+          WHERE last_seen > NOW() - INTERVAL '10 minutes'
+        ) as active_vehicles
+      FROM (
+        SELECT DISTINCT ON (vehicle_id)
+          vehicle_id, last_seen
+        FROM vehicle_position_5s
+        ORDER BY vehicle_id, bucket DESC
+      ) latest
     `);
 
-    const row = result.rows[0];
+    // Query 2 — alerts today (vehicle_events_hourly, pre-aggregated)
+    const alerts_result = await pool.query(`
+      SELECT
+        COALESCE(SUM(harsh_braking_count), 0) +
+        COALESCE(SUM(harsh_acceleration_count), 0) +
+        COALESCE(SUM(harsh_cornering_count), 0) +
+        COALESCE(SUM(crash_count), 0) as alerts_today
+      FROM vehicle_events_hourly
+      WHERE bucket >= CURRENT_DATE
+    `);
+
+    const v = vehicles_result.rows[0];
+    const a = alerts_result.rows[0];
 
     return success(res, {
-      total_vehicles: Number.parseInt(row.total_vehicles) || 0,
-      active_vehicles: Number.parseInt(row.active_vehicles) || 0,
-      alerts_today: Number.parseInt(row.alerts_today) || 0,
-      last_updated: new Date().toISOString(),
+      total_vehicles:  parseInt(v.total_vehicles)  || 0,
+      active_vehicles: parseInt(v.active_vehicles) || 0,
+      alerts_today:    parseInt(a.alerts_today)    || 0,
+      last_updated:    new Date().toISOString()
     }, 200);
+
   } catch (err) {
-    const errorMessage = err.message || 'Failed to fetch KPIs';
     console.error('Get fleet KPIs error:', err);
-    return error(res, 'Failed to fetch KPIs: ' + errorMessage, 500);
+    return error(res, 'Failed to fetch KPIs: ' + err.message, 500);
   }
 }
 
@@ -90,31 +101,55 @@ async function getActiveAlerts(req, res) {
   }
 }
 
-async function getTotalDistanceToday(req, res) {
+async function getFleetActivityHistory(req, res) {
+  const range = (req.query.range || 'day').toLowerCase();
+  const config = ACTIVITY_RANGES[range];
+
+  if (!config) {
+    return error(res, 'Invalid range. Use day or week.', 400);
+  }
+
+  const minSpeed = Number.parseFloat(req.query.minSpeed);
+  const speedThreshold = Number.isFinite(minSpeed) ? minSpeed : 5;
+
   try {
     const result = await pool.query(`
-      SELECT 
-        COALESCE(SUM(daily_distance), 0) as total_distance
-      FROM (
-        SELECT 
-          vehicle_id,
-          MAX(total_odometer) - MIN(total_odometer) as daily_distance
-        FROM clean_telemetry
-        WHERE time > NOW() - INTERVAL '1 day'
-          AND total_odometer IS NOT NULL
-        GROUP BY vehicle_id
-      ) as vehicle_distances
-    `);
-    
-    return success(res, { 
-      total_distance: parseFloat(result.rows[0]?.total_distance) || 0,
-      unit: 'km'
+      SELECT
+        time_bucket($1::interval, bucket) AS bucket,
+        COUNT(DISTINCT vehicle_id) FILTER (WHERE speed >= $3) AS active_vehicles
+      FROM vehicle_position_5s
+      WHERE bucket >= NOW() - $2::interval
+      GROUP BY 1
+      ORDER BY 1
+    `, [config.bucket, config.interval, speedThreshold]);
+
+    const points = result.rows.map((row) => ({
+      bucket: row.bucket,
+      active_vehicles: parseInt(row.active_vehicles) || 0,
+    }));
+
+    return success(res, {
+      range,
+      bucket: config.bucket,
+      min_speed: speedThreshold,
+      points,
     }, 200);
   } catch (err) {
-    const errorMessage = err.message || 'Failed to fetch total distance';
-    console.error('Get total distance error:', err);
-    return error(res, 'Failed to fetch total distance: ' + errorMessage, 500);
+    console.error('Get fleet activity history error:', err);
+    return error(res, 'Failed to fetch activity history: ' + err.message, 500);
   }
 }
 
-module.exports = { getFleetKPIs, getActiveAlerts, getTotalDistanceToday };
+async function getTotalDistance(req, res) {
+  try {
+    const result = await pool.query('SELECT SUM(distance_km) AS total_distance FROM vehicle_trips');
+    const raw = result.rows[0]?.total_distance;
+    const total_distance = raw !== null && raw !== undefined ? parseFloat(raw) : 0;
+    return success(res, { total_distance, unit: 'km' });
+  } catch (err) {
+    console.error('Get total distance error:', err);
+    return error(res, 'Failed to fetch total distance: ' + err.message, 500);
+  }
+}
+
+module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistance };

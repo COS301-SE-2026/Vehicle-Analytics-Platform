@@ -1,10 +1,24 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
-jest.mock('@/components/map/FleetMap', () =>
-  function FleetMap({ vehicles, minimal }) {
+jest.mock('@/components/map/FleetMap', () => {
+  const FleetMap = ({ vehicles, minimal }) => {
     return (
+      <div data-testid="fleet-map" data-minimal={String(minimal)}>
+        {vehicles.map(v => (
+          <span key={v.id} data-testid={`vehicle-${v.id}`} />
+        ))}
+      </div>
+    )
+  }
+  FleetMap.propTypes = {
+    vehicles: PropTypes.array,
+    minimal: PropTypes.bool,
+  }
+  return FleetMap
+})
       <div data-testid="fleet-map" data-minimal={String(minimal)}>
         {vehicles.map(v => (
           <span key={v.id} data-testid={`vehicle-${v.id}`} />

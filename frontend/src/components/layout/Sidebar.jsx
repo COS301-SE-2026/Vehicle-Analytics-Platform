@@ -124,15 +124,15 @@ export default function Sidebar({ role, collapsed, onToggle }) {
         </div>
 
         {/* Cleaned up action block conditional placement */}
-        {!collapsed ? (
+        {collapsed ? (
           <button
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="mt-1 inline-flex items-center gap-2 text-xs font-medium text-white/80 hover:text-white disabled:opacity-60 self-start px-1"
+            className="inline-flex items-center justify-center rounded-md bg-white/10 p-1.5 text-white/80 hover:text-white hover:bg-white/20 disabled:opacity-60"
+            title="Logout"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            {isLoggingOut ? 'Logging out...' : 'Logout'}
+            <LogOut className="h-4 w-4" />
           </button>
         ) : (
           <button

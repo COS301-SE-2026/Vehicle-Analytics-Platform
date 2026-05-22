@@ -1,5 +1,6 @@
 global.importMeta = { env: { VITE_MAPBOX_TOKEN: 'mock-token' } }
 const { TextEncoder, TextDecoder } = require('node:util');
+const PropTypes = require('prop-types');
 globalThis.TextEncoder = TextEncoder;
 globalThis.TextDecoder = TextDecoder;
 
@@ -11,15 +12,46 @@ require('@testing-library/jest-dom');
 jest.mock('radix-ui', () => {
   const React = require('react')
 
-  const el = (tag, dataSlot) => ({ children, className, 'data-slot': _ds, ...props }) =>
-    React.createElement(tag, { 'data-slot': dataSlot, className, ...props }, children)
+  const basePropTypes = {
+    children: PropTypes.node,
+    className: PropTypes.string,
+    onOpenChange: PropTypes.func,
+    onEscapeKeyDown: PropTypes.func,
+    onPointerDownOutside: PropTypes.func,
+    onInteractOutside: PropTypes.func,
+    onFocusOutside: PropTypes.func,
+    asChild: PropTypes.bool,
+    modal: PropTypes.bool,
+    defaultOpen: PropTypes.bool,
+    open: PropTypes.bool,
+    checked: PropTypes.bool,
+    decorative: PropTypes.bool,
+    sideOffset: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    'data-inset': PropTypes.string,
+    'data-variant': PropTypes.string,
+  }
+
+  const setPropTypes = (Comp, extra = {}) => {
+    Comp.propTypes = { ...basePropTypes, ...extra }
+    return Comp
+  }
+
+  const el = (tag, dataSlot) => {
+    const Component = ({ children, className, 'data-slot': _ds, ...props }) =>
+      React.createElement(tag, { 'data-slot': dataSlot, className, ...props }, children)
+    return setPropTypes(Component)
+  }
 
   const div  = (slot) => el('div',    slot)
   const btn  = (slot) => el('button', slot)
   const span = (slot) => el('span',   slot)
-  const img  = (slot) => ({ 'data-slot': _ds, className, ...props }) =>
-    React.createElement('img', { 'data-slot': slot, className, ...props })
-  const passthrough = ({ children }) => children ?? null
+  const img  = (slot) => {
+    const Component = ({ 'data-slot': _ds, className, ...props }) =>
+      React.createElement('img', { 'data-slot': slot, className, ...props })
+    return setPropTypes(Component, { src: PropTypes.string, alt: PropTypes.string })
+  }
+  const passthrough = ({ children, ...props }) => React.createElement(React.Fragment, null, children)
+  setPropTypes(passthrough, { children: PropTypes.node })
 
   return {
     Avatar: {

@@ -1,4 +1,5 @@
 import React from 'react'
+import PropTypes from 'prop-types'
 import { render, screen, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
@@ -11,9 +12,27 @@ jest.mock('@/components/map/FleetMap', () => ({
   },
 }))
 
-jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () =>
-  function MockLiveFleetMapPlaceholder({ active, idle, offline, total, vehicles }) {
+jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () => {
+  const MockLiveFleetMapPlaceholder = ({ active, idle, offline, total, vehicles }) => {
     return (
+      <div data-testid="live-fleet-placeholder">
+        <span data-testid="stat-active">{active}</span>
+        <span data-testid="stat-idle">{idle}</span>
+        <span data-testid="stat-offline">{offline}</span>
+        <span data-testid="stat-total">{total}</span>
+        <span data-testid="vehicle-count">{(vehicles ?? []).length}</span>
+      </div>
+    )
+  }
+  MockLiveFleetMapPlaceholder.propTypes = {
+    active: PropTypes.number,
+    idle: PropTypes.number,
+    offline: PropTypes.number,
+    total: PropTypes.number,
+    vehicles: PropTypes.array,
+  }
+  return MockLiveFleetMapPlaceholder
+})
       <div data-testid="live-fleet-placeholder">
         <span data-testid="stat-active">{active}</span>
         <span data-testid="stat-idle">{idle}</span>

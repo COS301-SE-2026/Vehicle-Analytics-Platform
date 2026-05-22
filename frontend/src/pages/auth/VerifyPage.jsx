@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import AuthLayout from '../components/AuthLayout';
+import AuthLayout from '../../components/AuthLayout';
 import './VerifyPage.css';
 import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 

@@ -8,6 +8,7 @@ module.exports = {
     setLngLat: jest.fn().mockReturnThis(),
     addTo: jest.fn().mockReturnThis(),
     remove: jest.fn(),
+    getElement: jest.fn().mockReturnValue({ style: {} }),
   })),
   accessToken: '',
 }

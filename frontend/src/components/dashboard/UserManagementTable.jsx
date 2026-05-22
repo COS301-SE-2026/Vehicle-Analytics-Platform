@@ -31,8 +31,7 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
               <th className="text-left pb-3 font-medium">Name</th>
               <th className="text-left pb-3 font-medium">Email</th>
               <th className="text-left pb-3 font-medium">Role</th>
-              <th className="text-left pb-3 font-medium">Status</th>
-              <th className=" text-left pb-3 font-medium">Actions</th>
+              <th className="text-left pb-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-fleet-border">
@@ -64,22 +63,10 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
                     </span>
                   </td>
 
-                  {/* Status */}
-                  <td className="py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full ${isInactive ? 'bg-fleet-idle' : 'bg-fleet-green'}`} />
-                      <span className={`text-xs ${isInactive ? 'text-fleet-idle' : 'text-fleet-text'}`}>
-                        {isInactive ? 'Inactive' : 'Active'}
-                      </span>
-                    </div>
-                  </td>
-
                   {/* Actions */}
                   <td className="py-3 text-right">
                     {isAdmin ? (
-                      <div className="flex items-center justify-end gap-2 text-fleet-idle">
-                        <span className="text-xs">—</span>
-                      </div>
+                      <span className="text-xs text-fleet-idle">—</span>
                     ) : (
                       <div className="flex items-center gap-3">
                         <button
@@ -88,21 +75,6 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
                         >
                           Edit
                         </button>
-                        {isInactive ? (
-                          <button
-                            onClick={() => onActivate(user)}
-                            className="text-xs text-fleet-green hover:text-fleet-green/80 transition-colors font-medium"
-                          >
-                            Activate
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => onDeactivate(user)}
-                            className="text-xs text-fleet-alert hover:text-fleet-alert/80 transition-colors font-medium"
-                          >
-                            Deactivate
-                          </button>
-                        )}
                       </div>
                     )}
                   </td>

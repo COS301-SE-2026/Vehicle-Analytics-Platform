@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AuthLayout from '../components/AuthLayout';
-import GoogleButton from '../components/GoogleButton';
-import PasswordToggleIcon from '../components/PasswordToggleIcon';
+import AuthLayout from '../../components/AuthLayout';
+import GoogleButton from '../../components/GoogleButton';
+import PasswordToggleIcon from '../../components/PasswordToggleIcon';
 import { signIn } from 'aws-amplify/auth';
 
 export default function LoginPage() {

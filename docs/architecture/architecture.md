@@ -116,8 +116,8 @@ The data pipeline and storage layer is responsible for:
 | Option | Technology | Notes |
 | --- | --- | --- |
 | Option 1 | PgBouncer | Chosen for lightweight pooling and high connection efficiency |
-| Option 2 | pgpool-II | Offers more features, but overkill for our system |
-| Option 3 | RDS Proxy | Useful for managed RDS environments, but less aligned with the current deployment model |
+| Option 2 | pgpool-II | adds unnecessary deployment and configuration complexity for the current single-database architecture |
+| Option 3 | RDS Proxy | Designed for Amazon RDS/Aurora environments, but not applicable to the EC2-hosted TimescaleDB deployment |
 
 ### 2.4 Architectural Realization Mapping
 | Responsibility | Kinesis | TimescaleDB | PgBouncer | CloudWatch |

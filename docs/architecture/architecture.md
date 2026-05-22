@@ -27,6 +27,8 @@
 
 4 Architecture Patterns
 
+5 Domain Model
+
 ## Overview
 The Vehicle Analytics Platform is designed as a serverless, event-driven fleet telematics system. It ingests frequent vehicle telemetry, processes it in near real time, stores it in a time-series optimized database, and exposes aggregated insights through a secured API and dashboard.
 
@@ -198,25 +200,27 @@ Inside the Time-Series Database.
 
 We adopt the Medallion pattern to guarantee data quality as telemetry moves from raw dumps to business-ready views:
 
+```text
 [ Message Stream / Serverless Processor ]
-	│
-	▼
+    │
+    ▼
 ┌────────────────────────────────────────────────────────┐
 │  BRONZE LAYER (Raw Telemetry)                          │
 │  - Raw JSON payloads, append-only landing zone.        │
 └───────────────────────┬────────────────────────────────┘
-			│ (Postgres insert triggers)
-			▼
+            │ (Postgres insert triggers)
+            ▼
 ┌────────────────────────────────────────────────────────┐
 │  SILVER LAYER (Clean Telemetry)                        │
 │  - Cleansed, validated, structured hypertable records.  │
 └───────────────────────┬────────────────────────────────┘
-			│ (TimescaleDB continuous aggregates)
-			▼
+            │ (TimescaleDB continuous aggregates)
+            ▼
 ┌────────────────────────────────────────────────────────┐
 │  GOLD LAYER (Vehicle Position 5s)                      │
 │  - Business-ready, aggregated map view for the UI.     │
 └────────────────────────────────────────────────────────┘
+```
 
 Details:
 - Bronze (Raw): Lambda inserts raw payloads into the landing table. Data is append-only to preserve provenance.
@@ -232,3 +236,5 @@ Once data is prepared in the Gold layer the interaction model shifts to a classi
 
 This hybrid architecture—event-driven ingestion plus request-response presentation—lets the system handle high-throughput telemetry ingestion while providing predictable, low-latency reads for end-users.
 
+## 5. Domain Model
+![Domain Model](./images/Domain%20Model.png)

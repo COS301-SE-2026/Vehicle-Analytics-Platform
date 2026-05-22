@@ -1,0 +1,46 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: fleet_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: fleet_analytics
+      POSTGRES_USER: fleet_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Capstone2026}
+    volumes:
+      - ./database/migrations:/docker-entrypoint-initdb.d
+      - fleet_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleet_admin -d fleet_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: fleet_backend
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: fleet_analytics
+      DB_USER: fleet_admin
+      DB_PASSWORD: ${DB_PASSWORD:-Capstone2026}
+      COGNITO_REGION: ${COGNITO_REGION}
+      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  fleet_db_data:

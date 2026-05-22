@@ -1,6 +1,6 @@
 import { screen, fireEvent } from '@testing-library/react';
 import { renderWithRouter } from './testUtils';
-import SignupPage from '../pages/SignupPage';
+import SignupPage from '../pages/auth/Signup';
 
 jest.mock('aws-amplify/auth', () => ({
   signUp: jest.fn(),

@@ -106,10 +106,10 @@ describe('LiveMap', () => {
       await renderLiveMap()
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
 
-      await act(async () => { jest.advanceTimersByTime(10_000) })
+      await act(async () => { jest.advanceTimersByTime(5_000) })
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(2)
 
-      await act(async () => { jest.advanceTimersByTime(10_000) })
+      await act(async () => { jest.advanceTimersByTime(5_000) })
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(3)
     })
 
@@ -172,7 +172,7 @@ describe('LiveMap', () => {
       expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
       expect(screen.getByTestId('stat-offline')).toHaveTextContent('1')
 
-      await act(async () => { jest.advanceTimersByTime(10_000) })
+      await act(async () => { jest.advanceTimersByTime(5_000) })
       expect(screen.getByTestId('stat-active')).toHaveTextContent('5')
       expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
     })
@@ -186,7 +186,7 @@ describe('LiveMap', () => {
       expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
 
       // Poll fails — UI must stay with last good data
-      await act(async () => { jest.advanceTimersByTime(10_000) })
+      await act(async () => { jest.advanceTimersByTime(5_000) })
       expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
       expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
     })
@@ -236,10 +236,10 @@ describe('LiveMap', () => {
       await renderLiveMap()
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
 
-      await act(async () => { jest.advanceTimersByTime(10_000) }) // fails
+      await act(async () => { jest.advanceTimersByTime(5_000) }) // fails
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(2)
 
-      await act(async () => { jest.advanceTimersByTime(10_000) }) // recovers
+      await act(async () => { jest.advanceTimersByTime(5_000) }) // recovers
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(3)
     })
   })
@@ -267,7 +267,7 @@ describe('LiveMap', () => {
         ;({ container } = render(<LiveMap />))
       })
 
-      await act(async () => { jest.advanceTimersByTime(10_000) })
+      await act(async () => { jest.advanceTimersByTime(5_000) })
 
       expect(container.firstChild).toBeNull()
     })

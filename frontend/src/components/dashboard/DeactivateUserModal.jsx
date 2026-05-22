@@ -46,7 +46,7 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-fleet-border">
           <h2 id="du-title" className="font-display font-bold text-fleet-text text-lg">
-            Delete User
+            Deactivate User
           </h2>
           <button
             onClick={onCancel}
@@ -84,7 +84,7 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
             <div>
               <p className="font-medium text-fleet-text text-sm mb-1">Are you sure?</p>
               <p className="text-sm text-fleet-secondary leading-relaxed">
-                You are about to delete the account for{' '}
+                You are about to Deactivate the account for{' '}
                 <span className="font-medium text-fleet-text">{user.name}</span>.
                 This user will lose access to V.A.P.O.R. immediately and will not be
                 able to log in again.
@@ -116,7 +116,7 @@ export default function DeactivateUserModal({ isOpen, user, onConfirm, onCancel 
               onClick={() => onConfirm(user)}
               className="flex-1 h-10 bg-fleet-alert text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
             >
-              Yes, Delete User
+              Yes, Deactivate
             </button>
           </div>
           <p className="text-xs text-fleet-secondary text-center">

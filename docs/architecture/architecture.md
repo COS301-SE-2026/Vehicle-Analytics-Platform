@@ -27,8 +27,6 @@
 
 4 Architecture Patterns
 
-5 Domain Model
-
 ## Overview
 The Vehicle Analytics Platform is designed as a serverless, event-driven fleet telematics system. It ingests frequent vehicle telemetry, processes it in near real time, stores it in a time-series optimized database, and exposes aggregated insights through a secured API and dashboard.
 
@@ -56,6 +54,7 @@ The current scaling targets are:
 - PgBouncer maintaining connection pool stability under burst traffic
 - TimescaleDB continuous aggregates refreshing automatically
 - ON CONFLICT DO NOTHING preventing duplicate Kinesis records from creating duplicate rows
+- Dead Letter Queues capturing failed telemetry events after retry exhaustion, preventing data loss and enabling later inspection or replay
 - CloudWatch logs detecting service and pipeline failures
 
 ### 1.1.6 Security
@@ -104,8 +103,7 @@ The data pipeline and storage layer is responsible for:
 | Option | Technology | Notes |
 | --- | --- | --- |
 | Option 1 | AWS Kinesis | Chosen for managed streaming, strong AWS integration, and at-least-once delivery |
-| Option 2 | Apache Kafka | Strong ecosystem, but heavier operational burden |
-| Option 3 | AWS SQS | Simple queueing, but less suitable for ordered streaming telemetry |
+| Option 2 | Apache Kafka | Strong ecosystem, but overkill for our system |
 
 #### Time-Series Database
 | Option | Technology | Notes |
@@ -118,7 +116,7 @@ The data pipeline and storage layer is responsible for:
 | Option | Technology | Notes |
 | --- | --- | --- |
 | Option 1 | PgBouncer | Chosen for lightweight pooling and high connection efficiency |
-| Option 2 | pgpool-II | Offers more features, but adds operational complexity |
+| Option 2 | pgpool-II | Offers more features, but overkill for our system |
 | Option 3 | RDS Proxy | Useful for managed RDS environments, but less aligned with the current deployment model |
 
 ### 2.4 Architectural Realization Mapping
@@ -136,48 +134,7 @@ Kinesis was selected because it provides managed stream ingestion, scales with v
 
 ## 3. Technology-Neutral Architecture Diagram
 
-```mermaid
-flowchart TB
-	sources["Data Sources\nIoT Vehicle Sensors\nsend telemetry every 5-10s"]
-
-	stream["Message Streaming Layer\nEvent Bus / Message Stream\n- Buffers high-frequency telemetry\n- Guarantees at-least-once delivery\n- Decouples producers from consumers"]
-
-	processor["Stream Processing Layer\nServerless Stream Processor\n- Decodes and validates records\n- Bulk inserts into storage\n- Scales automatically with load"]
-
-	subgraph storage["Data Storage Layer"]
-		bronze["Bronze\nRaw Store"]
-		silver["Silver\nCleaned Time-Series"]
-		gold["Gold\nPre-computed Views"]
-		pool["Connection Pool Manager\nSits in front of all queries"]
-		bronze -->|trigger| silver
-		silver -->|aggregates| gold
-		pool --- bronze
-		pool --- silver
-		pool --- gold
-	end
-
-	api["API Layer\nAPI Gateway / Proxy\n- Routes requests\n- Enforces authentication\n- Rate limiting"]
-
-	handler["Serverless API Handler\n- Executes business logic\n- Queries Gold layer"]
-
-	presentation["Presentation Layer\nWeb Dashboard\n- Live map\n- Analytics\n- Alerts"]
-
-	identity["Identity Provider"]
-	monitoring["Monitoring Service"]
-	archive["Object Storage"]
-
-	sources --> stream -->|triggers| processor -->|writes| bronze
-	handler -->|reads| pool
-	api --> handler --> presentation
-
-	identity -. authenticates all API requests .- api
-	monitoring -. observes all layers .- sources
-	monitoring -. observes all layers .- stream
-	monitoring -. observes all layers .- processor
-	monitoring -. observes all layers .- storage
-	monitoring -. observes all layers .- api
-	archive -. archives raw telemetry .- bronze
-```
+![Technology-neutral architecture model](ArchitectureModel.png)
 
 ### Cross-Cutting Concerns
 - Identity Provider authenticates all API requests
@@ -202,20 +159,20 @@ We adopt the Medallion pattern to guarantee data quality as telemetry moves from
 
 ```text
 [ Message Stream / Serverless Processor ]
-    │
-    ▼
+        │
+        ▼
 ┌────────────────────────────────────────────────────────┐
 │  BRONZE LAYER (Raw Telemetry)                          │
 │  - Raw JSON payloads, append-only landing zone.        │
 └───────────────────────┬────────────────────────────────┘
-            │ (Postgres insert triggers)
-            ▼
+                        │ (Postgres insert triggers)
+                        ▼
 ┌────────────────────────────────────────────────────────┐
 │  SILVER LAYER (Clean Telemetry)                        │
-│  - Cleansed, validated, structured hypertable records.  │
+│  - Cleansed, validated, structured hypertable records. │
 └───────────────────────┬────────────────────────────────┘
-            │ (TimescaleDB continuous aggregates)
-            ▼
+                        │ (TimescaleDB continuous aggregates)
+                        ▼
 ┌────────────────────────────────────────────────────────┐
 │  GOLD LAYER (Vehicle Position 5s)                      │
 │  - Business-ready, aggregated map view for the UI.     │

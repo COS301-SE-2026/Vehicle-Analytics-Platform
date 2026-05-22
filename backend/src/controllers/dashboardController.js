@@ -38,9 +38,9 @@ async function getFleetKPIs(req, res) {
     const a = alerts_result.rows[0];
 
     return success(res, {
-      total_vehicles:  parseInt(v.total_vehicles)  || 0,
-      active_vehicles: parseInt(v.active_vehicles) || 0,
-      alerts_today:    parseInt(a.alerts_today)    || 0,
+      total_vehicles:  Number.parseInt(v.total_vehicles, 10)  || 0,
+      active_vehicles: Number.parseInt(v.active_vehicles, 10) || 0,
+      alerts_today:    Number.parseInt(a.alerts_today, 10)    || 0,
       last_updated:    new Date().toISOString()
     }, 200);
 

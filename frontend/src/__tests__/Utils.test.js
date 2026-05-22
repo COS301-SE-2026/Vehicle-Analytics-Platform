@@ -5,9 +5,11 @@ describe('cn utility', () => {
     expect(cn('foo', 'bar')).toBe('foo bar')
   })
 
-  test('handles conditional classes', () => {
-    // resulting booleans directly instead of using a constant && expression
-    expect(cn('foo', false, true && 'baz')).toBe('foo baz')
+test('handles conditional classes', () => {
+    const isTrue = true
+    const isFalse = false
+    
+    expect(cn('foo', isFalse && 'bar', isTrue && 'baz')).toBe('foo baz')
   })
 
   test('deduplicates tailwind classes', () => {

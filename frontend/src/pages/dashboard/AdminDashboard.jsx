@@ -1,17 +1,31 @@
 import { useState, useEffect } from 'react'
 import { Truck, Waypoints, Users, RefreshCw } from 'lucide-react'
-import { getKPIs, getVehicleLocations, getUsers } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
-import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
+//import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import UserManagementTable from '../../components/dashboard/UserManagementTable'
 import DataFeedStatusCard from '../../components/dashboard/DataFeedStatusCard'
 import EditUserModal from '../../components/dashboard/EditUserModal'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import DeactivateUserModal from '@/components/dashboard/DeactivateUserModal'
+import { getKPIs, getVehicleLocations, getUsers, getAlerts, updateUserRole, deleteUser, getActivityHistory } from '../../services/vehicleService'
+
+function formatActivityPoints(points, range) {
+  return points.map((point) => {
+    const date = new Date(point.bucket)
+    const timeLabel = range === 'week'
+      ? date.toLocaleDateString('en-US', { weekday: 'short' })
+      : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    return {
+      time: timeLabel,
+      vehicles: point.active_vehicles ?? 0,
+    }
+  })
+}
 
 // Placeholder activation handler kept at module scope to satisfy linting rules.
+
 function handleActivate(user) {
   // Wire up API call later
   // Intentionally module-scoped to avoid redefining inside the component.
@@ -26,19 +40,33 @@ export default function AdminDashboard() {
   const [deactivatingUser, setDeactivatingUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [lastDataReceived, setLastDataReceived] = useState(new Date())
+  const [events, setEvents] = useState([])
+  const [activityData, setActivityData] = useState([])
 
   async function fetchAll() {
     try {
-      const [k, l, u] = await Promise.all([
+      const [k, l, u, a] = await Promise.all([
         getKPIs(),
         getVehicleLocations(),
         getUsers(),
+        getAlerts(10),
       ])
       setKpis(k)
       setLocations(l)
-      setUsers(u)
-      setLastDataReceived(new Date())
-    } finally {
+      setUsers(u.users ?? [])
+      setEvents(a.alerts.map(alert => ({
+        id: alert.id,
+        vehicleId: alert.vehicle_id,
+        eventType: alert.type,
+        description: alert.message,
+        location: `${alert.latitude?.toFixed(4)}, ${alert.longitude?.toFixed(4)}`,
+        severity: alert.severity?.toUpperCase(),
+        timestamp: alert.timestamp,
+      })) ?? [])
+      const activityPoints = await getActivityHistory('day').catch(() => [])
+        setActivityData(formatActivityPoints(activityPoints, 'day'))
+        setLastDataReceived(new Date())
+      } finally {
       setLoading(false)
     }
   }
@@ -92,14 +120,25 @@ export default function AdminDashboard() {
 
   // Uses module-scoped `handleActivate`
 
-  function handleDeactivateConfirm(user) {
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: 'inactive' } : u))
-    setDeactivatingUser(null)
-    // Wire up API call here later
+  async function handleDeactivateConfirm(user) {
+    console.log('Deleting user:', user)  // add this
+    try {
+      await deleteUser(user.id)
+      setUsers(prev => prev.filter(u => u.id !== user.id))
+      setDeactivatingUser(null)
+    } catch (err) {
+      console.error('Failed to delete user:', err)
+    }
   }
 
   async function handleSaveRole(user, newRole) {
-   setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u))
+    try {
+      await updateUserRole(user.id, newRole)
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u))
+      setEditingUser(null)
+    } catch (err) {
+      console.error('Failed to update role:', err)
+    }
   }
 
   return (
@@ -131,7 +170,7 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Row 2 — Fleet Status + Most Active */}
+    {/* Row 2 — Fleet Status + User Management */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1">
           <FleetStatusCard
@@ -142,24 +181,21 @@ export default function AdminDashboard() {
           />
         </div>
         <div className="lg:col-span-2">
-          <MostActiveVehiclesTable vehicles={mostActive} />
+          <UserManagementTable
+            users={users}
+            onEdit={handleEdit}
+            onDeactivate={handleDeactivate}
+            onActivate={handleActivate}
+          />
         </div>
       </div>
-
-      {/* Row 3 — User Management */}
-      <UserManagementTable
-        users={users}
-        onEdit={handleEdit}
-        onDeactivate={handleDeactivate}
-        onActivate={handleActivate}
-      />
 
       {/* Row 4 — Recent Vehicle Events */}
       <RecentVehicleEvents events={events} limit={10} />
 
 
       {/* Row 5 — Fleet Activity Chart */}
-      <FleetActivityChart />
+      <FleetActivityChart data={activityData} />
 
       {/* Edit User Modal */}
       {editingUser && (

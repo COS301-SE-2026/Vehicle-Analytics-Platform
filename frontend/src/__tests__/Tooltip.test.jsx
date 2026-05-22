@@ -69,7 +69,7 @@ describe("Tooltip composition", () => {
     render(
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger>H over me</TooltipTrigger>
+          <TooltipTrigger>Hover over me</TooltipTrigger>
           <TooltipContent>This is a tooltip</TooltipContent>
         </Tooltip>
       </TooltipProvider>

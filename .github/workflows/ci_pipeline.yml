@@ -30,7 +30,7 @@ jobs:
         run: npm run lint || true
 
       - name: Run tests with coverage
-        run: npx jest --coverage --coverageDirectory=coverage --passWithNoTests --forceExit
+        run: npm test -- --coverage --coverageDirectory=coverage --passWithNoTests --forceExit
 
       - name: Show generated coverage files
         run: |

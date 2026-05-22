@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import PropTypes from 'prop-types'
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
+mapboxgl.accessToken = process.env.VITE_MAPBOX_TOKEN || '';
 
 const STATUS_COLORS = {
   active: '#2d6a4f',

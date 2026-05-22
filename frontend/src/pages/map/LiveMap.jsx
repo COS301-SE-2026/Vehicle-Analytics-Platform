@@ -8,13 +8,15 @@ export default function LiveMap() {
   const [loading, setLoading]     = useState(true)
 
   async function fetchLocations() {
-    try {
-      const l = await getVehicleLocations()
-      setLocations(l)
-    } finally {
-      setLoading(false)
-    }
+  try {
+    const l = await getVehicleLocations()
+    setLocations(l)
+  } catch (e) {
+    // keep previous data on error
+  } finally {
+    setLoading(false)
   }
+}
 
   useEffect(() => {
     fetchLocations()
@@ -29,11 +31,14 @@ export default function LiveMap() {
       </div>
     )
   }
+  if (!locations) {
+    return null
+  }
 
-  const active    = locations.vehicles.filter(v => v.status === 'active').length
-  const idle      = locations.vehicles.filter(v => v.status === 'idle').length
-  const offline   = locations.vehicles.filter(v => v.status === 'offline').length
-  const total     = locations.vehicles.length
+  const active    = locations?.vehicles?.filter(v => v.status === 'active').length ?? 0
+  const idle      = locations?.vehicles?.filter(v => v.status === 'idle').length ?? 0
+  const offline   = locations?.vehicles?.filter(v => v.status === 'offline').length ?? 0
+  const total     = locations?.vehicles?.length ?? 0
 
   return (
     <div className="space-y-4">
@@ -42,7 +47,7 @@ export default function LiveMap() {
         idle={idle}
         offline={offline}
         total={total}
-        vehicles={locations.vehicles}
+        vehicles={locations?.vehicles}
       />
     </div>
   )

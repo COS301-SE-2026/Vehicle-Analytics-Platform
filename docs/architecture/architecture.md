@@ -109,7 +109,7 @@ The data pipeline and storage layer is responsible for:
 | Option | Technology | Notes |
 | --- | --- | --- |
 | Option 1 | TimescaleDB | Chosen for hypertables, SQL compatibility, and continuous aggregates |
-| Option 2 | InfluxDB | Purpose-built for time-series data, but less aligned with relational analytics |
+| Option 2 | InfluxDB | Optimized for high-ingest time-series workloads, but less suitable for relational queries, joins, and SQL-based analytics required by the fleet analytics platform |
 | Option 3 | Amazon Timestream | Fully managed, but less flexible for relational joins and custom SQL workflows |
 
 #### Connection Pooling

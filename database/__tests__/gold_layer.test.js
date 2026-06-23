@@ -8,7 +8,7 @@ describe('Gold Layer and Querying Integration', () => {
   beforeAll(async () => {
     client = await createDbClient();
     await resetTelemetryData(client, 'GOLD_TEST-');
-  });
+  }, 30000);
 
   afterAll(async () => {
     // Cleanup generated data
@@ -16,7 +16,7 @@ describe('Gold Layer and Querying Integration', () => {
       await resetTelemetryData(client, 'GOLD_TEST-');
       await client.end();
     }
-  });
+  }, 30000);
 
   test('should correctly aggregate continuous aggregates', async () => {
     // 1. Insert multiple raw_telemetry points to simulate motion and events for a couple of vehicles
@@ -99,5 +99,5 @@ describe('Gold Layer and Querying Integration', () => {
 
     const v2Harsh = harshRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-002');
     expect(Number(v2Harsh.crash_count)).toBe(1);
-  }); 
+  }, 60000);
 });

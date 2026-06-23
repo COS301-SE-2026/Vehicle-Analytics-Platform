@@ -8,15 +8,15 @@ export default function LiveMap() {
   const [loading, setLoading]     = useState(true)
 
   async function fetchLocations() {
-  try {
-    const l = await getVehicleLocations()
-    setLocations(l)
-  } catch (e) {
-    // keep previous data on error
-  } finally {
-    setLoading(false)
+    try {
+      const l = await getVehicleLocations()
+      setLocations(l)
+    } catch (e) {
+      console.warn('LiveMap fetch failed:', e)
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   useEffect(() => {
     fetchLocations()

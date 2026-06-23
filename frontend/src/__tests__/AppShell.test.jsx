@@ -6,35 +6,44 @@ import AppShell from '../components/layout/AppShell'
 
 // Paths must match the imports used inside AppShell, not the test file location.
 
-jest.mock('../components/layout/Sidebar', () =>
-  function MockSidebar({ role, collapsed, onToggle }) {
-    return (
-      <div
-        data-testid="sidebar"
-        data-role={role}
-        data-collapsed={String(collapsed)} // coerce boolean → string for attribute assertions
-      >
-        <button onClick={onToggle} data-testid="toggle-btn">
-          Toggle
-        </button>
-      </div>
-    )
+jest.mock('../components/layout/Sidebar', () => {
+  const PropTypes = require('prop-types')
+  const MockSidebar = ({ role, collapsed, onToggle }) => (
+    <div
+      data-testid="sidebar"
+      data-role={role}
+      data-collapsed={String(collapsed)} // coerce boolean → string for attribute assertions
+    >
+      <button onClick={onToggle} data-testid="toggle-btn">
+        Toggle
+      </button>
+    </div>
+  )
+  MockSidebar.propTypes = {
+    role: PropTypes.string,
+    collapsed: PropTypes.bool,
+    onToggle: PropTypes.func,
   }
-)
+  return MockSidebar
+})
 
-jest.mock('../components/layout/Header', () =>
-  function MockHeader({ title, collapsed }) {
-    return (
-      <div
-        data-testid="header"
-        data-title={title}
-        data-collapsed={String(collapsed)}
-      >
-        Header Content
-      </div>
-    )
+jest.mock('../components/layout/Header', () => {
+  const PropTypes = require('prop-types')
+  const MockHeader = ({ title, collapsed }) => (
+    <div
+      data-testid="header"
+      data-title={title}
+      data-collapsed={String(collapsed)}
+    >
+      Header Content
+    </div>
+  )
+  MockHeader.propTypes = {
+    title: PropTypes.string,
+    collapsed: PropTypes.bool,
   }
-)
+  return MockHeader
+})
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 

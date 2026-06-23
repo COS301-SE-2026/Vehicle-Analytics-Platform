@@ -1,5 +1,4 @@
 import React from 'react'
-import PropTypes from 'prop-types'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import '@testing-library/jest-dom'
@@ -8,6 +7,7 @@ import AppShell from '../components/layout/AppShell'
 // Paths must match the imports used inside AppShell, not the test file location.
 
 jest.mock('../components/layout/Sidebar', () => {
+  const PropTypes = require('prop-types')
   const MockSidebar = ({ role, collapsed, onToggle }) => (
     <div
       data-testid="sidebar"
@@ -26,18 +26,6 @@ jest.mock('../components/layout/Sidebar', () => {
   }
   return MockSidebar
 })
-      <div
-        data-testid="sidebar"
-        data-role={role}
-        data-collapsed={String(collapsed)} // coerce boolean → string for attribute assertions
-      >
-        <button onClick={onToggle} data-testid="toggle-btn">
-          Toggle
-        </button>
-      </div>
-    )
-  }
-)
 
 jest.mock('../components/layout/Header', () => {
   const MockHeader = ({ title, collapsed }) => (
@@ -55,16 +43,6 @@ jest.mock('../components/layout/Header', () => {
   }
   return MockHeader
 })
-      <div
-        data-testid="header"
-        data-title={title}
-        data-collapsed={String(collapsed)}
-      >
-        Header Content
-      </div>
-    )
-  }
-)
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 

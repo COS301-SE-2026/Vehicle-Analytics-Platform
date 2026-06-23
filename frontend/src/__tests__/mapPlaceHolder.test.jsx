@@ -1,9 +1,9 @@
 import React from 'react'
-import PropTypes from 'prop-types'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 jest.mock('@/components/map/FleetMap', () => {
+  const PropTypes = require('prop-types')
   const FleetMap = ({ vehicles, minimal }) => {
     return (
       <div data-testid="fleet-map" data-minimal={String(minimal)}>

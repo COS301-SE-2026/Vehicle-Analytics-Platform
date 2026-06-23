@@ -10,6 +10,7 @@ require('@testing-library/jest-dom');
 
 jest.mock('radix-ui', () => {
   const React = require('react')
+  const PropTypes = require('prop-types')
 
   const basePropTypes = {
     children: PropTypes.node,

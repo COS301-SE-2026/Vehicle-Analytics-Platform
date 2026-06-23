@@ -11,8 +11,9 @@ jest.mock('@/components/map/FleetMap', () => ({
   },
 }))
 
-jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () =>
-  function MockLiveFleetMapPlaceholder({ active, idle, offline, total, vehicles }) {
+jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () => {
+  const PropTypes = require('prop-types')
+  const MockLiveFleetMapPlaceholder = ({ active, idle, offline, total, vehicles }) => {
     return (
       <div data-testid="live-fleet-placeholder">
         <span data-testid="stat-active">{active}</span>
@@ -23,7 +24,15 @@ jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () =>
       </div>
     )
   }
-)
+  MockLiveFleetMapPlaceholder.propTypes = {
+    active: PropTypes.number,
+    idle: PropTypes.number,
+    offline: PropTypes.number,
+    total: PropTypes.number,
+    vehicles: PropTypes.array,
+  }
+  return MockLiveFleetMapPlaceholder
+})
 
 jest.mock('@/services/vehicleService', () => ({
   getVehicleLocations: jest.fn(),

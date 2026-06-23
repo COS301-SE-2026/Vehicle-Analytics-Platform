@@ -37,7 +37,6 @@ export default function UserManagementTable({ users = [], onEdit, onDeactivate, 
           <tbody className="divide-y divide-fleet-border">
             {users.map((user) => {
               const isAdmin = user.role === 'admin'
-              const isInactive = user.status === 'inactive'
 
               return (
                 <tr key={user.id} className="hover:bg-fleet-bg transition-colors">

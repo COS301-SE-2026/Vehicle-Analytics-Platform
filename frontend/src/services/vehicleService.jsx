@@ -61,8 +61,8 @@ export async function getVehicleLocations() {
   const vehicles = (data.data.vehicles || [])
     .map(v => ({
       id: v.id,
-      lat: parseFloat(v.latitude),
-      lng: parseFloat(v.longitude),
+      lat: Number.parseFloat(v.latitude),
+      lng: Number.parseFloat(v.longitude),
       speed: v.speed,
       status: v.status,
       driver_name: v.driver_name,

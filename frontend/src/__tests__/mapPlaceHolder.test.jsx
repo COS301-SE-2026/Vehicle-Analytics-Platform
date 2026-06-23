@@ -2,8 +2,9 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
-jest.mock('@/components/map/FleetMap', () =>
-  function FleetMap({ vehicles, minimal }) {
+jest.mock('@/components/map/FleetMap', () => {
+  const PropTypes = require('prop-types')
+  const FleetMap = ({ vehicles, minimal }) => {
     return (
       <div data-testid="fleet-map" data-minimal={String(minimal)}>
         {vehicles.map(v => (
@@ -12,7 +13,12 @@ jest.mock('@/components/map/FleetMap', () =>
       </div>
     )
   }
-)
+  FleetMap.propTypes = {
+    vehicles: PropTypes.array,
+    minimal: PropTypes.bool,
+  }
+  return FleetMap
+})
 
 // File is MapPlaceholder.jsx, exported function is MapSection
 import MapSection from '@/components/dashboard/mapPlaceholder'

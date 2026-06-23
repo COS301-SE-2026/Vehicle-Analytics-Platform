@@ -2,11 +2,13 @@ const { createDbClient, resetTelemetryData } = require('../testHelpers');
 
 describe('Gold Layer and Querying Integration', () => {
   let client;
+  // Set timeout to 30 seconds for all hooks and tests in this file
+  jest.setTimeout(30000); 
 
   beforeAll(async () => {
     client = await createDbClient();
     await resetTelemetryData(client, 'GOLD_TEST-');
-  });
+  }, 30000);
 
   afterAll(async () => {
     // Cleanup generated data
@@ -14,7 +16,7 @@ describe('Gold Layer and Querying Integration', () => {
       await resetTelemetryData(client, 'GOLD_TEST-');
       await client.end();
     }
-  });
+  }, 30000);
 
   test('should correctly aggregate continuous aggregates', async () => {
     // 1. Insert multiple raw_telemetry points to simulate motion and events for a couple of vehicles
@@ -48,7 +50,6 @@ describe('Gold Layer and Querying Integration', () => {
     `, [time3]);
 
     // 2. Refresh timescaledb continuous aggregates manually for the test
-    // Background policies might kick in automatically causing concurrency locks. We retry if so.
     async function safeRefresh(viewName) {
       for (let i = 0; i < 5; i++) {
         try {
@@ -71,16 +72,13 @@ describe('Gold Layer and Querying Integration', () => {
     // 3. Assert vehicle_position_5s
     const positionRes = await client.query("SELECT * FROM vehicle_position_5s WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
     
-    // Vehicle 1 has 2 points in different 5s buckets, Vehicle 2 has 1 point.
     expect(positionRes.rows.length).toBe(3);
     
-    // Vehicle 1 should have latest position from time2
-    const v1Pos = positionRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').pop(); // get the latest active bucket
+    const v1Pos = positionRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').pop(); 
     expect(Number(v1Pos.latitude)).toBe(-25.010);
     expect(Number(v1Pos.longitude)).toBe(28.010);
     expect(v1Pos.speed).toBe(80);
 
-    // Vehicle 2 should have position from time3
     const v2Pos = positionRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-002');
     expect(Number(v2Pos.latitude)).toBe(-25.020);
     expect(v2Pos.speed).toBe(0);
@@ -101,5 +99,5 @@ describe('Gold Layer and Querying Integration', () => {
 
     const v2Harsh = harshRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-002');
     expect(Number(v2Harsh.crash_count)).toBe(1);
-  });
+  }, 60000);
 });

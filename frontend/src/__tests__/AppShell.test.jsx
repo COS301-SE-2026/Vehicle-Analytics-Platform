@@ -7,7 +7,6 @@ import AppShell from '../components/layout/AppShell'
 // Paths must match the imports used inside AppShell, not the test file location.
 
 jest.mock('../components/layout/Sidebar', () => {
-  const PropTypes = require('prop-types')
   const MockSidebar = ({ role, collapsed, onToggle }) => (
     <div
       data-testid="sidebar"
@@ -28,6 +27,7 @@ jest.mock('../components/layout/Sidebar', () => {
 })
 
 jest.mock('../components/layout/Header', () => {
+  const PropTypes = require('prop-types')
   const MockHeader = ({ title, collapsed }) => (
     <div
       data-testid="header"

@@ -9,8 +9,8 @@ process.env.VITE_API_URL = 'http://localhost:5000';
 require('@testing-library/jest-dom');
 
 jest.mock('radix-ui', () => {
-  const React = require('react')
   const PropTypes = require('prop-types')
+  const React = require('react')
 
   const basePropTypes = {
     children: PropTypes.node,
@@ -39,7 +39,12 @@ jest.mock('radix-ui', () => {
   const el = (tag, dataSlot) => {
     const Component = ({ children, className, 'data-slot': _ds, ...props }) =>
       React.createElement(tag, { 'data-slot': dataSlot, className, ...props }, children)
-    return setPropTypes(Component)
+    Component.propTypes = { 
+      children: PropTypes.node,
+      className: PropTypes.string,
+      'data-slot': PropTypes.string,
+    }
+    return Component
   }
 
   const div  = (slot) => el('div',    slot)
@@ -48,7 +53,13 @@ jest.mock('radix-ui', () => {
   const img  = (slot) => {
     const Component = ({ 'data-slot': _ds, className, ...props }) =>
       React.createElement('img', { 'data-slot': slot, className, ...props })
-    return setPropTypes(Component, { src: PropTypes.string, alt: PropTypes.string })
+    Component.propTypes = { 
+      'data-slot': PropTypes.string,
+      className: PropTypes.string,
+      src: PropTypes.string,
+      alt: PropTypes.string,
+    }
+    return Component
   }
   const passthrough = ({ children, ...props }) => React.createElement(React.Fragment, null, children)
   setPropTypes(passthrough, { children: PropTypes.node })

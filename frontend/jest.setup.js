@@ -1,6 +1,5 @@
 global.importMeta = { env: { VITE_MAPBOX_TOKEN: 'mock-token' } }
 const { TextEncoder, TextDecoder } = require('node:util');
-const PropTypes = require('prop-types');
 globalThis.TextEncoder = TextEncoder;
 globalThis.TextDecoder = TextDecoder;
 

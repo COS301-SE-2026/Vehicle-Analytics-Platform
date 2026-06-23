@@ -19,14 +19,6 @@ jest.mock('@/components/map/FleetMap', () => {
   }
   return FleetMap
 })
-      <div data-testid="fleet-map" data-minimal={String(minimal)}>
-        {vehicles.map(v => (
-          <span key={v.id} data-testid={`vehicle-${v.id}`} />
-        ))}
-      </div>
-    )
-  }
-)
 
 // File is MapPlaceholder.jsx, exported function is MapSection
 import MapSection from '@/components/dashboard/mapPlaceholder'

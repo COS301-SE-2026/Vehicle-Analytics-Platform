@@ -21,7 +21,7 @@ async function authenticate(req, res, next) {
         role: decoded.role,
       };
       return next();
-    } catch (err) {
+    } catch {
       return error(res, 'Invalid or expired token', 401);
     }
   }

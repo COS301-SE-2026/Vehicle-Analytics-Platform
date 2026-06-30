@@ -1,4 +1,4 @@
-const { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminDisableUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
+const { CognitoIdentityProviderClient, AdminDisableUserCommand, } = require('@aws-sdk/client-cognito-identity-provider');
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
 

@@ -91,6 +91,12 @@ describe('Dashboard API', () => {
 
     testDatabaseError('/api/dashboard/alerts', 'Database connection failed');
 
+    it('should handle database error with no message propert', async () => {
+      mockQuery.mockRejectedValue({});
+      const response = await authGet('/api/dashboard/alerts');
+      expect(response.status).toBe(500);
+    })
+
     const severityTestCases = [
       { type: 'crash_detection', category: 'crash_detection', expected: 'critical', speed: 0 },
       { type: 'harsh_braking', category: null, expected: 'high', speed: 45 },
@@ -171,6 +177,19 @@ describe('Dashboard API', () => {
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(400);
   });
+
+  test('GET /api/dashboard/activity - should use given minSpeed', async () => {
+    mockQuery.mockResolvedValue({
+      rows: [{ bucket: new Date('2026-05-01T00:00:00Z'), active_vehicles: '3' }]
+    });
+    const response = await request(app)
+    .get('/api/dashboard/activity?range=day&minSpeed=10')
+    .set('Authorization', `Bearer ${adminToken}`);
+  
+  expect(response.status).toBe(200);
+  expect(response.body.data.min_speed).toBe(10);
+  });
+
 
   test('GET /api/dashboard/activity - should handle database error (500)', async () => {
     mockQuery.mockRejectedValue(new Error('DB error'));

@@ -18,6 +18,7 @@ module.exports = [
         beforeAll: "readonly",
         afterAll: "readonly",
         jest: "readonly",
+        it: "readonly",
       },
     },
     rules: {

@@ -11,6 +11,33 @@ const STATUS_COLORS = {
   offline: '#9ca3af',
 }
 
+function animateMarker(entry, end, duration = 1000){
+  if(entry.animationId) {
+    cancelAnimationFrame(entry.animationId);
+  }
+  
+  const start = entry.marker.getLngLat();
+
+  let startTime = null;
+
+  function animate(timestamp){
+    if(!startTime) startTime = timestamp;
+    const progress = Math.min((timestamp - startTime) / duration, 1);
+
+    const lng = start.lng + (end.lng - start.lng) * progress;
+    const lat = start.lat + (end.lat - start.lat) * progress;
+
+    entry.marker.setLngLat([lng, lat]);
+
+    if(progress < 1){
+      entry.animationId = requestAnimationFrame(animate);
+    } else {
+      entry.animationId = null;
+    }
+  }
+  entry.animationId = requestAnimationFrame(animate);
+}
+
 export default function FleetMap({ vehicles = [], onVehicleClick, minimal = false }) {
   const mapContainer = useRef(null)
   const map = useRef(null)
@@ -42,11 +69,22 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
     vehicles.forEach(vehicle => {
       nextMarkerIds.add(vehicle.id)
 
-      const existingMarker = markers.current[vehicle.id]
-      if (existingMarker) {
-        existingMarker.setLngLat([vehicle.lng, vehicle.lat])
-        const existingElement = existingMarker.getElement()
+      const existingEntry = markers.current[vehicle.id]
+      
+      if (existingEntry) {
+        existingEntry.vehicle = vehicle
+
+        const current = existingEntry.marker.getLngLat();
+
+        const moved = Math.abs(current.lng - vehicle.lng) > 0.0001 || Math.abs(current.lat - vehicle.lat) > 0.0001;
+
+        if (moved) {
+          animateMarker(existingEntry, { lng: vehicle.lng, lat: vehicle.lat }, 1000);
+        }
+
+        const existingElement = existingEntry.marker.getElement();
         existingElement.style.background = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline
+
       } else {
         const el = document.createElement('div')
         el.className = 'vehicle-marker'
@@ -99,7 +137,7 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
         if (!minimal && onVehicleClick) {
           el.addEventListener('click', (e) => {
             e.stopPropagation()
-            onVehicleClick(vehicle)
+            onVehicleClick(markers.current[vehicle.id].vehicle)
           })
         }
 
@@ -110,11 +148,11 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
           .setLngLat([vehicle.lng, vehicle.lat])
           .addTo(map.current)
 
-        markers.current[vehicle.id] = marker
+        markers.current[vehicle.id] = {marker, vehicle, animationId: null}
       }
     })
 
-    Object.entries(markers.current).forEach(([vehicleId, marker]) => {
+    Object.entries(markers.current).forEach(([vehicleId, {marker, vehicle}]) => {
       if (!nextMarkerIds.has(vehicleId)) {
         marker.remove()
         delete markers.current[vehicleId]

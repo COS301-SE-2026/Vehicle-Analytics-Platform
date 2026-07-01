@@ -10,7 +10,7 @@ async function getLiveLocations(req, res) {
         CASE
           WHEN cvp.last_update IS NULL THEN 'offline'
           WHEN cvp.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
-          WHEN cvp.speed > 5 THEN 'active'
+          WHEN cvp.speed > 0 THEN 'active'
           ELSE 'idle'
         END as status,
         cvp.latitude,
@@ -48,6 +48,12 @@ async function getVehicleById(req, res) {
         v.device_id,
         v.status,
         v.created_at,
+      CASE
+        WHEN cvp.last_update IS NULL THEN 'offline'
+        WHEN cvp.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
+        WHEN cvp.speed > 0 THEN 'active'
+        ELSE 'idle'
+      END as status,
         cvp.latitude,
         cvp.longitude,
         cvp.speed,

@@ -7,8 +7,7 @@ SELECT DISTINCT ON (vehicle_id)
     device_id,
     latitude,
     longitude,
-    time AS last_update,
-    speed
+    speed,
+    time AS last_update
 From clean_telemetry
-Where time > (NOW() - INTERVAL '2 hour')
 Order BY vehicle_id, time DESC;

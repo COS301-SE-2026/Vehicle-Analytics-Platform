@@ -11,16 +11,11 @@ async function getFleetKPIs(req, res) {
     // Query 1 — active vs total vehicles (Gold layer, instant)
     const vehicles_result = await pool.query(`
       SELECT
-        COUNT(DISTINCT vehicle_id) as total_vehicles,
-        COUNT(DISTINCT vehicle_id) FILTER (
-          WHERE last_seen > NOW() - INTERVAL '10 minutes'
+        COUNT(*) as total_vehicles,
+        COUNT(*) FILTER (
+          WHERE last_seen >= NOW() - INTERVAL '10 minutes'
         ) as active_vehicles
-      FROM (
-        SELECT DISTINCT ON (vehicle_id)
-          vehicle_id, last_seen
-        FROM vehicle_position_5s
-        ORDER BY vehicle_id, bucket DESC
-      ) latest
+      FROM current_vehicle_position
     `);
 
     // Query 2 — alerts today (vehicle_events_hourly, pre-aggregated)
@@ -117,7 +112,7 @@ async function getFleetActivityHistory(req, res) {
       SELECT
         time_bucket($1::interval, bucket) AS bucket,
         COUNT(DISTINCT vehicle_id) FILTER (WHERE speed >= $3) AS active_vehicles
-      FROM vehicle_position_5s
+      FROM clean_telemetry
       WHERE bucket >= NOW() - $2::interval
       GROUP BY 1
       ORDER BY 1

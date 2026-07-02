@@ -65,7 +65,9 @@ export async function getVehicleLocations() {
       lng: Number.parseFloat(v.longitude),
       speed: v.speed,
       status: v.status,
-      driver_name: v.driver_name,
+      total_odometer: v.total_odometer,
+      ignition: v.ignition,
+      movement: v.movement, 
       last_update: v.last_update,
     }))
     .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))

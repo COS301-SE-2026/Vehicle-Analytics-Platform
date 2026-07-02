@@ -7,7 +7,13 @@ SELECT DISTINCT ON (vehicle_id)
     device_id,
     latitude,
     longitude,
+    time AS last_update,
     speed,
-    time AS last_update
+    total_odometer,
+    ignition,
+    movement
 From clean_telemetry
+Where 
+    --measurement = 'avl' AND
+    time > (NOW() - INTERVAL '2 hour')
 Order BY vehicle_id, time DESC;

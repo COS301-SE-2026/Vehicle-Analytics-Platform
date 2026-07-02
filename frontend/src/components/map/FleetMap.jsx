@@ -11,18 +11,20 @@ const STATUS_COLORS = {
   offline: '#9ca3af',
 }
 
+
 function animateMarker(entry, end, duration = 1000){
   if(entry.animationId) {
     cancelAnimationFrame(entry.animationId);
   }
   
   const start = entry.marker.getLngLat();
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 1000;
 
   let startTime = null;
 
   function animate(timestamp){
     if(!startTime) startTime = timestamp;
-    const progress = Math.min((timestamp - startTime) / duration, 1);
+    const progress = Math.min((timestamp - startTime) / safeDuration, 1);
 
     const lng = start.lng + (end.lng - start.lng) * progress;
     const lat = start.lat + (end.lat - start.lat) * progress;
@@ -37,7 +39,6 @@ function animateMarker(entry, end, duration = 1000){
   }
   entry.animationId = requestAnimationFrame(animate);
 }
-
 export default function FleetMap({ vehicles = [], onVehicleClick, minimal = false }) {
   const mapContainer = useRef(null)
   const map = useRef(null)
@@ -59,7 +60,7 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
         'top-right'
       )
     }
-  }, [])
+   }, [])
 
   useEffect(() => {
     if (!map.current) return
@@ -79,7 +80,7 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
         const moved = Math.abs(current.lng - vehicle.lng) > 0.0001 || Math.abs(current.lat - vehicle.lat) > 0.0001;
 
         if (moved) {
-          animateMarker(existingEntry, { lng: vehicle.lng, lat: vehicle.lat }, 1000);
+          animateMarker(existingEntry, { lng: vehicle.lng, lat: vehicle.lat }, 950);
         }
 
         const existingElement = existingEntry.marker.getElement();
@@ -148,7 +149,7 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
           .setLngLat([vehicle.lng, vehicle.lat])
           .addTo(map.current)
 
-        markers.current[vehicle.id] = {marker, vehicle, animationId: null}
+        markers.current[vehicle.id] = {marker, vehicle, animationId: null, lastUpdate: vehicle.last_update}
       }
     })
 

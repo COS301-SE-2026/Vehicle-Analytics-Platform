@@ -14,9 +14,6 @@ CREATE INDEX IF NOT EXISTS idx_vehicle_events_detail
 CREATE INDEX IF NOT EXISTS idx_raw_telemetry_vehicle_time
   ON raw_telemetry (vehicle_id, time DESC);
 
-        -- Speed up gold layer continuous aggregate queries
-CREATE INDEX IF NOT EXISTS idx_vehicle_position_5s_vehicle
-  ON vehicle_position_5s (vehicle_id, bucket DESC);
 
 CREATE INDEX IF NOT EXISTS idx_vehicle_events_hourly_vehicle
   ON vehicle_events_hourly (vehicle_id, bucket DESC);

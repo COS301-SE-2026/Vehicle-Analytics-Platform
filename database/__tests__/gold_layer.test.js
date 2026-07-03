@@ -3,7 +3,23 @@ const { createDbClient, resetTelemetryData } = require('../testHelpers');
 describe('Gold Layer and Querying Integration', () => {
   let client;
   // Set timeout to 30 seconds for all hooks and tests in this file
-  jest.setTimeout(30000); 
+  jest.setTimeout(30000);
+
+  async function safeRefresh(viewName) {
+    for (let i = 0; i < 5; i++) {
+      try {
+        await client.query(`CALL refresh_continuous_aggregate('${viewName}', NULL, NULL);`);
+        return;
+      } catch (error) {
+        if (error.message && error.message.includes('concurrent refresh')) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new Error(`Failed to refresh ${viewName} after 5 retries due to concurrent refreshes.`);
+  }
 
   beforeAll(async () => {
     client = await createDbClient();

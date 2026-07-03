@@ -22,9 +22,9 @@ describe('Database Triggers Integration', () => {
     // 1. Insert raw telemetry
     await client.query(`
       INSERT INTO raw_telemetry 
-        (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer)
+        (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement)
       VALUES 
-        ($1, 'TEST-001', 'DEV-001', 'avl', '', '-25.837,28.172', '40', '92537167')
+        ($1, 'TEST-001', 'DEV-001', 'avl', '', '-25.837,28.172', '40', '92537167', 'Ignition On', 'Movement On')
     `, [time]);
 
     // Give the trigger time to fire (even though it should be immediate)
@@ -37,6 +37,8 @@ describe('Database Triggers Integration', () => {
     expect(Number(cleanRes.rows[0].longitude)).toBe(28.172);
     expect(cleanRes.rows[0].speed).toBe(40);
     expect(Number(cleanRes.rows[0].total_odometer)).toBe(92537167);
+    expect(cleanRes.rows[0].ignition).toBe('Ignition On');
+    expect(cleanRes.rows[0].movement).toBe('Movement On');
 
     // 3. Assert vehicle_events is empty since it was just 'avl'
     const eventRes = await client.query("SELECT * FROM vehicle_events WHERE vehicle_id = 'TEST-001'");
@@ -49,9 +51,9 @@ describe('Database Triggers Integration', () => {
     // 1. Insert an avl_event
     await client.query(`
       INSERT INTO raw_telemetry 
-        (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, green_driving_type)
+        (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement, green_driving_type)
       VALUES 
-        ($1, 'TEST-002', 'DEV-002', 'avl_event', 'green_driving_type', '-25.829,28.169', '32', '92536129', 'harsh_acceleration')
+        ($1, 'TEST-002', 'DEV-002', 'avl_event', 'green_driving_type', '-25.829,28.169', '32', '92536129', 'Ignition Off', 'Movement Off', 'harsh_acceleration')
     `, [time]);
 
     // Give the trigger time to fire
@@ -67,6 +69,10 @@ describe('Database Triggers Integration', () => {
     expect(eventRes.rows[0].event_category).toBe('green_driving_type');
     expect(eventRes.rows[0].event_detail).toBe('harsh_acceleration');
     expect(eventRes.rows[0].speed).toBe(32);
+
+    const currentPositionRes = await client.query("SELECT * FROM current_vehicle_position WHERE id = 'TEST-002'");
+    expect(currentPositionRes.rows[0].ignition).toBe('Ignition Off');
+    expect(currentPositionRes.rows[0].movement).toBe('Movement Off');
   });
 
   test('should catch parsing errors and insert them into telemetry_errors', async () => {
@@ -75,9 +81,9 @@ describe('Database Triggers Integration', () => {
     // 1. Insert bad data (invalid format for speed to force a SQL cast error)
     await client.query(`
       INSERT INTO raw_telemetry 
-        (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer)
+        (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement)
       VALUES 
-        ($1, 'TEST-003', 'DEV-003', 'avl', '', '-25.829,28.169', 'invalid_speed', '123')
+        ($1, 'TEST-003', 'DEV-003', 'avl', '', '-25.829,28.169', 'invalid_speed', '123', 'Ignition On', 'Movement Off')
     `, [time]);
 
     // Give the trigger time to fire

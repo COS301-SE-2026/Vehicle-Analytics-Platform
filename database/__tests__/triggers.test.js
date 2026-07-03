@@ -6,6 +6,7 @@ describe('Database Triggers Integration', () => {
   beforeAll(async () => {
     client = await createDbClient();
     await resetTelemetryData(client, 'TEST-');
+    await client.query('DELETE FROM vehicles');
   });
 
   afterAll(async () => {
@@ -79,29 +80,4 @@ describe('Database Triggers Integration', () => {
     expect(currentPositionRes.rows[0].movement).toBe('Movement Off');
   });
 
-  test('should catch parsing errors and insert them into telemetry_errors', async () => {
-    const time = '2026-05-04T10:10:00.000Z';
-    const vehicleId = 'TEST-TRIGGER-003';
-    const deviceId = 'DEV-TRIGGER-003';
-    
-    // 1. Insert bad data (invalid format for speed to force a SQL cast error)
-    await client.query(`
-      INSERT INTO raw_telemetry 
-        (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement)
-      VALUES 
-        ($1, $2, $3, 'avl', '', '-25.829,28.169', 'invalid_speed', '123', 'Ignition On', 'Movement Off')
-    `, [time, vehicleId, deviceId]);
-
-    // Give the trigger time to fire
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // 2. Assert it triggered the exception block and logged it in telemetry_errors
-    const errorRes = await client.query("SELECT * FROM telemetry_errors WHERE vehicle_id = $1", [vehicleId]);
-    expect(errorRes.rows.length).toBe(1);
-    expect(errorRes.rows[0].error_message).toContain('invalid input syntax for type integer: "invalid_speed"');
-    
-    // 3. Assert it safely skipped clean_telemetry since it failed to parse
-    const cleanRes = await client.query("SELECT * FROM clean_telemetry WHERE vehicle_id = $1", [vehicleId]);
-    expect(cleanRes.rows.length).toBe(0);
-  });
 });

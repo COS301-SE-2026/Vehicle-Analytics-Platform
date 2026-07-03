@@ -116,14 +116,14 @@ describe('Gold Layer and Querying Integration', () => {
       INSERT INTO raw_telemetry
         (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement)
       VALUES
-        ($1, 'GOLD_TEST-010', 'DEV-010', 'avl', '', '-25.000,28.000', '40', '100000', 'Ignition On', 'Movement On'),
-        ($2, 'GOLD_TEST-010', 'DEV-010', 'avl', '', '-25.001,28.001', '45', '101500', 'Ignition On', 'Movement On'),
-        ($3, 'GOLD_TEST-010', 'DEV-010', 'avl', '', '-25.002,28.002', '50', '103000', 'Ignition On', 'Movement On')
+        ($1, 'GOLD_TEST-020', 'DEV-020', 'avl', '', '-25.000,28.000', '40', '100000', 'Ignition On', 'Movement On'),
+        ($2, 'GOLD_TEST-020', 'DEV-020', 'avl', '', '-25.001,28.001', '45', '101500', 'Ignition On', 'Movement On'),
+        ($3, 'GOLD_TEST-020', 'DEV-020', 'avl', '', '-25.002,28.002', '50', '103000', 'Ignition On', 'Movement On')
     `, [time1, time2, time3]);
 
     await safeRefresh('vehicle_daily_distance');
 
-    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-010' ORDER BY bucket DESC LIMIT 1");
+    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-020' ORDER BY bucket DESC LIMIT 1");
     expect(distanceRes.rows.length).toBe(1);
 
     const row = distanceRes.rows[0];
@@ -143,13 +143,13 @@ describe('Gold Layer and Querying Integration', () => {
       INSERT INTO raw_telemetry
         (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement)
       VALUES
-        ($1, 'GOLD_TEST-011', 'DEV-011', 'avl', '', '-25.000,28.000', '40', '100000', 'Ignition On', 'Movement On'),
-        ($2, 'GOLD_TEST-011', 'DEV-011', 'avl', '', '-25.001,28.001', '45', '99000', 'Ignition On', 'Movement On')
+        ($1, 'GOLD_TEST-021', 'DEV-021', 'avl', '', '-25.000,28.000', '40', '100000', 'Ignition On', 'Movement On'),
+        ($2, 'GOLD_TEST-021', 'DEV-021', 'avl', '', '-25.001,28.001', '45', '99000', 'Ignition On', 'Movement On')
     `, [time1, time2]);
 
     await safeRefresh('vehicle_daily_distance');
 
-    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-011' ORDER BY bucket DESC LIMIT 1");
+    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-021' ORDER BY bucket DESC LIMIT 1");
     expect(distanceRes.rows.length).toBe(1);
     expect(Number(distanceRes.rows[0].distance_km)).toBe(0);
   }, 60000);

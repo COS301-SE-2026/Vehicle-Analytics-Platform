@@ -108,9 +108,10 @@ describe('Gold Layer and Querying Integration', () => {
     await resetTelemetryData(client, 'GOLD_TEST-');
 
     const now = new Date();
-    const time1 = new Date(now.getTime() - 4 * 60000).toISOString();
-    const time2 = new Date(now.getTime() - 2 * 60000).toISOString();
-    const time3 = new Date(now.getTime() - 1 * 60000).toISOString();
+    const baseTime = new Date(now.getTime() - 30 * 1000);
+    const time1 = new Date(baseTime.getTime() - 1000).toISOString();
+    const time2 = new Date(baseTime.getTime() + 1000).toISOString();
+    const time3 = new Date(baseTime.getTime() + 2000).toISOString();
 
     await client.query(`
       INSERT INTO raw_telemetry
@@ -136,8 +137,9 @@ describe('Gold Layer and Querying Integration', () => {
     await resetTelemetryData(client, 'GOLD_TEST-');
 
     const now = new Date();
-    const time1 = new Date(now.getTime() - 4 * 60000).toISOString();
-    const time2 = new Date(now.getTime() - 2 * 60000).toISOString();
+    const baseTime = new Date(now.getTime() - 30 * 1000);
+    const time1 = new Date(baseTime.getTime() - 1000).toISOString();
+    const time2 = new Date(baseTime.getTime() + 1000).toISOString();
 
     await client.query(`
       INSERT INTO raw_telemetry

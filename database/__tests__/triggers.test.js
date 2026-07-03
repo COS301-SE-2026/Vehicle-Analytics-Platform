@@ -18,7 +18,7 @@ describe('Database Triggers Integration', () => {
   });
 
   test('should parse and insert standard avl records into clean_telemetry', async () => {
-    const time = '2026-05-04T10:00:00.000Z';
+    const time = new Date().toISOString();
     const vehicleId = 'TEST-TRIGGER-001';
     const deviceId = 'DEV-TRIGGER-001';
     
@@ -49,7 +49,7 @@ describe('Database Triggers Integration', () => {
   });
 
   test('should route avl_event records to both clean_telemetry and vehicle_events', async () => {
-    const time = '2026-05-04T10:05:00.000Z';
+    const time = new Date().toISOString();
     const vehicleId = 'TEST-TRIGGER-002';
     const deviceId = 'DEV-TRIGGER-002';
     

@@ -66,7 +66,9 @@ export default function ViewerDashboard() {
   const total = kpis.totalVehicles
 
   const vehicles = locations.vehicles ?? []
-  const mostActive = [...vehicles]
+  
+  const activeVehicles = vehicles.filter(v => (v.distanceToday ?? 0) > 0)
+  const mostActive = [...activeVehicles]
     .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
     .slice(0, 5)
 
@@ -83,7 +85,7 @@ export default function ViewerDashboard() {
         <StatCard
           icon={Waypoints}
           label="Total Distance Today"
-          value={kpis.totalDistance ?? 0}
+          value={kpis.distanceToday ?? 0}
           sub="km across fleet"
         />
         <DataFeedStatusCard

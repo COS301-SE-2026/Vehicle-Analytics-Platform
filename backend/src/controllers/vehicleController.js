@@ -9,7 +9,7 @@ async function getLiveLocations(req, res) {
         v.device_id,
         CASE
           WHEN cvp.last_update IS NULL THEN 'offline'
-          WHEN cvp.last_update < NOW() - INTERVAL '10 minutes' THEN 'offline'
+          WHEN cvp.last_update < NOW() AT TIME ZONE 'UTC' - INTERVAL '15 minutes' THEN 'offline'
           WHEN cvp.speed > 0 THEN 'active'
           WHEN cvp.movement = 'Movement On' THEN 'active'
           WHEN cvp.ignition = 'Ignition On' THEN 'idle'
@@ -21,9 +21,19 @@ async function getLiveLocations(req, res) {
         cvp.total_odometer,
         cvp.ignition,
         cvp.movement,
-        cvp.last_update
+        cvp.last_update,
+
+        COALESCE(daily_sum.total_distance, 0) as distance_today
       FROM vehicles v
       LEFT JOIN current_vehicle_position cvp ON v.vehicle_id = cvp.id
+      LEFT JOIN (
+        SELECT
+          vehicle_id,
+          SUM(distance_km) as total_distance
+        FROM vehicle_daily_distance
+        WHERE bucket = date_trunc('day', NOW() AT TIME ZONE 'UTC')
+        GROUP BY vehicle_id
+      ) daily_sum ON v.vehicle_id = daily_sum.vehicle_id
       ORDER BY v.vehicle_id
     `);
 
@@ -42,10 +52,6 @@ async function getLiveLocations(req, res) {
 async function getVehicleById(req, res) {
   const { vehicleId } = req.params;
 
-  if (!vehicleId) {
-    return error(res, 'Vehicle ID is required', 400);
-  }
-
   try {
     const vehicleResult = await pool.query(`
       SELECT
@@ -54,7 +60,7 @@ async function getVehicleById(req, res) {
         v.created_at,
         CASE
           WHEN cvp.last_update IS NULL THEN 'offline'
-          WHEN cvp.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
+          WHEN cvp.last_update < NOW() - INTERVAL '15 minutes' THEN 'offline'
           WHEN cvp.movement = 'Movement On' THEN 'active'
           WHEN cvp.ignition = 'Ignition On' THEN 'idle'
           WHEN cvp.speed > 0 THEN 'active'
@@ -66,7 +72,7 @@ async function getVehicleById(req, res) {
         cvp.total_odometer,
         cvp.ignition,
         cvp.movement,
-        cvp.last_update
+        cvp.last_update,
       FROM vehicles v
       LEFT JOIN current_vehicle_position cvp ON v.vehicle_id = cvp.id
       WHERE v.vehicle_id = $1

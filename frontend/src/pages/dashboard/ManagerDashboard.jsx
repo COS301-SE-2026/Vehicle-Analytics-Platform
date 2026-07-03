@@ -61,7 +61,7 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 10000)
+    const interval = setInterval(fetchAll, 5000) //5 seconds
     return () => clearInterval(interval)
   }, [activityRange])
 
@@ -96,8 +96,9 @@ export default function ManagerDashboard() {
   const total = kpis.totalVehicles ?? vehicles.length
   const inMotion = active
 
-  const mostActive = [...vehicles]
-    .sort((a, b) => (b.distanceToday ?? b.distance ?? 0) - (a.distanceToday ?? a.distance ?? 0))
+  const activeVehicles = vehicles.filter(v => (v.distanceToday ?? 0) > 0)
+  const mostActive = [...activeVehicles]
+    .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
     .slice(0, 5)
 
   const chartTitle = activityRange === 'week'
@@ -122,7 +123,7 @@ export default function ManagerDashboard() {
         <StatCard
           icon={Waypoints}
           label="Total Distance Today"
-          value={kpis.totalDistance ?? '—'}
+          value={kpis.distanceToday ?? '—'}
           sub="km across fleet"
         />
         <StatCard

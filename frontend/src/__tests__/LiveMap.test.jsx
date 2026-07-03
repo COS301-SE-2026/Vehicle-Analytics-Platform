@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 
@@ -86,20 +86,27 @@ describe('LiveMap', () => {
   // ── Initial render ────────────────────────────────────────────────────────
 
   describe('initial render', () => {
-    it('shows a loading spinner before data arrives', () => {
-      // Do NOT await — we want the in-flight state
-      render(<LiveMap />)
+    it('shows a loading spinner before data arrives', async () => {
+      vehicleService.getVehicleLocations.mockImplementationOnce(() => new Promise(() => {}))
+
+      await act(async () => {
+        render(<LiveMap />)
+      })
       expect(document.querySelector('.animate-spin')).toBeInTheDocument()
     })
 
     it('hides the loading spinner once data has loaded', async () => {
       await renderLiveMap()
-      expect(document.querySelector('.animate-spin')).not.toBeInTheDocument()
+      await waitFor(() => {
+        expect(document.querySelector('.animate-spin')).not.toBeInTheDocument()
+      })
     })
 
     it('renders the fleet-map placeholder after data loads', async () => {
       await renderLiveMap()
-      expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+      })
     })
   })
 
@@ -111,14 +118,14 @@ describe('LiveMap', () => {
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
     })
 
-    it('polls getVehicleLocations every 10 seconds', async () => {
+    it('polls getVehicleLocations every second', async () => {
       await renderLiveMap()
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
 
-      await act(async () => { jest.advanceTimersByTime(5_000) })
+      await act(async () => { jest.advanceTimersByTime(1_000) })
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(2)
 
-      await act(async () => { jest.advanceTimersByTime(5_000) })
+      await act(async () => { jest.advanceTimersByTime(1_000) })
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(3)
     })
 
@@ -137,30 +144,40 @@ describe('LiveMap', () => {
   describe('vehicle stat counts', () => {
     it('passes the full vehicle list to the placeholder', async () => {
       await renderLiveMap()
-      expect(screen.getByTestId('vehicle-count')).toHaveTextContent(String(VEHICLES.length))
+      await waitFor(() => {
+        expect(screen.getByTestId('vehicle-count')).toHaveTextContent(String(VEHICLES.length))
+      })
     })
 
     it('computes active count correctly', async () => {
       await renderLiveMap()
-      expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+      })
     })
 
     it('computes idle count correctly', async () => {
       await renderLiveMap()
-      expect(screen.getByTestId('stat-idle')).toHaveTextContent('1')
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-idle')).toHaveTextContent('1')
+      })
     })
 
     it('computes offline count correctly', async () => {
       await renderLiveMap()
-      expect(screen.getByTestId('stat-offline')).toHaveTextContent('1')
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-offline')).toHaveTextContent('1')
+      })
     })
 
     it('active + idle + offline equals total vehicle count', async () => {
       await renderLiveMap()
-      const active  = Number(screen.getByTestId('stat-active').textContent)
-      const idle    = Number(screen.getByTestId('stat-idle').textContent)
-      const offline = Number(screen.getByTestId('stat-offline').textContent)
-      expect(active + idle + offline).toBe(VEHICLES.length)
+      await waitFor(() => {
+        const active  = Number(screen.getByTestId('stat-active').textContent)
+        const idle    = Number(screen.getByTestId('stat-idle').textContent)
+        const offline = Number(screen.getByTestId('stat-offline').textContent)
+        expect(active + idle + offline).toBe(VEHICLES.length)
+      })
     })
   })
 
@@ -178,12 +195,16 @@ describe('LiveMap', () => {
         .mockResolvedValueOnce(makeResponse(updatedVehicles))
 
       await renderLiveMap()
-      expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
-      expect(screen.getByTestId('stat-offline')).toHaveTextContent('1')
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+        expect(screen.getByTestId('stat-offline')).toHaveTextContent('1')
+      })
 
-      await act(async () => { jest.advanceTimersByTime(5_000) })
-      expect(screen.getByTestId('stat-active')).toHaveTextContent('5')
-      expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+      await act(async () => { jest.advanceTimersByTime(1_000) })
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('5')
+        expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+      })
     })
 
     it('retains previous data when a mid-poll request fails', async () => {
@@ -192,12 +213,16 @@ describe('LiveMap', () => {
         .mockRejectedValueOnce(new Error('Network error'))
 
       await renderLiveMap()
-      expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+      })
 
       // Poll fails — UI must stay with last good data
-      await act(async () => { jest.advanceTimersByTime(5_000) })
-      expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
-      expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+      await act(async () => { jest.advanceTimersByTime(1_000) })
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+        expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+      })
     })
   })
 
@@ -245,10 +270,10 @@ describe('LiveMap', () => {
       await renderLiveMap()
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
 
-      await act(async () => { jest.advanceTimersByTime(5_000) }) // fails
+      await act(async () => { jest.advanceTimersByTime(1_000) }) // fails
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(2)
 
-      await act(async () => { jest.advanceTimersByTime(5_000) }) // recovers
+      await act(async () => { jest.advanceTimersByTime(1_000) }) // recovers
       expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(3)
     })
   })
@@ -285,12 +310,14 @@ describe('LiveMap', () => {
     vehicleService.getVehicleLocations.mockResolvedValue({ timestamp: new Date().toISOString() })
     await renderLiveMap()
 
-    expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
-    expect(screen.getByTestId('stat-active')).toHaveTextContent('0')
-    expect(screen.getByTestId('stat-idle')).toHaveTextContent('0')
-    expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
-    expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
-    expect(screen.getByTestId('vehicle-count')).toHaveTextContent('0')
+    await waitFor(() => {
+      expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+      expect(screen.getByTestId('stat-active')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-idle')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
+      expect(screen.getByTestId('vehicle-count')).toHaveTextContent('0')
+    })
   })
 
   it('renders with zero counts when locations.vehicles is null', async () => {

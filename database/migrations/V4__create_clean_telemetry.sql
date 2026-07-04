@@ -90,12 +90,21 @@ BEGIN
     -- 3. If it's a safety trigger (avl_event), ALSO put it in the dedicated vehicle_events table
     IF NEW.measurement = 'avl_event' THEN
         INSERT INTO vehicle_events (
-            time, vehicle_id, device_id, measurement, event_category, event_detail, latitude, longitude, speed, total_odometer, ignition, movement
+            time, 
+            vehicle_id, 
+            device_id, 
+            event_category, 
+            event_detail, 
+            latitude, 
+            longitude, 
+            speed, 
+            total_odometer, 
+            ignition, 
+            movement
         ) VALUES (
             NEW.time, 
             NEW.vehicle_id, 
             NEW.device_id,
-            NEW.measurement,
             NEW.event,
             -- Determine the specific detail based on the event type
             CASE 

@@ -87,7 +87,7 @@ describe('Gold Layer and Querying Integration', () => {
     expect(v2Pos.speed).toBe(0);
 
     // 4. Assert vehicle_events_hourly
-    const harshRes = await client.query("SELECT * FROM vehicle_events_hourly WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
+    const harshRes = await client.query("SELECT harsh_braking_count, harsh_acceleration_count, alerts_today::INTEGER FROM vehicle_events_hourly WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
 
     const v1Harsh = harshRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').reduce((acc, row) => {
         acc.harsh_braking_count += Number(row.harsh_braking_count);

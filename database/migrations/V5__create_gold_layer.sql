@@ -12,7 +12,7 @@
     COUNT(*) FILTER (WHERE event_detail = 'harsh_acceleration') AS harsh_acceleration_count,
     COUNT(*) FILTER (WHERE event_detail = 'harsh_cornering') AS harsh_cornering_count,
     COUNT(*) FILTER (WHERE event_category = 'crash_detection') AS crash_count,
-    COUNT(*) AS total_harsh_events,
+    COUNT(*) AS alerts_today,
 
     AVG(speed) AS avg_event_speed,
     Max(speed) AS max_event_speed,

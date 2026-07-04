@@ -92,13 +92,13 @@ describe('Gold Layer and Querying Integration', () => {
     const v1Harsh = harshRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').reduce((acc, row) => {
         acc.harsh_braking_count += Number(row.harsh_braking_count);
         acc.harsh_acceleration_count += Number(row.harsh_acceleration_count);
-        acc.total_harsh_events += Number(row.total_harsh_events);
+        acc.alerts_today += Number(row.alerts_today);
         return acc;
     }, { harsh_braking_count: 0, harsh_acceleration_count: 0, total_harsh_events: 0 });
 
     expect(Number(v1Harsh.harsh_braking_count)).toBe(1);
     expect(Number(v1Harsh.harsh_acceleration_count)).toBe(1);
-    expect(Number(v1Harsh.total_harsh_events)).toBe(2);
+    expect(Number(v1Harsh.alerts_today)).toBe(2);
 
     const v2Harsh = harshRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-002');
     expect(Number(v2Harsh.crash_count)).toBe(1);

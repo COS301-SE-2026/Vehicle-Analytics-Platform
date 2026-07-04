@@ -13,20 +13,24 @@ async function getFleetKPIs(req, res) {
       SELECT
         COUNT(*) as total_vehicles,
         COUNT(*) FILTER (
-          WHERE last_seen >= NOW() AT TIME ZONE 'UTC' - INTERVAL '15 minutes'
+          WHERE last_update >= NOW() AT TIME ZONE 'UTC' - INTERVAL '15 minutes'
         ) as active_vehicles
       FROM current_vehicle_position
     `);
 
-    // Query 2 — alerts today (vehicle_events_hourly, pre-aggregated)
+    // Query 2 — alerts today (vehicle_events with time window)
     const alerts_result = await pool.query(`
-      SELECT
-        COALESCE(SUM(harsh_braking_count), 0) +
-        COALESCE(SUM(harsh_acceleration_count), 0) +
-        COALESCE(SUM(harsh_cornering_count), 0) +
-        COALESCE(SUM(crash_count), 0) as alerts_today
-      FROM vehicle_events_hourly
-      WHERE bucket >= CURRENT_DATE
+      SELECT COUNT(*) AS alerts_today
+      FROM vehicle_events
+      WHERE time >= NOW() - INTERVAL '15 minutes'
+      AND (
+          event_detail IN (
+              'harsh_braking',
+              'harsh_acceleration',
+              'harsh_cornering'
+          )
+          OR event_category='crash_detection'
+      );
     `);
 
     // Query 3 — distance today (vehicle_daily_distance, pre-aggregated)

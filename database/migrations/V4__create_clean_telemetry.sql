@@ -15,11 +15,15 @@ CREATE TABLE IF NOT EXISTS clean_telemetry (
 CREATE TABLE IF NOT EXISTS vehicle_events (
     time TIMESTAMPTZ NOT NULL,
     vehicle_id TEXT NOT NULL,
+    device_id TEXT,
     event_category TEXT,      -- e.g., 'ignition', 'green_driving_type'
     event_detail TEXT,        -- e.g., 'harsh_acceleration', 'Ignition On'
     latitude NUMERIC,
     longitude NUMERIC,
     speed INTEGER,
+    total_odometer BIGINT,
+    ignition TEXT,
+    movement TEXT,
     UNIQUE (time, vehicle_id, event_category)
 );
 
@@ -86,10 +90,12 @@ BEGIN
     -- 3. If it's a safety trigger (avl_event), ALSO put it in the dedicated vehicle_events table
     IF NEW.measurement = 'avl_event' THEN
         INSERT INTO vehicle_events (
-            time, vehicle_id, event_category, event_detail, latitude, longitude, speed
+            time, vehicle_id, device_id, measurement, event_category, event_detail, latitude, longitude, speed, total_odometer, ignition, movement
         ) VALUES (
             NEW.time, 
             NEW.vehicle_id, 
+            NEW.device_id,
+            NEW.measurement,
             NEW.event,
             -- Determine the specific detail based on the event type
             CASE 
@@ -100,7 +106,10 @@ BEGIN
             END,
             parsed_lat, 
             parsed_lng, 
-            parsed_speed
+            parsed_speed,
+            NULLIF(NEW.total_odometer, '')::BIGINT,
+            NEW.ignition,
+            NEW.movement
         ) ON CONFLICT (time, vehicle_id, event_category) DO NOTHING;
     END IF;
 

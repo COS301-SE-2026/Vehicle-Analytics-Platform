@@ -37,7 +37,7 @@ jest.mock('radix-ui', () => {
   }
 
   const el = (tag, dataSlot) => {
-    const Component = ({ children, className, 'data-slot': __ds, ...props }) =>
+    const Component = ({ children, className, ...props }) =>
       React.createElement(tag, { 'data-slot': dataSlot, className, ...props }, children)
     Component.propTypes = { 
       children: PropTypes.node,
@@ -51,7 +51,7 @@ jest.mock('radix-ui', () => {
   const btn  = (slot) => el('button', slot)
   const span = (slot) => el('span',   slot)
   const img  = (slot) => {
-    const Component = ({ 'data-slot': __ds, className, ...props }) =>
+    const Component = ({  className, ...props }) =>
       React.createElement('img', { 'data-slot': slot, className, ...props })
     Component.propTypes = { 
       'data-slot': PropTypes.string,
@@ -105,7 +105,7 @@ jest.mock('radix-ui', () => {
       SubContent:   div('dropdown-menu-sub-content'),
     },
     Separator: {
-      Root: ({ 'data-slot': __ds, className, orientation, decorative, ...props }) =>
+      Root: ({ className, orientation, decorative, ...props }) =>
         React.createElement('div', {
           'data-slot': 'separator',
           className,

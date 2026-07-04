@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Truck, Waypoints, Activity, RefreshCw } from 'lucide-react'
+import { Truck, Waypoints, RefreshCw } from 'lucide-react'
 import { getKPIs, getVehicleLocations } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'

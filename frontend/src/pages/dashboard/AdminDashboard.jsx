@@ -26,10 +26,10 @@ function formatActivityPoints(points, range) {
 
 // Placeholder activation handler kept at module scope to satisfy linting rules.
 
-function handleActivate(user) {
-  // Wire up API call later
-  // Intentionally module-scoped to avoid redefining inside the component.
-}
+// function handleActivate(user) {
+//   // Wire up API call later
+//   // Intentionally module-scoped to avoid redefining inside the component.
+// }
 
 export default function AdminDashboard() {
   const [kpis, setKpis] = useState(null)

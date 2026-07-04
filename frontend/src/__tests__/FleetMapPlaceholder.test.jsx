@@ -1,4 +1,4 @@
-import React from 'react'
+//import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import LiveFleetMapPlaceholder from '../components/dashboard/LiveFleetMapPlaceholder'
 
@@ -100,12 +100,6 @@ describe('LiveFleetMapPlaceholder – VehiclePanel active vehicle', () => {
     expect(screen.getByText('VH-0099')).toBeInTheDocument()
   })
 
-  // it('displays Active status for active vehicle', () => {
-  //   render(<LiveFleetMapPlaceholder {...defaultProps} />)
-  //   fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
-  //   expect(screen.getByText(/active|moving/i)).toBeInTheDocument()
-  // })
-
   it('displays lat/lng as location when both are provided', () => {
     render(<LiveFleetMapPlaceholder {...defaultProps} />)
     fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
@@ -130,12 +124,6 @@ describe('LiveFleetMapPlaceholder – VehiclePanel idle vehicle', () => {
     expect(screen.getByText('IDLE')).toBeInTheDocument()
   })
 
-  // it('shows 0 speed for idle vehicle', () => {
-  //   mockVehiclePayload = { id: 'VH-0031', status: 'idle', speed: 0, lat: -26.1, lng: 28.0 }
-  //   render(<LiveFleetMapPlaceholder {...defaultProps} />)
-  //   fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
-  //   expect(screen.getByText('')).toBeInTheDocument()
-  // })
 })
 
 

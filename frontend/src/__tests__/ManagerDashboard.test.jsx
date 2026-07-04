@@ -1,4 +1,4 @@
-import React from 'react'
+//import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 
 jest.mock('@/components/dashboard/DonutChart', () => ({ __esModule: true, default: () => <div>DonutChart</div> }))

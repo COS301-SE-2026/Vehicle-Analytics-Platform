@@ -96,7 +96,7 @@ describe('Gold Layer and Querying Integration', () => {
       );
     `);
 
-    const harshRes = await client.query("SELECT harsh_braking_count::INTEGER, harsh_acceleration_count::INTEGER, alerts_today::INTEGER FROM vehicle_events_hourly WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
+    const harshRes = await client.query("SELECT vehicle_id, harsh_braking_count::INTEGER, harsh_acceleration_count::INTEGER, alerts_today::INTEGER FROM vehicle_events_hourly WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
 
     const v1Harsh = harshRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').reduce((acc, row) => {
         acc.harsh_braking_count += Number(row.harsh_braking_count);

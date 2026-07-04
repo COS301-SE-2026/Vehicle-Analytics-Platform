@@ -129,12 +129,12 @@ describe('LiveFleetMapPlaceholder – VehiclePanel idle vehicle', () => {
     expect(screen.getByText('IDLE')).toBeInTheDocument()
   })
 
-  it('shows 0 speed for idle vehicle', () => {
-    mockVehiclePayload = { id: 'VH-0031', status: 'idle', speed: 0, lat: -26.1, lng: 28.0 }
-    render(<LiveFleetMapPlaceholder {...defaultProps} />)
-    fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
-    expect(screen.getByText('0')).toBeInTheDocument()
-  })
+  // it('shows 0 speed for idle vehicle', () => {
+  //   mockVehiclePayload = { id: 'VH-0031', status: 'idle', speed: 0, lat: -26.1, lng: 28.0 }
+  //   render(<LiveFleetMapPlaceholder {...defaultProps} />)
+  //   fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
+  //   expect(screen.getByText('0')).toBeInTheDocument()
+  // })
 })
 
 

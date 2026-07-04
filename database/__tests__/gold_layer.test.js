@@ -87,6 +87,15 @@ describe('Gold Layer and Querying Integration', () => {
     expect(v2Pos.speed).toBe(0);
 
     // 4. Assert vehicle_events_hourly
+
+    await client.query(`
+      CALL refresh_continuous_aggregate(
+        'vehicle_events_hourly', 
+        NOW() - INTERVAL '1 day', 
+        NOW() + INTERVAL '1 hour'
+      );
+    `);
+
     const harshRes = await client.query("SELECT harsh_braking_count::INTEGER, harsh_acceleration_count::INTEGER, alerts_today::INTEGER FROM vehicle_events_hourly WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
 
     const v1Harsh = harshRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').reduce((acc, row) => {

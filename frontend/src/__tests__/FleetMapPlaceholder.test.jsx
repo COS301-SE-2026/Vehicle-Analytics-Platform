@@ -8,6 +8,7 @@ let mockVehiclePayload = {
   speed: 72,
   lat: -25.7461,
   lng: 28.1881,
+  movement: 'moving'
 }
 
 jest.mock('../components/map/FleetMap', () => ({

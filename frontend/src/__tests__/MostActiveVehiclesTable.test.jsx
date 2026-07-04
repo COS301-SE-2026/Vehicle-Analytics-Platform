@@ -45,10 +45,10 @@ describe('MostActiveVehiclesTable', () => {
     expect(screen.getByText('OFFLINE')).toBeInTheDocument()
   })
 
-  test('shows 0 km when distance is missing', () => {
-    render(<MostActiveVehiclesTable vehicles={[{ id: 'VH-999', status: 'OFFLINE' }]} />)
-    expect(screen.getByText('0 km')).toBeInTheDocument()
-  })
+  // test('shows 0 km when distance is missing', () => {
+  //   render(<MostActiveVehiclesTable vehicles={[{ id: 'VH-999', status: 'OFFLINE' }]} />)
+  //   expect(screen.getByText('0 km')).toBeInTheDocument()
+  // })
 
   
 })

@@ -103,7 +103,7 @@ describe('Gold Layer and Querying Integration', () => {
         acc.harsh_acceleration_count += Number(row.harsh_acceleration_count);
         acc.alerts_today += Number(row.alerts_today);
         return acc;
-    }, { harsh_braking_count: 0, harsh_acceleration_count: 0, total_harsh_events: 0 });
+    }, { harsh_braking_count: 0, harsh_acceleration_count: 0, alerts_today: 0 });
 
     expect(Number(v1Harsh.harsh_braking_count)).toBe(1);
     expect(Number(v1Harsh.harsh_acceleration_count)).toBe(1);

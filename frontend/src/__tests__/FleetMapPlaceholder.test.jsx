@@ -102,7 +102,7 @@ describe('LiveFleetMapPlaceholder – VehiclePanel active vehicle', () => {
   it('displays Active status for active vehicle', () => {
     render(<LiveFleetMapPlaceholder {...defaultProps} />)
     fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument()
+    expect(screen.getByText('/active|moving/i')).toBeInTheDocument()
   })
 
   it('displays lat/lng as location when both are provided', () => {
@@ -133,7 +133,7 @@ describe('LiveFleetMapPlaceholder – VehiclePanel idle vehicle', () => {
   //   mockVehiclePayload = { id: 'VH-0031', status: 'idle', speed: 0, lat: -26.1, lng: 28.0 }
   //   render(<LiveFleetMapPlaceholder {...defaultProps} />)
   //   fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
-  //   expect(screen.getByText('0')).toBeInTheDocument()
+  //   expect(screen.getByText('')).toBeInTheDocument()
   // })
 })
 

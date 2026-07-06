@@ -1,3 +1,5 @@
+/* eslint-env node */
+
 module.exports = {
   Map: jest.fn().mockImplementation(() => ({
     addControl: jest.fn(),

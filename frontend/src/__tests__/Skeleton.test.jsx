@@ -1,5 +1,5 @@
-import React from "react"
-import { render, screen } from "@testing-library/react"
+//import React from "react"
+import { render } from "@testing-library/react"
 import { Skeleton } from "@/components/ui/skeleton"
 
 jest.mock("@/lib/utils", () => ({ cn: (...args) => args.filter(Boolean).join(" ") }))

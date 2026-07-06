@@ -36,6 +36,7 @@ export async function getKPIs() {
       totalVehicles: data.data.total_vehicles,
       activeVehicles: data.data.active_vehicles,
       alertsToday: data.data.alerts_today,
+      distanceToday: data.data.distance_today,
       lastUpdated: data.data.last_updated,
     };
   } catch (err) {
@@ -45,6 +46,7 @@ export async function getKPIs() {
         totalVehicles: 0,
         activeVehicles: 0,
         alertsToday: 0,
+        distanceToday: 0,
         lastUpdated: new Date().toISOString()
       };
     }
@@ -65,8 +67,11 @@ export async function getVehicleLocations() {
       lng: Number.parseFloat(v.longitude),
       speed: v.speed,
       status: v.status,
-      driver_name: v.driver_name,
-      last_update: v.last_update,
+      total_odometer: v.total_odometer,
+      ignition: v.ignition,
+      movement: v.movement, 
+      lastUpdate: v.last_update,
+      distanceToday: Number.parseFloat(v.distance_today) || 0,
     }))
     .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
 

@@ -99,7 +99,9 @@ export default function AdminDashboard() {
   const offline = vehicles.filter(v => v.status === 'offline').length
   const total = kpis.totalVehicles ?? vehicles.length
 
-  const mostActive = [...vehicles]
+  const activeVehicles = vehicles.filter(v => (v.distanceToday ?? 0) > 0)
+
+  const mostActive = [...activeVehicles]
     .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
     .slice(0, 5)
 
@@ -148,13 +150,13 @@ export default function AdminDashboard() {
         <StatCard
           icon={Truck}
           label="Active Vehicles"
-          value={kpis.activeVehicles ?? active}
+          value={kpis.active_vehicles ?? active}
           sub={`of ${total} total`}
         />
         <StatCard
           icon={Waypoints}
           label="Total Distance Today"
-          value={kpis.totalDistance ?? 0}
+          value={kpis.distanceToday ?? 1}
           sub="km across fleet"
         />
         <StatCard

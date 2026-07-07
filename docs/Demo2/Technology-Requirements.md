@@ -4,7 +4,6 @@
 ## Vehicle Analytics Platform - V.A.P.O.R
 
 
-**Version:** 2.0.0.0 
 **Prepared By:** Kilimanjaro StoneCap  
 **Demo:** Demo 2
 
@@ -130,7 +129,6 @@
 
 - **D3.js** - More powerful but requires more code for simple charts
 - **Chart.js** - Not React-native, requires wrapper libraries
-
 
 
 ---
@@ -313,7 +311,6 @@
 - Keeps the code consistent between local and cloud environments
 
 
-
 **What we considered:**
 
 - **Custom Lambda handler** - Would require rewriting the entire API
@@ -331,7 +328,6 @@
 
 
 **Purpose:** Relational database.
-
 
 
 **Why we chose it:**
@@ -448,7 +444,6 @@
 
 
 **Purpose:** HTTP routing and JWT validation.
-
 
 
 **Why we chose it:**

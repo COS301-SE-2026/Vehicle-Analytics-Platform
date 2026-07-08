@@ -127,7 +127,6 @@
 
 **What we considered:**
 
-- **D3.js** - More powerful but requires more code for simple charts
 - **Chart.js** - Not React-native, requires wrapper libraries
 
 

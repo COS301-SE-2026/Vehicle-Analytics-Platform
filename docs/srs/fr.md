@@ -1,7 +1,6 @@
 # Functional Requirements 
-** Vehicle Analytics Platform - V.A.P.O.R **
-** Prepared By:** Kilimanjaro StoneCap
-** Demo:** Demo 2
+**Vehicle Analytics Platform - V.A.P.O.R**
+**Demo:** Demo 2
 
 ***
 
@@ -49,7 +48,7 @@
 * **FR5.9:** The system shall allow the fleet manager to toggle between per-trip and per-day aggregated safety score views on the History tab.
 
 
-### FR6 : Trip History and Route Visualization
+### FR6 : Trip History & Route Visualization
 
 * **FR6.1:** The system must retrieve and list all completed trips for a selected vehicle, ordered from most recent to oldest.
 * **FR6.2:** Each trip list entry shall display trip date, start time, end time, total distance covered, and trip safety score.
@@ -83,14 +82,14 @@
 * **FR8.12:** The system shall not trigger an exit alert for a vehicle located inside a zone at the time that zone is deleted.
 
 
-### FR9: Trip Replay  & Visualization
+### FR9: Trip Replay & Visualization
 
 * **FR9.1:** The system shall allow a fleet manager to initiate an animated replay of a completed trip from the trip history.
 * **FR9.2:** The system shall load all `clean_telemetry` position records for the selected trip in chronological order.
 <!-- * **FR9.3:** The system shall render the full trip route with a colour-coded speed overlay: green for safe speed, amber for elevated speed, and red for speeding.  remove for now-->
-* **FR9.4:** The system shall place markers on the route at every location where a `vehicle_events` record exists for that trip.
-* **FR9.5:** The system shall animate a vehicle marker moving along the route in sequence, updating the displayed speed and route segment colour at each position.
-* **FR9.6:** The system shall display event details in a panel alongside the map when playback reaches an unsafe event marker.
-* **FR9.7:** The system shall provide playback controls allowing the fleet manager to play, pause, rewind, and scrub to any point in the trip.
-* **FR9.8:** The system shall display a static route map, with a message indicating replay is unavailable, when a trip has fewer than the minimum number of telemetry records required for smooth playback.
-* **FR9.9:** The system shall display the route without event markers, along with a confirming message, when a trip has no recorded unsafe events.
+* **FR9.3:** The system shall place markers on the route at every location where a `vehicle_events` record exists for that trip.
+* **FR9.4:** The system shall animate a vehicle marker moving along the route in sequence, updating the displayed speed and route segment colour at each position.
+* **FR9.5:** The system shall display event details in a panel alongside the map when playback reaches an unsafe event marker.
+* **FR9.6:** The system shall provide playback controls allowing the fleet manager to play, pause, rewind, and scrub to any point in the trip.
+* **FR9.7:** The system shall display a static route map, with a message indicating replay is unavailable, when a trip has fewer than the minimum number of telemetry records required for smooth playback.
+* **FR9.8:** The system shall display the route without event markers, along with a confirming message, when a trip has no recorded unsafe events.

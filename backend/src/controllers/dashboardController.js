@@ -11,36 +11,47 @@ async function getFleetKPIs(req, res) {
     // Query 1 — active vs total vehicles (Gold layer, instant)
     const vehicles_result = await pool.query(`
       SELECT
-        COUNT(DISTINCT vehicle_id) as total_vehicles,
-        COUNT(DISTINCT vehicle_id) FILTER (
-          WHERE last_seen > NOW() - INTERVAL '10 minutes'
+        COUNT(*) as total_vehicles,
+        COUNT(*) FILTER (
+          WHERE last_update >= NOW() AT TIME ZONE 'UTC' - INTERVAL '1 hour'
         ) as active_vehicles
-      FROM (
-        SELECT DISTINCT ON (vehicle_id)
-          vehicle_id, last_seen
-        FROM vehicle_position_5s
-        ORDER BY vehicle_id, bucket DESC
-      ) latest
+      FROM current_vehicle_position
     `);
 
     // Query 2 — alerts today (vehicle_events_hourly, pre-aggregated)
     const alerts_result = await pool.query(`
       SELECT
-        COALESCE(SUM(harsh_braking_count), 0) +
-        COALESCE(SUM(harsh_acceleration_count), 0) +
-        COALESCE(SUM(harsh_cornering_count), 0) +
-        COALESCE(SUM(crash_count), 0) as alerts_today
-      FROM vehicle_events_hourly
-      WHERE bucket >= CURRENT_DATE
+        time,
+        vehicle_id,
+        event_category,
+        event_detail,
+        speed,
+        latitude,
+        longitude
+      FROM vehicle_events
+      WHERE time >= NOW() AT TIME ZONE 'UTC' - INTERVAL '15 seconds'
+      ORDER BY time DESC;
+    `);
+
+    // Query 3 — FIXED: Swapped 'day' for 'bucket' and aggregated 5-min intervals since midnight UTC
+    const distance_result = await pool.query(`
+      SELECT
+        COALESCE(SUM(distance_km), 0) AS distance_today
+      FROM vehicle_daily_distance
+      WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC');
     `);
 
     const v = vehicles_result.rows[0];
-    const a = alerts_result.rows[0];
+    //const a = alerts_result.rows[0];
+    const d = distance_result.rows[0];
+    
+    const alertsCount = alerts_result.rows.length;
 
     return success(res, {
-      total_vehicles:  Number.parseInt(v.total_vehicles, 10)  || 0,
-      active_vehicles: Number.parseInt(v.active_vehicles, 10) || 0,
-      alerts_today:    Number.parseInt(a.alerts_today, 10)    || 0,
+      total_vehicles:  parseInt(v.total_vehicles)  || 0,
+      active_vehicles: parseInt(v.active_vehicles) || 0,
+      alerts_today:    alertsCount,
+      distance_today:  parseFloat(d.distance_today) || 0,
       last_updated:    new Date().toISOString()
     }, 200);
 
@@ -64,10 +75,10 @@ async function getActiveAlerts(req, res) {
         speed,
         time as timestamp
       FROM vehicle_events
-      WHERE event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering')
-        OR event_category = 'crash_detection'
+      WHERE event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering', 'Ignition On', 'Ignition Off')
+        OR event_category IN ('crash_detection', 'ignition')
       ORDER BY time DESC
-      LIMIT $1
+      LIMIT 1;
     `, [limit]);
 
     const alerts = result.rows.map((alert, index) => {
@@ -115,12 +126,12 @@ async function getFleetActivityHistory(req, res) {
   try {
     const result = await pool.query(`
       SELECT
-        time_bucket($1::interval, bucket) AS bucket,
-        COUNT(DISTINCT vehicle_id) FILTER (WHERE speed >= $3) AS active_vehicles
-      FROM vehicle_position_5s
-      WHERE bucket >= NOW() - $2::interval
+        time_bucket($1::interval, time) AS bucket,
+        COUNT(DISTINCT vehicle_id) FILTER (WHERE speed >= 3) AS active_vehicles
+      FROM clean_telemetry
+      WHERE time >= NOW() - $2::interval 
       GROUP BY 1
-      ORDER BY 1
+      ORDER BY 1;
     `, [config.bucket, config.interval, speedThreshold]);
 
     const points = result.rows.map((row) => ({
@@ -140,16 +151,42 @@ async function getFleetActivityHistory(req, res) {
   }
 }
 
-async function getTotalDistance(req, res) {
+async function getTotalDistanceToday(req, res) {
   try {
-    const result = await pool.query('SELECT SUM(distance_km) AS total_distance FROM vehicle_trips');
-    const raw = result.rows[0]?.total_distance;
-    const total_distance = raw !== null && raw !== undefined ? parseFloat(raw) : 0;
-    return success(res, { total_distance, unit: 'km' });
+    const result = await pool.query(`
+      SELECT
+        -- 1. Total lifetime distance across all recorded history
+        COALESCE(SUM(distance_km), 0) AS total_lifetime_distance,
+
+        -- 2. Total distance accumulated today since midnight UTC
+        COALESCE(
+          SUM(distance_km) FILTER (
+            WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
+          ),
+          0
+        ) AS distance_today,
+
+        -- 3. Unique count of actual vehicles that have moved today
+        COUNT(DISTINCT vehicle_id) FILTER (
+          WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
+        ) AS vehicles_driven_today
+
+      FROM vehicle_daily_distance;
+    `);
+
+    const data = result.rows[0];
+
+    return success(res, {
+      total_distance: Number(data.total_lifetime_distance),
+      distance_today: Number(data.distance_today),
+      vehicles_driven_today: Number(data.vehicles_driven_today),
+      unit: 'km'
+    });
+
   } catch (err) {
-    console.error('Get total distance error:', err);
-    return error(res, 'Failed to fetch total distance: ' + err.message, 500);
+    console.error(err);
+    return error(res, 'Failed to fetch fleet metrics', 500);
   }
 }
 
-module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistance };
+module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistanceToday };

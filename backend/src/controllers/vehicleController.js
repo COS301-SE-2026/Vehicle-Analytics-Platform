@@ -7,25 +7,33 @@ async function getLiveLocations(req, res) {
       SELECT
         v.vehicle_id as id,
         v.device_id,
-        v.driver_name,
         CASE
-          WHEN pos.last_seen IS NULL THEN 'offline'
-          WHEN pos.last_seen < NOW() - INTERVAL '5 minutes' THEN 'offline'
-          WHEN COALESCE(pos.speed, 0) > 0 THEN 'active'
-          ELSE 'idle'
+          WHEN cvp.last_update IS NULL THEN 'offline'
+          WHEN cvp.last_update < NOW() AT TIME ZONE 'UTC' - INTERVAL '15 minutes' THEN 'offline'
+          WHEN cvp.speed > 0 THEN 'active'
+          WHEN cvp.movement = 'Movement On' THEN 'active'
+          WHEN cvp.ignition = 'Ignition On' THEN 'idle'
+          ELSE 'offline'
         END as status,
-        pos.latitude,
-        pos.longitude,
-        pos.speed,
-        pos.last_seen as last_update
+        cvp.latitude,
+        cvp.longitude,
+        cvp.speed,
+        cvp.total_odometer,
+        cvp.ignition,
+        cvp.movement,
+        cvp.last_update,
+
+        COALESCE(daily_sum.total_distance, 0) as distance_today
       FROM vehicles v
-      LEFT JOIN LATERAL (
-        SELECT latitude, longitude, speed, last_seen
-        FROM vehicle_position_5s
-        WHERE vehicle_id = v.vehicle_id
-        ORDER BY last_seen DESC, bucket DESC
-        LIMIT 1
-      ) pos ON true
+      LEFT JOIN current_vehicle_position cvp ON v.vehicle_id = cvp.id
+      LEFT JOIN (
+        SELECT
+          vehicle_id,
+          SUM(distance_km) as total_distance
+        FROM vehicle_daily_distance
+        WHERE bucket = date_trunc('day', NOW() AT TIME ZONE 'UTC')
+        GROUP BY vehicle_id
+      ) daily_sum ON v.vehicle_id = daily_sum.vehicle_id
       ORDER BY v.vehicle_id
     `);
 
@@ -35,40 +43,38 @@ async function getLiveLocations(req, res) {
       vehicles: result.rows,
     }, 200);
   } catch (err) {
-    const errorMessage = err.message || 'Failed to fetch vehicle locations';
+    //const errorMessage = err.message || 'Failed to fetch vehicle locations';
     console.error('Get live locations error:', err);
-    return error(res, 'Failed to fetch vehicle locations: ' + errorMessage, 500);
+    return error(res, `Database Crash Detail: ${err.message}. Code: ${err.code || 'None'}. Stack: ${err.stack}`, 500);
   }
 }
 
 async function getVehicleById(req, res) {
   const { vehicleId } = req.params;
 
-  if (!vehicleId) {
-    return error(res, 'Vehicle ID is required', 400);
-  }
-
   try {
     const vehicleResult = await pool.query(`
       SELECT
         v.vehicle_id as id,
         v.device_id,
-        v.license_plate,
-        v.make,
-        v.model,
-        v.status,
-        v.driver_name,
         v.created_at,
-        pos.latitude,
-        pos.longitude,
-        pos.speed,
-        pos.last_seen as last_update
+        CASE
+          WHEN cvp.last_update IS NULL THEN 'offline'
+          WHEN cvp.last_update < NOW() - INTERVAL '15 minutes' THEN 'offline'
+          WHEN cvp.movement = 'Movement On' THEN 'active'
+          WHEN cvp.ignition = 'Ignition On' THEN 'idle'
+          WHEN cvp.speed > 0 THEN 'active'
+          ELSE 'offline'
+        END as status,
+        cvp.latitude,
+        cvp.longitude,
+        cvp.speed,
+        cvp.total_odometer,
+        cvp.ignition,
+        cvp.movement,
+        cvp.last_update,
       FROM vehicles v
-      LEFT JOIN (
-        SELECT DISTINCT ON (vehicle_id) *
-        FROM vehicle_position_5s
-        ORDER BY vehicle_id, last_seen DESC, bucket DESC
-      ) pos ON v.vehicle_id = pos.vehicle_id
+      LEFT JOIN current_vehicle_position cvp ON v.vehicle_id = cvp.id
       WHERE v.vehicle_id = $1
     `, [vehicleId]);
 
@@ -95,10 +101,9 @@ async function getVehicleById(req, res) {
       recent_events: eventsResult.rows,
     }, 200);
   } catch (err) {
-    const errorMessage = err.message || 'Failed to fetch vehicle details';
+    //const errorMessage = err.message || 'Failed to fetch vehicle details';
     console.error('Get vehicle by ID error:', err);
-    return error(res, 'Failed to fetch vehicle details: ' + errorMessage, 500);
-  }
+    return error(res, `Database Crash Detail: ${err.message}. Code: ${err.code || 'None'}. Stack: ${err.stack}`, 500);  }
 }
 
 module.exports = { getLiveLocations, getVehicleById };

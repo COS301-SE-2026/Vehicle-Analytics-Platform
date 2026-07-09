@@ -15,8 +15,6 @@ const dashboardRoutes = require('./routes/dashboard');
 
 const adminRoutes = require('./routes/admin');
 
-const safetyRoutes = require('./routes/safety');
-
 
 
 
@@ -94,8 +92,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/admin', adminRoutes);
 
 
-
-app.use('/api/safety', safetyRoutes);
 
 
 

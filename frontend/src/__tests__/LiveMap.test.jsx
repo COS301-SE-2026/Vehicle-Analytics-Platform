@@ -36,6 +36,7 @@ jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () => {
 
 jest.mock('@/services/vehicleService', () => ({
   getVehicleLocations: jest.fn(),
+  getVehiclePositionBuffer: jest.fn(),
 }))
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────

@@ -108,7 +108,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
       {/* User Profile Footer */}
       <div className={`flex flex-col gap-3 px-1 ${collapsed ? 'items-center' : ''}`}>
         <div className="flex items-center gap-3 w-full">
-          <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-fleet-blue disabled:opacity-80 flex items-center justify-center shrink-0">
             <span className="text-white text-xs font-bold">{initials}</span>
           </div>
           
@@ -126,7 +126,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="inline-flex items-center justify-center rounded-md bg-fleet-blue p-1.5 text-white/80 hover:text-white hover:bg-white/20 disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md bg-fleet-blue p-1.5 text-white/80 hover:text-white hover:bg-fleet-blue/90 disabled:opacity-80"
             title="Logout"
           >
             <LogOut className="h-4 w-4" />

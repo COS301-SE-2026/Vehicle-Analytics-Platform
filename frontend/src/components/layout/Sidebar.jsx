@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, Truck, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, Map, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
@@ -55,23 +55,22 @@ export default function Sidebar({ role, collapsed, onToggle }) {
     <aside
       className={`${
         collapsed ? 'w-[64px]' : 'w-[220px]'
-      } min-h-screen bg-fleet-green flex flex-col justify-between py-6 px-3 fixed left-0 top-0 transition-all duration-300 z-20`}
+      } min-h-screen bg-fleet-surface flex flex-col justify-between py-6 px-3 fixed left-0 top-0 transition-all duration-300 z-20`}
     >
       {/* Top Section */}
       <div>
         {/* Logo and Toggle */}
         <div className="flex items-center justify-between mb-10 px-1">
           {!collapsed && (
-            <div className="flex items-center gap-3">
-              <Truck className="w-5 h-5 text-white" />
-              <span className="text-white font-bold text-lg">FleetTracker</span>
+            <div className="flex items-center gap-3 w-full justify-center">
+              <span className="text-fleet-blue font-bold text-2xl">V.A.P.O.R</span>
             </div>
           )}
           {/* Toggle Button */}
           <button
             type="button"
             onClick={onToggle}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors ml-auto"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-fleet-blue hover:bg-fleet-blue/80 transition-colors ml-auto"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? (
@@ -92,8 +91,8 @@ export default function Sidebar({ role, collapsed, onToggle }) {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-2 py-2.5 rounded-lg transition-all duration-150 ${
                   isActive
-                    ? 'bg-white/20 text-white'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                    ? 'bg-fleet-blue text-white'
+                    : 'text-fleet-blue hover:text-fleet-blue hover:bg-fleet-blue/10'
                 } ${collapsed ? 'justify-center' : ''}`
               }
             >
@@ -109,14 +108,14 @@ export default function Sidebar({ role, collapsed, onToggle }) {
       {/* User Profile Footer */}
       <div className={`flex flex-col gap-3 px-1 ${collapsed ? 'items-center' : ''}`}>
         <div className="flex items-center gap-3 w-full">
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center shrink-0">
             <span className="text-white text-xs font-bold">{initials}</span>
           </div>
           
           {!collapsed && (
             <div className="flex flex-col min-w-0">
-              <p className="text-white text-xs font-medium truncate">{name}</p>
-              <span className="text-white text-xs opacity-80 capitalize truncate">
+              <p className="text-fleet-blue text-xs font-medium truncate">{name}</p>
+              <span className="text-fleet-blue text-xs opacity-80 capitalize truncate">
                 {displayRole}
               </span>
             </div>
@@ -127,7 +126,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="inline-flex items-center justify-center rounded-md bg-white/10 p-1.5 text-white/80 hover:text-white hover:bg-white/20 disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-md bg-fleet-blue p-1.5 text-white/80 hover:text-white hover:bg-white/20 disabled:opacity-60"
             title="Logout"
           >
             <LogOut className="h-4 w-4" />

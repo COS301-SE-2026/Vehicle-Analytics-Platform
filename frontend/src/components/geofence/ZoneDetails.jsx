@@ -29,10 +29,11 @@ export function ZoneDetails() {
     return (
        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="name">Zone Name</Label>
+                <Label htmlFor="name" className="text-fleet-text">Zone Name</Label>
                 <Input
                     id="name"
                     placeholder="e.g. Pretoria Depot"
+                    className="border-fleet-border bg-fleet-surface text-fleet-text placeholder:text-fleet-secondary"
                     {...register("name")} 
                  />
                  {errors.name && (
@@ -40,8 +41,8 @@ export function ZoneDetails() {
                  )}
             </div>
 
-            <div className="space-y-2">
-                <label>Trigger Type</label>
+            <div className="flex flex-col gap-4 bg-fleet-bg">
+                <label classname="text-fleet-text">Trigger Type</label>
                 <Controller
                     name="triggerType"
                     control={control}
@@ -50,11 +51,25 @@ export function ZoneDetails() {
                         type="single"
                         value={field.value}
                         onValueChange={field.onChange}
-                        className="justify-start"
+                        className="justify-start gap-2"
                     >
-                        <ToggleGroupItem value="entry">Entry</ToggleGroupItem>
-                        <ToggleGroupItem value="exit">Exit</ToggleGroupItem>
-                        <ToggleGroupItem value="both">Both</ToggleGroupItem>
+                        <ToggleGroupItem 
+                            value="entry"
+                            className="rounded-md border border-fleet text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
+                        >Entry
+                        </ToggleGroupItem>
+
+                        <ToggleGroupItem
+                            value="exit"
+                            className="rounder-md border border-fleet-border text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
+                        >Exit
+                        </ToggleGroupItem>
+
+                        <ToggleGroupItem
+                            value="both"
+                            className="rounder-md border border-fleet-border text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
+                        >Both
+                        </ToggleGroupItem>
                     </ToggleGroup>
                     )}
                 />
@@ -63,13 +78,23 @@ export function ZoneDetails() {
                 )}
             </div>
 
-            <div className="space-y-2 pt-2">
-                <button type="submit" className="w-full" disable={isSubmitting}>
+            <div className="flex flex-col gap-4 pt-2">
+                <Button 
+                    type="submit"
+                    className="w-full h-12 bg-fleet-blue text-white hover:bg-fleet-blue/90" 
+                    disable={isSubmitting}
+                >
                     {isSubmitting ? "Saving..." : "Save Zone"}
-                </button>
-                <button type="button" variant="ghost" className="w-full" onClickCapture={handleCancel}>
+                </Button>
+
+                <Button 
+                    type="button"
+                    variant="ghost" 
+                    className="w-full h-12 text-fleet-secondary hover:bg-fleet-panel" 
+                    onClickCapture={handleCancel}
+                >
                     Cancel
-                </button>
+                </Button>
             </div>
        </form> 
     );

@@ -25,7 +25,7 @@ const dashboardRoutes = require('./routes/dashboard');
 
 const adminRoutes = require('./routes/admin');
 
-const safetyRoutes = require('./routes/safety');
+//const safetyRoutes = require('./routes/safety');
 
 const tripRoutes = require('./routes/trip');
 
@@ -110,7 +110,7 @@ app.use('/api/dashboard', dashboardRoutes);
 
 app.use('/api/admin', adminRoutes);
 
-app.use('/api/safety',safetyRoutes);
+//app.use('/api/safety',safetyRoutes);
 
 
 app.use('/api/trips',tripRoutes);

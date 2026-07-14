@@ -41,7 +41,7 @@ export function ZoneDetails() {
                  )}
             </div>
 
-            <div className="flex flex-col gap-4 bg-fleet-bg">
+            <div className="flex flex-col gap-4 bg-fleet-surface">
                 <label classname="text-fleet-text">Trigger Type</label>
                 <Controller
                     name="triggerType"

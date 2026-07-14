@@ -25,8 +25,8 @@ const triggerStyles = {
 
 export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
     return (
-        <div>
-            <h2 className="font-medium mb-4 text-fleet-text">Existing Zones</h2>
+        <div className="bg-fleet-surface">
+            <h2 className="font-display font-medium text-lg mb-4 text-fleet-text">Existing Zones</h2>
 
             <Table>
                 <TableHeader>

@@ -1,5 +1,6 @@
 import { ZoneDetails } from "@/components/geofence/ZoneDetails";
 import { ExistingZones } from "@/components/geofence/ExistingZones";
+import { ZoneAlerts } from "@/components/geofence/ZoneAlerts";
 
 export default function Geofence() {
     return (
@@ -11,22 +12,18 @@ export default function Geofence() {
                         Place Map here
                     </div>
 
-                    <div className="border rounded-lg p-4">
+                    <div className="border rounded-lg bg-fleet-surface p-4">
                         <ExistingZones/>
                     </div>
                 </div>
 
                 {/* Right column: Zone details + alerts */}
                 <div className="space-y-6">
-                    <div className="border rounded-lg p-4">
-                        <h2 className="font-medium mb-4">Zone Details</h2>
+                    <div className="border rounded-lg bg-fleet-surface p-4">
+                        <h2 className="font-display font-medium text-lg mb-4 text-fleet-text">Zone Details</h2>
                         <ZoneDetails/>
                     </div>
-
-                    <div className="border rounded-lg p-4">
-                        <h2 className="font-medium mb-2">Zone Alerts</h2>
-                        <p className="text-sm text-muted-foreground">Add Alerts here</p>
-                    </div>
+                    <ZoneAlerts/>   
                 </div>
             </div>
         </div>

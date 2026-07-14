@@ -1,32 +1,15 @@
 import PropTypes from 'prop-types'
 
-function getScoreMeta(score){
-
-    if (score == null){
-        return {colour: '#9CA3AF', label: 'No Data'}
-    }
-
-    if (score >= 80){
-        return {colour: '#16A34A', label: 'Exemplary'}
-    }
-
-    if (score >= 60){
-        return {colour: '#16A34A', label: 'Good'}
-    }
-
-    if (score >= 45){
-        return {colour: '#F59E0B', label: 'Needs Attention'}
-    }
-
-    return {colour: '#DC2626', label: 'Critical Attention'}
-}
+import {
+    getScoreSeverity
+} from '../../utils/safetyScore'
 
 export default function SafetyScoreRing({score, size=36, strokeWidth = 3, showLabel = true}) {
-    const {colour,label} = getScoreMeta(score)
+    const {colour,label} = getScoreSeverity(score)
     const radius = (size-strokeWidth)/2
     const circumference = 2*Math.PI * radius
-    const pct = score ==null? 0: score/100
-    const offset = circumference*(1-pct)
+    const filledFraction = score ==null? 0: score/100
+    const offset = circumference*(1-filledFraction)
 
     return(
         <div className="flex items-center gap-2">

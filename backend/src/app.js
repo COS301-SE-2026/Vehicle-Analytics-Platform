@@ -32,7 +32,7 @@ const tripRoutes = require('./routes/trip');
 const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
 
-const geofenceRoutes = require('./routes/geofence');
+//const geofenceRoutes = require('./routes/geofence');
 
 
 
@@ -118,7 +118,7 @@ app.use('/api/trips',tripRoutes);
 app.use('/api/fleet',fleetAnalyticsRoutes);
 
 
-app.use('/api/geofences',geofenceRoutes);
+//app.use('/api/geofences',geofenceRoutes);
 
 
 

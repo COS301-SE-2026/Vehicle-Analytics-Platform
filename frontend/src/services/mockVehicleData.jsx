@@ -2,7 +2,7 @@ const mockVehicles = [
     {id: 'TRK-2024-X1', status: 'moving', zone: 'Pretoria Depot', hasAlert: false, safetyScore: 92, lastUpdated: '14:22:05', stale: false},
     {id: 'VAN-992-M', status: 'moving', zone: 'Durban Depot', hasAlert: false, safetyScore: 78, lastUpdated: '14:21:50', stale: false},
     {id: 'TRK-441-Z', status: 'idle', zone: 'Pretoria Depot', hasAlert: true, safetyScore: 80, lastUpdated: '14:18:33', stale: false},
-    {id: 'VAN-102-L', status: 'offline', zone: 'null', hasAlert: true, safetyScore: null, lastUpdated: '13:45:01', stale: true},
+    {id: 'VAN-102-L', status: 'offline', zone: null, hasAlert: true, safetyScore: null, lastUpdated: '13:45:01', stale: true},
 ]
 
 const mockFleetSummary = {
@@ -19,7 +19,7 @@ export async function getVehicles(){
 }
 
 export async function getVehicleById(id){
-    return mockVehicles.find((v) => v.id === id) ?? null
+    return mockVehicles.find((vehicle) => vehicle.id === id) ?? null
 }
 
 export async function getFleetSummary() {

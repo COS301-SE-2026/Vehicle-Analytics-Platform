@@ -1,7 +1,8 @@
 // the trip history to be tests
-const {Pool} = require('pg');
+const { Pool } = require('pg');
+const { getDbConfig } = require('../testDbConfig');
 
-const pool = new Pool();
+const pool = new Pool(getDbConfig());
 let client;
 beforeEach(async () => {
     client = await pool.connect();

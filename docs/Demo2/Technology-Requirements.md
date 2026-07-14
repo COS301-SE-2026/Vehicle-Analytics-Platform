@@ -34,8 +34,8 @@
 
 
 **What we considered:**
-- **Vue.js** - Simpler to learn but Mapbox integration is not as smooth
-- **Angular** - More opinionated and heavier, would slow us down
+- **Vue.js**: Simpler to learn but Mapbox integration is not as smooth
+- **Angular**: More opinionated and heavier, would slow us down
 
 
 
@@ -57,8 +57,8 @@
 
 **What we considered:**
 
-- **Webpack** - Slower and more complex to configure
-- **Create React App (CRA)** - Slower and harder to customize
+- **Webpack**: Slower and more complex to configure
+- **Create React App (CRA)**: Slower and harder to customize
 
 
 ---
@@ -80,8 +80,8 @@
 
 **What we considered:**
 
-- **Plain CSS** - Harder to keep consistent across the team
-- **Sass** - More setup and configuration required
+- **Plain CSS**: Harder to keep consistent across the team
+- **Sass**: More setup and configuration required
 
 
 
@@ -104,8 +104,8 @@
 
 **What we considered:**
 
-- **Leaflet** - Lighter but doesn't handle real-time updates as well
-- **Google Maps API** - More expensive for commercial use
+- **Leaflet**: Lighter but doesn't handle real-time updates as well
+- **Google Maps API**: More expensive for commercial use
 
 
 
@@ -129,7 +129,7 @@
 **What we considered:**
 
 
-- **Chart.js** - Not React-native, requires wrapper libraries
+- **Chart.js**: Not React-native, requires wrapper libraries
 
 
 
@@ -152,8 +152,8 @@
 
 **What we considered:**
 
-- **Redux** - More powerful but adds unnecessary complexity for our needs
-- **Context API** - Can cause unnecessary re-renders
+- **Redux**: More powerful but adds unnecessary complexity for our needs
+- **Context API**: Can cause unnecessary re-renders
 
 
 
@@ -178,8 +178,8 @@
 
 **What we considered:**
 
-- **Python** - Better for data science but slower for API requests
-- **Go** - Faster but would require learning a new language
+- **Python**: Better for data science but slower for API requests
+- **Go**: Faster but would require learning a new language
 
 
 
@@ -202,8 +202,8 @@
 
 **What we considered:**
 
-- **Fastify** - Faster but less mature ecosystem
-- **NestJS** - More structured but adds unnecessary complexity
+- **Fastify**: Faster but less mature ecosystem
+- **NestJS**: More structured but adds unnecessary complexity
 
 
 ---
@@ -224,7 +224,7 @@
 
 **What we considered:**
 
-- **Session-based auth** - Requires server-side storage, not suitable for serverless
+- **Session-based auth**: Requires server-side storage, not suitable for serverless
 
 
 
@@ -246,7 +246,7 @@
 
 **What we considered:**
 
-- **Custom headers** - Would take more time to implement correctly
+- **Custom headers**: Would take more time to implement correctly
 
 
 
@@ -269,7 +269,7 @@
 
 **What we considered:**
 
-- **API Gateway throttling** - Already used, but this adds an extra layer
+- **API Gateway throttling**: Already used, but this adds an extra layer
 
 
 
@@ -292,8 +292,8 @@
 
 **What we considered:**
 
-- **Sequelize** - Adds ORM overhead for our use case
-- **TypeORM** - More complex and slower
+- **Sequelize**: Adds ORM overhead for our use case
+- **TypeORM**: More complex and slower
 
 
 
@@ -316,7 +316,7 @@
 
 **What we considered:**
 
-- **Custom Lambda handler** - Would require rewriting the entire API
+- **Custom Lambda handler**: Would require rewriting the entire API
 
 
 
@@ -343,7 +343,7 @@
 
 **What we considered:**
 
-- **MySQL** - Doesn't support TimescaleDB as well
+- **MySQL**: Doesn't support TimescaleDB as well
 
 
 
@@ -367,8 +367,8 @@
 
 **What we considered:**
 
-- **InfluxDB** - Better for pure time-series but less SQL support
-- **Amazon Timestream** - Fully managed but less flexible
+- **InfluxDB**: Better for pure time-series but less SQL support
+- **Amazon Timestream**: Fully managed but less flexible
 
 
 
@@ -390,7 +390,7 @@
 
 **What we considered:**
 
-- **RDS Proxy** - AWS managed but more expensive
+- **RDS Proxy**: AWS managed but more expensive
 
 
 ---
@@ -414,7 +414,7 @@
 
 
 **What we considered:**
-- **Kafka** - More powerful but requires more setup and management
+- **Kafka**: More powerful but requires more setup and management
 
 
 ---
@@ -435,7 +435,7 @@
 
 **What we considered:**
 
-- **EC2** - More control but requires server management and always-on costs
+- **EC2**: More control but requires server management and always-on costs
 
 
 
@@ -460,7 +460,7 @@
 
 **What we considered:**
 
-- **Custom Express server** - Would require managing servers and scaling
+- **Custom Express server**: Would require managing servers and scaling
 
 
 
@@ -483,8 +483,8 @@
 
 **What we considered:**
 
-- **Auth0** - Third-party service, more expensive
-- **Firebase Auth** - Different ecosystem, less AWS integration
+- **Auth0**: Third-party service, more expensive
+- **Firebase Auth**: Different ecosystem, less AWS integration
 
 
 
@@ -509,7 +509,7 @@
 
 **What we considered:**
 
-- **RDS** - Managed but doesn't support TimescaleDB as well
+- **RDS**: Managed but doesn't support TimescaleDB as well
 
 
 
@@ -534,7 +534,7 @@
 
 **What we considered:**
 
-- **EBS** - More expensive for long-term storage
+- **EBS**: More expensive for long-term storage
 
 
 
@@ -559,8 +559,8 @@
 **What we considered:**
 
 
-- **DataDog** - More features but expensive
-- **Prometheus** - Open-source but requires setup
+- **DataDog**: More features but expensive
+- **Prometheus**: Open-source but requires setup
 
 
 
@@ -586,7 +586,7 @@
 
 **What we considered:**
 
-- **Podman** - Similar but less mature ecosystem
+- **Podman**: Similar but less mature ecosystem
 
 
 
@@ -609,8 +609,8 @@
 
 **What we considered:**
 
-- **Jenkins** - More powerful but requires setup and maintenance
-- **CircleCI** - Paid for private repos
+- **Jenkins**: More powerful but requires setup and maintenance
+- **CircleCI**: Paid for private repos
 
 
 
@@ -634,8 +634,8 @@
 
 
 **What we considered:**
-- **Mocha** - More flexible but requires more setup
-- **Vitest** - Newer but less mature ecosystem
+- **Mocha**: More flexible but requires more setup
+- **Vitest**: Newer but less mature ecosystem
 
 
 
@@ -659,7 +659,7 @@
 
 **What we considered:**
 
-- **Postman** - Manual testing tool, not suitable for CI/CD
+- **Postman**: Manual testing tool, not suitable for CI/CD
 
 
 
@@ -683,7 +683,7 @@
 
 **What we considered:**
 
-- **Coveralls** - Similar but less integration with GitHub Actions
+- **Coveralls**: Similar but less integration with GitHub Actions
 
 
 
@@ -706,8 +706,8 @@
 
 **What we considered:**
 
-- **Selenium** - Slower and harder to set up
-- **Playwright** - Newer but less mature ecosystem
+- **Selenium**: Slower and harder to set up
+- **Playwright**: Newer but less mature ecosystem
 
 
 
@@ -734,7 +734,7 @@
 
 **What we considered:**
 
-- **Polling** - Less efficient and more latency
+- **Polling**: Less efficient and more latency
 
 
 
@@ -746,7 +746,7 @@
 
 
 
-**Where:** Bronze → Silver → Gold in TimescaleDB.
+**Where:** Bronze - Silver - Gold in TimescaleDB.
 
 
 **Why we chose it:**
@@ -759,7 +759,7 @@
 
 **What we considered:**
 
-- **Single table** - Would get too large and slow
+- **Single table**: Would get too large and slow
 
 
 
@@ -782,8 +782,8 @@
 
 **What we considered:**
 
-- **Microservices** - Adds unnecessary complexity for our scale
-- **Monolithic** - Less flexible for independent development
+- **Microservices**: Adds unnecessary complexity for our scale
+- **Monolithic**: Less flexible for independent development
 
 
 

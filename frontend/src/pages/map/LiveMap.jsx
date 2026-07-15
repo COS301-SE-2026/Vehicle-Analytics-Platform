@@ -1,11 +1,24 @@
 import { useState, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { getVehicleLocations } from '@/services/vehicleService'
+import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicleService'
 import LiveFleetMapPlaceholder from '@/components/dashboard/LiveFleetMapPlaceholder'
+import FleetMap from '../../components/map/FleetMap'
 
 export default function LiveMap() {
+  const [buffer, setBuffer] = useState({})
   const [locations, setLocations] = useState(null)
   const [loading, setLoading]     = useState(true)
+
+  async function fetchVehiclePositionBuffer(){
+    try{
+      const data = await getVehiclePositionBuffer();
+      setBuffer(data);
+    }catch(err){
+      console.error(err);
+    }finally{
+      setLoading(false);
+    }
+  }
 
   async function fetchLocations() {
     try {
@@ -18,11 +31,19 @@ export default function LiveMap() {
     }
   }
 
+
   useEffect(() => {
-    fetchLocations()
-    const interval = setInterval(fetchLocations, 1000)
+    fetchVehiclePositionBuffer();
+    const interval = setInterval(fetchVehiclePositionBuffer, 30000);
+    return () => clearInterval(interval)
+  },[]);
+
+  useEffect(() => {
+    fetchLocations();
+    const interval = setInterval(fetchLocations, 1000);
     return () => clearInterval(interval)
   }, [])
+
 
   if (loading) {
     return (
@@ -48,6 +69,7 @@ export default function LiveMap() {
         offline={offline}
         total={total}
         vehicles={locations?.vehicles}
+        buffer={buffer}
       />
     </div>
   )

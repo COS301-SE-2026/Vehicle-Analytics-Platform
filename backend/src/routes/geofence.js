@@ -1,16 +1,30 @@
+
+
+
 const express = require('express');
 
 
 
-const {
-
-
-    createGeofence, getGeofences,
+const{
 
 
 
 
-    getGeofenceById, updateGeofence,
+
+
+    createGeofence,
+
+
+
+    getGeofences,
+
+
+
+    getGeofenceById,
+
+
+
+    updateGeofence,
 
 
 
@@ -18,15 +32,24 @@ const {
 
 
 
-    getGeofenceEvents,  discoverFrequentStops,
+    getGeofenceEvents,
+
+
+
+    discoverFrequentStops,
+
 
 
     createGeofenceFromCluster
 
 
+} 
 
 
-} = require('../controllers/geofenceController');
+
+
+
+= require('../controllers/geofenceController');
 
 
 
@@ -40,42 +63,47 @@ const router = express.Router();
 
 
 
-router.post('/', authenticate, requireRole(['admin','fleet_manager']), createGeofence);
-
-
-
-router.get('/', authenticate, requireRole(['admin','fleet_manager','viewer']), getGeofences);
-
-
-
-router.get('/events', authenticate, requireRole(['admin','fleet_manager','viewer']), getGeofenceEvents);
-
-
-
-router.get('/:id', authenticate, requireRole(['admin','fleet_manager','viewer']), getGeofenceById);
+router.post('/', authenticate, requireRole(['admin', 'fleet_manager']), createGeofence);
 
 
 
 
-router.put('/:id', authenticate, requireRole(['admin','fleet_manager']), updateGeofence);
+router.get('/', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getGeofences);
 
 
-router.delete('/:id', authenticate, requireRole(['admin','fleet_manager']), deleteGeofence);
+
+router.get('/events', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getGeofenceEvents);
+
+
+
+router.get('/discover/stops', authenticate, requireRole(['admin', 'fleet_manager']), discoverFrequentStops);
+
+
+
+router.post('/discover/create', authenticate, requireRole(['admin', 'fleet_manager']), createGeofenceFromCluster);
 
 
 
 
 
 
-router.get('/discover/stops', authenticate, requireRole(['admin','fleet_manager']), discoverFrequentStops);
+router.get('/:id', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getGeofenceById);
 
 
 
-router.post('/discover/create', authenticate, requireRole(['admin','fleet_manager']), createGeofenceFromCluster);
+
+
+router.put('/:id', authenticate, requireRole(['admin', 'fleet_manager']), updateGeofence);
+
+
+
+router.delete('/:id', authenticate, requireRole(['admin', 'fleet_manager']), deleteGeofence);
+
 
 
 
 module.exports = router;
+
 
 
 

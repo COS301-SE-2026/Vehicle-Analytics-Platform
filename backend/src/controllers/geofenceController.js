@@ -4,6 +4,7 @@ const {pool} = require('../db/pool');
 
 
 
+
 const {success, error} = require('../utils/response');
 
 
@@ -14,12 +15,16 @@ const {success, error} = require('../utils/response');
 async function createGeofence(req, res) {
 
 
+
+    const {name, vehicle_id, polygon, trigger_type = 'both'} = req.body;
+
+
+
+
+
    
- const {name, vehicle_id, polygon, trigger_type = 'both'} = req.body;
 
-
-
-    if(!name||!polygon){
+ if(!name||!polygon){
 
 
 
@@ -28,20 +33,30 @@ async function createGeofence(req, res) {
 
 
 
-
     }
 
-  
-  
+
+
+
+
+
+
     try{
 
 
-       
- const result = await pool.query(`
 
 
 
-            INSERT INTO geofences (name, vehicle_id, polygon, trigger_type) VALUES ($1, $2, $3, $4)
+
+        const result = await pool.query(`
+
+
+
+            INSERT INTO geofences (name, vehicle_id, polygon, trigger_type)
+
+
+
+            VALUES ($1, $2, $3, $4)
 
 
 
@@ -54,7 +69,11 @@ async function createGeofence(req, res) {
 
 
 
+
         return success(res, {
+
+
+
 
 
 
@@ -65,9 +84,16 @@ async function createGeofence(req, res) {
             geofence: result.rows[0]
 
 
+
+
+
         }, 201);
 
+
+
     } 
+
+
 
 
 
@@ -75,44 +101,56 @@ catch (err){
 
 
 
-
-
         console.error('Create geofence error:', err);
-
-
 
 
         return error(res, 'Failed to create geofence: '+err.message, 500);
 
 
 
-    }
 
+
+
+
+
+    }
 }
+
+
+
 
 
 
 async function getGeofences(req, res) {
 
+   
 
 
-    const {active_only = 'true'} = req.query;
-
+    
+ const {active_only = 'true'} = req.query;
 
 
 
     try{
 
 
+
+
         let query = `
 
 
 
-            SELECT id, name, vehicle_id, polygon, trigger_type, is_active, created_at, updated_at FROM geofences
+            SELECT id, name, vehicle_id, polygon, trigger_type, is_active, created_at, updated_at
+
+
+
+            FROM geofences
 
 
 
         `;
+
+
 
         const params = [];
 
@@ -123,14 +161,20 @@ async function getGeofences(req, res) {
 
 
 
+
             query += ` WHERE is_active = true`;
+
 
 
 
         }
 
-    
-    query += ` ORDER BY created_at DESC`;
+
+
+
+        query += ` ORDER BY created_at DESC`;
+
+
 
 
 
@@ -141,18 +185,17 @@ async function getGeofences(req, res) {
         return success(res, {
 
 
-
-        total: result.rows.length,
-
-
+            total: result.rows.length,
 
             geofences: result.rows
 
 
+
         }, 200);
 
-    } 
 
+
+    } 
 
 
 
@@ -163,11 +206,7 @@ catch (err){
 
         console.error('Get geofences error:', err);
 
-
-
         return error(res, 'Failed to fetch geofences: '+err.message, 500);
-
-
 
 
 
@@ -180,12 +219,14 @@ catch (err){
 
 
 
+
+
+
 async function getGeofenceById(req, res) {
 
+    
 
-
-    const {id} = req.params;
-
+const {id} = req.params;
 
 
 
@@ -194,11 +235,16 @@ async function getGeofenceById(req, res) {
 
 
 
+
         const result = await pool.query(`
 
 
 
-            SELECT id, name, vehicle_id, polygon, trigger_type, is_active, created_at, updated_at FROM geofences
+
+            SELECT id, name, vehicle_id, polygon, trigger_type, is_active, created_at, updated_at
+
+
+            FROM geofences
 
 
 
@@ -211,9 +257,8 @@ async function getGeofenceById(req, res) {
 
 
 
+
         if(result.rows.length===0){
-
-
 
 
             return error(res, 'Geofence not found', 404);
@@ -224,11 +269,16 @@ async function getGeofenceById(req, res) {
 
 
 
-        return success(res, { geofence: result.rows[0] }, 200);
+
+
+
+
+        return success(res, {geofence: result.rows[0]}, 200);
 
 
 
     } 
+
 
 
 catch (err){
@@ -236,12 +286,15 @@ catch (err){
 
 
 
+
+
+
         console.error('Get geofence by ID error:', err);
 
-
-
-
         return error(res, 'Failed to fetch geofence: '+err.message, 500);
+
+
+
 
     }
 
@@ -256,22 +309,27 @@ catch (err){
 
 async function updateGeofence(req, res) {
 
+   
 
+ const {id} = req.params;
 
-    const {id} = req.params;
+   
 
+ const {name, polygon, trigger_type, is_active} = req.body;
 
-
-    const {name, polygon, trigger_type, is_active} = req.body;
 
 
     try{
-        
+
+
+
 
         let query = 'UPDATE geofences SET updated_at = NOW()';
 
 
+
         const params = [];
+
 
 
         let paramCount = 1;
@@ -287,25 +345,7 @@ async function updateGeofence(req, res) {
 
 
 
-        params.push(name);
-
-
-        paramCount++;
-
-        }
-
-
-
-        if(polygon){
-
-
-
-
-            query += `, polygon = $${paramCount}`;
-
-
-
-            params.push(polygon);
+            params.push(name);
 
 
 
@@ -315,29 +355,45 @@ async function updateGeofence(req, res) {
 
         }
 
+
+
        
 
+ if(polygon){
 
- if(trigger_type){
 
+            query += `, polygon = $${paramCount}`;
+
+            params.push(polygon);
+
+
+            paramCount++;
+
+        }
+
+
+
+
+        if(trigger_type){
 
 
 
             query += `, trigger_type = $${paramCount}`;
 
-
-
             params.push(trigger_type);
-
-
 
             paramCount++;
 
 
 
+
         }
 
+
+
        
+
+
 
 
  if(is_active!==undefined){
@@ -347,36 +403,32 @@ async function updateGeofence(req, res) {
 
             query += `, is_active = $${paramCount}`;
 
-
-
             params.push(is_active);
 
-
-
             paramCount++;
+
 
 
 
         }
 
 
+      
 
-
-        query += ` WHERE id = $${paramCount} RETURNING id, name, vehicle_id, trigger_type, is_active`;
-
-
-
-
+  query += ` WHERE id = $${paramCount} RETURNING id, name, vehicle_id, trigger_type, is_active`;
 
         params.push(id);
 
 
 
+
         const result = await pool.query(query, params);
 
-        
 
-if(result.rows.length===0){
+
+       
+
+ if(result.rows.length===0){
 
 
 
@@ -384,25 +436,35 @@ if(result.rows.length===0){
 
             return error(res, 'Geofence not found', 404);
 
+
+
         }
 
 
 
+     
 
-        return success(res, {
+   return success(res, {
 
+          
 
-
-            message: 'Geofence updated successfully',
+  message: 'Geofence updated successfully',
 
 
 
             geofence: result.rows[0]
 
 
+
         }, 200);
 
+
+
+
+
     } 
+
+
 
 catch (err){
 
@@ -412,12 +474,10 @@ catch (err){
         console.error('Update geofence error:', err);
 
 
+
         return error(res, 'Failed to update geofence: '+err.message, 500);
 
-
-
     }
-
 
 }
 
@@ -427,21 +487,23 @@ catch (err){
 
 
 
+
 async function deleteGeofence(req, res) {
 
+   
+
+ const {id} = req.params;
 
 
-    
-const {id} = req.params;
 
-
-
-    try {
+    try{
 
 
 
 
         const result = await pool.query('DELETE FROM geofences WHERE id = $1 RETURNING id', [id]);
+
+
 
 
 
@@ -454,15 +516,19 @@ const {id} = req.params;
 
 
 
-
-
         }
 
 
 
-        return success(res, { message: 'Geofence deleted successfully' }, 200);
+
+
+        return success(res, {message: 'Geofence deleted successfully'}, 200);
+
+
 
     } 
+
+
 
 catch (err){
 
@@ -471,10 +537,8 @@ catch (err){
 
         console.error('Delete geofence error:', err);
 
-
-
-
         return error(res, 'Failed to delete geofence: '+err.message, 500);
+
 
 
 
@@ -490,38 +554,32 @@ catch (err){
 
 async function getGeofenceEvents(req, res) {
 
+    
 
 
-
-
-    const {geofence_id, vehicle_id, limit = 50} = req.query;
+const {geofence_id, vehicle_id, limit=50} = req.query;
 
 
 
     try{
 
+      
 
-        
+ let query = `
 
 
-let query = `
 
 
 
             SELECT ge.id, ge.geofence_id, g.name AS geofence_name,
 
 
-
                    ge.vehicle_id, ge.event_type, ge.latitude, ge.longitude,
-
-
 
                    ge.speed, ge.created_at
 
-
-
-            FROM geofence_events ge
-
+          
+  FROM geofence_events ge
 
 
             LEFT JOIN geofences g ON ge.geofence_id = g.id
@@ -531,13 +589,12 @@ let query = `
             WHERE 1=1
 
 
+
         `;
 
 
 
-
         const params = [];
-
 
 
         let paramCount = 1;
@@ -548,10 +605,8 @@ let query = `
 
 
 
+
             query += ` AND ge.geofence_id = $${paramCount}`;
-
-
-
 
 
 
@@ -568,24 +623,43 @@ let query = `
 
 
 
+
+
+
         if(vehicle_id){
+
+
+
+
+
+
 
 
             query += ` AND ge.vehicle_id = $${paramCount}`;
 
+
+
             params.push(vehicle_id);
 
+
+
             paramCount++;
+
+
 
         }
 
 
 
+
+
+
+
+
+
         query += ` ORDER BY ge.created_at DESC LIMIT $${paramCount}`;
 
-
-
-        params.push(parseInt(limit)||50);
+        params.push(parseInt(limit) || 50);
 
 
 
@@ -599,19 +673,27 @@ let query = `
 
             events: result.rows
 
+
+
         }, 200);
 
+
+
     } 
+
 
 
 catch (err){
 
 
+
+
         console.error('Get geofence events error:', err);
 
-
-
         return error(res, 'Failed to fetch geofence events: '+err.message, 500);
+
+
+
 
     }
 
@@ -623,16 +705,12 @@ catch (err){
 
 
 
-
-
-
 async function discoverFrequentStops(req, res) {
 
+   
 
 
-
-    const {vehicle_id, days=30, min_points=5, radius_km=0.5} = req.query;
-
+ const {vehicle_id, days=30, min_points=5, radius_km=0.5 } = req.query;
 
 
 
@@ -644,28 +722,13 @@ async function discoverFrequentStops(req, res) {
 
 
 
-      
-
-
-
-      
-  const result = await pool.query(`
-
-
+        const result = await pool.query(`
 
 
 
             SELECT * FROM cluster_points($1, $2, $3, $4)
 
-
-
         `, [vehicle_id || null, parseInt(days), parseFloat(radius_km), parseInt(min_points)]);
-
-
-
-
-
-
 
 
 
@@ -682,9 +745,8 @@ async function discoverFrequentStops(req, res) {
 
 
 
+
                 type: 'Point',
-
-
 
                 coordinates: [
 
@@ -692,40 +754,61 @@ async function discoverFrequentStops(req, res) {
 
                     parseFloat(row.center_lng),
 
+
+
                     parseFloat(row.center_lat)
 
 
 
                 ]
 
+
+
             },
 
+         
+   properties: {
 
-
-
-            properties: {
 
                 vehicle_id: row.vehicle_id,
 
+
+
                 cluster_id: row.cluster_id,
+
+
 
                 point_count: parseInt(row.point_count),
 
+
+
                 first_seen: row.first_seen,
+
+
 
                 last_seen: row.last_seen,
 
+
+
                 name: null
 
+
             }
+
+
 
         }));
 
 
 
-        return success(res, {
+
+
+      
+  return success(res, {
+
 
             total_clusters: features.length,
+
 
             clusters: features
 
@@ -735,10 +818,14 @@ async function discoverFrequentStops(req, res) {
 
 
 
+
+
+
+
     }
 
- catch (err){
 
+ catch (err){
 
 
 
@@ -748,7 +835,13 @@ async function discoverFrequentStops(req, res) {
 
         return error(res, 'Failed to discover frequent stops: '+err.message, 500);
 
+
+
+
+
     }
+
+
 
 }
 
@@ -757,11 +850,16 @@ async function discoverFrequentStops(req, res) {
 
 
 
+
 async function createGeofenceFromCluster(req, res) {
 
+   
 
 
-    const {name, vehicle_id, center_lat, center_lng, radius_km=0.5} = req.body;
+ const {name, vehicle_id, center_lat, center_lng, radius_km=0.5} = req.body;
+
+
+
 
 
 
@@ -770,7 +868,11 @@ async function createGeofenceFromCluster(req, res) {
 
 
 
+
+
+
         return error(res, 'Name, center_lat, and center_lng are required', 400);
+
 
 
 
@@ -778,11 +880,26 @@ async function createGeofenceFromCluster(req, res) {
 
 
 
-    try{
-       
 
-       
- const polygon = {
+
+
+    try{
+
+
+
+      
+
+        const latDegrees = radius_km/111.32;
+
+
+
+        const lngDegrees = radius_km/(111.32*Math.cos(parseFloat(center_lat)*Math.PI/180));
+
+
+
+
+        const polygon = {
+
 
 
 
@@ -793,23 +910,29 @@ async function createGeofenceFromCluster(req, res) {
             coordinates: [[
 
 
-
-                [parseFloat(center_lng)-radius_km*0.01,parseFloat(center_lat)-radius_km*0.01],
-
-
-
-            [parseFloat(center_lng)+radius_km*0.01,parseFloat(center_lat)-radius_km*0.01],
-
-
-            [parseFloat(center_lng)+radius_km*0.01,parseFloat(center_lat)+radius_km*0.01],
+               
+ [parseFloat(center_lng)-lngDegrees, parseFloat(center_lat)-latDegrees],
 
 
 
-        [parseFloat(center_lng)-radius_km*0.01,parseFloat(center_lat)+radius_km*0.01],
+                [parseFloat(center_lng)+lngDegrees, parseFloat(center_lat)-latDegrees],
 
 
 
-        [parseFloat(center_lng)-radius_km*0.01,parseFloat(center_lat)-radius_km*0.01]
+                [parseFloat(center_lng)+lngDegrees, parseFloat(center_lat)+latDegrees],
+
+
+
+
+
+                [parseFloat(center_lng)-lngDegrees, parseFloat(center_lat)+latDegrees],
+
+
+
+
+                [parseFloat(center_lng)-lngDegrees, parseFloat(center_lat)-latDegrees]
+
+
 
 
             ]]
@@ -818,12 +941,22 @@ async function createGeofenceFromCluster(req, res) {
 
 
 
+
+
+
+
+
+
+
         const result = await pool.query(`
 
 
 
+            INSERT INTO geofences (name, vehicle_id, polygon, trigger_type)
 
-            INSERT INTO geofences (name, vehicle_id, polygon, trigger_type) VALUES ($1, $2, $3, 'both')
+
+
+            VALUES ($1, $2, $3, 'both')
 
 
 
@@ -835,29 +968,45 @@ async function createGeofenceFromCluster(req, res) {
 
 
 
+
+
+
+
         return success(res, {
+
+
 
             message: 'Geofence created from cluster successfully',
 
+
+
             geofence: result.rows[0]
+
+
+
+
 
         }, 201);
 
+
+
     } 
+
 
 
 
 catch (err){
 
 
-
-
-        console.error('Create geofence from cluster error:', err);
+     
+   console.error('Create geofence from cluster error:', err);
 
 
 
 
         return error(res, 'Failed to create geofence from cluster: '+err.message, 500);
+
+
 
 
 
@@ -869,16 +1018,44 @@ catch (err){
 
 
 
+
 module.exports = {
 
-    createGeofence, getGeofences,
 
-    getGeofenceById,  updateGeofence,
 
-    deleteGeofence, getGeofenceEvents,
 
-    discoverFrequentStops, createGeofenceFromCluster
+
+    createGeofence,
+
+
+    getGeofences,
+
+
+
+    getGeofenceById,
+
+
+
+    updateGeofence,
+
+
+
+    deleteGeofence,
+
+
+
+    getGeofenceEvents,
+
+
+
+    discoverFrequentStops,
+
+
+
+    createGeofenceFromCluster
+
+
+
+
 
 };
-
-

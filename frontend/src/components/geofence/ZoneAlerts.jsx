@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { AlertTriangle, Bell, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ZoneActivityDrawer } from "./ZoneActivityDrawer";
 
 // mock data 
 const mockAlerts = [
@@ -29,6 +31,8 @@ const iconByType = {
 };
 
 export function ZoneAlerts({ alerts = mockAlerts, onViewAll }) {
+    const [drawerOpen, setDrawerOpen ] = useState(false);
+
   return (
     <div className="border border-fleet-border bg-fleet-surface rounded-lg p-6">
         <h2 className="font-display font-medium text-lg mb-4 text-fleet-text">
@@ -82,11 +86,13 @@ export function ZoneAlerts({ alerts = mockAlerts, onViewAll }) {
                 type="button"
                 variant="link"
                 className="text-fleet-secondary text-sm"
-                onClick={onViewAll}
+                onClick={() => setDrawerOpen(true)}
             >
                 View All Activity
             </Button>
         </div>
+
+        <ZoneActivityDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   ); 
 }

@@ -10,8 +10,9 @@ import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
 import useAuthStore from './store/authStore'
 import VehiclesList from './pages/vehicles/VehiclesList'
+import VehicleProfile from './pages/vehicles/VehicleProfile'
 
-function ProtectedRoute({ children, allowedRoles }) {
+function ProtectedRoute({ children, allowedRoles = [] }) {
   const { user, role } = useAuthStore()
 
   if (!user) return <Navigate to="/login" replace />
@@ -27,10 +28,6 @@ function ProtectedRoute({ children, allowedRoles }) {
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
   allowedRoles: PropTypes.arrayOf(PropTypes.string)
-}
-
-ProtectedRoute.defaultProps = {
-  allowedRoles: []
 }
 
 function App() {
@@ -58,6 +55,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
                 <VehiclesList/>
+              </ProtectedRoute>
+            }
+            />
+          <Route
+            path = "/vehicles/:id"
+            element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
+                <VehicleProfile/>
               </ProtectedRoute>
             }
             />

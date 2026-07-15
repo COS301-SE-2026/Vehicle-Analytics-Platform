@@ -91,7 +91,7 @@ function VehiclePanel({ vehicle, onClose }) {
   )
 }
 
-export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles = [] }) {
+export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles, buffer = [] }) {
   const [selectedVehicle, setSelectedVehicle] = useState(null)
 
   return (
@@ -127,6 +127,7 @@ export default function FleetMapPlaceholder({ active, idle, offline, total, vehi
         {/* Real Map */}
         <FleetMap
           vehicles={vehicles}
+          buffer={buffer}
           onVehicleClick={setSelectedVehicle}
           minimal={false}
         />

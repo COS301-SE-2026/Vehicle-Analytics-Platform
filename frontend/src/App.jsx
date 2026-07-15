@@ -9,6 +9,7 @@ import ManagerDashboard from './pages/dashboard/ManagerDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
 import useAuthStore from './store/authStore'
+import VehiclesList from './pages/vehicles/VehiclesList'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
@@ -52,6 +53,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path = "/vehicles"
+            element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
+                <VehiclesList/>
+              </ProtectedRoute>
+            }
+            />
           <Route
             path="/dashboard/admin"
             element={

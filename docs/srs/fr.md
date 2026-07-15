@@ -18,7 +18,7 @@
 ### FR3: Trip Detection & Data Management
 
 * **FR3.1:** The system shall detect the start of a trip when a vehicle's speed rises above 5 km/h following a stationary period, ignition is on and movement in on.
-<!-- * **FR3.2:** The system shall detect the end of a trip when vehicle's speed drop below 5 km/h for 10 or more consecutive minutes and the vehicle's ignition is switched off and movement is off. 
+<!-- * **FR3.2:** The system shall detect the end of a trip when vehicle's speed drop below 5 km/h for 10 or more consecutive minutes, the vehicle's ignition is switched off and movement is off all simultaneoulsy
 * **FR3.3:** The system shall treat a stationary period (where the ignition is off, movement is off and speed is below 5 km/h) that ends a trip as a rest break for fatigue-detection purposes. -->
 * **FR3.4:** The system shall support the detection of multiple distinct trips within a single day of vehicle operation.
 * **FR3.5:** The system must store completed trip records for all vehicles managed within the fleet.
@@ -86,7 +86,6 @@
 
 * **FR9.1:** The system shall allow a fleet manager to initiate an animated replay of a completed trip from the trip history.
 * **FR9.2:** The system shall load all `clean_telemetry` position records for the selected trip in chronological order.
-<!-- * **FR9.3:** The system shall render the full trip route with a colour-coded speed overlay: green for safe speed, amber for elevated speed, and red for speeding.  remove for now-->
 * **FR9.3:** The system shall place markers on the route at every location where a `vehicle_events` record exists for that trip.
 * **FR9.4:** The system shall animate a vehicle marker moving along the route in sequence, updating the displayed speed and route segment colour at each position.
 * **FR9.5:** The system shall display event details in a panel alongside the map when playback reaches an unsafe event marker.

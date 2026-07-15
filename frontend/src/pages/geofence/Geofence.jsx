@@ -1,6 +1,7 @@
 import { ZoneDetails } from "@/components/geofence/ZoneDetails";
 import { ExistingZones } from "@/components/geofence/ExistingZones";
 import { ZoneAlerts } from "@/components/geofence/ZoneAlerts";
+import GeofenceMap  from "@/components/geofence/GeofenceMap";
 
 export default function Geofence() {
     return (
@@ -9,7 +10,7 @@ export default function Geofence() {
                 {/* left column: map + existing zone table */}
                 <div className="space-y-6">
                     <div className="border rounded-lg h-96 flex items-center justify-center text-muted-foreground">
-                        Place Map here
+                        <GeofenceMap onZoneDrawn={(shape) => console.log("Drawn shape:", shape )}/>
                     </div>
 
                     <div className="border rounded-lg bg-fleet-surface p-4">

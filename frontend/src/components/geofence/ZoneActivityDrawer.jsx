@@ -61,8 +61,8 @@ const mockActivityLog = [
 ];
 
 const mockSafetData = [
-    { zone: "Pretoria Port", speeding: 12, bracking: 4, accel: 8, corner:4, crash: 0 },
-    { zone: "Durban Port", speeding: 2, bracking: 1, accel: 0, corner:0, crash: 0 },    
+    { zone: "Pretoria Port", speeding: 12, braking: 4, accel: 8, corner:4, crash: 0 },
+    { zone: "Durban Port", speeding: 2, braking: 1, accel: 0, corner:0, crash: 0 },    
 ];
 
 const activityIconStyles = {
@@ -78,8 +78,8 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
     const totalPages = 3;
 
     return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="bg-fleet-bg w-full sm:max-w-2xl overflow-y-auto">
+        <Sheet open={open} onOpenChange={onOpenChange} className="sm:max-w-2xl">
+            <SheetContent className="bg-fleet-bg w-lg sm:max-w-2xl overflow-y-auto">
                 <SheetHeader className="text-left">
                     <SheetTitle className="text-fleet-text">All Zone Activity</SheetTitle>
                     <SheetDescription className="text-fleet-secondary">
@@ -88,7 +88,7 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                 </SheetHeader>
 
                 {/* filters */}
-                <div className="grid grid-cols-2 gap-4 mt-6">
+                <div className="grid grid-cols-2 gap-2 mt-6">
                     <div className="space-y-1.5">
                         <label className="text-xs font-medium tracking-wide text-fleet-secondary uppercase">
                             By Zone
@@ -113,12 +113,12 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                         <h3 className="text-xs font-semibold tracking-wide text-fleet-secondary uppercase">
                             Activity Log
                         </h3>
-                        <Badge className="bg-fleet-blue/10 text-fleet-blue border-0">
+                        <Badge className="bg-fleet-blue/10 text-fleet-blue border-0 rounded-lg">
                             Showing 4 of 10
                         </Badge>
                     </div>
 
-                    <div className="border border-fleet-border rounded-lg bg-fleet-surface divide-y divide-fleet-border">
+                    <div className="border border-fleet-border w-full rounded-lg bg-fleet-surface divide-y divide-fleet-border">
                         {mockActivityLog.map((entry) => {
                             const style = activityIconStyles[entry.type];
                             const Icon = style.icon;
@@ -126,10 +126,10 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                             return (
                                 <div 
                                     key={entry.id}
-                                    className="flex items-center justify-between gap-3 p-4"
+                                    className="flex items-center justify-between gap-4 p-4"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`h-8 w-8 rounded-md items-center justify-center shrink-0 ${style.bg}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${style.bg}`}>
                                             <Icon className={`h-4 w-4 ${style.color}`}/>
                                         </div>
                                         <div>
@@ -140,10 +140,10 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                                             >
                                                 {entry.message}
                                             </p>
-                                            <div className="flex items-center gap-2 mt-0.5">
+                                            <div className="flex items-center gap-1 mt-1">
                                                 <p className="text-xs text-flex-secondart">{entry.time}</p>
                                                 {entry.acknowledged && (
-                                                    <Badge className="bg-fleet-idle/20 text-fleet border-0 text-[10px] px-1.5 py-0">
+                                                    <Badge className="bg-fleet-idle/20 text-fleet border-0 rounded-lg text-[9px] px-1.5 py-0">
                                                         ACKNOWLEDGED
                                                     </Badge>
                                                 )}
@@ -153,11 +153,11 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
 
                                     <button
                                         type="button"
-                                        className="h-7 w-7 rounded-full border border-fleet-border flex items-center justify-center shrink-0 hover:bg-fleet-panel"
+                                        className="h-8 w-8 rounded-full border border-fleet-border flex items-center justify-center shrink-0 hover:bg-fleet-panel"
                                     >
                                         <CheckCircle2
-                                            className={`h-3.5 w-3.5 ${
-                                                entry.acknowledged ? "text-fleet-idle" : "text-fleet-secondary"
+                                            className={`h-4 w-4 ${
+                                                entry.acknowledged ? "text-fleet-green" : "text-fleet-secondary"
                                             }`}
                                         />
                                     </button>

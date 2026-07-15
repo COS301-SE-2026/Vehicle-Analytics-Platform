@@ -13,7 +13,7 @@ import { Pencil, Trash } from "lucide-react";
 // mock data
 const mockZones = [
     { id: 1, name: "Pretoria Depot", triggerType: "entry"},
-    { id: 3, name: "Durban Port", triggerType: "both"},
+    { id: 2, name: "Durban Port", triggerType: "both"},
     { id: 3, name:  "Johannesburg Port", triggerType: "exit" },
 ];
 

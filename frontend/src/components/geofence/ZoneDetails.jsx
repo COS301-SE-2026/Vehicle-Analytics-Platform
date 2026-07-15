@@ -42,7 +42,7 @@ export function ZoneDetails() {
             </div>
 
             <div className="flex flex-col gap-4 bg-fleet-surface">
-                <label classname="text-fleet-text">Trigger Type</label>
+                <label className="text-fleet-text">Trigger Type</label>
                 <Controller
                     name="triggerType"
                     control={control}
@@ -82,7 +82,7 @@ export function ZoneDetails() {
                 <Button 
                     type="submit"
                     className="w-full h-12 bg-fleet-blue text-white hover:bg-fleet-blue/90" 
-                    disable={isSubmitting}
+                    disabled={isSubmitting}
                 >
                     {isSubmitting ? "Saving..." : "Save Zone"}
                 </Button>

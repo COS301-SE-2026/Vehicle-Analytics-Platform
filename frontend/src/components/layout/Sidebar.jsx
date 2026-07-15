@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, Truck, Truck2, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, Map, Truck, Car, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
@@ -15,7 +15,7 @@ const baseNavItems = [
 ]
 
 const managerNavItems = [
-  {icon: Truck2, label: 'Vehicles', path: '/vehicles' },
+  {icon: Car, label: 'Vehicles', path: '/vehicles' },
 ]
 
 export default function Sidebar({ role = 'viewer', collapsed, onToggle }) {

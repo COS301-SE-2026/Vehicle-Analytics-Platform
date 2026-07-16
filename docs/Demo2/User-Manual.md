@@ -1,40 +1,67 @@
 # V.A.P.O.R - User Manual
 
 <!-- NOTE : this is just a working draft on the current wireframes and we MUST update this when all the pages are completed and working-->
+<!-- Based off of the current pages -->
+**Version:** 0.1 (Temporary)
 
 ## Welcome to the user manual for the Vehicle Analytics Platform (V.A.P.O.R), a cloud-based fleet management and analytics system.
 
-## Contents
-**1. Getting Started**
-* 1.1 Login Page
-* 1.2 Registration Page
-* 1.3 Email Verification Page
+# Contents
 
-**2. Dashboards & Fleet Tracking**
-* 2.1 Viewer Dashboard
-* 2.2 Live Fleet Tracking (Live Map)
-* 2.3 Manager Dashboard
-* 2.4 Admin Dashboard
+1. Introduction
+2. Getting Started
+   - 2.1 Creating an Account
+   - 2.2 Verifying Your Email
+   - 2.3 Logging In
+3. Viewer Guide
+   - 3.1 Viewer Dashboard
+   - 3.2 Live Fleet Map
+4. Manager Guide
+5. Administrator Guide
+   - 5.1 User Management
+   - 5.2 Editing User Roles
+6. Live Fleet Tracking
+7. Troubleshooting
+8. Frequently Asked Questions
+9. Contact Information
 
-**3. System Administration**
-* 3.1 User Role Assignment Modal
 
 ---
-## Getting Started
+# 1. Introduction
 
-### 1.1 Login Page
-This screen authenticates existing users with their email and password, offering access recovery options and integration with Google OAuth to streamline access.
+## Purpose
 
-**Screen Layout & Component Placement**
-The interface utilizes a split-screen layout.
-*   **Left Pane:** Features a solid dark green background containing the V.A.P.O.R branding, a "Monitor every vehicle. Every second." tagline, and visual live fleet status indicators.
-*   **Right Pane:** Centers the interactive elements. From top to bottom, it contains a "Welcome back" header, a "Continue with Google" button, an "OR" divider, an Email Address input field, a Password input field with a visibility icon, a "Remember me" checkbox paired with a "Forgot password?" link, a primary "Sign in to dashboard" action button, and a "No account yet? Create one" link at the bottom.
+V.A.P.O.R is a web-based fleet monitoring system designed to provide organizations with real-time visibility into their vehicle fleets. The platform enables users to monitor live vehicle locations, view fleet analytics, manage users, and oversee operational performance through an intuitive dashboard interface.
 
-**User Interaction & Navigation Flow**
-*   Users input credentials into the email and password text fields.
-*   Clicking the eye icon in the password field triggers a visibility toggle.
-*   Clicking "Sign in to dashboard" triggers system authentication.
-*   Successful login directs the user to their designated role-based dashboard.
-*   Clicking the registration link navigates the user to the Registration Page.
+The platform implements role-based access control, ensuring that users only have access to features relevant to their responsibilities.
 
-<!-- *figure. USing this as just a placeholder for when the screenshots are given -->
+The system supports three user roles:
+
+- **Viewer** - Monitors fleet information through read-only dashboards.
+- **Manager** - Monitors fleet operations and analytics.
+- **Administrator** - Manages users, permissions, and system administration.
+
+---
+
+# 2. Getting Started
+
+## 2.1 Creating an Account
+
+New users can create an account using their email address or Google Sign-In.
+
+### Steps
+
+1. Open the **Registration** page.
+2. Enter the following information:
+   - Full Name
+   - Email Address
+   - Password
+   - Confirm Password
+3. Accept the Terms and Privacy Policy.
+4. Click **Create Account**.
+
+The system validates the password strength before creating the account.
+
+<!-- **Figure 1: Registration Page** //placeholder until all the pages are completed to be able to screenshot -->
+
+---

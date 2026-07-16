@@ -65,3 +65,35 @@ The system validates the password strength before creating the account.
 <!-- **Figure 1: Registration Page** //placeholder until all the pages are completed to be able to screenshot -->
 
 ---
+## 2.2 Verifying Your Email
+
+After registration, a six-digit One-Time Password (OTP) is sent to the registered email address.
+
+### Steps
+1. Enter the six-digit verification code.
+2. Click `Verify Account`.
+3. If the code expires, click `Resend the code`.
+
+Once verification is successfull, the account is activated and can be used to log into the system.
+
+<!-- **Figure 2: Email verification Page** //placeholder until all the pages are completed to be able to screenshot -->
+
+---
+
+### 2.3 Logging In
+
+Existing users canlog into the system using either :
+- Email and password
+- Google authentication
+
+### Steps
+
+1. Enter your email address and password.
+2. Click **Sign in to Dashboard**.
+3. Alternatively, select **Continue with Google**.
+
+After successful authentication, users are redirected to the dashboard associated with their assigned role.
+
+<!-- **Figure 3: Login page ** //placeholder until all the pages are completed to be able to screenshot -->
+
+---

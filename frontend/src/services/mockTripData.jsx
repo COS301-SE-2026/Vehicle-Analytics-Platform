@@ -41,6 +41,31 @@ const mockRecentEvents = [
         longitude: 28.1156,
         timestamp: '2026-07-14T11:45:00Z'
     },
+    {
+        type: 'harsh_braking',
+        event_category: 'unsafe_driving',
+        speed: 60,
+        latitude: -25.9750,
+        longitude: 28.1420,
+        timestamp: '2026-07-14T11:00:00Z',
+    },
+
+    {
+        type: 'harsh_cornering',
+        event_category: 'unsafe_driving',
+        speed: 52,
+        latitude: -26.0102,
+        longitude: 28.0891,
+        timestamp: '2026-07-14T11:15:00Z'
+    },
+    {
+        type: 'speeding',
+        event_category: 'unsafe_driving',
+        speed: 75,
+        latitude: -26.0234,
+        longitude: 28.0678,
+        timestamp: '2026-07-14T10:45:00Z'
+    },
 ]
 
 const delay = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms))

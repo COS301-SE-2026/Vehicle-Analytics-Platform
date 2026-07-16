@@ -2,7 +2,7 @@
 
 <!-- NOTE : this is just a working draft on the current wireframes and we MUST update this when all the pages are completed and working-->
 <!-- Based off of the current pages -->
-**Version:** 0.1 (Temporary)
+**Version:** 1.1 (Temporary)
 
 ## Welcome to the user manual for the Vehicle Analytics Platform (V.A.P.O.R), a cloud-based fleet management and analytics system.
 
@@ -53,10 +53,10 @@ New users can create an account using their email address or Google Sign-In.
 
 1. Open the **Registration** page.
 2. Enter the following information:
-   - Full Name
-   - Email Address
-   - Password
-   - Confirm Password
+    - Full Name
+    - Email Address 
+    - Password 
+    - Confirm Password
 3. Accept the Terms and Privacy Policy.
 4. Click **Create Account**.
 
@@ -74,7 +74,7 @@ After registration, a six-digit One-Time Password (OTP) is sent to the registere
 2. Click `Verify Account`.
 3. If the code expires, click `Resend the code`.
 
-Once verification is successfull, the account is activated and can be used to log into the system.
+Once verification is successful, the account is activated and can be used to log into the system.
 
 <!-- **Figure 2: Email verification Page** //placeholder until all the pages are completed to be able to screenshot -->
 
@@ -82,7 +82,7 @@ Once verification is successfull, the account is activated and can be used to lo
 
 ### 2.3 Logging In
 
-Existing users canlog into the system using either :
+Existing users can log into the system using either :
 - Email and password
 - Google authentication
 
@@ -97,3 +97,57 @@ After successful authentication, users are redirected to the dashboard associate
 <!-- **Figure 3: Login page ** //placeholder until all the pages are completed to be able to screenshot -->
 
 ---
+
+#3. Viewer Guide
+
+The **Viewer** role provides read-only access to fleet information and live vehicle tracking.
+
+Viewers can:
+
+- Monitor active vehicles
+- View fleet performance indicators
+- Monitor vehicle status
+- Access the live fleet map
+- View real-time vehicle locations
+
+Viewers cannot:
+
+- Modify system settings
+- Edit users
+- Change user permissions
+
+---
+
+## 3.1 Viewer Dashboard
+
+The Viewer Dashboard provides an overview of fleet activity.
+
+The dashboard contains:
+
+- Active vehicles KPI
+- Total distance traveled today
+- Live fleet map
+- Vehicle status chart
+
+Users can zoom and pan around the map to inspect vehicle positions.
+
+<!-- **Figure 4: Viewer dashboard page ** //placeholder until all the pages are completed to be able to screenshot -->
+
+## 3.2 Live Fleet Map
+
+Selecting **Live Map** from the navigation sidebar opens a dedicated tracking interface.
+
+The Live Fleet Map allows users to:
+
+- View live vehicle locations
+- View fleet summary statistics
+- Monitor moving, idle, and offline vehicles
+- View detailed information for a selected vehicle
+
+Selecting a vehicle marker displays : 
+- Current speed
+- Current location
+- Trip duration
+- Distance traveled today
+
+<!-- **Figure 5: Live Fleet map page ** //placeholder until all the pages are completed to be able to screenshot -->

@@ -8,10 +8,10 @@ export default function DonutChart({ active, idle, offline, total }) {
   const offlineDash = (offline / total) * circumference
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full flex flex-col">
       <h3 className="font-semibold text-gray-700 mb-4">Fleet Status</h3>
-      <div className="flex flex-col items-center gap-4">
-        <svg viewBox="0 0 140 140" className="w-36 h-36">
+      <div className="flex flex-col items-center gap-6 flex-1 justify-center pt-10">
+        <svg viewBox="0 0 140 140" className="w-[190px] h-[190px]">
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth="16" />
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2d6a4f" strokeWidth="16"
             strokeDasharray={`${activeDash} ${circumference - activeDash}`}
@@ -31,7 +31,7 @@ export default function DonutChart({ active, idle, offline, total }) {
             style={{ fontSize: 9, letterSpacing: 1, fill: '#9ca3af' }}>TOTAL</text>
         </svg>
 
-        <div className="w-full flex flex-col gap-2 text-sm">
+        <div className="w-full flex flex-col gap-3 text-sm">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-sm bg-green-700 inline-block" />

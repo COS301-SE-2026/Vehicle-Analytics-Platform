@@ -151,3 +151,75 @@ Selecting a vehicle marker displays :
 - Distance traveled today
 
 <!-- **Figure 5: Live Fleet map page ** //placeholder until all the pages are completed to be able to screenshot -->
+
+# 4. Manager Guide
+
+Managers have access to all Viewer functionality together with operational analytics.
+
+The Manager Dashboard includes:
+
+- Active vehicles
+- Total distance today
+- Registered users
+- Data feed status
+
+Additional operational widgets include:
+
+- FLeet status
+- Most active vehicles today
+- Recent vehicle events
+- Fleet activity today
+
+These components update automcatically as anew telemetry data is received.
+
+<!-- **Figure 6: Manager Dashboard page ** //placeholder until all the pages are completed to be able to screenshot -->
+
+---
+
+# 5. Administrator Guide
+
+Administrators have unrestricted access to platform management features.
+
+Administrators can:
+
+- Add users 
+- Edit user information 
+- Assign user roles
+- Deactivate user accounts
+- Export user information 
+- Monitor fleet performance
+
+---
+
+## 5.1 User Management 
+
+The User Management table provides an overview of all registered users.
+
+The table includes :
+- Name
+- Email
+- Role
+- Status
+- Last Active
+- Available Actions
+
+<!-- **Figure 7: Admin Dashboard page ** //placeholder until all the pages are completed to be able to screenshot -->
+
+---
+### 5.2 Editing User Roles
+
+Selecting `Edit` opens the User Role Assingnment window.
+
+### Steps
+
+1. Select a new role from the dropdown menu.
+2. Review the permissions associated with that role.
+3. Click **Save Changes**.
+
+If the **Administrator** role is selected, the system displays an additional warning before confirming the changes.
+
+Selecting **Cancel** closes the dialog without saving any modifications.
+
+<!-- **Figure 8: User role assignment model ** //placeholder until all the pages are completed to be able to screenshot -->
+
+---

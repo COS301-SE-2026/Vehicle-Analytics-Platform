@@ -14,8 +14,11 @@ import {
 } from 'lucide-react'
 
 import { getVehicleById } from '@/services/mockTripData'
+import { getTripHistory,getOverallStats } from '@/services/mockTripHistory'
 import CurrentTripTab from '@/components/vehicles/CurrentTripTab'
 import VehicleStatusBadge from '@/components/vehicles/VehicleStatusBadge'
+import TripHistoryList from '@/components/vehicles/TripHistoryList'
+
 
 const TABS = [
     {id: 'current', label: 'Current Trip'},
@@ -30,6 +33,8 @@ export default function VehicleProfile(){
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [activeTab, setActiveTab] = useState ('current')
+    const [trips, setTrips] = useState([])
+    const [overallStats, setOverallStats] = useState(null)
 
     useEffect(() => {
         let cancelled = false
@@ -61,6 +66,29 @@ export default function VehicleProfile(){
             return () => {
                 cancelled = true
             }
+        }, [id])
+
+        useEffect(() => {
+            let cancelled = false
+
+            async function fetchHistory(){
+                try{
+                    const [tripList, stats] = await Promise.all([
+                        getTripHistory(id),
+                        getOverallStats(id),
+                    ])
+
+                    if(cancelled) return
+                    setTrips(tripList)
+                    setOverallStats(stats)
+                } catch (err) {
+                    if(cancelled) return
+                    console.error('VehicleProfile history fetch error:', err)
+                }
+            }
+
+            fetchHistory()
+            return () => { cancelled = true}
         }, [id])
 
         if (loading){
@@ -121,9 +149,10 @@ export default function VehicleProfile(){
                     )}
 
                     {activeTab === 'history' && (
-                        <div className="flex items-center justify-center h-64">
-                            <p className="text-fleet-secondary text-sm">History tab coming soon...</p>
-                        </div>
+                        <TripHistoryList
+                            trips={trips}
+                            overallScore={overallStats?.overallSafetyScore}>
+                        </TripHistoryList>
                     )}
             </div>
         )

@@ -266,6 +266,48 @@ If your code has expired:
 
 ---
 
+### 7.1.3 Live Map Not Displaying
+
+If the Live Fleet Map does not load correctly:
+
+- Verify that you have a stable internet connection.
+- Refresh the webpage.
+- Try opening the application in a supported browser such as Google Chrome or Microsoft Edge.
+
+---
+
+### 7.1.4 Vehicle Information Not Updating
+
+If vehicle locations or telemetry information appear outdated:
+
+- Wait a few moments for the next telemetry update.
+- Refresh the dashboard.
+- Confirm that the vehicle's telemetry device is online and transmitting data.
+- Contact your fleet administrator if the issue persists.
+
+---
+
+### 7.1.5 Unable to Manage Users
+
+If the **User Management** section is unavailable or editing options are disabled:
+
+- Verify that you are logged in using an **Administrator** account.
+- Refresh the page and try again.
+- If your permissions have recently changed, log out and log back in.
+
+---
+
+### 7.1.6 Dashboard Data Not Loading
+
+If dashboard cards or charts remain empty:
+
+- Check your internet connection.
+- Refresh the dashboard.
+- Wait a few moments while data is retrieved from the server.
+- Contact your system administrator if the issue continues.
+
+---
+
 # 8. Frequently Asked Questions
 
 ### Why can't I access the Manager Dashboard?

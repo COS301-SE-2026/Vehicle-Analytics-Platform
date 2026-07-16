@@ -223,3 +223,56 @@ Selecting **Cancel** closes the dialog without saving any modifications.
 <!-- **Figure 8: User role assignment model ** //placeholder until all the pages are completed to be able to screenshot -->
 
 ---
+
+# 6. Live Fleet Tracking
+
+The Live Fleet Tracking interface provides a comprehensive geographic overview of the fleet.
+
+Users can:
+
+- Monitor live vehicle locations
+- Identify offline vehicles
+- Monitor active alerts
+- View fleet movement statistics
+- Inspect individual vehicle information
+
+Vehicle telemetry updates automatically as new information is received by the platform.
+
+---
+# 7. Troubleshooting
+
+---
+
+# 8. Frequently Asked Questions
+
+### Why can't I access the Manager Dashboard?
+
+Your account may not have the necessary permissions. Contact an Administrator to request the appropriate role.
+
+---
+
+### How often is fleet information updated?
+
+Vehicle telemetry is updated in near real time as new data is received from connected vehicles.
+
+---
+
+### Can Viewers modify fleet information?
+
+No. Viewer accounts have read-only access to the platform.
+
+---
+
+### What happens if my verification code expires?
+
+Click **Resend Code** to receive a new verification code via email.
+
+---
+
+# 9. Contact Information
+
+For technical support, feature requests, or general enquiries, please contact the system administrators.
+
+**Email:** kilimanjaro.capstone@gmail.com
+
+**Developed by:** Team Kilimanjaro StoneCap

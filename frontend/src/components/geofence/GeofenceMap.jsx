@@ -34,7 +34,7 @@ export default function GeofenceMap({ onZoneDrawn }) {
             },
             { 
                 enableHighAccuracy: true,
-                timeout:8000
+                timeout:5000
             }
         );
     }, []);

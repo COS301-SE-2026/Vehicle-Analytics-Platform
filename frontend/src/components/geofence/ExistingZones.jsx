@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     Table,
     TableHeader,
@@ -9,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash } from "lucide-react";
+import DeleteZoneModal from "@/components/geofence/DeleteZoneModal";
 
 // mock data
 const mockZones = [
@@ -24,6 +26,13 @@ const triggerStyles = {
 };
 
 export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
+    const [zoneToDelete, setZoneToDelete] = useState(null);
+
+    function handleConfirmDelete(zone) {
+        onDelete?.(zone);
+        setZoneToDelete(null);
+    }
+
     return (
         <div className="bg-fleet-surface">
             <h2 className="font-display font-medium text-lg mb-4 text-fleet-text">Existing Zones</h2>
@@ -46,7 +55,7 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                         </TableCell>
                         <TableCell>
                             <Badge
-                                className={`uppercase text-xs font-medium ${triggerStyles[zone.triggerType]}`}
+                                className={`uppercase text-xs font-bold rounded-md ${triggerStyles[zone.triggerType]}`}
                             >
                                 {zone.triggerType}
                             </Badge>
@@ -64,7 +73,7 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => onDelete?.(zone)}
+                                onClick={() => setZoneToDelete?.(zone)}
                             >
                                 <Trash className="h-4 w-4 text-fleet-alert"/>
                             </Button>
@@ -73,6 +82,12 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                     ))}
                 </TableBody>
             </Table>
+            <DeleteZoneModal 
+                open={!!zoneToDelete} 
+                onOpenChange={(isOpen) => !isOpen && setZoneToDelete(null)}
+                zone={zoneToDelete}
+                onConfrim={handleConfirmDelete}
+            />
         </div>
     );
 }

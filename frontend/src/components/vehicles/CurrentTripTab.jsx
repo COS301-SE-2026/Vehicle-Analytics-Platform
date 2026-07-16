@@ -1,3 +1,5 @@
+import {useState} from 'react'
+
 import PropTypes from 'prop-types'
 import {
     AlertTriangle,
@@ -7,6 +9,7 @@ import {
 
 import LiveTrackingMap from './LiveTrackingMap'
 import { getScoreSeverity} from '@/utils/safetyScore'
+import AllEventsPanel from './AllEventsPanel'
 
 const EVENT_ICONS = {
     harsh_braking: AlertTriangle,
@@ -24,13 +27,14 @@ function formatEventLabel(type) {
 }
 
 function formatTime(timestamp){
-    return new Date(timestamp).toLocaleTimeString('en-US', {
+    return new Date(timestamp).toLocaleTimeString('en-ZA', {
         hour: '2-digit',
         minute: '2-digit',
     })
 }
 
 export default function CurrentTripTab({ vehicle, recentEvents }){
+    const [showAllEvents, setShowAllEvents] = useState(false)
     const severity = getScoreSeverity(vehicle.todaySafetyScore)
     const isSpeeding = vehicle.speed > vehicle.speedLimit
     const previewEvents = recentEvents.slice(0,3)
@@ -112,7 +116,10 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                         Live Event Feed
                     </h2>
 
-                    <button type="button" className="text-xs font-medium text-fleet-green hover:underline">
+                    <button 
+                        type="button"
+                        onClick={()=> setShowAllEvents(true)}
+                        className="text-xs font-medium text-fleet-green hover:underline">
                         View All
                     </button>
                 </div>
@@ -143,6 +150,12 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                     })}
                 </div>
             </div>
+            <AllEventsPanel
+                open={showAllEvents}
+                onOpenChange={setShowAllEvents}
+                vehicleId={vehicle.id}
+                events={recentEvents}
+            ></AllEventsPanel>
         </div>
     )
 }

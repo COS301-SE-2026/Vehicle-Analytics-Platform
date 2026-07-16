@@ -241,6 +241,29 @@ Vehicle telemetry updates automatically as new information is received by the pl
 ---
 # 7. Troubleshooting
 
+## 7.1 Common Issues
+
+### 7.1.1 Unable to Log In
+
+If you are unable to access your account:
+
+- Ensure your email address and password are entered correctly.
+- Check that your email address has been verified.
+- If you have forgotten your password, use the **Forgot Password** option on the login page.
+- If the problem persists, contact your system administrator.
+
+---
+
+### 7.1.2 Verification Code Expired
+
+Email verification codes are only valid for a limited time.
+
+If your code has expired:
+
+- Select **Resend Code** to receive a new verification email.
+- Check your spam or junk folder if the email does not arrive within a few minutes.
+- Ensure you are entering the most recently received verification code.
+
 ---
 
 # 8. Frequently Asked Questions

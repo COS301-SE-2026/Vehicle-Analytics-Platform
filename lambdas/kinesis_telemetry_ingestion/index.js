@@ -29,7 +29,7 @@ const COLUMNS = [
   "green_driving_type", "crash_detection",
 ];
 
-// Parse one decoded Kinesis record into a DB row ;; stream_time is Kinesis metadata — not stored in raw_telemetry
+// Parse one decoded Kinesis record into a DB row ;; stream_time is Kinesis metadata - not stored in raw_telemetry
 function parseRecord(data) {
   if (!data.time || !data.vehicle_id) {
     console.warn("Skipping record missing time or vehicle_id:", data);
@@ -78,7 +78,7 @@ const handler = async (event) => {
   for (const record of event.Records) {
     const sequenceNumber = record.kinesis.sequenceNumber;
 
-    // Kinesis data is base64 encoded — decode it first
+    // Kinesis data is base64 encoded - decode it first
     const payload = Buffer.from(record.kinesis.data, "base64").toString("utf-8");
 
     let data;
@@ -101,7 +101,7 @@ const handler = async (event) => {
     }
   }
 
-  console.info(`Batch received — valid rows: ${rows.length}, skipped: ${errors}`);
+  console.info(`Batch received - valid rows: ${rows.length}, skipped: ${errors}`);
 
   if (rows.length > 0) {
     const { sql, values } = buildInsert(rows);

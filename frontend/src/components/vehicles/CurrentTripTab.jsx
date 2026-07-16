@@ -52,17 +52,22 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                 {/*SPEED AND SAETY SCORE*/}
                 <div className="flex flex-col gap-4">
                     <div className="bg-white rounded-xl border border-fleet-border p-4">
+                        <div className="relative flex items-center justify-center w-[88px] h-[88px] mx-auto">
                         <svg width="88" height="88" className="-rotate-90">
                             <circle cx="44" cy="44" r="38" fill="none" stroke="#E5E7EB" strokeWidth="6"/>
                             <circle
                                 cx="44" cy="44" r="38" fill="none"
                                 stroke={severity.ringColour} strokeWidth="6" strokeLinecap="round"
                                 strokeDasharray={2*Math.PI*38}
-                                strokeDashoffset={2*Math.PI*38* (1- (vehicle.todaySafetyScore ?? 0) / 100)}></circle>
+                                strokeDashoffset={2*Math.PI*38* (1- (vehicle.todaySafetyScore ?? 0) / 100)}>
+
+                                </circle>
                         </svg>
-                        <span className="text-2xl font-bold text-fleet-text -mt-14">{vehicle.todaySafetyScore ?? '-'}</span>
-                        <p className="text-xs text-fleet-secondary mt-8">Today's Safety Score</p>
-                        <p className="text-xs text-fleet-secondary">Resets daily at midnight</p>
+                        <span className="absolute text-2xl font-bold text-fleet-text">{vehicle.todaySafetyScore ?? '-'}</span>
+</div>
+
+                        <p className="text-xs text-fleet-secondary mt-3 text-center">Today's Safety Score</p>
+                        <p className="text-xs text-fleet-secondary text-center">Resets daily at midnight</p>
                     </div>
 
                     <div className="bg-white rounded-xl border border-fleet-border p-4 space-y-3">

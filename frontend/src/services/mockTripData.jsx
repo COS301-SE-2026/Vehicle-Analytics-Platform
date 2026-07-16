@@ -10,7 +10,7 @@ const mockVehicleDetail = {
     movement: 'Movement On',
     last_update: '2026-07-14T12:45:00Z',
     //UC 6 endpont must have these
-    tripStartTime: new Date(Date.now() - 84*60*1000).toISOString, //just to match the wireframe
+    tripStartTime: new Date(Date.now() - 84*60*1000).toISOString(), //just to match the wireframe
     speedLimit: 60,
     todaySafetyScore: 92,
 }

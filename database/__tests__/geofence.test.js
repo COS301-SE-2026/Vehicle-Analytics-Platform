@@ -37,6 +37,12 @@ describe('Geofence database trigger test', () => {
         `, [vehicle_id]);
         const geofence_id = geofenceResult.rows[0].id;
 
+        await client.query(`
+            INSERT INTO geofence_state (geofence_id, vehicle_id, is_inside, last_updated)
+            VALUES ($1, $2, false, NOW())
+            ON CONFLICT (geofence_id, vehicle_id) DO NOTHING
+        `, [geofence_id, vehicle_id]);
+
         // 1. Insert a telemetry point OUTSIDE the geofence
         await client.query(`
             INSERT INTO clean_telemetry (time, vehicle_id, latitude, longitude, speed)

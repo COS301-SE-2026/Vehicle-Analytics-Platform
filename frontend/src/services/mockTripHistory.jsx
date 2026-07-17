@@ -62,7 +62,7 @@ const mockTripEvents = {
     ]
 }
 
-mockTripRoutes = {
+const mockTripRoutes = {
     'trip-001': [
         {lat: -25.9895, lng: 28.1281},
         {lat: -25.9860, lng: 28.1230},
@@ -93,7 +93,6 @@ export async function getTripHistory(vehicleId) {
 
 export async function getDailySafetyScores(vehicleId) {
     await delay()
-    console.log('getDailySafetyScares called with:', JSON.stringify(vehicleId), 'expected:', JSON.stringify(mockOverallStats.vehicleId))
     if (mockOverallStats.vehicleId !== vehicleId){
         return []
     }

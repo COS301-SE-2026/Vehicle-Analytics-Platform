@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 
 
@@ -67,7 +65,7 @@ const limiter = rateLimit({
 
 
 
-  windowMs: 15*60*1000,
+  windowMs: 15601000,
 
 
 
@@ -218,6 +216,3 @@ app.use((err, req, res, next) => {
 
 
 module.exports = app;
-
-
-

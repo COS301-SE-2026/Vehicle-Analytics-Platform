@@ -226,7 +226,7 @@ describe('Geofence Controller', () => {
   
 
         
-        polygon: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]},
+        boundary: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]},
   
 
         
@@ -288,7 +288,7 @@ describe('Geofence Controller', () => {
     
 
         
-        polygon: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
+        boundary: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
     
 
       })
@@ -308,7 +308,7 @@ describe('Geofence Controller', () => {
 
     
    
-    test('should return 400 if polygon is missing', async () => {
+    test('should return 400 if boundary is missing', async () => {
    
       
       
@@ -391,7 +391,7 @@ describe('Geofence Controller', () => {
       
 
         
-        polygon: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
+        boundary: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
       
 
         

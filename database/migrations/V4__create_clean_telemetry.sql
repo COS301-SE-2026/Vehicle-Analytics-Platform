@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS vehicle_events (
     total_odometer BIGINT,
     ignition TEXT,
     movement TEXT,
-    UNIQUE (time, vehicle_id, event_category)
+    UNIQUE (time, vehicle_id, event_category),
+    location GEOMETRY(POINT, 4326) GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)) STORED
 );
 
 CREATE TABLE IF NOT EXISTS telemetry_errors (

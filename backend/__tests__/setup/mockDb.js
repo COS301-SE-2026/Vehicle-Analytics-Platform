@@ -815,39 +815,39 @@ function setupMockData() {
 
 
 
-   
-   
-   
-    if(sql.includes('cluster_points')){
+if(sql.includes('cluster_points')){
+
+
+  
+  
+  return Promise.resolve({
+  
+  
+  
+    rows: [
+
+
+  
+      {vehicle_id: 'V001', cluster_id: 1, centroid_lat: -25.0, centroid_lng: 28.0, point_count: 5, first_seen: new Date(), last_seen: new Date()}
+  
+
+
+    ],
+
+  
 
     
+    rowCount: 1
+  
+
 
     
-
-      
-      return Promise.resolve({
-    
-
-        
-        rows: [
-    
-
-          
-          {vehicle_id: 'V001', cluster_id: 1, center_lat: -25.0, center_lng: 28.0, point_count: 5, first_seen: new Date(), last_seen: new Date() }
-    
+  });
+}
 
 
-        ],
 
-    
 
-        
-        rowCount: 1
-    
-
-      })
-      ;
-    }
 
 
 
@@ -865,7 +865,7 @@ function setupMockData() {
 
 
 
-module.exports = { mockPool, setupMockData };
+module.exports = {mockPool, setupMockData};
 
 
 

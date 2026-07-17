@@ -79,7 +79,7 @@ describe('Geofence Controller - Full Coverage', () => {
   
 
         
-        polygon: { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] },
+        boundary: { type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]] },
   
 
         
@@ -139,7 +139,7 @@ describe('Geofence Controller - Full Coverage', () => {
     
 
         
-        polygon: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
+        boundary: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
     
 
       })
@@ -160,7 +160,7 @@ describe('Geofence Controller - Full Coverage', () => {
     
    
    
-    test('should return 400 if polygon is missing', async () => {
+    test('should return 400 if boundary is missing', async () => {
    
       
       
@@ -590,7 +590,7 @@ describe('Geofence Controller - Full Coverage', () => {
   
 
       
-      .get('/api/geofences/discover/stops?vehicle_id=V001&days=30')
+      .get('/api/geofences/discover/stops?vehicle_id=V001&days=7')
   
 
       
@@ -620,6 +620,114 @@ describe('Geofence Controller - Full Coverage', () => {
     });
   });
 
+
+
+
+  
+  describe('GET /api/geofences/discover/stops', () => {
+  
+    test('should discover frequent events', async () => {
+  
+  
+      const response = await request(app)
+  
+      .get('/api/geofences/discover/stops?vehicle_id=V001&days=7')
+  
+      .set('Authorization', 'Bearer test-token');
+
+
+      
+      expect(response.status).toBe(200);
+      
+      expect(response.body.success).toBe(true);
+      
+      expect(response.body.data.clusters).toBeDefined();
+      
+      expect(Array.isArray(response.body.data.clusters)).toBe(true);
+    })
+    ;
+
+    
+    
+    test('should filters by vehicle_id and days', async () => {
+    
+      const response = await request(app)
+    
+      .get('/api/geofences/discover/stops?vehicle_id=V001&days=7')
+    
+      .set('Authorization', 'Bearer test-token');
+
+
+      
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    })
+    
+    ;
+
+
+    
+    test('should filter by event_category', async () => {
+    
+      const response = await request(app)
+    
+      .get('/api/geofences/discover/stops?vehicle_id=V001&days=7&event_category=crash_detection')
+        .set('Authorization', 'Bearer test-token');
+
+        
+      expect(response.status).toBe(200);
+     
+     
+      expect(response.body.success).toBe(true);
+    }
+  
+  );
+
+
+  
+  test('should filter by event_detail', async () => {
+  
+  
+  
+  
+    const response = await request(app)
+        .get('/api/geofences/discover/stops?vehicle_id=V001&days=7&event_detail=real_crash_detected')
+  
+  
+        .set('Authorization', 'Bearer test-token');
+
+        
+      
+        expect(response.status).toBe(200);
+      
+      
+        expect(response.body.success).toBe(true);
+    });
+
+
+    
+    
+    test('should respect limit parameter', async () => {
+    
+      const response = await request(app)
+    
+      .get('/api/geofences/discover/stops?vehicle_id=V001&days=7&limit=5')
+    
+      .set('Authorization', 'Bearer test-token');
+
+
+      
+      expect(response.status).toBe(200);
+      
+      expect(response.body.success).toBe(true);
+    });
+  });
+
+
+
+
+  
+});
 
 
 
@@ -836,4 +944,4 @@ describe('Geofence Controller - Full Coverage', () => {
    
     });
   });
-});
+;

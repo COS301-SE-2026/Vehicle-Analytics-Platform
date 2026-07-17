@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 
 
@@ -12,9 +14,6 @@ const helmet = require('helmet');
 
 
 const rateLimit = require('express-rate-limit');
-
-
-
 
 
 
@@ -33,21 +32,15 @@ const dashboardRoutes = require('./routes/dashboard');
 const adminRoutes = require('./routes/admin');
 
 
+
 const safetyRoutes = require('./routes/safety');
-
-
 
 
 const tripRoutes = require('./routes/trip');
 
-
-
 // const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
-
-
 // const geofenceRoutes = require('./routes/geofence');
-
 
 
 
@@ -57,13 +50,15 @@ const app = express();
 
 const limiter = rateLimit({
 
+
+
   windowMs: 15*60*1000,
 
 
 
 
-
   max: 1000,
+
 
 
 
@@ -76,7 +71,16 @@ const limiter = rateLimit({
 
 
 
+
+
+
+
+
 app.use(cors({
+
+
+
+
 
 
 
@@ -92,8 +96,8 @@ app.use(cors({
 
 
 
-}));
 
+}));
 
 
 
@@ -111,10 +115,9 @@ app.use(limiter);
 
 
 
+
+
 app.use('/api/auth', authRoutes);
-
-
-
 
 
 app.use('/api/vehicles', vehicleRoutes);
@@ -125,11 +128,12 @@ app.use('/api/dashboard', dashboardRoutes);
 
 
 
+
 app.use('/api/admin', adminRoutes);
 
+
+
 app.use('/api/safety', safetyRoutes);
-
-
 
 
 
@@ -148,6 +152,7 @@ app.use('/api/trips', tripRoutes);
 
 
 
+
 app.get('/api/health', (req, res) => {
 
 
@@ -156,8 +161,8 @@ app.get('/api/health', (req, res) => {
 
 
 
-
 });
+
 
 
 
@@ -172,13 +177,14 @@ app.use((req, res) => {
 
 
 
-
-
 });
 
 
 
+
+
 app.use((err, req, res, next) => {
+
 
 
 
@@ -201,7 +207,6 @@ app.use((err, req, res, next) => {
 
 
 module.exports = app;
-
 
 
 

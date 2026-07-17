@@ -4,10 +4,12 @@ describe('Geofence database trigger test', () => {
     let client;
 
     const cleanup = async () => {
-        await client.query(`DELETE FROM geofence_events WHERE vehicle_id LIKE 'V%'`);
-        await client.query(`DELETE FROM geofence_state WHERE vehicle_id LIKE 'V%'`);
-        await client.query(`DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'V%'`);
-        await client.query(`DELETE FROM geofences WHERE name LIKE 'V%'`);
+        await client.query(`DELETE FROM geofence_events WHERE vehicle_id LIKE 'GEO_TEST-%'`);
+        await client.query(`DELETE FROM geofence_state WHERE vehicle_id LIKE 'GEO_TEST-%'`);
+        await client.query(`DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'GEO_TEST-%'`);
+        await client.query(`DELETE FROM geofences WHERE name LIKE 'GEO_TEST-%'`);
+        // FIX: Clean up the dummy vehicle row as well
+        await client.query(`DELETE FROM vehicles WHERE id LIKE 'GEO_TEST-%'`);
     };
 
     beforeAll(async () => {
@@ -23,10 +25,13 @@ describe('Geofence database trigger test', () => {
     }, 30000);
 
     test('should trigger entry and exit events when vehicle enters and exits geofence', async () => {
-        // FIXED: Added the GEO_TEST- prefix so cleanup works
-        const vehicle_id = 'V1024'; 
+        const vehicle_id = 'GEO_TEST-1024'; 
+        await client.query(`
+            INSERT INTO vehicles (id) 
+            VALUES ($1) 
+            ON CONFLICT (id) DO NOTHING
+        `, [vehicle_id]);
 
-        // FIXED: Removed the extra 'both' from the values array
         const geofenceResult = await client.query(`
             INSERT INTO geofences (name, vehicle_id, trigger_type, boundary)
             VALUES ('GEO_TEST-Zone', $1, 'both', ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))', 4326))
@@ -41,7 +46,6 @@ describe('Geofence database trigger test', () => {
         `, [vehicle_id]);
 
         // Verify state is outside (false)
-        // FIXED: Used geofence_id and vehicle_id instead of geofenceId/vehicleId
         let stateRes = await client.query(`
             SELECT is_inside FROM geofence_state 
             WHERE geofence_id = $1 AND vehicle_id = $2
@@ -121,7 +125,6 @@ describe('Geofence database trigger test', () => {
         `, [geofence_id, vehicle_id]);
             
         expect(eventRes.rows.length).toBe(2);
-        // The most recent event should be 'exit'
         expect(eventRes.rows[0].event_type).toBe('exit'); 
     });
 });

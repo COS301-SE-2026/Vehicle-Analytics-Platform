@@ -62,6 +62,20 @@ const mockTripEvents = {
     ]
 }
 
+mockTripRoutes = {
+    'trip-001': [
+        {lat: -25.9895, lng: 28.1281},
+        {lat: -25.9860, lng: 28.1230},
+        {lat: -25.9820, lng: 28.1290},
+        {lat: -25.9790, lng: 28.1250},
+        {lat: -25.9760, lng: 28.1105},
+        {lat: -25.9730, lng: 28.1070},
+        {lat: -25.9705, lng: 28.1042},
+        {lat: -25.9675, lng: 28.1010},
+        {lat: -25.9650, lng: 28.0980},
+    ]
+}
+
 const mockOverallStats = {
     vehicleId: 'TRK-2024-X1',
     overallSafetyScore: 87,
@@ -100,4 +114,9 @@ export async function getOverallStats(vehicleId) {
 export async function getTripEvents(tripId) {
     await delay()
     return mockTripEvents[tripId] ?? []
+}
+
+export async function getTripRoute(tripId) {
+    await delay()
+    return mockTripRoutes[tripId] ?? []
 }

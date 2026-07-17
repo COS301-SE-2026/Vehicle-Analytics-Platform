@@ -20,6 +20,7 @@ import CurrentTripTab from '@/components/vehicles/CurrentTripTab'
 import VehicleStatusBadge from '@/components/vehicles/VehicleStatusBadge'
 import TripHistoryList from '@/components/vehicles/TripHistoryList'
 import SafetyScoreTrendChart from '@/components/vehicles/SafetyScoreTrendChart'
+import OverallStatsFooter from '@/components/vehicles/OverallStatsFooter'
 
 
 const TABS = [
@@ -160,6 +161,7 @@ export default function VehicleProfile(){
                             trips={trips}
                             overallScore={overallStats?.overallSafetyScore}>
                         </TripHistoryList>
+                        {overallStats && <OverallStatsFooter stats={overallStats} /> }
                     </div>
                     )}
             </div>

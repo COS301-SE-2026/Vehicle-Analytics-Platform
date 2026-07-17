@@ -82,7 +82,10 @@ const mockOverallStats = {
     overallRating: 'Strong Overall',
     totalDistanceKm: 12482,
     totalTrips: 842,
+    incidentsPer100Km: 0.4,
+    activeDays: 182,
 }
+
 
 const delay = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms))
 

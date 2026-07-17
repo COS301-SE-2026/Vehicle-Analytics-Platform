@@ -22,7 +22,8 @@
       "^.+\\.(js|jsx)$": "babel-jest"
     },
     "moduleNameMapper": {
-      "\\.(css|svg|png)$": "identity-obj-proxy",
+      "\\.(css)$": "identity-obj-proxy",
+      "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/__mocks__/fileMock.js",
       "^@/lib/utils$": "<rootDir>/src/pages/dashboard/lib/utils.js",
       "^@/(.*)$": "<rootDir>/src/$1",
       "^mapbox-gl$": "<rootDir>/__mocks__/mapbox-gl.js"

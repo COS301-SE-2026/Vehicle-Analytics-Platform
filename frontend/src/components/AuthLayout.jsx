@@ -1,4 +1,5 @@
 import './AuthLayout.css';
+import vaporLogo from '../assets/logo.png';
 import PropTypes from 'prop-types';
 
 const getStatus = (index) => {
@@ -17,7 +18,7 @@ export default function AuthLayout({ children }) {
     <div className="auth-root">
       <div className="auth-left">
         <div className="auth-logo">
-          <span>V.A.P.O.R</span>
+          <img src={vaporLogo} alt="V.A.P.O.R" className="w-120 h-120" />
         </div>
 
         <div className="auth-hero">
@@ -26,11 +27,6 @@ export default function AuthLayout({ children }) {
 
         <div className="auth-fleet-status">
           <p className="fleet-label">LIVE FLEET STATUS</p>
-          <div className="fleet-grid">
-            {vehicles.map((v) => (
-              <div key={v.id} className={`fleet-tile fleet-tile--${v.status}`} />
-            ))}
-          </div>
         </div>
 
         <div className="auth-stats">

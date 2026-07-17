@@ -9,6 +9,7 @@ export default {
     extend: {
       colors: {
         'fleet-green': '#4D7C5F',
+        'fleet-blue': '#14304F',
         'fleet-bg': '#F4F3EF',
         'fleet-surface': '#FFFFFF',
         'fleet-panel': '#EAE9E3',

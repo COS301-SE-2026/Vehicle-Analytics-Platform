@@ -33,7 +33,7 @@ export default function FleetActivityChart({
           {title}
         </h2>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm bg-fleet-green inline-block" />
+          <span className="w-3 h-3 rounded-sm bg-fleet-blue inline-block" />
           <span className="text-xs text-fleet-secondary">Active Vehicles</span>
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function FleetActivityChart({
             />
             <Bar
               dataKey="vehicles"
-              fill="#4D7C5F"
+              fill="#14304F"
               radius={[4, 4, 0, 0]}
               maxBarSize={48}
             />

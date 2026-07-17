@@ -261,7 +261,6 @@ function setupMockData() {
     
 
 
-    
 
           
 
@@ -308,6 +307,10 @@ function setupMockData() {
           trigger_type: 'both',
   
 
+          
+          is_active: true
+  
+
         }]
         ,
   
@@ -325,11 +328,10 @@ function setupMockData() {
    
    
    
-   if(sql.includes('FROM geofences') && sql.includes('ST_AsGeoJSON(boundary)') && !sql.includes('WHERE id')){
+    if(sql.includes('SELECT * FROM geofences')){
 
     
 
-    
 
       
       return Promise.resolve({
@@ -337,15 +339,13 @@ function setupMockData() {
 
 
         
-        rows: [ 
-          {id: 1,  
-            name: 'Test Zone', 
-            vehicle_id: null, 
-            boundary: {type: 'Polygon',coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}, 
-            trigger_type: 'both', is_active: true, 
-            created_at: new Date(), 
-            updated_at: new Date()
-          }
+        rows: [
+    
+
+          
+          {id: 1, name: 'Test Zone', vehicle_id: null, polygon: '{}', trigger_type: 'both', is_active: true, created_at: new Date(), updated_at: new Date()}
+    
+
         ],
 
     
@@ -353,9 +353,6 @@ function setupMockData() {
         rowCount: 1,
     
 
-          
-          {point_time: new Date(), latitude: -25.1, longitude: 28.1, speed_kmh: 80}
-    
 
       })
       
@@ -363,47 +360,72 @@ function setupMockData() {
     
     }
 
-          
-          vehicle_id: null,
-  
 
    
     
 
-          
-          is_active: true
-  
 
-    if(sql.includes('FROM geofences') && sql.includes('WHERE id = $1')){
+    if(sql.includes('SELECT id, name, vehicle_id, polygon, trigger_type, is_active FROM geofences WHERE id = $1')){
 
     
 
       
-      if(params&&params[0]==='1'){ 
+      if(params&&params[0]==='1'){
+
+    
+
+        
         return Promise.resolve({
-          rows: [ 
-          {id: 1,  
-            name: 'Test Zone', 
-            vehicle_id: null, 
-            boundary: {type: 'Polygon',coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}, 
-            trigger_type: 'both', is_active: true, 
-            created_at: new Date(), 
-            updated_at: new Date()
-          }
-        ],
+    
+
+
+
+          
+          
+          rows: [{id: 1, name: 'Test Zone', vehicle_id: null, polygon: '{}', trigger_type: 'both', is_active: true, created_at: new Date(), updated_at: new Date()}],
+    
+
+
           rowCount: 1
+    
+
+
         })
         ;
     
       }
+    
 
+
+      
       return Promise.resolve({rows: [], rowCount: 0});
+    
 
-    } 
+
+
+    }
+
+
+
+
+
+
+    
     if(sql.includes('UPDATE geofences SET updated_at = NOW()')){
-      if(params&&params[params.length - 1] === 1){  
+
+    
+
+      
+      if(params&&params[params.length - 1] === 1){
+    
+
+        
+        
         return Promise.resolve({
- 
+    
+
+
+          
           rows: [{id: 1, name: 'Updated Zone', vehicle_id: null, trigger_type: 'entry', is_active: true}],
     
 
@@ -416,15 +438,24 @@ function setupMockData() {
     
       }
 
+
+    
+
+      
       return Promise.resolve({rows: [], rowCount: 0});
     
 
     }
-    if(sql.includes('DELETE FROM geofences')){
-     
-      return Promise.resolve({rows: [{ id: 1 }]});
 
-    }
+
+
+
+    
+   
+   
+   
+    if(sql.includes('DELETE FROM geofences')){
+    
 
     
      
@@ -436,178 +467,341 @@ function setupMockData() {
       return Promise.resolve({rows: [{ id: 1 }]});
     
 
+    }
+
+
+
+
+    
+    
+    
+    
     if(sql.includes('FROM vehicles v')&&sql.includes('LEFT JOIN current_vehicle_position')){
 
+    
+
+      
       if(params&&params[0]==='1000'){
+
+    
+
         return Promise.resolve({
- 
+    
+          
           rows: [{
+    
+
+            
             id: '1000',
+    
+
+            
             device_id: 'CAPSTONE-001',
+    
+
+    
+
+            
             created_at: new Date(),
-            status: 'active',
+    
+
             
             status: 'active',
             
             latitude: '-27.796935',
-            longitude: '28.4293083',
-            speed: 6,  
-            total_odometer: 81238116,
+    
 
+    
+
+            
+            longitude: '28.4293083',
+    
+
+            
+            speed: 6,
+            
+            total_odometer: 81238116,
+    
+
+            
             ignition: 'Ignition On',
- 
+    
+
+    
+
+            
             movement: 'Movement On',
     
 
+            
             last_update: new Date()
+          
+          
           }],
+    
+
+    
+
+          
           rowCount: 1,
     
         })
         ;
     
       }
+    
+      
+      
       return Promise.resolve({rows: [], rowCount: 0});
+    
+
 
     }
+
+
+    
+    
+    
+    
     if(sql.includes('SELECT event_detail as type FROM vehicle_events WHERE vehicle_id = $1')){
+
+    
+
+      
       if(params&&params[0]==='1000'){
+
+    
+
+
+
         
-        return Promise.resolve({ 
+        return Promise.resolve({
+    
+
+          
           rows: [
+    
+
+            
             {type: 'harsh_braking', event_category: 'green_driving_type', speed: 60, latitude: '-27.796935', longitude: '28.4293083', timestamp: new Date()}
+    
 
           ],
 
+    
+
+
           rowCount: 1,
+    
+
+
+
         });
     
       }
+    
+
+
+
       return Promise.resolve({rows: [], rowCount: 0});
-    }
+    
+
+
 
     }
+
 
     
    
    
    
     if(sql.includes('SELECT * FROM vehicles')){
+
+    
+
+      
+      
       return Promise.resolve({
+    
+
+        
         
         rows: [
+    
+
+          
           {id: 'V001', device_id: 'DEV-001', status: 'active', latitude: '-25.0', longitude: '28.0', speed: 60, last_update: new Date()}
+    
+
 
         ],
+
+    
+
         rowCount: 1,
+    
+
+
+
       });
     
     }
+
+
+    
     
     
     if(sql.includes('clean_telemetry')&&sql.includes('MAX(time)')){
 
+    
+    
+    
+    
+    
+    
       return Promise.resolve({
        
+       
         rows: [
+    
+
           
           {vehicle_id: 'V001', time: new Date(), latitude: -25.0, longitude: 28.0, speed: 60, ignition: 'Ignition On', movement: 'Movement On', total_odometer: 10000}
+    
+
+    
+
         ],
+
+        
+        
         rowCount: 1,
     
 
+    
+
       });
-    } 
+    }
+
+
+    
+    
+    
+    
     
     if(sql.includes('SELECT * FROM driver_daily_safety_scores WHERE vehicle_id = $1')){
 
+    
+
+      
       if(params&&params[0]==='V001'){
+
+    
+
+
+    
+
         
         return Promise.resolve({
+    
           rows: [
+    
+    
             {vehicle_id: 'V001', score_date: '2026-07-13', safety_score: 85, harsh_brakes: 2, harsh_accelerations: 1, harsh_cornering: 0, crashes: 0, total_events: 3, classification: 'Good'}
+    
           ],
+    
           rowCount: 1,
+
+
         });
     
       }
+    
+
+
+
       return Promise.resolve({ rows: [], rowCount: 0 });
+    
+    
     }
+
+
+    
+    
+    
+    
     
     if(sql.includes('SELECT * FROM driver_daily_safety_scores WHERE score_date = COALESCE')){
+
+      
       if(params&&params[0]==='V001'){
     
 
+
         return Promise.resolve({
-          rows: [
-            {vehicle_id: 'V001', score_date: '2026-07-13', safety_score: 85, harsh_brakes: 2, harsh_accelerations: 1, harsh_cornering: 0, crashes: 0, total_events: 3, classification: 'Good'}
+    
 
-          ],
-          rowCount: 1,
-        })
-        ;
-      }
-      return Promise.resolve({rows: [], rowCount: 0});
-    }
-
-    if(sql.includes('geofence_events')){
-      return Promise.resolve({ 
-        rows: [          
-          {id: 1, geofence_id: 1, geofence_name: 'Test Zone', vehicle_id: 'V001', event_type: 'entry', latitude: -25.0, longitude: 28.0, speed: 60, created_at: new Date() }
-        ],
-        rowCount: 1
-      })
-      ;
-    }
-
-    if (sql.includes('cluster_points')) {
-    return Promise.resolve({
-        rows: [
-            {
-                vehicle_id: 'V001',
-                cluster_id: 1,
-                centroid_lat: -25.0,
-                centroid_lng: 28.0,
-                point_count: 5,
-                first_seen: new Date(),
-                last_seen: new Date()
-            }
-        ],
-        rowCount: 1
-    });
-}
-
-   if (sql.includes('cluster_events')) {
-      return Promise.resolve({
-        rows: [
-          {
-            cluster_id: 1,
-            event_category: 'crash_detection',
-            event_detail: 'real crash detected',
-            event_count: 7,
-            vehicle_count: 3,
-            centroid_lat: -25.0,
-            centroid_lng: 28.0,
-            first_seen: new Date(),
-            last_seen: new Date()
-          },
-          {
-            cluster_id: 2,
-            event_category: 'green_driving_type',
-            event_detail: 'harsh braking',
-            event_count: 12,
-            vehicle_count: 5,
-            centroid_lat: -25.1,
-            centroid_lng: 28.1,
-            first_seen: new Date(),
-            last_seen: new Date()
-          }
-        ],
-
-        rowCount: 2
-      });
 
     
+          rows: [
+
+
+    
+
+            
+            {vehicle_id: 'V001', score_date: '2026-07-13', safety_score: 85, harsh_brakes: 2, harsh_accelerations: 1, harsh_cornering: 0, crashes: 0, total_events: 3, classification: 'Good'}
+    
+
+
+
+          ],
+
+    
+
+          
+          rowCount: 1,
+    
+
+        })
+        ;
+    
+
+      }
+
+    
+
+      
+      return Promise.resolve({rows: [], rowCount: 0});
+    
+
+    }
+
+
+
+
+
+    
+    if(sql.includes('geofence_events')){
+
+    
+
+      
+      return Promise.resolve({
+    
+
+        
+        rows: [
+    
+
+          
+          {id: 1, geofence_id: 1, geofence_name: 'Test Zone', vehicle_id: 'V001', event_type: 'entry', latitude: -25.0, longitude: 28.0, speed: 60, created_at: new Date() }
+    
+
+        ],
+    
+
+
 
         
         rowCount: 1
@@ -616,19 +810,66 @@ function setupMockData() {
       })
       ;
     }
-    return Promise.resolve({rows: [], rowCount: 0});
+
+
+
+
+
+if(sql.includes('cluster_points')){
+
+
+  
+  
+  return Promise.resolve({
+  
+  
+  
+    rows: [
+
+
+  
+      {vehicle_id: 'V001', cluster_id: 1, centroid_lat: -25.0, centroid_lng: 28.0, point_count: 5, first_seen: new Date(), last_seen: new Date()}
+  
+
+
+    ],
+
+  
+
+    
+    rowCount: 1
+  
+
+
+    
   });
 }
+
+
+
+
+
+
+
+
+    
+    return Promise.resolve({rows: [], rowCount: 0});
 
     
 
 
-module.exports = { mockPool, setupMockData };
+  });
+}
 
 
 
 
-module.exports = { mockPool, setupMockData };
+
+module.exports = {mockPool, setupMockData};
+
+
+
+
 
 
 

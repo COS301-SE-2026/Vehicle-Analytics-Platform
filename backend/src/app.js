@@ -1,7 +1,8 @@
 
 
-
 const express = require('express');
+
+
 
 
 
@@ -11,8 +12,9 @@ const cors = require('cors');
 
 
 
-
 const helmet = require('helmet');
+
+
 
 
 
@@ -20,20 +22,15 @@ const rateLimit = require('express-rate-limit');
 
 
 
-
-
-
 const authRoutes = require('./routes/auth');
-
-
 
 
 const vehicleRoutes = require('./routes/vehicles');
 
 
 
-const dashboardRoutes = require('./routes/dashboard');
 
+const dashboardRoutes = require('./routes/dashboard');
 
 
 const adminRoutes = require('./routes/admin');
@@ -53,8 +50,6 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
 
 const geofenceRoutes = require('./routes/geofence');
-
-
 
 
 
@@ -80,8 +75,8 @@ const limiter = rateLimit({
 
 
 
-  message: 'Too many requests from this IP, please try again later.',
 
+  message: 'Too many requests from this IP, please try again later.',
 
 
 
@@ -92,8 +87,9 @@ const limiter = rateLimit({
 
 
 
-
 app.use(cors({
+
+
 
 
   origin: true,
@@ -104,7 +100,10 @@ app.use(cors({
 
 
 
+
+
   allowedHeaders: ['Content-Type', 'Authorization']
+
 
 
 
@@ -113,20 +112,18 @@ app.use(cors({
 
 
 
+
+
+
 app.use(helmet());
-
-
-
 
 
 
 app.use(express.json());
 
 
+
 app.use(limiter);
-
-
-
 
 
 
@@ -140,8 +137,6 @@ app.use('/api/vehicles', vehicleRoutes);
 
 
 app.use('/api/dashboard', dashboardRoutes);
-
-
 
 app.use('/api/admin', adminRoutes);
 
@@ -159,8 +154,9 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 
 
 
-
 app.use('/api/geofences', geofenceRoutes);
+
+
 
 
 
@@ -170,14 +166,12 @@ app.use('/api/geofences', geofenceRoutes);
 app.get('/api/health', (req, res) => {
 
 
-
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 
 
 
 
 });
-
 
 
 
@@ -194,11 +188,9 @@ app.use((req, res) => {
 
 
 
+
+
 });
-
-
-
-
 
 
 
@@ -208,8 +200,8 @@ app.use((err, req, res, next) => {
 
 
 
-  console.error('Lambda Exception Execution Trace:', err.stack);
 
+  console.error('Lambda Exception Execution Trace:', err.stack);
 
 
 

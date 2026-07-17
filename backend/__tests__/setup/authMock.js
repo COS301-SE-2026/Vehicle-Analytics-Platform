@@ -13,16 +13,6 @@ jest.mock('../../src/middleware/auth', () => ({
 
     
     req.user = {id: 1, role: 'fleet_manager', sub: 'test-sub'};
-jest.mock('../../src/middleware/auth', () => ({
-
-
-
-
-
-  authenticate: (req, res, next) => {
-
-
-    req.user = {id: 1,role: 'fleet_manager',sub: 'test-sub'};
 
 
     
@@ -44,22 +34,6 @@ jest.mock('../../src/middleware/auth', () => ({
 
 
 
-      
-  },
-
-
-
-
-  requireRole: (roles) => (req, res, next) => {
-
-   
-   
-    if(!req.user){
-
-     
-      
-
-      
       
       return res.status(401).json({ error: 'Unauthorized' });
 
@@ -78,11 +52,6 @@ jest.mock('../../src/middleware/auth', () => ({
       return res.status(403).json({ error: 'Insufficient permissions' });
 
 
-    
-    if(!roles.includes(req.user.role)){
-
-
-      return res.status(403).json({error: 'Insufficient permissions'});
 
 
     }
@@ -99,12 +68,6 @@ jest.mock('../../src/middleware/auth', () => ({
 
 
 
-  },
-
-
-
-})
-);
 
 
 
@@ -121,7 +84,6 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
 
 
       
-      
       AuthenticationResult: {
 
 
@@ -129,8 +91,6 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
         AccessToken: 'mock-access-token',
 
 
-
-        
         
         IdToken: 'mock-id-token',
 
@@ -168,25 +128,6 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
 
 
 
-        ExpiresIn: 3600,
-
-
-      },
-
-
-      UserSub: 'mock-user-sub',
-
-
-    })
-    ,
-
-    
-  })),
-
- 
-  SignUpCommand: jest.fn(),
-
-
   
   InitiateAuthCommand: jest.fn(),
 
@@ -195,7 +136,6 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
   GlobalSignOutCommand: jest.fn(),
 
 
-  
   
   AdminDisableUserCommand: jest.fn(),
 
@@ -207,10 +147,6 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
 })
 );
 
-  AdminUpdateUserAttributesCommand: jest.fn(),
-
-  
-}));
 
 
 
@@ -236,12 +172,3 @@ describe('Auth Mock Setup', () => {
 
 })
 ;
-
-
-
-
-
-
-
-
-

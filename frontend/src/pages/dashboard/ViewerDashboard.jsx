@@ -73,9 +73,9 @@ export default function ViewerDashboard() {
     .slice(0, 5)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 mt-6">
       {/* Row 1 — Four KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard
           icon={Truck}
           label="Active Vehicles"
@@ -88,38 +88,17 @@ export default function ViewerDashboard() {
           value={kpis.distanceToday ?? 0}
           sub="km across fleet"
         />
-        <DataFeedStatusCard
-          isLive={kpis !== null}
-          lastReceived={new Date().toISOString()}
-        />
       </div>
 
-      {/* Row 2 — Fleet Status + Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
-          <FleetStatusCard
-            active={active}
-            idle={idle}
-            offline={offline}
-            total={total}
-          />
-          <div className="mt-4">
-            <DonutChart active={active} idle={idle} offline={offline} total={total} />
-          </div>
-        </div>
+      {/* Row 2 - Fleet Status + Map */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <div className="lg:col-span-2">
-          <MapSection />
+          <MapSection mapHeight="h-[400px]"/>
+        </div>
+        <div className="lg:col-span-1 h-full">
+          <DonutChart active={active} idle={idle} offline={offline} total={total} />
         </div>
       </div>
-
-      {/* Row 3 — Most Active Vehicles */}
-      <MostActiveVehiclesTable vehicles={mostActive} />
-
-      {/* Row 4 — Recent Vehicle Events */}
-      <RecentVehicleEvents limit={10} />
-
-      {/* Row 5 — Fleet Activity Chart */}
-      <FleetActivityChart />
     </div>
   )
 }

@@ -6,7 +6,7 @@
 .verify-icon {
   width: 52px;
   height: 52px;
-  background: #2c4a1e;
+  background: #14304F;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -36,8 +36,8 @@
 }
 
 .code-input:focus {
-  border-color: #3a6b1f;
-  box-shadow: 0 0 0 3px rgba(58,107,31,0.1);
+  border-color: #14304F;
+  box-shadow: 0 0 0 3px rgba(34, 57, 133, 0.1);
 }
 
 .code-expiry {
@@ -52,14 +52,14 @@
   border-radius: 6px;
   padding: 8px 12px;
   font-size: 12px;
-  color: #2a7a2a;
+  color: #14304F;
   margin-bottom: 14px;
 }
 
 .link-btn {
   background: none;
   border: none;
-  color: #4D7C5F;
+  color: #14304F;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;

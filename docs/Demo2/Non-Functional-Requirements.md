@@ -66,3 +66,5 @@ NFR5.3: New features and fixes shall be deployable within 2 hours of merge appro
 NFR5.4: All public APIs shall be documented and maintained in repo.
 
 NFR5.5: Development environments shall be reproducible using Docker Compose in under 30 minutes.
+
+NFR5.6: All database schema changes must be version controlled using database migration files and executed automatically via CI/CD pipeline

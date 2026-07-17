@@ -6,5 +6,7 @@ describe('App Routes', () => {
     const response = await request(app).get('/invalid-route');
     expect(response.status).toBe(404);
     expect(response.body.error).toBe('Route not found');
+
+    
   });
 });

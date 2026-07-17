@@ -28,8 +28,8 @@ describe('Geofence database trigger test', () => {
 
         // FIXED: Removed the extra 'both' from the values array
         const geofenceResult = await client.query(`
-            INSERT INTO geofences (name, vehicle_id, trigger_type, boundary, is_active)
-            VALUES ('GEO_TEST-Zone', $1, 'both', ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))', 4326), true)
+            INSERT INTO geofences (name, vehicle_id, trigger_type, boundary)
+            VALUES ('GEO_TEST-Zone', $1, 'both', ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))', 4326))
             RETURNING id
         `, [vehicle_id]);
         const geofence_id = geofenceResult.rows[0].id;

@@ -25,9 +25,9 @@ describe('Geofence database trigger test', () => {
     test('should trigger entry and exit events when vehicle enters and exits geofence', async () => {
         const vehicle_id = 'GEO_TEST-1024'; 
         await client.query(`
-            INSERT INTO vehicles (id) 
+            INSERT INTO vehicles (vehicle_id) 
             VALUES ($1) 
-            ON CONFLICT (id) DO NOTHING
+            ON CONFLICT (vehicle_id) DO NOTHING
         `, [vehicle_id]);
 
         const geofenceResult = await client.query(`

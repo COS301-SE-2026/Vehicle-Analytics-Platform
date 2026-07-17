@@ -14,10 +14,12 @@ import {
 } from 'lucide-react'
 
 import { getVehicleById } from '@/services/mockTripData'
-import { getTripHistory,getOverallStats } from '@/services/mockTripHistory'
+import { getTripHistory,getOverallStats, getDailySafetyScores } from '@/services/mockTripHistory'
+
 import CurrentTripTab from '@/components/vehicles/CurrentTripTab'
 import VehicleStatusBadge from '@/components/vehicles/VehicleStatusBadge'
 import TripHistoryList from '@/components/vehicles/TripHistoryList'
+import SafetyScoreTrendChart from '@/components/vehicles/SafetyScoreTrendChart'
 
 
 const TABS = [
@@ -35,6 +37,7 @@ export default function VehicleProfile(){
     const [activeTab, setActiveTab] = useState ('current')
     const [trips, setTrips] = useState([])
     const [overallStats, setOverallStats] = useState(null)
+    const [dailyScores, setDailyScores] = useState([])
 
     useEffect(() => {
         let cancelled = false
@@ -73,14 +76,16 @@ export default function VehicleProfile(){
 
             async function fetchHistory(){
                 try{
-                    const [tripList, stats] = await Promise.all([
+                    const [tripList, stats, scores] = await Promise.all([
                         getTripHistory(id),
                         getOverallStats(id),
+                        getDailySafetyScores(id),
                     ])
 
                     if(cancelled) return
                     setTrips(tripList)
                     setOverallStats(stats)
+                    setDailyScores(scores)
                 } catch (err) {
                     if(cancelled) return
                     console.error('VehicleProfile history fetch error:', err)
@@ -149,10 +154,13 @@ export default function VehicleProfile(){
                     )}
 
                     {activeTab === 'history' && (
+                        <div className="space-y-4">
+                            <SafetyScoreTrendChart dailyScores={dailyScores} trips={trips}/>
                         <TripHistoryList
                             trips={trips}
                             overallScore={overallStats?.overallSafetyScore}>
                         </TripHistoryList>
+                    </div>
                     )}
             </div>
         )

@@ -69,7 +69,7 @@ export async function getTripHistory(vehicleId) {
 
 export async function getDailySafetyScores(vehicleId) {
     await delay()
-
+    console.log('getDailySafetyScares called with:', JSON.stringify(vehicleId), 'expected:', JSON.stringify(mockOverallStats.vehicleId))
     if (mockOverallStats.vehicleId !== vehicleId){
         return []
     }

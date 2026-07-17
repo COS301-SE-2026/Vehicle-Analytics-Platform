@@ -261,6 +261,7 @@ function setupMockData() {
     
 
 
+    
 
           
 
@@ -328,6 +329,7 @@ function setupMockData() {
 
     
 
+    
 
       
       return Promise.resolve({
@@ -351,6 +353,9 @@ function setupMockData() {
         rowCount: 1,
     
 
+          
+          {point_time: new Date(), latitude: -25.1, longitude: 28.1, speed_kmh: 80}
+    
 
       })
       
@@ -358,10 +363,16 @@ function setupMockData() {
     
     }
 
+          
+          vehicle_id: null,
+  
 
    
     
 
+          
+          is_active: true
+  
 
     if(sql.includes('FROM geofences') && sql.includes('WHERE id = $1')){
 
@@ -415,6 +426,15 @@ function setupMockData() {
 
     }
 
+    
+     
+     
+     
+     
+      
+     
+      return Promise.resolve({rows: [{ id: 1 }]});
+    
 
     if(sql.includes('FROM vehicles v')&&sql.includes('LEFT JOIN current_vehicle_position')){
 
@@ -427,6 +447,8 @@ function setupMockData() {
             created_at: new Date(),
             status: 'active',
             
+            status: 'active',
+            
             latitude: '-27.796935',
             longitude: '28.4293083',
             speed: 6,  
@@ -435,6 +457,7 @@ function setupMockData() {
             ignition: 'Ignition On',
  
             movement: 'Movement On',
+    
 
             last_update: new Date()
           }],
@@ -463,6 +486,7 @@ function setupMockData() {
       return Promise.resolve({rows: [], rowCount: 0});
     }
 
+    }
 
     
    
@@ -480,6 +504,7 @@ function setupMockData() {
     
     }
     
+    
     if(sql.includes('clean_telemetry')&&sql.includes('MAX(time)')){
 
       return Promise.resolve({
@@ -489,6 +514,7 @@ function setupMockData() {
           {vehicle_id: 'V001', time: new Date(), latitude: -25.0, longitude: 28.0, speed: 60, ignition: 'Ignition On', movement: 'Movement On', total_odometer: 10000}
         ],
         rowCount: 1,
+    
 
       });
     } 
@@ -510,6 +536,7 @@ function setupMockData() {
     
     if(sql.includes('SELECT * FROM driver_daily_safety_scores WHERE score_date = COALESCE')){
       if(params&&params[0]==='V001'){
+    
 
         return Promise.resolve({
           rows: [
@@ -580,11 +607,20 @@ function setupMockData() {
         rowCount: 2
       });
 
+    
+
+        
+        rowCount: 1
+    
+
+      })
+      ;
     }
     return Promise.resolve({rows: [], rowCount: 0});
   });
 }
 
+    
 
 
 module.exports = { mockPool, setupMockData };
@@ -592,6 +628,7 @@ module.exports = { mockPool, setupMockData };
 
 
 
+module.exports = { mockPool, setupMockData };
 
 
 

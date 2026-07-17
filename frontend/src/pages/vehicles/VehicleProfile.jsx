@@ -139,7 +139,7 @@ export default function VehicleProfile(){
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
                                     activeTab === tab.id
-                                        ? 'border-fleet-green text-fleet-text'
+                                        ? 'border-fleet-blue text-fleet-text'
                                         : 'border-transparent text-fleet-secondary hover:text-fleet-text'}`
                                     }>
                                         {tab.label}

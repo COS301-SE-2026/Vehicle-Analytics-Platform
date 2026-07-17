@@ -67,7 +67,7 @@ export default function VehiclesTable({ vehicles, page, totalPages, totalVehicle
                         type="button"
                         data-testid={`vehicles-page-${p}`}
                         onClick={() => onPageChange(p)}
-                        className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium ${p === page ? 'bg-fleet-green text-white' : 'border border-fleet-border text-fleet-text'}`}>
+                        className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium ${p === page ? 'bg-fleet-blue text-white' : 'border border-fleet-border text-fleet-text'}`}>
                             {p}
                         </button>
                     ))}

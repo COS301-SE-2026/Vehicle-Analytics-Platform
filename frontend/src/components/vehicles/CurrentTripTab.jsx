@@ -119,7 +119,7 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                     <button 
                         type="button"
                         onClick={()=> setShowAllEvents(true)}
-                        className="text-xs font-medium text-fleet-green hover:underline">
+                        className="text-xs font-medium text-fleet-blue hover:underline">
                         View All
                     </button>
                 </div>

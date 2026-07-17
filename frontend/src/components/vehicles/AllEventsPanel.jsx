@@ -108,7 +108,7 @@ export default function AllEventsPanel({ open, onOpenChange, vehicleId, events }
                                     data-testid={`events-page-${pageNumber}`}
                                     onClick={()=> setPage(pageNumber)}
                                     className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium ${
-                                        pageNumber === page ? 'bg-fleet-green text-white' : 'border border-fleet-border text-fleet-text'
+                                        pageNumber === page ? 'bg-fleet-blue text-white' : 'border border-fleet-border text-fleet-text'
                                     }`}>
                                         {pageNumber}
                                     </button>

@@ -87,7 +87,7 @@ app.use('/api/admin', adminRoutes);
 
 
 app.use('/api/safety', safetyRoutes);
-app.use('/api/trips', tripRoutes);
+//app.use('/api/trips', tripRoutes);
 app.use('/api/geofences',geofenceRoutes);
 
 // app.use('/api/fleet', fleetAnalyticsRoutes);

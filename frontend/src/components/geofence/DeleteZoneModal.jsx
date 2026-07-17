@@ -10,7 +10,7 @@ import {
     } from '@/components/ui/alert-dialog';
 import { TriangleAlert } from 'lucide-react';
 
-export default function DeleteZoneModal( {open, onOpenChange, zone, onConfrim}) {
+export default function DeleteZoneModal( {open, onOpenChange, zone, onConfirm}) {
   
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -28,14 +28,15 @@ export default function DeleteZoneModal( {open, onOpenChange, zone, onConfrim}) 
               zone? This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
+
         <AlertDialogFooter className="flex flex-col gap-2 sm:flex-col">
           <AlertDialogAction
-            className="text-white bg-fleet-blue hover:bg-fleet-blue/90"
+            className="h-12 text-white bg-fleet-blue hover:bg-fleet-blue/90"
             onClick={() => onConfirm?.(zone)}
           >
             Delete
           </AlertDialogAction>
-          <AlertDialogCancel className="text-fleet-secondary">
+          <AlertDialogCancel className="h-12 text-fleet-secondary">
             Cancel
           </AlertDialogCancel>
         </AlertDialogFooter>

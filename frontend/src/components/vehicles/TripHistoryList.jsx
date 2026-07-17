@@ -10,10 +10,11 @@ import {
 } from 'lucide-react'
 
 import { getScoreSeverity } from '@/utils/safetyScore'
-import { getTripEvents } from '@/services/mockTripHistory'
+import { getTripEvents, getTripRoute } from '@/services/mockTripHistory'
 
 import GreenDrivingBreakdown from './GreenDrivingBreakdown'
 import EventTimeline from './EventTimeline'
+import RouteMap from './RouteMap'
 
 const PAGE_SIZE = 10
 
@@ -29,6 +30,7 @@ export default function TripHistoryList({ trips, overallScore}){
     const [page, setPage] = useState(1)
     const [expandedTripId, setExpandedTripId] = useState(null)
     const [tripEvents, setTripEvents] = useState([])
+    const [tripRoute, setTripRoute] = useState([])
 
     useEffect(() => {
         if (!expandedTripId) {
@@ -40,6 +42,22 @@ export default function TripHistoryList({ trips, overallScore}){
         getTripEvents(expandedTripId).then((events) => {
             if(!cancelled){
                 setTripEvents(events)
+            }
+        })
+
+        return() => {cancelled = true}
+    }, [expandedTripId])
+
+    useEffect(() => {
+        if (!expandedTripId) {
+            setTripRoute([])
+            return
+        }
+
+        let cancelled = false
+        getTripRoute(expandedTripId).then((route) => {
+            if(!cancelled){
+                setTripRoute(route)
             }
         })
 
@@ -105,13 +123,19 @@ export default function TripHistoryList({ trips, overallScore}){
 
 
                             {isExpanded && (
-                                <div className="px-4 pb-4 space-y-4">
+                                <div className="px-4 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <RouteMap
+                                        routePoints={trip.id === expandedTripId ? tripRoute : []}
+                                        routeLabel={trip.routeLabel}
+                                    />
+                                <div className="space-y-4">
                                     <GreenDrivingBreakdown
                                         harshBrakingCount={trip.harshBrakingCount}
                                         harshAccelerationCount={trip.harshAccelerationCount}
                                         harshCorneringCount={trip.harshCorneringCount}
                                     />
                                     <EventTimeline events={trip.id === expandedTripId ? tripEvents : []}/>
+                                </div>
                                 </div>
                             )}
                             </div>

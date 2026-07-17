@@ -106,4 +106,51 @@ async function getVehicleById(req, res) {
     return error(res, `Database Crash Detail: ${err.message}. Code: ${err.code || 'None'}. Stack: ${err.stack}`, 500);  }
 }
 
-module.exports = { getLiveLocations, getVehicleById };
+async function getVehiclePositionBuffer(req, res){
+  try{
+    const result = await pool.query(`
+      SELECT 
+        vehicle_id,
+        time,
+        latitude,
+        longitude,
+        speed,
+        ignition,
+        movement,
+        total_odometer
+      FROM clean_telemetry
+      WHERE 
+        measurement = 'avl'
+        AND time >= (SELECT MAX(time) FROM clean_telemetry) - INTERVAL '30 seconds'
+      ORDER BY vehicle_id, time;
+      `);
+
+      const bucket = {}
+
+      for (const row of result.rows) {
+        if (!bucket[row.vehicle_id]) {
+          bucket[row.vehicle_id] = [];
+        }
+        bucket[row.vehicle_id].push({
+          time: row.time,
+          latitude: Number(row.latitude),
+          longitude: Number(row.longitude),
+          speed: row.speed,
+          ignition: row.ignition,
+          movement: row.movement,
+          total_odometer: row.total_odometer
+        });
+      }
+
+      return success(res, {
+        timestamp: new Date().toISOString(),
+        vehicles: bucket
+      }, 200);
+
+  }catch(err){
+    console.error('Get vehicle position buffer error:', err);
+    return error(res, `Database Crash Detail: ${err.message}. Code: ${err.code || 'None'}. Stack: ${err.stack}`, 500);
+  }
+}
+
+module.exports = { getLiveLocations, getVehicleById, getVehiclePositionBuffer };

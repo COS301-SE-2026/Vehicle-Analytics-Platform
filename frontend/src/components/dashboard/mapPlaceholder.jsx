@@ -8,7 +8,7 @@ class MapErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="h-72 flex items-center justify-center bg-gray-50 text-gray-400 text-sm">
+        <div className={`${this.props.height} items-center justify-center bg-gray-50 text-gray-400 text-sm`}>
           Map unavailable — Mapbox token not configured
         </div>
       )
@@ -17,7 +17,11 @@ class MapErrorBoundary extends Component {
   }
 }
 
-export default function MapSection({ active, idle, offline, vehicles = [] }) {
+MapErrorBoundary.propTypes = {
+  height: PropTypes.string,
+}
+
+export default function MapSection({ active, idle, offline, vehicles = [], mapHeight = 'h-72' }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -37,8 +41,8 @@ export default function MapSection({ active, idle, offline, vehicles = [] }) {
           </span>
         </div>
       </div>
-      <MapErrorBoundary>
-        <div className="h-72">
+      <MapErrorBoundary height={mapHeight}>
+        <div className={mapHeight}>
           <FleetMap
             vehicles={vehicles}
             minimal={true}
@@ -54,4 +58,5 @@ MapSection.propTypes = {
   idle:     PropTypes.number,
   offline:  PropTypes.number,
   vehicles: PropTypes.array,
+  mapHeight: PropTypes.string,
 }

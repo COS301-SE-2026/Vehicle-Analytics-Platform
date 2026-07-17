@@ -11,35 +11,83 @@ const STATUS_COLORS = {
   offline: '#9ca3af',
 }
 
+function playVehicle(entry, incomingFrames) {
+  if (!incomingFrames || incomingFrames.length === 0) return;
 
-function animateMarker(entry, end, duration = 1000){
-  if(entry.animationId) {
-    cancelAnimationFrame(entry.animationId);
+  if (entry.animationFrame) {
+    cancelAnimationFrame(entry.animationFrame);
   }
-  
-  const start = entry.marker.getLngLat();
-  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 1000;
 
+  // 1. ANTI-JUMP: Filter out old historical frames we've already animated past
+  let newFrames = incomingFrames;
+  if (entry.lastAnimatedTime) {
+    newFrames = incomingFrames.filter(f => new Date(f.time).getTime() > entry.lastAnimatedTime);
+  }
+
+  if (newFrames.length === 0) return;
+
+  // 2. ANTI-TELEPORT: Get the EXACT physical location the marker is sitting at right now
+  const currentPos = entry.marker.getLngLat();
+  
+  // Create a smooth transition array combining current screen location + new target path
+  const frames = [
+    {
+      latitude: currentPos.lat,
+      longitude: currentPos.lng,
+      time: new Date().getTime() // Fake timestamp placeholder for the current moment
+    },
+    ...newFrames
+  ];
+
+  let frame = 0;
   let startTime = null;
 
-  function animate(timestamp){
-    if(!startTime) startTime = timestamp;
-    const progress = Math.min((timestamp - startTime) / safeDuration, 1);
+  function animate(timestamp) {
+    if (!startTime) startTime = timestamp;
 
-    const lng = start.lng + (end.lng - start.lng) * progress;
-    const lat = start.lat + (end.lat - start.lat) * progress;
+    const from = frames[frame];
+    const to = frames[frame + 1];
+
+    if (!to) {
+      entry.animationFrame = null;
+      return;
+    }
+
+    const fromTime = typeof from.time === 'number' ? from.time : new Date(from.time).getTime();
+    const toTime = new Date(to.time).getTime();
+    
+    let duration = Math.max(toTime - fromTime, 1000); 
+
+    if (duration > 5000 || duration <= 0) { 
+      duration = 2000; 
+    }
+
+    const progress = Math.min((timestamp - startTime) / duration, 1);
+
+    const lat = from.latitude + (to.latitude - from.latitude) * progress;
+    const lng = from.longitude + (to.longitude - from.longitude) * progress;
 
     entry.marker.setLngLat([lng, lat]);
 
-    if(progress < 1){
-      entry.animationId = requestAnimationFrame(animate);
+    if (progress >= 1) {
+      frame++;
+      startTime = null; 
+      
+      // Mark this timestamp as completely visited so we never jump backwards to it
+      entry.lastAnimatedTime = toTime;
+    }
+
+    if (frame < frames.length - 1) {
+      entry.animationFrame = requestAnimationFrame(animate);
     } else {
-      entry.animationId = null;
+      entry.animationFrame = null;
     }
   }
-  entry.animationId = requestAnimationFrame(animate);
+  
+  entry.animationFrame = requestAnimationFrame(animate);
 }
-export default function FleetMap({ vehicles = [], onVehicleClick, minimal = false }) {
+
+export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, minimal = false }) {
   const mapContainer = useRef(null)
   const map = useRef(null)
   const markers = useRef({})
@@ -60,7 +108,7 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
         'top-right'
       )
     }
-   }, [])
+  }, [minimal])
 
   useEffect(() => {
     if (!map.current) return
@@ -68,106 +116,88 @@ export default function FleetMap({ vehicles = [], onVehicleClick, minimal = fals
     const nextMarkerIds = new Set()
 
     vehicles.forEach(vehicle => {
-      nextMarkerIds.add(vehicle.id)
+      nextMarkerIds.add(vehicle.id);
 
-      const existingEntry = markers.current[vehicle.id]
+      const existingEntry = markers.current[vehicle.id];
+      const frames = buffer?.[vehicle.id];
       
       if (existingEntry) {
-        existingEntry.vehicle = vehicle
+        existingEntry.vehicle = vehicle;
 
-        const current = existingEntry.marker.getLngLat();
+        existingEntry.marker.getElement().style.background = 
+          STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
 
-        const moved = Math.abs(current.lng - vehicle.lng) > 0.0001 || Math.abs(current.lat - vehicle.lat) > 0.0001;
-
-        if (moved) {
-          animateMarker(existingEntry, { lng: vehicle.lng, lat: vehicle.lat }, 950);
+        if (frames && frames.length >= 2) {
+          const lastFrameTime = frames[frames.length - 1].time;
+          if (existingEntry.lastTime !== lastFrameTime) {
+            existingEntry.lastTime = lastFrameTime;
+            playVehicle(existingEntry, frames);
+          }
         }
-
-        const existingElement = existingEntry.marker.getElement();
-        existingElement.style.background = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline
-
       } else {
         const el = document.createElement('div')
         el.className = 'vehicle-marker'
+        el.style.width = '32px'
+        el.style.height = '32px'
+        el.style.borderRadius = '50%'
+        el.style.backgroundColor = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline
+        el.style.border = '2px solid white'
+        el.style.cursor = 'pointer'
+        el.style.display = 'flex'
+        el.style.alignItems = 'center'
+        el.style.justifyContent = 'center'
+        el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)'
+        el.style.transition = 'box-shadow 0.2s'
 
-        Object.assign(el.style, {
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          background: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
-          border: '2px solid white',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          zIndex: '1',
-          pointerEvents: 'auto',
-          transition: 'box-shadow 0.15s, width 0.15s, height 0.15s, background 0.15s',
-        })
-
-        const svgNamespace = 'http://www.w3.org/2000/svg'
-        const icon = document.createElementNS(svgNamespace, 'svg')
-        icon.setAttribute('width', '14')
-        icon.setAttribute('height', '14')
-        icon.setAttribute('viewBox', '0 0 24 24')
-        icon.setAttribute('fill', 'white')
-
-        const path = document.createElementNS(svgNamespace, 'path')
-        path.setAttribute(
-          'd',
-          'M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z'
-        )
-
-        icon.appendChild(path)
-        el.appendChild(icon)
+        el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
 
         el.addEventListener('mouseenter', () => {
-          el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.5)'
-          el.style.width = '36px'
-          el.style.height = '36px'
+          el.style.boxShadow = '0 0 0 4px rgba(255,255,255,0.3)'
         })
-
         el.addEventListener('mouseleave', () => {
-          el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
-          el.style.width = '32px'
-          el.style.height = '32px'
+          el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)'
         })
 
         if (!minimal && onVehicleClick) {
-          el.addEventListener('click', (e) => {
-            e.stopPropagation()
-            onVehicleClick(markers.current[vehicle.id].vehicle)
-          })
+          el.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onVehicleClick(markers.current[vehicle.id].vehicle);
+          }
         }
 
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'center',
-        })
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([vehicle.lng, vehicle.lat])
           .addTo(map.current)
 
-        markers.current[vehicle.id] = {marker, vehicle, animationId: null, lastUpdate: vehicle.last_update}
+        markers.current[vehicle.id] = {
+          marker, 
+          vehicle, 
+          animationFrame: null, 
+          lastTime: frames && frames.length > 0 ? frames[frames.length - 1].time : null
+        };
+
+        if (frames) playVehicle(markers.current[vehicle.id], frames);
       }
     })
 
-    Object.entries(markers.current).forEach(([vehicleId, {marker, vehicle}]) => {
+    // Cleanup old markers
+    Object.entries(markers.current).forEach(([vehicleId, entry]) => {
       if (!nextMarkerIds.has(vehicleId)) {
-        marker.remove()
+        if (entry.animationFrame) cancelAnimationFrame(entry.animationFrame);
+        entry.marker.remove();
         delete markers.current[vehicleId]
       }
-    })
-  }, [vehicles, minimal, onVehicleClick])
+    });
 
-  return (
-    <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
-  )
+  }, [vehicles, buffer, minimal, onVehicleClick])
+
+  return <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 }
 
 FleetMap.propTypes = {
-  vehicles:       PropTypes.array,
+  vehicles: PropTypes.array,
+  buffer: PropTypes.object,
   onVehicleClick: PropTypes.func,
-  minimal:        PropTypes.bool,
+  minimal: PropTypes.bool,
 }

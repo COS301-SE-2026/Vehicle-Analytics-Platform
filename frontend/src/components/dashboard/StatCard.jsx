@@ -12,7 +12,7 @@ export default function StatCard({ icon: Icon, label, value, sub }) {
           <span className="text-base font-normal text-gray-400 ml-2">{sub}</span>
         </p>
       </div>
-      <Icon className="w-8 h-8 text-green-700 opacity-70" />
+      <Icon className="w-8 h-8 text-fleet-blue opacity-70" />
     </div>
   )
 }

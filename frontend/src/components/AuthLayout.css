@@ -14,12 +14,27 @@
 .auth-left {
   width: 240px;
   min-width: 240px;
-  background-color: #4D7C5F;
+  background:linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
   display: flex;
   flex-direction: column;
   padding: 28px 24px 24px;
   position: relative;
   overflow: hidden;
+}
+
+.auth-left::before {
+  content:'';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(255, 255, 255, 0.01) 50%,
+    rgba(255, 255, 255, 0.06) 55%,
+    transparent 70%
+  );
+  pointer-events: none;
 }
 
 .auth-logo {
@@ -40,10 +55,11 @@
 
 .auth-hero h1 {
   color: white;
-  font-size: 22px;
+  font-size: 35px;
   font-weight: 700;
   line-height: 1.3;
   letter-spacing: -0.5px;
+  max-width: 320px;
 }
 
 /* Fleet status grid */
@@ -67,7 +83,7 @@
   border-radius: 2px;
 }
 
-.fleet-tile--active  { background: rgba(255,255,255,0.55); }
+.fleet-tile--active  { background: rgba(255, 255, 255, 0.55); }
 .fleet-tile--warning { background: #e07b39; }
 .fleet-tile--offline { background: rgba(255,255,255,0.18); }
 
@@ -207,7 +223,7 @@
 }
 
 .field-group input:focus {
-  border-color: #4D7C5F;
+  border-color: #14304F;
   box-shadow: 0 0 0 3px rgba(58,107,31,0.08);
 }
 
@@ -249,7 +265,7 @@
   transition: background 0.3s;
 }
 
-.strength-seg.active { background: #4D7C5F; }
+.strength-seg.active { background: #14304F; }
 
 .strength-hints {
   display: grid;
@@ -266,7 +282,7 @@
   gap: 4px;
 }
 
-.strength-hint.met { color: #4D7C5F; }
+.strength-hint.met { color: #14304F; }
 
 .strength-hint::before {
   content: '●';
@@ -288,17 +304,17 @@
 
 .checkbox-row input[type="checkbox"] {
   margin-top: 2px;
-  accent-color: #4D7C5F;
+  accent-color: #14304F;
   flex-shrink: 0;
 }
 
-.checkbox-row a { color: #4D7C5F; text-decoration: none; }
+.checkbox-row a { color: #14304F; text-decoration: none; }
 
 /* Primary CTA */
 .btn-primary {
   width: 100%;
   padding: 11px;
-  background: #4D7C5F;
+  background: #14304F;
   color: white;
   border: none;
   border-radius: 6px;
@@ -310,7 +326,7 @@
   margin-top: 4px;
 }
 
-.btn-primary:hover { background: #4D7C5F; }
+.btn-primary:hover { background: #14304F; }
 .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
 
 /* Footer link */
@@ -322,7 +338,7 @@
 }
 
 .auth-footer-link a {
-  color: #4D7C5F;
+  color: #14304F;
   font-weight: 600;
   text-decoration: none;
 }
@@ -336,7 +352,7 @@
 }
 
 .space-between a {
-  color: #4D7C5F;
+  color: #14304F;
   text-decoration: none;
   font-weight: 500;
 }

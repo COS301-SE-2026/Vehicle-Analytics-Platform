@@ -1,4 +1,4 @@
--- Migration: V12__ create_geofence_tables.sql
+-- Migration: V12__create_geofence_tables.sql
 -- Geofencing using postgis extension
 
 CREATE TABLE geofences(

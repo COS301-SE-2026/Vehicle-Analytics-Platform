@@ -459,7 +459,7 @@ describe('Geofence Controller - Extra Branch Coverage', () => {
       
 
         
-        polygon: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]},
+        boundary: {type: 'Polygon', coordinates: [[[0,0],[1,0],[1,1],[0,1],[0,0]]]},
       
 
         

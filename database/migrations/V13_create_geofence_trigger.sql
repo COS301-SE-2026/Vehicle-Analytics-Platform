@@ -22,24 +22,13 @@ BEGIN
         SELECT id, boundary, trigger_type
         FROM geofences
         WHERE (vehicle_id IS NULL OR vehicle_id = NEW.vehicle_id)
-          AND boundary && current_location -- bounding box check for performance
-          AND ST_Intersects(boundary, current_location) -- checks exact intersection
+          AND boundary && current_location 
+          AND ST_Intersects(boundary, current_location) 
     LOOP 
-        --Determine if the vehicle is currently inside the boundary
+        --Determine current intersection
         currently_inside := ST_Contains(geofence_record.boundary, current_location);
 
-        --Upsert the state and capture the PREVIOUS state atomically
-        --If no previous state exists, we default to FALSE
-        INSERT INTO geofence_state (geofence_id, vehicle_id, is_inside, last_updated)
-        VALUES (geofence_record.id, NEW.vehicle_id, currently_inside, NOW())
-        ON CONFLICT (geofence_id, vehicle_id) 
-        DO UPDATE SET 
-            is_inside = EXCLUDED.is_inside,
-            last_updated = EXCLUDED.last_updated
-        RETURNING (SELECT is_inside FROM geofence_state WHERE geofence_id = geofence_record.id AND vehicle_id = NEW.vehicle_id) INTO previously_inside;
-
-        --Because DO UPDATE fires after the old values are read, we fetch the old state 
-        
+        --FETCH the old state BEFORE updating it
         SELECT is_inside INTO previously_inside
         FROM geofence_state
         WHERE geofence_id = geofence_record.id AND vehicle_id = NEW.vehicle_id;
@@ -63,13 +52,13 @@ BEGIN
             END IF;
         END IF;
 
-        --Update the state database with the new status
+        --UPSERT the state database with the new status (Only do this ONCE at the end)
         INSERT INTO geofence_state (geofence_id, vehicle_id, is_inside, last_updated)
         VALUES (geofence_record.id, NEW.vehicle_id, currently_inside, NOW())
         ON CONFLICT (geofence_id, vehicle_id) 
         DO UPDATE SET 
-            is_inside = currently_inside,
-            last_updated = NOW();
+            is_inside = EXCLUDED.is_inside,
+            last_updated = EXCLUDED.last_updated;
 
     END LOOP;
 

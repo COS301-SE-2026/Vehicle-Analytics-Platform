@@ -99,25 +99,25 @@ export default function FleetMapPlaceholder({ active, idle, offline, total, vehi
       <div className="relative flex-1">
 
         {/* Fleet Summary Card */}
-        <div className="absolute top-4 left-4 z-10 bg-white rounded-xl shadow p-3 w-44">
+        <div className="absolute top-4 left-4 z-10 bg-white rounded-xl shadow p-3 w-60 h-55">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-              <span className="text-xs font-semibold text-gray-700">Live Fleet</span>
+              <span className="text-md font-semibold text-gray-700">Live Fleet</span>
             </div>
-            <span className="text-sm font-bold text-gray-800">{total}</span>
+            <span className="text-xl font-bold text-gray-800">{total}</span>
           </div>
-          <div className="grid grid-cols-2 gap-y-1 text-xs">
+          <div className="grid grid-cols-2 gap-y-1 text-md">
             <div>
-              <p className="text-gray-400 uppercase text-[10px]">Moving</p>
+              <p className="text-gray-400 uppercase text-[12px]">Moving</p>
               <p className="font-bold text-gray-700">{active}</p>
             </div>
             <div>
-              <p className="text-gray-400 uppercase text-[10px]">Offline</p>
+              <p className="text-gray-400 uppercase text-[12px]">Offline</p>
               <p className="font-bold text-gray-700">{offline}</p>
             </div>
             <div>
-              <p className="text-gray-400 uppercase text-[10px]">Idle</p>
+              <p className="text-gray-400 uppercase text-[12px]">Idle</p>
               <p className="font-bold text-gray-700">{idle}</p>
             </div>
           </div>

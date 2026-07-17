@@ -9,7 +9,7 @@ describe('AuthLayout', () => {
 
   test('renders logo text', () => {
     render(<AuthLayout><div>Test</div></AuthLayout>);
-    expect(screen.getByText('V.A.P.O.R')).toBeInTheDocument();
+    expect(screen.getByAltText('V.A.P.O.R')).toBeInTheDocument();
   });
 
   test('renders fleet status section', () => {

@@ -11,6 +11,8 @@ import {
 
 import { getScoreSeverity } from '@/utils/safetyScore'
 
+import GreenDrivingBreakdown from './GreenDrivingBreakdown'
+
 const PAGE_SIZE = 10
 
 function formatDate(dateStr){
@@ -85,7 +87,11 @@ export default function TripHistoryList({ trips, overallScore}){
 
                             {isExpanded && (
                                 <div className="px-4 pb-4">
-                                    <p className="text-xs text-fleet-secondary">Trip detail coming soon</p>
+                                    <GreenDrivingBreakdown
+                                        harshBrakingCount={trip.harshBrakingCount}
+                                        harshAccelerationCount={trip.harshAccelerationCount}
+                                        harshCorneringCount={trip.harshCorneringCount}
+                                    />
                                 </div>
                             )}
                             </div>

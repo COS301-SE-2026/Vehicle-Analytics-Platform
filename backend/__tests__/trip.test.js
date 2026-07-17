@@ -253,5 +253,3 @@ describe('Trip Controller - Additional Coverage', () => {
   });
 
 });
-
-

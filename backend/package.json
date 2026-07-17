@@ -63,6 +63,11 @@
   "jest": {
 
     "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ],
 
     "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
 

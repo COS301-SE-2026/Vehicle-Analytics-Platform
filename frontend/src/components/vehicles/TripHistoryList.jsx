@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import PropTypes from 'prop-types'
 
@@ -10,8 +10,10 @@ import {
 } from 'lucide-react'
 
 import { getScoreSeverity } from '@/utils/safetyScore'
+import { getTripEvents } from '@/services/mockTripHistory'
 
 import GreenDrivingBreakdown from './GreenDrivingBreakdown'
+import EventTimeline from './EventTimeline'
 
 const PAGE_SIZE = 10
 
@@ -25,7 +27,24 @@ function formatDate(dateStr){
 
 export default function TripHistoryList({ trips, overallScore}){
     const [page, setPage] = useState(1)
-    const[expandedTripId, setExpandedTripId] = useState(null)
+    const [expandedTripId, setExpandedTripId] = useState(null)
+    const [tripEvents, setTripEvents] = useState([])
+
+    useEffect(() => {
+        if (!expandedTripId) {
+            setTripEvents([])
+            return
+        }
+
+        let cancelled = false
+        getTripEvents(expandedTripId).then((events) => {
+            if(!cancelled){
+                setTripEvents(events)
+            }
+        })
+
+        return() => {cancelled = true}
+    }, [expandedTripId])
 
     const totalPages = Math.max(1, Math.ceil(trips.length / PAGE_SIZE))
     const pageItems = trips.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -86,12 +105,13 @@ export default function TripHistoryList({ trips, overallScore}){
 
 
                             {isExpanded && (
-                                <div className="px-4 pb-4">
+                                <div className="px-4 pb-4 space-y-4">
                                     <GreenDrivingBreakdown
                                         harshBrakingCount={trip.harshBrakingCount}
                                         harshAccelerationCount={trip.harshAccelerationCount}
                                         harshCorneringCount={trip.harshCorneringCount}
                                     />
+                                    <EventTimeline events={trip.id === expandedTripId ? tripEvents : []}/>
                                 </div>
                             )}
                             </div>

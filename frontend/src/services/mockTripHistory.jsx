@@ -1,5 +1,3 @@
-import { timeStamp } from "node:console"
-
 const mockTrips = [
     {
         id: 'trip-001',
@@ -56,11 +54,11 @@ const mockDailyScores = [
 
 const mockTripEvents = {
     'trip-001': [
-        {type: 'trip_started', label: 'Trip Started', timeStamp: '2026-07-14T09:15:02', latitude: -25.9895, longitude: 28.1281},
-        {type: 'harsh_braking', label: 'Harsh Braking Event', timeStamp: '2026-07-14T09:31:15', latitude: -25.9820, longitude: 28.1190},
-        {type: 'harsh_braking', label: 'Harsh Braking Event', timeStamp: '2026-07-14T09:38:40', latitude: -25.9860, longitude: 28.1105},
-        {type: 'harsh_acceleration', label: 'Harsh Acceleration Event', timeStamp: '2026-07-14T09:44:02', latitude: -25.9705, longitude: 28.1042},
-        {type: 'trip_ended', label: 'End of Trip', timeStamp: '2026-07-14T09:52:11', latitude: -25.9650, longitude: 28.0980},
+        {type: 'trip_started', label: 'Trip Started', timestamp: '2026-07-14T09:15:02', latitude: -25.9895, longitude: 28.1281},
+        {type: 'harsh_braking', label: 'Harsh Braking Event', timestamp: '2026-07-14T09:31:15', latitude: -25.9820, longitude: 28.1190},
+        {type: 'harsh_braking', label: 'Harsh Braking Event', timestamp: '2026-07-14T09:38:40', latitude: -25.9860, longitude: 28.1105},
+        {type: 'harsh_acceleration', label: 'Harsh Acceleration Event', timestamp: '2026-07-14T09:44:02', latitude: -25.9705, longitude: 28.1042},
+        {type: 'trip_ended', label: 'End of Trip', timestamp: '2026-07-14T09:52:11', latitude: -25.9650, longitude: 28.0980},
     ]
 }
 

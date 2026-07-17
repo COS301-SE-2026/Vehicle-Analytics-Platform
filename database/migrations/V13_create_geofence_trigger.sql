@@ -19,32 +19,30 @@ BEGIN
     current_location := ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326);
     
     FOR geofence_record IN
-        SELECT id, boundary, trigger_type
-        FROM geofences
-        WHERE (vehicle_id IS NULL OR vehicle_id = NEW.vehicle_id)
-          AND boundary && current_location 
-          AND ST_Intersects(boundary, current_location) 
+        SELECT g.id, g.boundary, g.trigger_type, s.is_inside as state_inside
+        FROM geofences g
+        LEFT JOIN geofence_state s ON g.id = s.geofence_id AND s.vehicle_id = NEW.vehicle_id
+        WHERE (g.vehicle_id IS NULL OR g.vehicle_id = NEW.vehicle_id)
+          AND (
+            (g.boundary && current_location AND ST_Intersects(g.boundary, current_location))
+            OR 
+            (s.is_inside = TRUE)
+          )
     LOOP 
-        --Determine current intersection
+        -- Determine current intersection
         currently_inside := ST_Contains(geofence_record.boundary, current_location);
 
-        --FETCH the old state BEFORE updating it
-        SELECT is_inside INTO previously_inside
-        FROM geofence_state
-        WHERE geofence_id = geofence_record.id AND vehicle_id = NEW.vehicle_id;
-        
-        IF previously_inside IS NULL THEN
-            previously_inside := FALSE; -- Default for first-time tracking
-        END IF;
+        -- Use the pre-fetched state from our JOIN
+        previously_inside := COALESCE(geofence_record.state_inside, FALSE);
 
-        --Check for Entry Event
+        -- Check for Entry Event
         IF NOT previously_inside AND currently_inside THEN
             IF geofence_record.trigger_type IN ('entry', 'both') THEN
                 INSERT INTO geofence_events (geofence_id, vehicle_id, event_type, location, speed)
                 VALUES (geofence_record.id, NEW.vehicle_id, 'entry', current_location, NEW.speed);
             END IF;
 
-        --Check for Exit Event
+        -- Check for Exit Event
         ELSIF previously_inside AND NOT currently_inside THEN 
             IF geofence_record.trigger_type IN ('exit', 'both') THEN
                 INSERT INTO geofence_events (geofence_id, vehicle_id, event_type, location, speed)
@@ -52,7 +50,7 @@ BEGIN
             END IF;
         END IF;
 
-        --UPSERT the state database with the new status (Only do this ONCE at the end)
+        -- UPSERT the state database with the new status
         INSERT INTO geofence_state (geofence_id, vehicle_id, is_inside, last_updated)
         VALUES (geofence_record.id, NEW.vehicle_id, currently_inside, NOW())
         ON CONFLICT (geofence_id, vehicle_id) 

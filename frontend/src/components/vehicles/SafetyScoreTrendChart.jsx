@@ -10,6 +10,8 @@ import {
     ResponsiveContainer
 }from 'recharts'
 
+import { getScoreSeverity } from '@/utils/safetyScore'
+
 import PropTypes from 'prop-types'
 
 function formatDateLabel(dateStr) {
@@ -17,6 +19,28 @@ function formatDateLabel(dateStr) {
         day: '2-digit',
         month: 'short',
     })
+}
+
+function CustomToolTip({ active, payload, label }){
+    if(!active || !payload || payload.length === 0){
+        return null
+    }
+
+    const score = payload[0].value
+    const severity = getScoreSeverity(score)
+
+    return (
+        <div className="bg-white norder border-fleet-border rounded-lg px-3 py-2 text-xs shdow-sm">
+            <p className="text-fleet-secondary mb-1">{label}</p>
+            <p className={`font-semibold ${severity.textClass}`}>Safety Score: {score}</p>
+        </div>
+    )
+}
+
+CustomToolTip.propTypes = {
+    active: PropTypes.bool,
+    payload: PropTypes.array,
+    label: PropTypes.string,
 }
 
 export default function SafetyScoreTrendChart({ dailyScores, trips }) {
@@ -50,7 +74,7 @@ export default function SafetyScoreTrendChart({ dailyScores, trips }) {
                         onClick={()=> setView('day')}
                         className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
                             view === 'day'
-                            ? 'border-fleet-green text-fleet-green'
+                            ? 'border-fleet-blue text-fleet-blue'
                             : 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
                         }`}>
                             Per Day
@@ -62,7 +86,7 @@ export default function SafetyScoreTrendChart({ dailyScores, trips }) {
                             onClick={() => setView('trip')}
                             className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
                                 view === 'trip'
-                                ? 'border-fleet-green text-fleet-green'
+                                ? 'border-fleet-blue text-fleet-blue'
                                 : 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
                             }`}>
                                 Per Trip
@@ -101,23 +125,14 @@ export default function SafetyScoreTrendChart({ dailyScores, trips }) {
                                 domain={[0,100]}
                             />
 
-                            <Tooltip
-                                contentStyle={{
-                                    background:'#FFFFFF',
-                                    border: '1px solid #D9D8D2',
-                                    borderRadius: '8px',
-                                    fontSize: '12px',
-                                }}
-
-                                formatter={(value) => [`${value}`, 'Safety Score']}
-                            />
+                            <Tooltip content={<CustomToolTip/>}/>
 
                             <Line
                                 type="monotone"
                                 dataKey="score"
-                                stroke="#4D7C5F"
+                                stroke="#14304F"
                                 strokeWidth={2}
-                                dot={{fill: '#4D7C5F', r: 3}}
+                                dot={{fill: '#14304F', r: 3}}
                             />
                         </LineChart>
                 </ResponsiveContainer>

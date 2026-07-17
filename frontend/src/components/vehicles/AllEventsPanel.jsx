@@ -61,7 +61,7 @@ export default function AllEventsPanel({ open, onOpenChange, vehicleId, events }
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="right" className="w-full sm:max-w-md">
+            <SheetContent side="right" className="w-full sm:max-w-md bg-white">
                 <SheetHeader>
                     <SheetTitle>All Events: {dateHeading}</SheetTitle>
                     <SheetDescription>Vehicle: {vehicleId}</SheetDescription>

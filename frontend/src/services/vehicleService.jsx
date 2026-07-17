@@ -145,3 +145,22 @@ export async function deleteUser(userId) {
   if (!res.ok) throw new Error('Failed to delete user')
   return await res.json()
 }
+
+// GET /api/vehicles/buffer (for live map)
+export async function getVehiclePositionBuffer() {
+  const headers = await getAuthHeaders();
+
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/buffer`, {
+    headers
+  });
+
+  if(!res.ok){
+    throw new Error('Failed to fetch playback buffer')
+  }
+
+  const data = await res.json();
+
+  return data.data.vehicles;
+
+}
+

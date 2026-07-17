@@ -36,6 +36,7 @@ jest.mock('@/components/dashboard/LiveFleetMapPlaceholder', () => {
 
 jest.mock('@/services/vehicleService', () => ({
   getVehicleLocations: jest.fn(),
+  getVehiclePositionBuffer: jest.fn(),
 }))
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
@@ -88,6 +89,7 @@ describe('LiveMap', () => {
   describe('initial render', () => {
     it('shows a loading spinner before data arrives', async () => {
       vehicleService.getVehicleLocations.mockImplementationOnce(() => new Promise(() => {}))
+      vehicleService.getVehiclePositionBuffer.mockImplementationOnce(() => new Promise(() => {}))
 
       await act(async () => {
         render(<LiveMap />)

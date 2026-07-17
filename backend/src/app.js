@@ -139,7 +139,7 @@ app.use('/api/safety', safetyRoutes);
 
 
 
-app.use('/api/trips', tripRoutes);
+//app.use('/api/trips', tripRoutes);
 
 
 

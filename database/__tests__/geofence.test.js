@@ -8,8 +8,6 @@ describe('Geofence database trigger test', () => {
         await client.query(`DELETE FROM geofence_state WHERE vehicle_id LIKE 'GEO_TEST-%'`);
         await client.query(`DELETE FROM clean_telemetry WHERE vehicle_id LIKE 'GEO_TEST-%'`);
         await client.query(`DELETE FROM geofences WHERE name LIKE 'GEO_TEST-%'`);
-        // FIX: Clean up the dummy vehicle row as well
-        await client.query(`DELETE FROM vehicles WHERE id LIKE 'GEO_TEST-%'`);
     };
 
     beforeAll(async () => {

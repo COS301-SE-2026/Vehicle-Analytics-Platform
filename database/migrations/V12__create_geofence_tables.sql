@@ -25,7 +25,7 @@ CREATE TABLE geofence_events(
     id BIGSERIAL PRIMARY KEY,
     geofence_id BIGINT REFERENCES geofences(id) ON DELETE CASCADE,
     vehicle_id TEXT REFERENCES vehicles(vehicle_id),
-    event_type TEXT NOT NULL CHECK (event_type IN ('enter', 'exit')),
+    event_type TEXT NOT NULL CHECK (event_type IN ('entry', 'exit')),
     location GEOMETRY(POINT, 4326) NOT NULL,
     speed DOUBLE PRECISION,
     created_at TIMESTAMPTZ DEFAULT NOW()

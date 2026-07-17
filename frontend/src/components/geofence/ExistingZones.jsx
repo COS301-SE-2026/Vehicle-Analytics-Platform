@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash } from "lucide-react";
 import DeleteZoneModal from "@/components/geofence/DeleteZoneModal";
+import { EditZoneModal } from "@/components/geofence/EditZoneModal";
 
 // mock data
 const mockZones = [
@@ -26,11 +27,17 @@ const triggerStyles = {
 };
 
 export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
-    const [zoneToDelete, setZoneToDelete] = useState(null);
+    const [ zoneToDelete, setZoneToDelete ] = useState(null);
+    const [ zoneToEdit, setZoneToEdit ] = useState(null);
 
     function handleConfirmDelete(zone) {
         onDelete?.(zone);
         setZoneToDelete(null);
+    }
+
+    function handleSaveEdit(zone) {
+        onEdit?.(zone);
+        setZoneToEdit(null);
     }
 
     return (
@@ -65,7 +72,7 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => onEdit?.(zone)}
+                                onClick={() => setZoneToEdit?.(zone)}
                             >
                                 <Pencil className="h-3 w-4 text-fleet-secondary" />
                             </Button>
@@ -87,6 +94,12 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                 onOpenChange={(isOpen) => !isOpen && setZoneToDelete(null)}
                 zone={zoneToDelete}
                 onConfrim={handleConfirmDelete}
+            />
+            <EditZoneModal
+                open={!!zoneToEdit}
+                onOpenChange={(isOpen) => !isOpen && setZoneToEdit(null)}
+                zone={zoneToEdit}
+                onSave={handleSaveEdit}
             />
         </div>
     );

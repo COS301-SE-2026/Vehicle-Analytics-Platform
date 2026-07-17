@@ -4,6 +4,13 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 import PropTypes from 'prop-types'
 
+import { 
+    Play,
+    Rewind,
+    FastForward,
+    Maximize2
+} from 'lucide-react'
+
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 
 export default function RouteMap({ routePoints, routeLabel}) {
@@ -57,10 +64,33 @@ export default function RouteMap({ routePoints, routeLabel}) {
     }, [routePoints])
 
     return (
+    <div>
         <div className="relative h-64 rounded-lg overflow-hidden">
             <div ref={mapContainer} style={{width: '100%', height: '100%'}}/>
             <div className="absolute top-3 left-3 bg-white rounded-md px-3 py-1.5 text-xs font-medium text-fleet-text shadow-sm">
                 {routeLabel}
+            </div>
+            </div>
+            <div className="mt-2 bg-fleet-panel rounded-lg px-3 py-2 flex items-center gap-3">
+                {/*REWIND*/}
+                <button type="button" className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
+                    <Rewind className="w-4 h-4"/>
+                </button>
+                {/*PLAY*/}
+                <button type="button" className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center shrink-0">
+                    <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5"/>
+                </button>
+                {/*FAST FORWARD*/}
+                <button type="button" className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
+                    <FastForward className="w-4 h-4"/>
+                </button>
+                <div className="flex-1 h-1 bg-fleet-border rounded-full overflow-hidden">
+                    <div className="h-full bg-fleet-blue rounded-full" style={{ width: '0%'}}/>
+                </div>
+                <span className="text-xs text-fleet-secondary shrink-0">0.00</span>
+                <button type="button" className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
+                    <Maximize2 className="w-4 h-4" />
+                </button>
             </div>
         </div>
     )

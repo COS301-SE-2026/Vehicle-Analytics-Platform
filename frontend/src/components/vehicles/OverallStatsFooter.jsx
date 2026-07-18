@@ -23,7 +23,7 @@ export default function OverallStatsFooter({ stats}) {
                 <p className="text-sm font-semibold text-fleet-text mt-1">{overallRating}</p>
             </div>
 
-            <div classAName="grid grid-cols-2 gap-x-8 gap-y-2">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                 <div>
                     <p className="text-xs font-medium text-fleet-secondary tracking-wide">TOTAL DISTANCE</p>
                     <p className="text-sm font-bold text-fleet-text">{totalDistanceKm.toLocaleString()} km</p>                 

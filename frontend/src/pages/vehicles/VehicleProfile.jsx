@@ -13,7 +13,7 @@ import {
     RefreshCw
 } from 'lucide-react'
 
-import { getVehicleById } from '@/services/mockTripData'
+import { getVehicleById, getVehicleSafetyScore } from '@/services/vehicleService'
 import { getTripHistory,getOverallStats, getDailySafetyScores } from '@/services/mockTripHistory'
 
 import CurrentTripTab from '@/components/vehicles/CurrentTripTab'
@@ -45,14 +45,23 @@ export default function VehicleProfile(){
 
         async function fetchDetail() {
             try {
-                const result = await getVehicleById(id)
+                const [result, safety] = await Promise.all([
+                    getVehicleById(id),
+                    getVehicleSafetyScore(id),
+                ])
                 if (cancelled) return
                 if (!result){
                     setError('Vehicle not found')
                 }else {
-                    setDetail(result)
-                    setError(null)
-                }
+                    setDetail({
+                        ...result,
+                        vehicle: {
+                            ...result.vehicle,
+                            todaySafetyScore: safety.safety_score,
+                        },
+                })
+                setError(null)
+            }
             }catch (err){
                 if (cancelled) {
                     return

@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import { da } from 'date-fns/locale';
 import useAuthStore from '../store/authStore';
 
 async function getAuthHeaders() {
@@ -108,9 +109,21 @@ export async function getVehicleById(vehicleId) {
   const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}`, { headers })
   if (!res.ok) throw new Error('Failed to fetch vehicle details')
   const data = await res.json()
+  const v = data.data.vehicle
   return {
-    vehicle: data.data.vehicle,
-    recent_events: data.data.recent_events,
+    vehicle:{
+    ...v,
+    latitude: parseFloat(v.latitude),
+    longitude: parseFloat(v.longitude),
+    speed: Number(v.speed),
+    speedLimit: Number(v.speedLimit),
+  },
+    recent_events: (data.data.recent_events || []).map((e) => ({
+      ...e,
+      latitude: parseFloat(e.latitude),
+      longitude: parseFloat(e.longitude),
+      speed: Number(e.speed),
+    })),
   }
 }
 
@@ -162,5 +175,19 @@ export async function getVehiclePositionBuffer() {
 
   return data.data.vehicles;
 
+}
+
+export async function getVehicleSafetyScore(vehicleId, date = null) {
+  const headers = await getAuthHeaders()
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const res = await fetch(`${API_BASE_URL}/api/safety/scores/${vehicleId}${query}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicle safety score')
+  }
+
+  const data = await res.json()
+  return data.data
+  
 }
 

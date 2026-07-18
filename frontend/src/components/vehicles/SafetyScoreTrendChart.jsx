@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 
 import {
     LineChart,
@@ -7,10 +7,16 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    ResponsiveContainer
+    ResponsiveContainer,
 }from 'recharts'
 
+import {
+    Calendar as CalendarIcon
+} from 'lucide-react'
+
 import { getScoreSeverity } from '@/utils/safetyScore'
+import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover'
+import { Calendar} from '@/components/ui/calendar'
 
 import PropTypes from 'prop-types'
 
@@ -19,6 +25,14 @@ function formatDateLabel(dateStr) {
         day: '2-digit',
         month: 'short',
     })
+}
+
+function isSameDay(a, b){
+    return (
+        a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate()
+    )
 }
 
 function CustomToolTip({ active, payload, label }){
@@ -46,19 +60,50 @@ CustomToolTip.propTypes = {
 export default function SafetyScoreTrendChart({ dailyScores, trips }) {
     const [view, setView] = useState('day')
 
-    const dayData = dailyScores.map((entry) => ({
-        label: formatDateLabel(entry.date),
-        score: entry.score,
-    }))
+    const [dateRange, setDateRange] = useState({
+        from: new Date(new Date().setDate(new Date().getDate() - 13)),
+        to: new Date(),
+    })
+    const [tripDay, setTripDay] = useState(new Date())
 
-    const tripData = [...trips]
+const dayData = useMemo(
+    () =>
+    dailyScores
+        .filter((entry) => {
+            const d = new Date(entry.date)
+            if(!dateRange?.from || !dateRange?.to){
+                return true
+            }
+
+            return d >= dateRange.from && d<= dateRange.to
+        })
+        .map((entry) => ({
+            label: formatDateLabel(entry.date),
+            score: entry.score,
+        })),
+        [dailyScores, dateRange]
+    )
+
+
+const tripData = useMemo(
+    () =>
+        [...trips]
+    .filter((trip) => isSameDay(new Date(trip.date) , tripDay))
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .map((trip) => ({
         label: trip.routeLabel,
         score: trip.safetyScore,
-    }))
+    })),
+    [trips, tripDay]
+)
 
     const chartData = view === 'day' ? dayData : tripData
+
+
+    const calendarLabel = view === 'day'
+            ? `${dateRange?.from ? formatDateLabel(dateRange.from) : '-'} - ${
+                dateRange?.to? formatDateLabel(dateRange.to) : '-'
+            }` : formatDateLabel (tripDay)
 
     return (
         <div className="bg-white rounded-xl border border-fleet-border p-5">
@@ -91,6 +136,34 @@ export default function SafetyScoreTrendChart({ dailyScores, trips }) {
                             }`}>
                                 Per Trip
                         </button>
+
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button
+                                    type="button"
+                                    data-testid="trend-calendar-trigger"
+                                    className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-fleet-border text-fleet-secondary hover:text-fleet-text">
+                                        <CalendarIcon size={13}/>
+                                        {calendarLabel}
+                                    </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                                {view === 'day' ? (
+                                    <Calendar
+                                        mode="range"
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={2}>
+                                    </Calendar>
+                                ) : (
+                                    <Calendar
+                                        mode="single"
+                                        selected={tripDay}
+                                        onSelect={(d) => d && setTripDay(d)}>
+                                    </Calendar>
+                                )}
+                            </PopoverContent>
+                        </Popover>
                 </div>
             </div>
 

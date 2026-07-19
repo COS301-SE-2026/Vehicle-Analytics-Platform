@@ -69,12 +69,20 @@ export async function deleteGeofence(geofence_id){
 // GET /api/geofence/
 export async function getGeofenceEvents(geofence_id){
     const headers = await getAuthHeaders();
-    const res = await fetch(`${API_BASE_URL}/api/geofences/events?geofence_id=${geofence_id}` , { headers });
+    const url = geofence_id ? `${API_BASE_URL}/api/geofences/events?geofence_id=${geofence_id}`
+                            : `${API_BASE_URL}/api/geofences/events`;
+    const res = await fetch( url, { headers });
     if (!res.ok) throw new Error('Failed to fetch geofence events')
     const data = await res.json()
     return {
         total: data.data.total,
-        events: data.data.events,
+        events: data.data.events.map(e => ({
+            id: e.id,
+            type: e.event_type === "entry" ? "alert" : "notification",
+            message: `${e.vehicle_id} ${e.event_type} ${e.name}`,
+            time: new Date(e.created_at).toLocaleString(),
+            read: false,
+        })),
     };
 }
 

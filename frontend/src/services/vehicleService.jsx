@@ -1,5 +1,4 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-import { da } from 'date-fns/locale';
 import useAuthStore from '../store/authStore';
 
 async function getAuthHeaders() {
@@ -189,5 +188,19 @@ export async function getVehicleSafetyScore(vehicleId, date = null) {
   const data = await res.json()
   return data.data
   
+}
+
+export async function getFleetSafetyScores(date = null){
+  const headers = await getAuthHeaders()
+  const query = date ? `date=${encodeURIComponent(date)}` : ''
+  const res = await fetch(`${API_BASE_URL}/api/safety/scores${query}`, { headers })
+
+
+  if (!res.ok){
+    throw new Error('Failed to fetch fleet safety scores')
+  }
+
+  const data = await res.json()
+  return data.data.vehicles || []
 }
 

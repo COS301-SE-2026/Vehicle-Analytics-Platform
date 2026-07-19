@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import { ChevronDown, RefreshCw } from 'lucide-react'
 
-import {getVehicles, getFleetSummary} from '@/services/mockVehicleData'
+import { getVehicleLocations, getFleetSafetyScores } from '@/services/vehicleService'
 import VehicleSummaryCards from '@/components/vehicles/VehicleSummaryCards'
 import VehiclesTable from '@/components/vehicles/VehiclesTable'
 
@@ -20,19 +20,65 @@ useEffect(() => {
 
     async function fetchAll(){
         try{
-            const [vehicleList, fleetSummary] = await Promise.all([getVehicles(), getFleetSummary()])
-            if (cancelled) return
-            setVehicles(vehicleList)
-            setSummary(fleetSummary)
+            const [locationResult, safetyScores] = await Promise.all([
+                getVehicleLocations(),
+                getFleetSafetyScores(),
+            ])
+
+            if (cancelled){
+                return
+            }
+
+            const scoreByVehicle = Object.fromEntries(
+                safetyScores.map((s) => [s.vehicle_id, s])
+            )
+
+            const merged = locationResult.vehicles.map((v) => ({
+                id: v.id,
+                status: v.status,
+                zone: null, //NEED CHECK HERE
+                hasAlert: false, //NEED CHEC ALSO CANT SEEM TO FIND SOURCE YET
+                safetyScore: scoreByVehicle[v.id]?.safety_score ?? null,
+                lastUpdated: v.lastUpdated,
+                stale: v.status === 'offline',
+            }))
+
+
+            const scored = merged.filter((v) => v.safetyScore !== null && v.safetyScore !== undefined)
+            const avgSafetyScore = scored.length
+                ? scored.reduce((sum, v) => sum + v.safetyScore, 0) / scored.length
+                : null
+            const lowestScoringVehicle = scored.length
+                ? scored.reduce((a,b) => (a.safetyScore < b.safetyScore ? a : b))
+                : null
+
+            setVehicles(merged)
+            setSummary({
+                totalVehicles: merged.length,
+                avgSafetyScore,
+                avgSafetyScoreDelta: null, //No endpoint i found for this yet
+                activeTripsToday: merged.filter((v) => v.status ==='active').length, //it is currently active counts. not true trips today
+                lowestScoringVehicle: lowestScoringVehicle
+                    ? { id: lowestScoringVehicle.id, score: lowestScoringVehicle.safetyScore}
+                    : null,
+            })
+
             setError(null)
         }catch (err){
-            if (cancelled) return
-            console.error('VehiclesList fetch error:', err)
+            if (cancelled){
+                return
+            }
+            console.error('Vehicle List Fetch error:', err)
             setError('Failed to load vehicle data')
-        }finally {
-            if (!cancelled) setLoading(false)
+
+
+            } finally {
+                if (!cancelled){
+                    setLoading(false)
+                }
+            }
         }
-        }
+        
 
         fetchAll()
         return () => {cancelled = true}
@@ -81,7 +127,7 @@ useEffect(() => {
             className="appearance-none text-sm border border-fleet-border rounded-lg pl-3 pr-8 py-2 text-fleet-text bg-white">
         
         <option value="all">All Statuses</option>
-        <option value="moving">Moving</option>
+        <option value="active">Moving</option>
         <option value="idle">Idle</option>
         <option value="offline">Offline</option>
         </select>

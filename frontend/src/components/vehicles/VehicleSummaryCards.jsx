@@ -19,7 +19,7 @@ export default function VehicleSummaryCards({summary}){
         lowestScoringVehicle,
     } = summary
 
-    const severity = getScoreSeverity(lowestScoringVehicle.score)
+    const severity = getScoreSeverity(lowestScoringVehicle?.score ?? 0)
     const deltaIsPositive = avgSafetyScoreDelta >= 0
 
     return (
@@ -60,11 +60,11 @@ export default function VehicleSummaryCards({summary}){
                     <AlertTriangle className={`w-4 h-4 ${severity.textClass}`} />
                 </div>
                 <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-fleet-text">{lowestScoringVehicle.id}</span>
-                    <span className={`text-xs font-semibold ${severity.textClass} ${severity.bgClass} rounded-full px-2 py-0.5`}>{lowestScoringVehicle.score ?? '-' } / 100</span>
+                    <span className="text-lg font-bold text-fleet-text">{lowestScoringVehicle?.id ?? '-'}</span>
+                    <span className={`text-xs font-semibold ${severity.textClass} ${severity.bgClass} rounded-full px-2 py-0.5`}>{lowestScoringVehicle?.score ?? '-' } / 100</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                    <div className={`h-full ${severity.barClass} rounded-full`} style={{width: `${lowestScoringVehicle.score ?? 0}%`}} />
+                    <div className={`h-full ${severity.barClass} rounded-full`} style={{width: `${lowestScoringVehicle?.score ?? 0}%`}} />
                 </div>
                 <p className={`text-xs ${severity.textClass} mt-1`}>{severity.label}</p>
             </div>

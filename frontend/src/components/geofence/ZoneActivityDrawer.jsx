@@ -33,7 +33,7 @@ const mockActivityLog = [
     {
         id: 1,
         type: "alert",
-        message: "TRK-2024-X1 entered Pretoria Deport",
+        message: "TRK-2024-X1 entered Pretoria Depot",
         time: "14:22:05",
         acknowledged: false,
     },
@@ -54,15 +54,16 @@ const mockActivityLog = [
     {
         id: 4,
         type: "exit",
-        message: "TRK-881-A exit Johannesburg Port",
+        message: "TRK-881-A exit Johannesburg Depot",
         time: "08:05:00",
         acknowledged: false,
     },
 ];
 
 const mockSafetData = [
-    { zone: "Pretoria Port", speeding: 12, braking: 4, accel: 8, corner:4, crash: 0 },
-    { zone: "Durban Port", speeding: 2, braking: 1, accel: 0, corner:0, crash: 0 },    
+    { zone: "Pretoria Depot", speeding: 8, braking: 4, accel: 8, corner:4, crash: 0 },
+    { zone: "Durban Depot", speeding: 2, braking: 1, accel: 0, corner:0, crash: 0 }, 
+    { zone: "Johannesburg Depot", speeding: 4, braking: 2, accel: 9, corner:1, crash: 1 },   
 ];
 
 const activityIconStyles = {
@@ -141,9 +142,9 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                                                 {entry.message}
                                             </p>
                                             <div className="flex items-center gap-1 mt-1">
-                                                <p className="text-xs text-flex-secondart">{entry.time}</p>
+                                                <p className="text-xs text-flex-secondary">{entry.time}</p>
                                                 {entry.acknowledged && (
-                                                    <Badge className="bg-fleet-idle/20 text-fleet border-0 rounded-lg text-[9px] px-1.5 py-0">
+                                                    <Badge className="bg-fleet-green/30 text-fleet border-0 rounded-lg text-[9px] px-1.5 py-0">
                                                         ACKNOWLEDGED
                                                     </Badge>
                                                 )}
@@ -211,6 +212,9 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
 
                 {/* Safety breakdown */}
                 <div className="space-y-3">
+                    <h3 className="text-xs font-semibold tracking-wide text-fleet-secondary uppercase">
+                        Zone Activity breakdown
+                    </h3>
                     {mockSafetData.map((zone) => (
                         <div
                             key={zone.zone}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Table,
     TableHeader,
@@ -12,13 +12,15 @@ import { Button } from "@/components/ui/button"
 import { Pencil, Trash } from "lucide-react";
 import DeleteZoneModal from "@/components/geofence/DeleteZoneModal";
 import { EditZoneModal } from "@/components/geofence/EditZoneModal";
+import { getGeofences } from "@/services/geofenceServices";
+import { Result } from "postcss";
 
 // mock data
-const mockZones = [
-    { id: 1, name: "Pretoria Depot", triggerType: "entry"},
-    { id: 2, name: "Durban Port", triggerType: "both"},
-    { id: 3, name:  "Johannesburg Port", triggerType: "exit" },
-];
+// const mockZones = [
+//     { id: 1, name: "Pretoria Depot", triggerType: "entry"},
+//     { id: 2, name: "Durban Port", triggerType: "both"},
+//     { id: 3, name:  "Johannesburg Port", triggerType: "exit" },
+// ];
 
 const triggerStyles = {
     entry: "bg-fleet-blue/10 text-fleet-blue",
@@ -26,9 +28,22 @@ const triggerStyles = {
     exit: "bg-fleet-idle/10 text-fleet-secondary",
 };
 
-export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
+export function ExistingZones({ onEdit, onDelete }){
+    const [ zones, setZones ] = useState([]);
+    const [ isLoading, setIsLoading ] = useState(true);
     const [ zoneToDelete, setZoneToDelete ] = useState(null);
     const [ zoneToEdit, setZoneToEdit ] = useState(null);
+
+    useEffect(() => {
+        getGeofences().then((Result) => {
+            setZones(Result.geofences);
+            setIsLoading(false);
+        })
+        .catch((err) => {
+            console.error("Failed to fetch zones:", err);
+            setIsLoading(false);
+        })
+    }, []);
 
     function handleConfirmDelete(zone) {
         onDelete?.(zone);
@@ -38,6 +53,10 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
     function handleSaveEdit(zone) {
         onEdit?.(zone);
         setZoneToEdit(null);
+    }
+
+    if(isLoading) {
+        return <p className="text-fleet-secondary">Loading zones..</p>
     }
 
     return (
@@ -55,16 +74,16 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {zone.map((zone) => (
+                    {zones.map((zone) => (
                       <TableRow key={zone.id} className="border-fleet-border">
                         <TableCell className="text-fleet-text font-medium">
                             {zone.name}
                         </TableCell>
                         <TableCell>
                             <Badge
-                                className={`uppercase text-xs font-bold rounded-md ${triggerStyles[zone.triggerType]}`}
+                                className={`uppercase text-xs font-bold rounded-md ${triggerStyles[zone.trigger_type]}`}
                             >
-                                {zone.triggerType}
+                                {zone.trigger_type}
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right">

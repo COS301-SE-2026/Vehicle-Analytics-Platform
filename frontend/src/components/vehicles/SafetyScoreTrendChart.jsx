@@ -147,19 +147,27 @@ const tripData = useMemo(
                                         {calendarLabel}
                                     </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="end">
+                            <PopoverContent className="w-auto p-2" align="end">
                                 {view === 'day' ? (
                                     <Calendar
                                         mode="range"
                                         selected={dateRange}
                                         onSelect={setDateRange}
-                                        numberOfMonths={2}>
+                                        numberOfMonths={1}
+                                        captionLayout="dropdown"
+                                        fromYear={2020}
+                                        toYear={2030}
+                                        className="min-w-[220px]">
                                     </Calendar>
                                 ) : (
                                     <Calendar
                                         mode="single"
                                         selected={tripDay}
-                                        onSelect={(d) => d && setTripDay(d)}>
+                                        onSelect={(d) => d && setTripDay(d)}
+                                        captionLayout="dropdown"
+                                        fromYear={2020}
+                                        toYear={2030}
+                                        className="min-w-[220px]">
                                     </Calendar>
                                 )}
                             </PopoverContent>

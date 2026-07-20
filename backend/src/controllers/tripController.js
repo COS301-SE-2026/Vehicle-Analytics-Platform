@@ -3,10 +3,7 @@
 
 const {pool} = require('../db/pool');
 
-
 const {success, error} = require('../utils/response');
-
-
 
 
 
@@ -15,12 +12,13 @@ const {success, error} = require('../utils/response');
 async function getTripHistory(req, res) {
 
 
-    
+
     const {vehicleId} = req.params;
 
 
-    
-    const {limit=50,before} = req.query;
+
+    const {limit=50, before} = req.query;
+
 
 
 
@@ -30,24 +28,44 @@ async function getTripHistory(req, res) {
     if(!vehicleId){
 
 
+
         return error(res, 'Vehicle ID is required', 400);
+
 
 
     }
 
 
 
+
     try{
+
 
 
         const result = await pool.query(
 
 
-            `SELECT * FROM get_trip_history($1, NULL, NULL, $2, $3)`,
+
+            `SELECT 
 
 
 
-            [vehicleId, before||null, parseInt(limit)]
+                trip_id, vehicle_id, start_time, end_time, 
+
+
+                distance_km, avg_speed_kmh, max_speed_kmh,
+
+
+
+                status, safety_score
+
+
+
+             FROM get_trip_history($1, NULL, NULL, $2, $3)`,
+
+
+
+            [vehicleId, before || null, parseInt(limit)]
 
 
 
@@ -57,15 +75,65 @@ async function getTripHistory(req, res) {
 
 
 
+
         return success(res, {
 
 
 
-            vehicle_id: vehicleId, total: result.rows.length,
+        
+
+    vehicle_id: vehicleId,
 
 
 
-            trips: result.rows
+            total: result.rows.length,
+
+
+
+
+            trips: result.rows.map(row => ({
+
+
+
+
+                trip_id: row.trip_id,
+
+
+
+                vehicle_id: row.vehicle_id,
+
+
+
+                start_time: row.start_time,
+
+
+
+                end_time: row.end_time,
+
+
+
+                distance_km: row.distance_km,
+
+
+
+                avg_speed_kmh: row.avg_speed_kmh,
+
+
+
+                max_speed_kmh: row.max_speed_kmh,
+
+
+
+
+                status: row.status,
+
+
+
+                safety_score: row.safety_score !== null ? parseInt(row.safety_score) : null
+
+
+
+            }))
 
 
 
@@ -73,14 +141,12 @@ async function getTripHistory(req, res) {
 
 
 
-
-
-
-
     } 
-    
-    
-    catch (err){
+
+
+catch (err){
+
+
 
 
 
@@ -93,7 +159,6 @@ async function getTripHistory(req, res) {
 
 
 
-
     }
 
 }
@@ -103,19 +168,15 @@ async function getTripHistory(req, res) {
 
 
 
+
 async function getTripReplay(req, res) {
-
-
 
     const {tripId} = req.params;
 
 
 
-
-
-
-    if(!tripId){
-
+   
+ if(!tripId){
 
 
 
@@ -127,28 +188,36 @@ async function getTripReplay(req, res) {
 
 
 
+
+
+
+
     try{
+
 
 
         const tripResult = await pool.query(`
 
 
 
-            SELECT vehicle_id, start_time, end_time, distance_km, avg_speed_kmh, max_speed_kmh  FROM trips
+            SELECT vehicle_id, start_time, end_time, distance_km, avg_speed_kmh, max_speed_kmh, safety_score
+
+
+
+            FROM trips
+
 
 
 
             WHERE trip_id = $1 AND status = 'completed'
 
-
-
         `, [tripId]);
 
 
 
-
-
         if(tripResult.rows.length===0){
+
+
 
 
             return error(res, 'Trip not found or not completed', 404);
@@ -159,18 +228,18 @@ async function getTripReplay(req, res) {
 
 
 
+
         const trip = tripResult.rows[0];
 
 
 
 
-
-        const pointsResult = await pool.query(
+      
+  const pointsResult = await pool.query(
 
 
 
             `SELECT * FROM get_trip_replay($1)`,
-
 
 
             [tripId]
@@ -178,9 +247,6 @@ async function getTripReplay(req, res) {
 
 
         );
-
-
-
 
 
 
@@ -200,7 +266,11 @@ async function getTripReplay(req, res) {
 
 
 
-              AND event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering', 'speeding')  ORDER BY time ASC
+              AND event_detail IN ('harsh_braking', 'harsh_acceleration', 'harsh_cornering', 'speeding')
+
+
+
+            ORDER BY time ASC
 
 
 
@@ -227,29 +297,22 @@ async function getTripReplay(req, res) {
             else if(row.speed_kmh>60) colour = 'amber';
 
 
+
+
+
             return{
 
 
 
                 time: row.point_time,
 
-
-                
                 latitude: parseFloat(row.latitude),
 
-
-                
                 longitude: parseFloat(row.longitude),
 
-
-                
                 speed: row.speed_kmh,
 
-
-                
                 colour: colour
-
-
 
             };
 
@@ -261,37 +324,55 @@ async function getTripReplay(req, res) {
 
             trip: {
 
-                trip_id: parseInt(tripId),  vehicle_id: trip.vehicle_id,
 
-                start_time: trip.start_time, end_time: trip.end_time,
 
-                distance_km: trip.distance_km, avg_speed_kmh: trip.avg_speed_kmh,
+                trip_id: parseInt(tripId),
 
-                max_speed_kmh: trip.max_speed_kmh
+
+
+                vehicle_id: trip.vehicle_id,
+
+
+                start_time: trip.start_time,
+
+
+                end_time: trip.end_time,
+
+
+
+                distance_km: trip.distance_km,
+
+
+
+                avg_speed_kmh: trip.avg_speed_kmh,
+
+
+
+                max_speed_kmh: trip.max_speed_kmh,
+
+
+
+
+
+                safety_score: trip.safety_score !== null ? parseInt(trip.safety_score) : null
+
+
 
             },
 
 
 
+
             points: points,
-
-
 
             events: eventsResult.rows.map(row => ({
 
-
-
                 time: row.time,
-
-
 
                 type: row.type,
 
 
-
                 category: row.event_category,
-
-
 
                 latitude: parseFloat(row.latitude),
 
@@ -299,27 +380,21 @@ async function getTripReplay(req, res) {
 
                 speed: row.speed
 
-
-
             }))
 
         }, 200);
 
 
 
-
-
     } 
-    
-    catch (err){
 
+
+catch (err){
 
 
 
 
         console.error('Get trip replay error:', err);
-
-
 
         return error(res, 'Failed to fetch trip replay: '+err.message, 500);
 
@@ -332,12 +407,9 @@ async function getTripReplay(req, res) {
 
 
 
+
+
+
 module.exports = {getTripHistory, getTripReplay};
-
-
-
-
-
-
 
 

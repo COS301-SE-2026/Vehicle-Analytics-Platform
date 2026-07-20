@@ -21,7 +21,7 @@ export async function createGeofence(geofence_payload){
     const res = await fetch(`${API_BASE_URL}/api/geofences`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ geofence_payload }),
+        body: JSON.stringify( geofence_payload ),
     })
     if (!res.ok) throw new Error('Failed to create a geofence')
     const data = await res.json()
@@ -49,7 +49,7 @@ export async function updateGeofence(geofence_id, update){
     const res = await fetch(`${API_BASE_URL}/api/geofences/${geofence_id}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ update }),
+        body: JSON.stringify( update ),
     })
     if (!res.ok) throw new Error('Failed to update geofence');
     return await res.json()

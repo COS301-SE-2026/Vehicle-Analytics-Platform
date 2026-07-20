@@ -29,7 +29,7 @@ const COLUMNS = [
   "green_driving_type", "crash_detection",
 ];
 
-// Parse one decoded Kinesis record into a DB row ;; stream_time is Kinesis metadata — not stored in raw_telemetry
+// Parse one decoded Kinesis record into a DB row ;; stream_time is Kinesis metadata - not stored in raw_telemetry
 function parseRecord(data) {
   if (!data.time || !data.vehicle_id) {
     console.warn("Skipping record missing time or vehicle_id:", data);
@@ -70,11 +70,15 @@ function buildInsert(rows) {
 
 // our Lambda entry point 
 const handler = async (event) => {
-  const rows = [];
-  let errors = 0;
+  const rows            = [];
+  const sequenceNumbers = []; // tracks which sequence number maps to which row
+  const failedItems     = []; // collects failed sequence numbers for DLQ
+  let errors            = 0;
 
   for (const record of event.Records) {
-    // Kinesis data is base64 encoded — decode it first
+    const sequenceNumber = record.kinesis.sequenceNumber;
+
+    // Kinesis data is base64 encoded - decode it first
     const payload = Buffer.from(record.kinesis.data, "base64").toString("utf-8");
 
     let data;
@@ -82,16 +86,22 @@ const handler = async (event) => {
       data = JSON.parse(payload);
     } catch (e) {
       console.warn("Invalid JSON in record:", payload, e.message);
+      failedItems.push({ itemIdentifier: sequenceNumber });
       errors++;
       continue;
     }
 
     const row = parseRecord(data);
-    if (row) rows.push(row);
-    else errors++;
+    if (row) {
+      rows.push(row);
+      sequenceNumbers.push(sequenceNumber);
+    } else {
+      failedItems.push({ itemIdentifier: sequenceNumber });
+      errors++;
+    }
   }
 
-  console.info(`Batch received — valid rows: ${rows.length}, skipped: ${errors}`);
+  console.info(`Batch received - valid rows: ${rows.length}, skipped: ${errors}`);
 
   if (rows.length > 0) {
     const { sql, values } = buildInsert(rows);
@@ -104,13 +114,21 @@ const handler = async (event) => {
     } catch (e) {
       await client.query("ROLLBACK");
       console.error("DB insert failed:", e.message);
+      for (const seq of sequenceNumbers) {
+        failedItems.push({ itemIdentifier: seq });
+      }
       throw e;
     } finally {
       client.release();
     }
   }
 
+  if (failedItems.length > 0) {
+    console.warn(`Reporting ${failedItems.length} failed items to DLQ`);
+  }
+
   return {
+    batchItemFailures: failedItems,
     statusCode: 200,
     body: {
       records_received: event.Records.length,
@@ -120,4 +138,4 @@ const handler = async (event) => {
   };
 };
 
-module.exports = { handler, parseRecord, buildInsert  };
+module.exports = { handler, parseRecord, buildInsert, pool };

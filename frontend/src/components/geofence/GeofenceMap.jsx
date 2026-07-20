@@ -80,7 +80,7 @@ export default function GeofenceMap({ onZoneDrawn }) {
             map.current = null;
         };
     
-    }, [center, onZoneDrawn]);
+    }, [center ]);
 
     return(
     <div className="relative w-full h-full">

@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { createGeofence } from "@/services/geofenceServices";
 
-export function ZoneDetails() {
+export function ZoneDetails({ drawnShape, onZoneCreated }) {
     const {
         register,
         handleSubmit,
-        handleCancel,
         control,
         reset,
         formState: { errors, isSubmitting },
@@ -23,8 +23,31 @@ export function ZoneDetails() {
     });
 
     function onSubmit(values) {
-        console.log("Zone saved:", values);
-    }
+        console.log("drawnShape at Sumbit time:", drawnShape);
+        if (!drawnShape) {
+            alert("Please draw a geofence on the map first")
+        }
+    
+    const payload = {
+        name: values.name,
+        trigger_type: values.triggerType,
+        boundary: drawnShape.geometry,
+    };
+
+    createGeofence(payload).then((result) => {
+        console.log("Zone created:", result);
+        reset();
+        onZoneCreated?.(result.geofence);
+    })
+    .catch((err) => {
+        console.error("Failed to create geofence:", err);
+    });
+
+}
+
+function handleCancel(){
+    reset();
+}
 
     return (
        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -84,7 +107,7 @@ export function ZoneDetails() {
                     className="w-full h-12 bg-fleet-blue text-white hover:bg-fleet-blue/90" 
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? "Saving..." : "Save Zone"}
+                    {isSubmitting ? "Saving..." : "Save Geofence"}
                 </Button>
 
                 <Button 

@@ -31,7 +31,7 @@ export default function VehicleSummaryCards({summary}){
                     <ShieldCheck className="w-4 h-4 text-fleet-green"/>
                 </div>
                 <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-fleet-text">{avgSafetyScore}</span>
+                    <span className="text-2xl font-bold text-fleet-text">{avgSafetyScore != null ? Number(avgSafetyScore).toFixed(1) : '-'}</span>
                     <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${deltaIsPositive ? 'text-fleet-green' : 'text-fleet-alert'}`}>
                         {deltaIsPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         {Math.abs(avgSafetyScoreDelta)}%

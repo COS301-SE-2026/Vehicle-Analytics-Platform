@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import { ChevronDown, RefreshCw } from 'lucide-react'
 
-import { getVehicleLocations, getFleetSafetyScores } from '@/services/vehicleService'
+import { getVehiclesList } from '@/services/vehicleService'
 import VehicleSummaryCards from '@/components/vehicles/VehicleSummaryCards'
 import VehiclesTable from '@/components/vehicles/VehiclesTable'
 
@@ -20,46 +20,31 @@ useEffect(() => {
 
     async function fetchAll(){
         try{
-            const [locationResult, safetyScores] = await Promise.all([
-                getVehicleLocations(),
-                getFleetSafetyScores(),
-            ])
+            const result = await getVehiclesList({ status: statusFilter, page, limit: PAGE_SIZE })
 
             if (cancelled){
                 return
             }
 
-            const scoreByVehicle = Object.fromEntries(
-                safetyScores.map((s) => [s.vehicle_id, s])
-            )
-
-            const merged = locationResult.vehicles.map((v) => ({
+            const merged = result.vehicles.map((v) => ({
                 id: v.id,
                 status: v.status,
                 zone: null, //NEED CHECK HERE
-                hasAlert: false, //NEED CHEC ALSO CANT SEEM TO FIND SOURCE YET
-                safetyScore: scoreByVehicle[v.id]?.safety_score ?? null,
-                lastUpdated: v.lastUpdated,
+                safetyScore: v.safety_score,
+                hasAlert: v.has_alert,
+                isSpeeding: v.is_speeding,
+                lastUpdated: v.last_updated,
                 stale: v.status === 'offline',
             }))
 
-
-            const scored = merged.filter((v) => v.safetyScore !== null && v.safetyScore !== undefined)
-            const avgSafetyScore = scored.length
-                ? scored.reduce((sum, v) => sum + v.safetyScore, 0) / scored.length
-                : null
-            const lowestScoringVehicle = scored.length
-                ? scored.reduce((a,b) => (a.safetyScore < b.safetyScore ? a : b))
-                : null
-
             setVehicles(merged)
             setSummary({
-                totalVehicles: merged.length,
-                avgSafetyScore,
-                avgSafetyScoreDelta: null, //No endpoint i found for this yet
-                activeTripsToday: merged.filter((v) => v.status ==='active').length, //it is currently active counts. not true trips today
-                lowestScoringVehicle: lowestScoringVehicle
-                    ? { id: lowestScoringVehicle.id, score: lowestScoringVehicle.safetyScore}
+                totalVehicles: result.stats.total ?? 0,
+                avgSafetyScore: result.stats.avg_safety_score != null ? Number(result.stats.avg_safety_score) : null,
+                avgSafetyScoreDelta: null, //No endpoint i found for this yet. no historical comparison endpoint yet
+                activeTripsToday: result.stats.moving ?? 0,
+                lowestScoringVehicle: result.stats.lowest_scoring_vehicle
+                    ? { id: result.stats.lowest_scoring_vehicle, score: result.stats.lowest_score}
                     : null,
             })
 
@@ -82,7 +67,7 @@ useEffect(() => {
 
         fetchAll()
         return () => {cancelled = true}
-    }, [])
+    }, [page, statusFilter])
 
         if (loading){
             return (
@@ -108,10 +93,7 @@ useEffect(() => {
             )
         }
 
-    const filtered = statusFilter === 'all' ? vehicles : vehicles.filter((vehicle) => vehicle.status === statusFilter)
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-    const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    const totalPages = Math.max(1, Math.ceil((summary.totalVehicles ?? 0) / PAGE_SIZE))
 
     return(
         <div className="space-y-4">
@@ -127,7 +109,7 @@ useEffect(() => {
             className="appearance-none text-sm border border-fleet-border rounded-lg pl-3 pr-8 py-2 text-fleet-text bg-white">
         
         <option value="all">All Statuses</option>
-        <option value="active">Moving</option>
+        <option value="moving">Moving</option>
         <option value="idle">Idle</option>
         <option value="offline">Offline</option>
         </select>
@@ -139,10 +121,10 @@ useEffect(() => {
         <VehicleSummaryCards summary={summary}/>
 
         <VehiclesTable
-            vehicles={pageItems}
+            vehicles={vehicles}
             page={page}
             totalPages={totalPages}
-            totalVehicles={filtered.length}
+            totalVehicles={summary.totalVehicles}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             />

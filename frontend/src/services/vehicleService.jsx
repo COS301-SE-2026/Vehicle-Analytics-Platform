@@ -109,6 +109,8 @@ export async function getVehicleById(vehicleId) {
   if (!res.ok) throw new Error('Failed to fetch vehicle details')
   const data = await res.json()
   const v = data.data.vehicle
+  const trip = data.data.current_trip
+
   return {
     vehicle:{
     ...v,
@@ -116,6 +118,8 @@ export async function getVehicleById(vehicleId) {
     longitude: parseFloat(v.longitude),
     speed: Number(v.speed),
     speedLimit: Number(v.speedLimit),
+    tripStartTime: trip ? trip.start_time: null,
+
   },
     recent_events: (data.data.recent_events || []).map((e) => ({
       ...e,
@@ -192,7 +196,7 @@ export async function getVehicleSafetyScore(vehicleId, date = null) {
 
 export async function getFleetSafetyScores(date = null){
   const headers = await getAuthHeaders()
-  const query = date ? `date=${encodeURIComponent(date)}` : ''
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
   const res = await fetch(`${API_BASE_URL}/api/safety/scores${query}`, { headers })
 
 
@@ -202,5 +206,78 @@ export async function getFleetSafetyScores(date = null){
 
   const data = await res.json()
   return data.data.vehicles || []
+}
+
+export async function getVehiclesList({status, page = 1, limit = 20} = {}) {
+  const headers = await getAuthHeaders()
+
+  const params = new URLSearchParams()
+
+  if (status && status !== 'all'){
+    params.set('status', status)
+  }
+
+  params.set('page', page)
+  params.set('limit', limit)
+
+  const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`, {headers})
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicles list')
+  }
+
+  const data = await res.json()
+
+  return {
+    vehicles: data.data.vehicles || [],
+    stats: data.data.stats || {},
+    pagination: data.data.pagination || {}
+  }
+
+  
+}
+
+
+export async function getVehicleTrips(vehicleId, {limit = 10, before } = {}){
+  const headers = await getAuthHeaders()
+  const params = new URLSearchParams()
+  params.set('limit', limit)
+
+  if(before){
+    params.set('before', before)
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/trips?${params.toString()}`, {headers})
+
+  if(!res.ok){
+    throw new Error('Failed to fetch vehicle trips')
+  }
+    const data = await res.json()
+    return data.data
+}
+
+export async function getVehicleSafetyScoreTrend(vehicleId, days = 7) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/safety-trend?days=${days}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicle safety trend')
+  }
+
+  const data = await res.json()
+  return data.data
+  
+}
+
+export async function getTripReplay(tripId) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/trips/replay/${tripId}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch trip replay')
+  }
+
+  const data = await res.json()
+  return data.data
+  
 }
 

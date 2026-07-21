@@ -13,8 +13,7 @@ import {
     RefreshCw
 } from 'lucide-react'
 
-import { getVehicleById, getVehicleSafetyScore } from '@/services/vehicleService'
-import { getTripHistory,getOverallStats, getDailySafetyScores } from '@/services/mockTripHistory'
+import { getVehicleById, getVehicleSafetyScore, getVehicleSafetyScoreTrend, getVehicleTrips } from '@/services/vehicleService'
 
 import CurrentTripTab from '@/components/vehicles/CurrentTripTab'
 import VehicleStatusBadge from '@/components/vehicles/VehicleStatusBadge'
@@ -86,16 +85,44 @@ export default function VehicleProfile(){
 
             async function fetchHistory(){
                 try{
-                    const [tripList, stats, scores] = await Promise.all([
-                        getTripHistory(id),
-                        getOverallStats(id),
-                        getDailySafetyScores(id),
+                    const [result, trend] = await Promise.all([
+                        getVehicleTrips(id),
+                        getVehicleSafetyScoreTrend(id, 30),
                     ])
 
                     if(cancelled) return
-                    setTrips(tripList)
-                    setOverallStats(stats)
-                    setDailyScores(scores)
+
+                    setDailyScores(
+                        trend.trend.map((t) => ({
+                            date: t.date,
+                            score: Number(t.safety_score) || 0,
+                        }))
+                    )
+                    const mappedTrips = result.trips.map((t) => ({
+                        id: String(t.id),
+                        date: t.date,
+                        startTime: t.start_time
+                            ? new Date(t.start_time).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit'})
+                            : '-',
+                        endTime: t.end_time
+                            ? new Date(t.end_time).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit'})
+                            : '-',
+                        distanceKm: Number(t.distance) || 0,
+                        safetyScore: t.safety_score ?? 0,
+                        routeLabel: `Trip #${t.id}`, //No route label yet
+                        harshBrakingCount: t.harsh_brakes ?? 0,
+                        harshAccelerationCount: t.harsh_accelerations ?? 0,
+                        harshCorneringCount: t.harsh_cornering ?? 0,
+                    }))
+
+                    setTrips(mappedTrips)
+
+                    setOverallStats({
+                        overallSafetyScore: result.stats.safety_rating,
+                        totalDistanceKm: result.stats.total_distance,
+                        totalTrips: result.stats.trips_recorded,
+                    })
+
                 } catch (err) {
                     if(cancelled) return
                     console.error('VehicleProfile history fetch error:', err)

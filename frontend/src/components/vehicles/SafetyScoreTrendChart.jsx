@@ -47,6 +47,7 @@ function CustomToolTip({ active, payload, label }){
         <div className="bg-white norder border-fleet-border rounded-lg px-3 py-2 text-xs shdow-sm">
             <p className="text-fleet-secondary mb-1">{label}</p>
             <p className={`font-semibold ${severity.textClass}`}>Safety Score: {score}</p>
+            <p className={`text-[11px] ${severity.textClass}`}>{severity.label}</p>
         </div>
     )
 }

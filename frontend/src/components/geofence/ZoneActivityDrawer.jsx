@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Sheet,
     SheetContent,
@@ -28,37 +28,38 @@ import {
     CornerUpRight,
     AlertCircle,
 } from "lucide-react";
+import { getGeofenceEvents } from "@/services/geofenceServices";
 
-const mockActivityLog = [
-    {
-        id: 1,
-        type: "alert",
-        message: "TRK-2024-X1 entered Pretoria Depot",
-        time: "14:22:05",
-        acknowledged: false,
-    },
-    {
-        id: 2,
-        type: "notification",
-        message: "TRK-552-Z exit Durban Depot",
-        time: "11:45:05",
-        acknowledged: true,
-    },
-    {
-        id: 3,
-        type: "exit-acknowledged",
-        message: "TRK-881-A entered Durban Depot",
-        time: "11:45:12",
-        acknowledged: true,
-    },
-    {
-        id: 4,
-        type: "exit",
-        message: "TRK-881-A exit Johannesburg Depot",
-        time: "08:05:00",
-        acknowledged: false,
-    },
-];
+// const mockActivityLog = [
+//     {
+//         id: 1,
+//         type: "alert",
+//         message: "TRK-2024-X1 entered Pretoria Depot",
+//         time: "14:22:05",
+//         acknowledged: false,
+//     },
+//     {
+//         id: 2,
+//         type: "notification",
+//         message: "TRK-552-Z exit Durban Depot",
+//         time: "11:45:05",
+//         acknowledged: true,
+//     },
+//     {
+//         id: 3,
+//         type: "exit-acknowledged",
+//         message: "TRK-881-A entered Durban Depot",
+//         time: "11:45:12",
+//         acknowledged: true,
+//     },
+//     {
+//         id: 4,
+//         type: "exit",
+//         message: "TRK-881-A exit Johannesburg Depot",
+//         time: "08:05:00",
+//         acknowledged: false,
+//     },
+// ];
 
 const mockSafetData = [
     { zone: "Pretoria Depot", speeding: 8, braking: 4, accel: 8, corner:4, crash: 0 },
@@ -75,8 +76,24 @@ const activityIconStyles = {
 };
 
 export function ZoneActivityDrawer({ open, onOpenChange }) {
-    const [currentPage, setCurrentPage] = useState(1);
+    const [ currentPage, setCurrentPage ] = useState(1);
+    const [ events, setEvents ] = useState([]);
+    const [ isLoading, setIsLoading ] = useState(true);
     const totalPages = 3;
+
+    useEffect(() => {
+        if (!open) return;
+
+        setIsLoading(true);
+        getGeofenceEvents().then((result) => {
+            setEvents(result.events);
+            setIsLoading(false);
+        })
+        .catch((err) => {
+            console.error("Failed to fetch activity:", err);
+            setIsLoading(false);
+        });
+    }, [open]);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange} className="sm:max-w-2xl">
@@ -115,13 +132,13 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                             Activity Log
                         </h3>
                         <Badge className="bg-fleet-blue/10 text-fleet-blue border-0 rounded-lg">
-                            Showing 4 of 10
+                            Showing {events.length} of {events.length}
                         </Badge>
                     </div>
 
                     <div className="border border-fleet-border w-full rounded-lg bg-fleet-surface divide-y divide-fleet-border">
-                        {mockActivityLog.map((entry) => {
-                            const style = activityIconStyles[entry.type];
+                        {events.map((entry) => {
+                            const style = activityIconStyles[entry.type] ?? activityIconStyles.entry;
                             const Icon = style.icon;
 
                             return (

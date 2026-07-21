@@ -10,8 +10,7 @@ import {
 } from 'lucide-react'
 
 import { getScoreSeverity } from '@/utils/safetyScore'
-import { getTripEvents, getTripRoute } from '@/services/mockTripHistory'
-
+import { getTripReplay } from '@/services/vehicleService'
 import GreenDrivingBreakdown from './GreenDrivingBreakdown'
 import EventTimeline from './EventTimeline'
 import RouteMap from './RouteMap'
@@ -26,6 +25,21 @@ function formatDate(dateStr){
     })
 }
 
+function formatEventLabel(type){
+    if (type === 'trip_started'){
+        return 'Trip Started'
+    }
+
+    if (type == 'trip_ended'){
+        return 'End of Trip'
+    }
+
+    return type
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+}
+
 export default function TripHistoryList({ trips, overallScore}){
     const [page, setPage] = useState(1)
     const [expandedTripId, setExpandedTripId] = useState(null)
@@ -34,30 +48,36 @@ export default function TripHistoryList({ trips, overallScore}){
 
     useEffect(() => {
         if (!expandedTripId) {
+            setTripRoute([])
             setTripEvents([])
             return
         }
 
         let cancelled = false
-        getTripEvents(expandedTripId).then((events) => {
-            if(!cancelled){
-                setTripEvents(events)
+        getTripReplay(expandedTripId).then((replay) => {
+            if(cancelled){
+                return
             }
-        })
 
-        return() => {cancelled = true}
-    }, [expandedTripId])
+            setTripRoute(
+                (replay.points || []).map((p) => ({
+                    lat: p.latitude,
+                    lng: p.longitude,
+                }))
+            )
 
-    useEffect(() => {
-        if (!expandedTripId) {
-            setTripRoute([])
-            return
-        }
-
-        let cancelled = false
-        getTripRoute(expandedTripId).then((route) => {
+            setTripEvents(
+                (replay.events || []).map((e) => ({
+                    type: e.type,
+                    label: formatEventLabel(e.type),
+                    timestamp: e.time,
+                    latitude: e.latitude,
+                    longitude: e.longitude,
+                }))
+            )
+        }).catch((err) => {
             if(!cancelled){
-                setTripRoute(route)
+                console.error('Trip replay fetch error:', err)
             }
         })
 

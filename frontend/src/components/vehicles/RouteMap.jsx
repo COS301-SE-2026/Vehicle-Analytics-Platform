@@ -32,6 +32,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
 
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isPlaying, setIsPlaying] = useState(false)
+    const [playbackSpeed, setPlaybackSpeed] = useState(1)
 
     const lastIndex = Math.max(routePoints.length -1,0)
     const progressPercent = lastIndex === 0 ? 0 : (currentIndex / lastIndex) * 100
@@ -126,7 +127,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
 
                 const from = routePoints[segmentIndex]
                 const to = routePoints[segmentIndex+1]
-                const segmentDurationMs = SECONDS_PER_POINT * 1000
+                const segmentDurationMs = SECONDS_PER_POINT * 1000 / playbackSpeed
                 const progress = Math.min((timestamp - segmentStartTime) / segmentDurationMs,1)
 
                 const lng = from.lng + (to.lng - from.lng) * progress
@@ -150,7 +151,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
                     cancelAnimationFrame(animationId)
                 }
             } 
-        }, [isPlaying, lastIndex, routePoints])
+        }, [isPlaying, lastIndex, routePoints, playbackSpeed])
 
 
         function handlePlayPause(){
@@ -224,6 +225,21 @@ export default function RouteMap({ routePoints, routeLabel}) {
                     className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
                     <FastForward className="w-4 h-4"/>
                 </button>
+                <div className="flex items-center gap-1 shrink-0">
+                    {[1,2,4].map((speed) => (
+                        <button
+                            key={speed}
+                            type="button"
+                            onClick={() => setPlaybackSpeed(speed)}
+                            className={`text-xs font-medium px-2 py-1 rounded-md ${
+                                playbackSpeed === speed
+                                ? 'bg-fleet-blue text-white'
+                                : 'text-fleet-secondary hover:text-fleet-text'
+                            }`}>
+                            {speed}x
+                        </button>
+                    ))}
+                </div>
                 <div
                     role="button"
                     tabIndex={0}

@@ -6,7 +6,7 @@ import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
 import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
-import FleetAnalytics from '../../components/dashboard/FleetAnalyticsSection'
+import FleetAnalytics from '../../components/dashboard/FleetAnalytics'
 
 function formatActivityPoints(points, range) {
   return points.map((point) => {

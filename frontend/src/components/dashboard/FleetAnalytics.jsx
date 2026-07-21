@@ -5,13 +5,6 @@ import TopEventContributors from './TopEventContributors'
 import LowestSafetyScoresTable from './LowestSafetyScoresTable'
 import { getFleetAnalytics } from '../../services/vehicleService'
 
-import { useState, useEffect } from 'react'
-import FleetSafetyScoreTrend from './FleetSafetyScoreTrend'
-import FleetEventBreakdown from './FleetEventBreakdown'
-import TopEventContributors from './TopEventContributors'
-import LowestSafetyScoresTable from './LowestSafetyScoresTable'
-import { getFleetAnalytics } from '../../services/vehicleService'
-
 export default function FleetAnalyticsSection() {
   const [range, setRange] = useState('day')
   const [data, setData] = useState(null)

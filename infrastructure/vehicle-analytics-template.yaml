@@ -186,7 +186,7 @@ Resources:
           RequireSymbols: true
         SignInPolicy:
           AllowedFirstAuthFactors:
-          - "PASSWORD"
+          - ""
       VerificationMessageTemplate:
         DefaultEmailOption: "CONFIRM_WITH_CODE"
       KeyConfiguration:
@@ -484,7 +484,6 @@ Resources:
           DB_PORT: "5432"
           DB_HOST: "10.0.2.70"
           DB_USER: "lambda_writer"
-          DB_PASSWORD: "Capstone27"
       EphemeralStorage:
         Size: 512
       Architectures:
@@ -630,7 +629,6 @@ Resources:
           COGNITO_CLIENT_ID: "33gvnl0c4db2h6smmp86p7qb6d"
           COGNITO_USER_POOL_ID: "af-south-1_dlcqW8WIA"
           DB_HOST: "13.246.7.45"
-          DB_PASSWORD: "Capstone26"
           FRONTEND_URL: "http://localhost:5173"
       EphemeralStorage:
         Size: 512

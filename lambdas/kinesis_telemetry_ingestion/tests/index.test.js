@@ -174,3 +174,117 @@ describe("buildInsert()", () => {
   });
  
 });
+
+// DLQ batchItemFailures tests
+describe("handler() batchItemFailures", () => {
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("returns failed sequence number for invalid JSON", async () => {
+    const { handler } = require("../index");
+    const event = {
+      Records: [
+        {
+          kinesis: {
+            data: Buffer.from("not valid json").toString("base64"),
+            sequenceNumber: "seq-001",
+          },
+        },
+      ],
+    };
+    const result = await handler(event);
+    expect(result.batchItemFailures).toEqual([
+      { itemIdentifier: "seq-001" }
+    ]);
+  });
+
+  test("returns failed sequence number for record missing time", async () => {
+    const { handler } = require("../index");
+    const badRecord = {
+      vehicle_id:  "1000",
+      measurement: "avl",
+    };
+    const event = {
+      Records: [
+        {
+          kinesis: {
+            data: Buffer.from(JSON.stringify(badRecord)).toString("base64"),
+            sequenceNumber: "seq-002",
+          },
+        },
+      ],
+    };
+    const result = await handler(event);
+    expect(result.batchItemFailures).toEqual([
+      { itemIdentifier: "seq-002" }
+    ]);
+  });
+
+  test("returns failed sequence number for record missing vehicle_id", async () => {
+    const { handler } = require("../index");
+    const badRecord = {
+      time:        "2026-05-15T13:20:00.034",
+      measurement: "avl",
+    };
+    const event = {
+      Records: [
+        {
+          kinesis: {
+            data: Buffer.from(JSON.stringify(badRecord)).toString("base64"),
+            sequenceNumber: "seq-003",
+          },
+        },
+      ],
+    };
+    const result = await handler(event);
+    expect(result.batchItemFailures).toEqual([
+      { itemIdentifier: "seq-003" }
+    ]);
+  });
+
+  test("returns empty batchItemFailures when all records are valid", async () => {
+    const mockClient = {
+      query:   jest.fn().mockResolvedValue({ rowCount: 1 }),
+      release: jest.fn(),
+    };
+    pool.connect = jest.fn().mockResolvedValue(mockClient);
+
+    const { handler } = require("../index");
+    const validRecord = {
+      time:        "2026-05-15T13:20:00.034",
+      vehicle_id:  "1000",
+      measurement: "avl",
+    };
+    const event = {
+      Records: [
+        {
+          kinesis: {
+            data: Buffer.from(JSON.stringify(validRecord)).toString("base64"),
+            sequenceNumber: "seq-004",
+          },
+        },
+      ],
+    };
+    const result = await handler(event);
+    expect(result.batchItemFailures).toEqual([]);
+  });
+
+  test("batchItemFailures is always present in response", async () => {
+    const { handler } = require("../index");
+    const event = {
+      Records: [
+        {
+          kinesis: {
+            data: Buffer.from("invalid").toString("base64"),
+            sequenceNumber: "seq-005",
+          },
+        },
+      ],
+    };
+    const result = await handler(event);
+    expect(result).toHaveProperty("batchItemFailures");
+  });
+
+});

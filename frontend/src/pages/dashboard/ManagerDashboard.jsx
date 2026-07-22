@@ -186,6 +186,7 @@ export default function ManagerDashboard() {
         yDomain={[0, 'dataMax']}
         useFallback={false}
       />
+      <FleetAnalytics />
     </div>
   )
 }

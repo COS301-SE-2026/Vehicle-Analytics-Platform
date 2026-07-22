@@ -5,7 +5,7 @@ import TopEventContributors from './TopEventContributors'
 import LowestSafetyScoresTable from './LowestSafetyScoresTable'
 import { getFleetAnalytics } from '../../services/vehicleService'
 
-export default function FleetAnalyticsSection() {
+export default function FleetAnalytics() {
   const [range, setRange] = useState('day')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

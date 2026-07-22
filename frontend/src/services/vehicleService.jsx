@@ -41,7 +41,7 @@ export async function getKPIs() {
     };
   } catch (err) {
     if (err.name === 'AbortError' || err.message === 'Failed to fetch KPIs') {
-      console.warn('KPI fetch timed out — using fallback');
+      console.warn('KPI fetch timed out - using fallback');
       return {
         totalVehicles: 0,
         activeVehicles: 0,
@@ -164,3 +164,78 @@ export async function getVehiclePositionBuffer() {
 
 }
 
+// fleet anaylytics. THis has just been added to show mock data to have it displaying on the frontend
+
+const MOCK_FLEET_ANALYTICS = {
+  day: {
+    safetyTrend: [
+      { label: '00:00', score: 91 }, { label: '04:00', score: 89 }, { label: '08:00', score: 82 },
+      { label: '12:00', score: 78 }, { label: '16:00', score: 84 }, { label: '20:00', score: 90 },
+    ],
+    eventBreakdown: [
+      { type: 'Harsh Braking', count: 24 },
+      { type: 'Speeding', count: 18 },
+      { type: 'Crash Detection', count: 0 },
+      { type: 'Harsh Acceleration', count: 12 },
+      { type: 'Harsh Cornering', count: 8 },
+    ],
+    topContributors: [
+      { vehicleId: 'TRK-2024-K1', percentage: 42 },
+      { vehicleId: 'VAN-992-M', percentage: 38 },
+      { vehicleId: 'TRK-441-Z', percentage: 20 },
+    ],
+    lowestSafetyScores: [
+      { vehicleId: 'VAN-102-L', score: 62, status: 'CRITICAL', lastUpdated: '12:04:01' },
+      { vehicleId: 'TRK-441-Z', score: 71, status: 'WARNING', lastUpdated: '14:15:33' },
+    ],
+  },
+  week: {
+    safetyTrend: [
+      { label: 'Mon', score: 88 }, { label: 'Tue', score: 90 }, { label: 'Wed', score: 85 },
+      { label: 'Thu', score: 79 }, { label: 'Fri', score: 86 }, { label: 'Sat', score: 91 }, { label: 'Sun', score: 89 },
+    ],
+    eventBreakdown: [
+      { type: 'Harsh Braking', count: 96 },
+      { type: 'Speeding', count: 74 },
+      { type: 'Crash Detection', count: 1 },
+      { type: 'Harsh Acceleration', count: 45 },
+      { type: 'Harsh Cornering', count: 30 },
+    ],
+    topContributors: [
+      { vehicleId: 'TRK-2024-K1', percentage: 39 },
+      { vehicleId: 'VAN-992-M', percentage: 31 },
+      { vehicleId: 'TRK-441-Z', percentage: 22 },
+    ],
+    lowestSafetyScores: [
+      { vehicleId: 'VAN-102-L', score: 58, status: 'CRITICAL', lastUpdated: '2 days ago' },
+      { vehicleId: 'TRK-441-Z', score: 69, status: 'WARNING', lastUpdated: '1 day ago' },
+    ],
+  },
+}
+
+// GET /api/dashboard/fleet-analytics
+export async function getFleetAnalytics(range = 'day') {
+  const headers = await getAuthHeaders()
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/dashboard/fleet-analytics?range=${encodeURIComponent(range)}`, { headers })
+    if (!res.ok) throw new Error('Failed to fetch fleet analytics')
+    const data = await res.json()
+    return {
+      safetyTrend: data.data.safety_trend ?? [],
+      eventBreakdown: data.data.event_breakdown ?? [],
+      topContributors: (data.data.top_contributors ?? []).map(c => ({
+        vehicleId: c.vehicle_id,
+        percentage: c.percentage,
+      })),
+      lowestSafetyScores: (data.data.lowest_safety_scores ?? []).map(v => ({
+        vehicleId: v.vehicle_id,
+        score: v.score,
+        status: v.status?.toUpperCase(),
+        lastUpdated: v.last_updated,
+      })),
+    }
+  } catch (err) {
+    console.warn('Fleet analytics fetch failed - using mock data:', err.message)
+    return MOCK_FLEET_ANALYTICS[range] ?? MOCK_FLEET_ANALYTICS.day
+  }
+}

@@ -1,7 +1,7 @@
 const STATUS_STYLES = {
-  CRITICAL: 'bg-red-100 text-red-600',
-  WARNING: 'bg-orange-100 text-orange-600',
-  GOOD: 'bg-fleet-green/10 text-fleet-green',
+  CRITICAL: 'text-red-600',
+  WARNING: 'text-orange-600',
+  GOOD: 'text-fleet-green',
 } // this is a threshold for the safety scores
 
 // the safety scores are sorted from lowest. 

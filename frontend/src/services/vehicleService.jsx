@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 import useAuthStore from '../store/authStore';
-
+ 
 async function getAuthHeaders() {
   try {
     const token = useAuthStore.getState().token;
@@ -15,22 +15,22 @@ async function getAuthHeaders() {
   }
   return { 'Content-Type': 'application/json' };
 }
-
+ 
 // GET /api/dashboard/kpis
 export async function getKPIs() {
   const headers = await getAuthHeaders();
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
+ 
     const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, {
       headers,
       signal: controller.signal
     });
-
+ 
     clearTimeout(timeout);
     if (!res.ok) throw new Error('Failed to fetch KPIs');
-
+ 
     const data = await res.json();
     return {
       totalVehicles: data.data.total_vehicles,
@@ -41,7 +41,7 @@ export async function getKPIs() {
     };
   } catch (err) {
     if (err.name === 'AbortError' || err.message === 'Failed to fetch KPIs') {
-      console.warn('KPI fetch timed out - using fallback');
+      console.warn('KPI fetch timed out -using fallback');
       return {
         totalVehicles: 0,
         activeVehicles: 0,
@@ -53,7 +53,7 @@ export async function getKPIs() {
     throw err;
   }
 }
-
+ 
 // GET /api/vehicles/locations
 export async function getVehicleLocations() {
   const headers = await getAuthHeaders()
@@ -74,13 +74,13 @@ export async function getVehicleLocations() {
       distanceToday: Number.parseFloat(v.distance_today) || 0,
     }))
     .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
-
+ 
   return {
     timestamp: data.data.timestamp,
     vehicles,
   }
 }
-
+ 
 // GET /api/dashboard/alerts
 export async function getAlerts(limit = 50) {
   const headers = await getAuthHeaders()
@@ -92,7 +92,7 @@ export async function getAlerts(limit = 50) {
     alerts: data.data.alerts,
   }
 }
-
+ 
 // GET /api/dashboard/activity
 export async function getActivityHistory(range = 'day') {
   const headers = await getAuthHeaders()
@@ -101,7 +101,7 @@ export async function getActivityHistory(range = 'day') {
   const data = await res.json()
   return data.data.points || []
 }
-
+ 
 // GET /api/vehicles/:vehicleId
 export async function getVehicleById(vehicleId) {
   const headers = await getAuthHeaders()
@@ -113,7 +113,7 @@ export async function getVehicleById(vehicleId) {
     recent_events: data.data.recent_events,
   }
 }
-
+ 
 // GET /api/users (admin only)
 export async function getUsers() {
   const headers = await getAuthHeaders()
@@ -122,7 +122,7 @@ export async function getUsers() {
   const data = await res.json()
   return data.data
 }
-
+ 
 // PATCH /api/admin/users/:userId/role
 export async function updateUserRole(userId, role) {
   const headers = await getAuthHeaders()
@@ -134,7 +134,7 @@ export async function updateUserRole(userId, role) {
   if (!res.ok) throw new Error('Failed to update user role')
   return await res.json()
 }
-
+ 
 // DELETE /api/admin/users/:userId
 export async function deleteUser(userId) {
   const headers = await getAuthHeaders()
@@ -145,48 +145,66 @@ export async function deleteUser(userId) {
   if (!res.ok) throw new Error('Failed to delete user')
   return await res.json()
 }
-
+ 
 // GET /api/vehicles/buffer (for live map)
 export async function getVehiclePositionBuffer() {
   const headers = await getAuthHeaders();
-
+ 
   const res = await fetch(`${API_BASE_URL}/api/vehicles/buffer`, {
     headers
   });
-
+ 
   if(!res.ok){
     throw new Error('Failed to fetch playback buffer')
   }
-
+ 
   const data = await res.json();
-
+ 
   return data.data.vehicles;
-
+ 
 }
-
-// fleet anaylytics. THis has just been added to show mock data to have it displaying on the frontend
-
+ 
+// --- Fleet Analytics ---
+// Real endpoint: GET /api/fleet/analytics?period=day|week (fleetAnalyticsController.getFleetAnalytics)
+// One call covers all four widgets - trend, event_breakdown, vehicle_contributions,
+// and ranked_vehicles (already sorted worst-first by avg_score) - so no Promise.all needed.
+// Falls back to mock data only if the request itself fails (network/auth/deploy issue),
+// same pattern as getKPIs above.
+ 
+const EVENT_TYPE_LABELS = {
+  harsh_braking: 'Harsh Braking',
+  harsh_acceleration: 'Harsh Acceleration',
+  harsh_cornering: 'Harsh Cornering',
+  speeding: 'Speeding',
+  // Note: the backend's event_breakdown query doesn't currently include crash events at
+  // all (filters only on the four types above), so 'Crash Detection' will never appear
+  // here - that's a backend query change, not something this mapping can fix.
+}
+ 
+// avg_score thresholds mirror getClassification() in safetyController.js (Good/Fair/Poor),
+// mapped onto the CRITICAL/WARNING/GOOD tiers the table's badge styles already use.
+function classifyScore(score) {
+  if (score >= 80) return 'GOOD'
+  if (score >= 50) return 'WARNING'
+  return 'CRITICAL'
+}
+ 
 const MOCK_FLEET_ANALYTICS = {
   day: {
-    safetyTrend: [
-      { label: '00:00', score: 91 }, { label: '04:00', score: 89 }, { label: '08:00', score: 82 },
-      { label: '12:00', score: 78 }, { label: '16:00', score: 84 }, { label: '20:00', score: 90 },
-    ],
+    safetyTrend: [{ label: 'Today', score: 84 }],
     eventBreakdown: [
       { type: 'Harsh Braking', count: 24 },
       { type: 'Speeding', count: 18 },
-      { type: 'Crash Detection', count: 0 },
       { type: 'Harsh Acceleration', count: 12 },
       { type: 'Harsh Cornering', count: 8 },
     ],
     topContributors: [
       { vehicleId: 'TRK-2024-K1', percentage: 42 },
       { vehicleId: 'VAN-992-M', percentage: 38 },
-      { vehicleId: 'TRK-441-Z', percentage: 20 },
     ],
     lowestSafetyScores: [
-      { vehicleId: 'VAN-102-L', score: 62, status: 'CRITICAL', lastUpdated: '12:04:01' },
-      { vehicleId: 'TRK-441-Z', score: 71, status: 'WARNING', lastUpdated: '14:15:33' },
+      { vehicleId: 'VAN-102-L', score: 62, status: 'CRITICAL', daysTracked: 5 },
+      { vehicleId: 'TRK-441-Z', score: 71, status: 'WARNING', daysTracked: 7 },
     ],
   },
   week: {
@@ -197,43 +215,59 @@ const MOCK_FLEET_ANALYTICS = {
     eventBreakdown: [
       { type: 'Harsh Braking', count: 96 },
       { type: 'Speeding', count: 74 },
-      { type: 'Crash Detection', count: 1 },
       { type: 'Harsh Acceleration', count: 45 },
       { type: 'Harsh Cornering', count: 30 },
     ],
     topContributors: [
       { vehicleId: 'TRK-2024-K1', percentage: 39 },
       { vehicleId: 'VAN-992-M', percentage: 31 },
-      { vehicleId: 'TRK-441-Z', percentage: 22 },
     ],
     lowestSafetyScores: [
-      { vehicleId: 'VAN-102-L', score: 58, status: 'CRITICAL', lastUpdated: '2 days ago' },
-      { vehicleId: 'TRK-441-Z', score: 69, status: 'WARNING', lastUpdated: '1 day ago' },
+      { vehicleId: 'VAN-102-L', score: 58, status: 'CRITICAL', daysTracked: 7 },
+      { vehicleId: 'TRK-441-Z', score: 69, status: 'WARNING', daysTracked: 7 },
     ],
   },
 }
-
-// GET /api/dashboard/fleet-analytics
+ 
+// range ('day' | 'week') maps directly to the backend's `period` query param
 export async function getFleetAnalytics(range = 'day') {
   const headers = await getAuthHeaders()
   try {
-    const res = await fetch(`${API_BASE_URL}/api/dashboard/fleet-analytics?range=${encodeURIComponent(range)}`, { headers })
+    const res = await fetch(`${API_BASE_URL}/api/fleet/analytics?period=${encodeURIComponent(range)}`, { headers })
     if (!res.ok) throw new Error('Failed to fetch fleet analytics')
     const data = await res.json()
-    return {
-      safetyTrend: data.data.safety_trend ?? [],
-      eventBreakdown: data.data.event_breakdown ?? [],
-      topContributors: (data.data.top_contributors ?? []).map(c => ({
-        vehicleId: c.vehicle_id,
-        percentage: c.percentage,
-      })),
-      lowestSafetyScores: (data.data.lowest_safety_scores ?? []).map(v => ({
-        vehicleId: v.vehicle_id,
-        score: v.score,
-        status: v.status?.toUpperCase(),
-        lastUpdated: v.last_updated,
-      })),
-    }
+    const body = data.data
+ 
+    const safetyTrend = (body.trend ?? []).map(row => ({
+      label: new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      score: Math.round(row.avg_score),
+    }))
+ 
+    const eventBreakdown = (body.event_breakdown ?? []).map(row => ({
+      type: EVENT_TYPE_LABELS[row.type] ?? row.type,
+      count: row.count,
+    }))
+ 
+    const totalEvents = (body.vehicle_contributions ?? [])
+      .reduce((sum, row) => sum + (row.total_events || 0), 0) || 1
+    const topContributors = (body.vehicle_contributions ?? [])
+      .slice(0, 5)
+      .map(row => ({
+        vehicleId: row.vehicle_id,
+        percentage: Math.round((row.total_events / totalEvents) * 100),
+      }))
+ 
+    // ranked(worst first)
+    const lowestSafetyScores = (body.ranked_vehicles ?? [])
+      .slice(0, 5)
+      .map(row => ({
+        vehicleId: row.vehicle_id,
+        score: Math.round(row.avg_score),
+        status: classifyScore(row.avg_score),
+        daysTracked: row.days_count, // no per-vehicle timestamp exists in this response
+      }))
+ 
+    return { safetyTrend, eventBreakdown, topContributors, lowestSafetyScores }
   } catch (err) {
     console.warn('Fleet analytics fetch failed - using mock data:', err.message)
     return MOCK_FLEET_ANALYTICS[range] ?? MOCK_FLEET_ANALYTICS.day

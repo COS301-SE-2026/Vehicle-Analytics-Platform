@@ -33,7 +33,7 @@ export default function FleetSafetyScoreTrend({ data = [], title = 'Fleet Safety
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="#16a34a"
+                stroke="blue"
                 strokeWidth={2}
                 dot={{ r: 3, strokeWidth: 0, fill: '#16a34a' }}
                 activeDot={{ r: 5 }}

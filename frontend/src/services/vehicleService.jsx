@@ -41,7 +41,7 @@ export async function getKPIs() {
     };
   } catch (err) {
     if (err.name === 'AbortError' || err.message === 'Failed to fetch KPIs') {
-      console.warn('KPI fetch timed out -using fallback');
+      console.warn('KPI fetch timed out - using fallback');
       return {
         totalVehicles: 0,
         activeVehicles: 0,
@@ -164,69 +164,22 @@ export async function getVehiclePositionBuffer() {
  
 }
  
-// --- Fleet Analytics ---
-// Real endpoint: GET /api/fleet/analytics?period=day|week (fleetAnalyticsController.getFleetAnalytics)
-// One call covers all four widgets - trend, event_breakdown, vehicle_contributions,
-// and ranked_vehicles (already sorted worst-first by avg_score) - so no Promise.all needed.
-// Falls back to mock data only if the request itself fails (network/auth/deploy issue),
-// same pattern as getKPIs above.
- 
+// Fleet Analytics section added here 
+// endpoint: GET /api/fleet/analytics?period=day|week (fleetAnalyticsController.getFleetAnalytics)
+
 const EVENT_TYPE_LABELS = {
   harsh_braking: 'Harsh Braking',
   harsh_acceleration: 'Harsh Acceleration',
   harsh_cornering: 'Harsh Cornering',
   speeding: 'Speeding',
-  // Note: the backend's event_breakdown query doesn't currently include crash events at
-  // all (filters only on the four types above), so 'Crash Detection' will never appear
-  // here - that's a backend query change, not something this mapping can fix.
+  // side note that the backend's event_breakdown query does not query crash detection so that will not show anhythi
+  // at the moment 
 }
  
-// avg_score thresholds mirror getClassification() in safetyController.js (Good/Fair/Poor),
-// mapped onto the CRITICAL/WARNING/GOOD tiers the table's badge styles already use.
 function classifyScore(score) {
   if (score >= 80) return 'GOOD'
   if (score >= 50) return 'WARNING'
-  return 'CRITICAL'
-}
- 
-const MOCK_FLEET_ANALYTICS = {
-  day: {
-    safetyTrend: [{ label: 'Today', score: 84 }],
-    eventBreakdown: [
-      { type: 'Harsh Braking', count: 24 },
-      { type: 'Speeding', count: 18 },
-      { type: 'Harsh Acceleration', count: 12 },
-      { type: 'Harsh Cornering', count: 8 },
-    ],
-    topContributors: [
-      { vehicleId: 'TRK-2024-K1', percentage: 42 },
-      { vehicleId: 'VAN-992-M', percentage: 38 },
-    ],
-    lowestSafetyScores: [
-      { vehicleId: 'VAN-102-L', score: 62, status: 'CRITICAL', daysTracked: 5 },
-      { vehicleId: 'TRK-441-Z', score: 71, status: 'WARNING', daysTracked: 7 },
-    ],
-  },
-  week: {
-    safetyTrend: [
-      { label: 'Mon', score: 88 }, { label: 'Tue', score: 90 }, { label: 'Wed', score: 85 },
-      { label: 'Thu', score: 79 }, { label: 'Fri', score: 86 }, { label: 'Sat', score: 91 }, { label: 'Sun', score: 89 },
-    ],
-    eventBreakdown: [
-      { type: 'Harsh Braking', count: 96 },
-      { type: 'Speeding', count: 74 },
-      { type: 'Harsh Acceleration', count: 45 },
-      { type: 'Harsh Cornering', count: 30 },
-    ],
-    topContributors: [
-      { vehicleId: 'TRK-2024-K1', percentage: 39 },
-      { vehicleId: 'VAN-992-M', percentage: 31 },
-    ],
-    lowestSafetyScores: [
-      { vehicleId: 'VAN-102-L', score: 58, status: 'CRITICAL', daysTracked: 7 },
-      { vehicleId: 'TRK-441-Z', score: 69, status: 'WARNING', daysTracked: 7 },
-    ],
-  },
+  return 'POOR'
 }
  
 // range ('day' | 'week') maps directly to the backend's `period` query param
@@ -257,19 +210,19 @@ export async function getFleetAnalytics(range = 'day') {
         percentage: Math.round((row.total_events / totalEvents) * 100),
       }))
  
-    // ranked(worst first)
+    // ranked (worst first)
     const lowestSafetyScores = (body.ranked_vehicles ?? [])
       .slice(0, 5)
       .map(row => ({
         vehicleId: row.vehicle_id,
         score: Math.round(row.avg_score),
         status: classifyScore(row.avg_score),
-        daysTracked: row.days_count, // no per-vehicle timestamp exists in this response
+        daysTracked: row.days_count, // note that no per-vehicle timestamp exists here
       }))
  
     return { safetyTrend, eventBreakdown, topContributors, lowestSafetyScores }
   } catch (err) {
-    console.warn('Fleet analytics fetch failed - using mock data:', err.message)
-    return MOCK_FLEET_ANALYTICS[range] ?? MOCK_FLEET_ANALYTICS.day
+    console.error('Fleet analytics fetch failed:', err.message)
+    throw err
   }
 }

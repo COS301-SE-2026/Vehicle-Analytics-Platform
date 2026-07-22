@@ -5,15 +5,6 @@ const {pool} = require('../db/pool');
 
 const {success, error} = require('../utils/response');
 
-
-
-
-
-
-
-
-
-
 async function getVehicleSafetyScore(req, res) {
 
 
@@ -291,71 +282,22 @@ async function getFleetSafetyScores(req, res) {
 
         return success(res, {
 
-
-            
             date: date||'CURRENT_DATE',
-
-
-            
             total_vehicles: vehicles.length,
-
-
-            
             vehicles: vehicles
-
-
         }, 200);
-
-
-
     } 
     
     catch (err){
-
-
-
-
         console.error('Get fleet safety scores error:', err);
-
-
-
         return error(res, 'Failed to fetch fleet safety scores: '+err.message, 500);
 
-
-
     }
-
 }
-
-
-
-
-
 function getClassification(score) {
-
-
-
     if(score>=80) return 'Good';
-
-
-
     if(score>=50) return 'Fair';
-
-
-
     return 'Poor';
-
-
-
-
 }
-
-
 
 module.exports = {getVehicleSafetyScore, getFleetSafetyScores};
-
-
-
-
-
-

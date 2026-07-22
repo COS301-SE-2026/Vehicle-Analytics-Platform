@@ -1,8 +1,25 @@
 import { Button } from '@/components/ui/button';
-import { Database, Zap, ShieldCheck } from 'lucide-react'
-
+import { Database, Zap, ShieldCheck, Clock, ShieldAlert, Unplug } from 'lucide-react'
 
 export default function Header() {
+  const painPoints = [
+    {
+      icon: Clock,
+      title: "Delayed Reports",
+      description: "By the time your data arrives, the incident is hours old."
+    },
+    {
+      icon: ShieldAlert,
+      title: "Blind Spots on Risky Driving",
+      description: "Without continous scoring, dangerous behaviour goes unnoticed until it's too late"
+    },
+    {
+      icon: Unplug,
+      title: "Disconnected Tools",
+      description: "Tracking in one application, safety in another, reports in a spreadsheet - fragmentation kills efficiency"
+    },
+  ];
+
   return (
     <section className="max-w-7xl mx-auto px-6 py-16">
       {/* HEADING & IMAGE */}
@@ -24,7 +41,7 @@ export default function Header() {
           - from live map to admin reporting, all in one place.
         </p>
 
-        <Button className=" mt-8 bg-fleet-blue hover:bg-fleet-blue/90 text-white rounded-full px-6" >
+        <Button className="mt-8 bg-fleet-blue transition delay-150 duration-300 ease-in-out hover:bg-fleet-blue/90 text-white rounded-full px-6" >
          View Live Demo Fleet
         </Button>
        </div>
@@ -46,6 +63,20 @@ export default function Header() {
         <div className='flex items-center gap-2'>
           <ShieldCheck className='w-4 h-4 text-green-600'/> 15+ vehicles supported
         </div>
+      </div>
+
+      {/* PAIN POINTS */}
+      <div className='mt-20 grid md:grid-cols-3 gap-12'>
+        {painPoints.map(({icon: Icon, title, description}) => (
+          <div
+            key={title}
+            className='bg-fleet-bg rounded-xl border border-slate-100 shadow-sm p-6'
+          >
+            <Icon className='w-5 h-5 text-slate-700 mb-3'/>
+            <h3 className='font-bold text-slate-900 mb-1'>{title}</h3>
+            <p className='text-sm text-slate-500'>{description}</p>
+          </div>
+        ))}
       </div>
     </section>
   );

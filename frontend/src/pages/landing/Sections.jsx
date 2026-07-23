@@ -1,6 +1,6 @@
-import { MapPin, ShieldCheck, History, LayoutGrid } from "lucide-react";
+import { MapPin, ShieldCheck, History, LayoutGrid,  Radio, CloudCog, Gauge, ArrowRight, Icon } from "lucide-react";
 
-export default function Sections() {
+function WhatYouGet() {
     const features = [
         {
             icon: MapPin,
@@ -48,4 +48,55 @@ export default function Sections() {
       </div>
     </section>
   );
+}
+
+export function HowItWorks(){
+    const flow = [
+        {
+            icon: Radio,
+            title: "Live Data Stream",
+            description: "Vehicle telemetry streams in every 5–10 seconds.",
+        },
+        {
+            icon: CloudCog,
+            title: "Cloud Processing",
+            description: "Telemetry is processed and scored in real time on AWS.",
+        },
+        {
+            icon: Gauge,
+            title: "Dashboard Insights",
+            description: "Every role sees clear, actionable insight the moment it happens",
+        },
+    ];
+
+    return (
+        <section className="max-w-7xl mx-auto px-6 py-20 text-center">
+            <h2 className="text-3xl font-bold text-slate-900 mb-16"> HOW V.A.P.O.R WORKS</h2>
+
+            <div className="flex flex-col md:flex-row items-center justify gap-8 md:gap-4">
+                {flow.map(({icon: Icon, title, description }, i) => (
+                    <div key={title} className="flex items-center gap-4">
+                        <div className="max-w-[220px]">
+                         <Icon className="w-6 h-6 text-fleet-green mc-auto mb-3"/>
+                         <h3 className="font-bold text-slate-900">{title}</h3>
+                         <p className="text-sm text-slate-500 mt-1">{description}</p>
+                        </div>
+
+                        {i < flow.length - 1 && (
+                            <ArrowRight className="w-h h-5 text-fleet-green text-slate-300 hidden md:block shrink-0" />
+                        )}
+                    </div>
+                ))}
+            </div>
+        </section>
+    )
+}
+
+export default function Sections() {
+    return (
+        <>
+        <WhatYouGet />
+        <HowItWorks />
+        </>
+    )
 }

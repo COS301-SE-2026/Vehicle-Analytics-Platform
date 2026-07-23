@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import vaporlogo from "./logo.png"
+import vaporlogo from "./img/logo.png"
 
 export default function Navbar() {
     return (

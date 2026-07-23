@@ -394,6 +394,58 @@
 
 ## Cloud Infrastructure (AWS)
 
+### AWS CDK
+
+**Purpose:** Infrastructure as Code (IaC).
+
+**Why we chose it:**
+- Codifies our entire stack (API Gateway, Lambdas, S3, Cognito, SQS) in TypeScript
+- Prevents manual ClickOps drift and ensures reproducible deployments (`cdk deploy`)
+- Shares the same language environment as our Node.js/Express backend
+
+**What we considered:**
+- **Terraform** - Requires learning HCL instead of using existing TypeScript skills
+- **Raw CloudFormation/YAML** - Too verbose and lacks native code logic/loops
+
+---
+
+
+### AWS CloudFront
+
+**Purpose:** Global Content Delivery Network (CDN) for frontend assets.
+
+**Why we chose it:**
+- Delivers the React single-page application over HTTPS with minimal latency
+- Restricts direct access to the S3 bucket using Origin Access Control (OAC)
+
+**What we considered:**
+- **S3 Direct Hosting** - Lacks simple native HTTPS enforcement and global edge caching
+
+---
+
+### AWS SQS
+
+**Purpose:** Dead-Letter Queue (DLQ) for failed telemetry ingestion.
+
+**Why we chose it:**
+- Automatically captures failed Kinesis ingestion events without throwing away data
+- Allows batch re-processing after resolving database connectivity issues
+
+---
+
+### Flyway
+
+**Purpose:** Database version control and schema migrations.
+
+**Why we chose it:**
+- Automates PostgreSQL and TimescaleDB DDL changes across local Docker and EC2 environments
+- Keeps database schema history tracked in source control
+
+**What we considered:**
+- **Manual SQL Execution** - Error-prone and unmanageable across a multi-developer team
+
+---
+
 
 ### Kinesis
 
@@ -711,13 +763,9 @@
 
 ## Architecture Patterns
 
-
 ### Event-Driven Architecture
 
-
 **Where:** Kinesis + Lambda for telemetry ingestion.
-
-
 
 **Why we chose it:**
 
@@ -725,60 +773,98 @@
 - Handles variable telemetry loads
 - Easy to add new consumers later
 
-
 **What we considered:**
 
 - **Polling**: Less efficient and more latency
 
-
-
 ---
 
+### Pipe and Filter Architecture
 
-
-### Medallion Architecture
-
-
-
-**Where:** Bronze - Silver - Gold in TimescaleDB.
-
+**Where:** Ingestion Processing Pipeline (Bronze -> Silver -> Gold transformations)
 
 **Why we chose it:**
-
-- Keeps raw, clean, and aggregated data separate
-- Makes dashboard queries faster
-- Preserves raw data for auditing
-
-
+- Treats data ingestion as a sequence of independent processing steps connected by data streams. 
+- Raw JSON pings pass through validation, spatial casting, geofence evaluation, and aggregation filters before reaching final persistence.
 
 **What we considered:**
-
-- **Single table**: Would get too large and slow
-
-
+- **Monolithic Ingestion Script** - Tightly couples validation, transformation, and storage, making pipeline steps difficult to modify or test in isolation.
 
 ---
 
+### CQRS (Command Query Responsibility Segregation)
 
+**Where:** Telemetry Ingestion Workers (Commands) and Analytics API Endpoints (Queries).
+
+**Why we chose it:** Separates high frequency telemetry writes from complex analytical reads. Ingestion workers execute bulk writes into timeseries hypertables, while API endpoints query optimized Gold pre-aggregated views to keep dashboard response times under 80ms.
+
+**What we considered:** 
+
+- **Unified Read/Write Queries** — Causes database lock contention and performance degradation during peak telemetry streams.
+
+---
 
 ### Client-Server Architecture
 
+**Where:** React frontend(Client) and Express API(Server).
 
-**Where:** React frontend + Express API.
-
-
-**Why we chose it:**
-
-- Frontend and backend can be developed independently
-- Clear separation of responsibilities
-- Easy to manage and deploy
-
+**Why we chose it:**Enforces a clean separation of concerns between user interface rendering (Mapbox maps, charts) and backend logic/database operations.
 
 **What we considered:**
 
-- **Microservices**: Adds unnecessary complexity for our scale
-- **Monolithic**: Less flexible for independent development
-
-
+- **Server-Side Rendered Monolith** - Limits independent deployment and adds unnecessary server rendering overhead for interactive mapping.
 
 ---
+
+### 4-Tier (Layered) Architecture
+
+**Where:** System Layers 1 through 4 (Ingestion -> Database -> API -> UI).
+
+**Why we chose it:** Organizes system components into distinct physical and logical layers so that failure or maintenance in one tier does not disrupt lower tier.
+
+**What we considered:**
+- **Unstructured Architecture** — Creates tight coupling and single points of failure across the system.
+
+---
+
+## Architecture Design Tactics
+
+### Circuit Breaker (Dead-Letter Queue)
+
+**Mechanism:** Ingestion Lambda -> SQS DLQ (telemetry-ingestion-dlq).
+
+**Quality Attribute:** Availability & Data Integrity
+
+**Why we chose it:** Captures malformed telemetry payloads or unhandled database connectivity exceptions without stalling Kinesis stream shards or dropping data. Allows offline debugging and message replaying.
+
+### Connection Pooling
+
+**Mechanism:** PgBouncer proxy layer in front of PostgreSQL/TimescaleDB.
+
+**Quality Attribute:** Availability & Reliability
+
+**Why we chose it:** Manages database connection limits gracefully during sudden spikes in serverless Lambda concurrency, preventing database resource exhaustion.
+
+### Evolutionary Database Migrations
+
+**Mechanism:** Flyway migration scripts.
+
+**Quality Attribute:** Maintainability & Testability
+
+**Why we chose it:** Automates PostgreSQL and TimescaleDB DDL schema changes across local Docker and EC2 environments, ensuring database schema parity across all development and production environments.
+
+### Perimeter Token Validation
+
+**Mechanism:** Cognito User Pool + API Gateway Authorizer.
+
+**Quality Attribute:** Security & Confidentiality
+
+**Why we chose it:** Validates short lived JWT signatures at the API Gateway perimeter before requests ever reach the Lambda compute tier, protecting backend resources from unauthorized traffic.
+
+### Asynchronous Serverless Compute (FaaS)
+
+**Mechanism:** AWS Lambda functions for ingestion and API handling.
+
+**Quality Attribute:** Scalability & Cost Efficiency
+
+**Why we chose it:** Scales compute capacity instantly from zero to hundreds of concurrent executions in response to incoming traffic, eliminating idle server costs during off-peak hours

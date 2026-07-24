@@ -1,4 +1,8 @@
-import { MapPin, ShieldCheck, History, LayoutGrid,  Radio, CloudCog, Gauge, ArrowRight, Icon } from "lucide-react";
+import { 
+    MapPin, ShieldCheck, History, LayoutGrid,
+    Radio, CloudCog, Gauge, ArrowRight, TrendingUpDown, TrendingUp
+} from "lucide-react";
+import Dashboard from "./img/dashboard.png"
 
 function WhatYouGet() {
     const features = [
@@ -73,7 +77,7 @@ export function HowItWorks(){
         <section className="max-w-7xl mx-auto px-6 py-20 text-center">
             <h2 className="text-3xl font-bold text-slate-900 mb-16"> HOW V.A.P.O.R WORKS</h2>
 
-            <div className="flex flex-col md:flex-row items-center justify gap-8 md:gap-4">
+            <div className="flex flex-col md:flex-row items-center justify gap-8 md:gap-4 max-w-4xl mx-auto">
                 {flow.map(({icon: Icon, title, description }, i) => (
                     <div key={title} className="flex items-center gap-4">
                         <div className="max-w-[220px]">
@@ -92,11 +96,32 @@ export function HowItWorks(){
     )
 }
 
+export function CommandCenter(){
+   return (
+        <section className="bg-fleet-surface px-6 py-20">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-center text-2xl md:text-3xl font-bold text-fleet-blue mb-10">
+                Your Command Center
+            </h2>
+
+            <div className="rounded-2xl shadow-lg overflow-hidden border border-fleet-idle">
+                <img 
+                    src={Dashboard}
+                    alt="V.A.P.O.R Fleet Dashboard"
+                    className="w-full h-auto"
+                />
+            </div>
+          </div>
+        </section>
+   );
+}
+
 export default function Sections() {
     return (
         <>
         <WhatYouGet />
         <HowItWorks />
+        <CommandCenter />
         </>
     )
 }

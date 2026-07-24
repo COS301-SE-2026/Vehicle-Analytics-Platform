@@ -63,6 +63,7 @@ export default function TripHistoryList({ trips, overallScore}){
                 (replay.points || []).map((p) => ({
                     lat: p.latitude,
                     lng: p.longitude,
+                    colour: p.colour,
                 }))
             )
 

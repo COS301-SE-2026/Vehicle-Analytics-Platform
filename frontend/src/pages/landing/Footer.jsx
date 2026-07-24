@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
@@ -14,7 +15,7 @@ export default function Footer() {
           type='button'
           className='bg-fleet-green hover:bg-fleet-green/90 hover:scale-[1.02] focus:scale-[1.02] active:scale-100 text-fleet-surface font-semibold text-sm px-6 py-3 rounded-full'
         >
-          View Live Demo
+          <Link to="/signup">View Live Demo Fleet</Link>
         </Button>
       </div>
 

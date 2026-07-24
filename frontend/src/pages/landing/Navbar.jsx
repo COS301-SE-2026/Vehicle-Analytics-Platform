@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import vaporlogo from "./img/logo.png"
 
 export default function Navbar() {
@@ -9,7 +10,7 @@ export default function Navbar() {
              <img src={vaporlogo} alt="V.A.P.O.R" className="w-auto h-24" />
              {/* CALL TO ACTION BUTTON */}
              <Button className="bg-fleet-blue hover:bg-fleet-blue/90 hover:scale-[1.02] focus:scale-[1.02] active:scale-100 text-white rounded-full px-6">
-                View Live Demo Fleet
+                <Link to="/signup">View Live Demo Fleet</Link>
              </Button>
             </div>
         </header>

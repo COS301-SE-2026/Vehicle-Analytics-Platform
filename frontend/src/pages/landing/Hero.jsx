@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Link } from "react-router-dom";
 import { Database, Zap, ShieldCheck, Clock, ShieldAlert, Unplug } from 'lucide-react'
 
 export default function Header() {
@@ -42,7 +43,7 @@ export default function Header() {
         </p>
 
         <Button className="mt-8 bg-fleet-blue hover:scale-[1.02] focus:scale-[1.02] active:scale-100 hover:bg-fleet-blue/90 text-white rounded-full px-6" >
-         View Live Demo Fleet
+         <Link to="/signup">View Live Demo Fleet</Link>
         </Button>
        </div>
 

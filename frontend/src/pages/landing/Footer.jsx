@@ -12,7 +12,7 @@ export default function Footer() {
         </p>
         <Button 
           type='button'
-          className='bg-fleet-green hover:bg-fleet-green/90 transition-colors text-fleet-surface font-semibold text-sm px-6 py-3 rounded-full'
+          className='bg-fleet-green hover:bg-fleet-green/90 hover:scale-[1.02] focus:scale-[1.02] active:scale-100 text-fleet-surface font-semibold text-sm px-6 py-3 rounded-full'
         >
           View Live Demo
         </Button>

@@ -41,7 +41,7 @@ export default function Header() {
           - from live map to admin reporting, all in one place.
         </p>
 
-        <Button className="mt-8 bg-fleet-blue transition delay-150 duration-300 ease-in-out hover:bg-fleet-blue/90 text-white rounded-full px-6" >
+        <Button className="mt-8 bg-fleet-blue hover:scale-[1.02] focus:scale-[1.02] active:scale-100 hover:bg-fleet-blue/90 text-white rounded-full px-6" >
          View Live Demo Fleet
         </Button>
        </div>
@@ -70,7 +70,9 @@ export default function Header() {
         {painPoints.map(({icon: Icon, title, description}) => (
           <div
             key={title}
-            className='bg-fleet-bg rounded-xl border border-slate-100 shadow-sm p-6'
+            className='bg-fleet-bg rounded-xl border border-slate-100 shadow-sm p-6
+                        hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:z-10 realtive
+                        transitiona-all duration 200'
           >
             <Icon className='w-5 h-5 text-slate-700 mb-3'/>
             <h3 className='font-bold text-slate-900 mb-1'>{title}</h3>

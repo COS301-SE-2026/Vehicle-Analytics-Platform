@@ -31,7 +31,7 @@ function WhatYouGet() {
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-20">
-      <h2 className="text-3l font-bold text-slate-900 mb-10">
+      <h2 className="text-3xl font-bold text-slate-900 mb-10">
         What You Get, Every Day
       </h2>
 

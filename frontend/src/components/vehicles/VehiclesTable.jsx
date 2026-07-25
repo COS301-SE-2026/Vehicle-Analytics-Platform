@@ -73,7 +73,7 @@ export default function VehiclesTable({ vehicles, page, totalPages, totalVehicle
                     ))}
                     <button
                     type="button"
-                    data-testid={`vehicles-page-next}`}
+                    data-testid="vehicles-page-next"
                     disabled={page === totalPages}
                     onClick={() => onPageChange(page+1)}
                     className="w-7 h-7 flex items-center justify-center rounded-md border border-fleet-border disabled:opacity-40">

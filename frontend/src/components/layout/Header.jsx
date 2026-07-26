@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import { Button } from '@/components/ui/button'
+import { CircleQuestionMark } from 'lucide-react'
+import { HelpPanel } from '@/components/help/HelpPanel';
 
 export default function Header({ title, collapsed }) {
+  const [ helpOpen, setHelpOpen ] = useState(false);
   const { user } = useAuthStore()
   const initials = (user?.name || 'User')
     .split(' ')
@@ -20,11 +25,26 @@ export default function Header({ title, collapsed }) {
 
       {/* Right Side */}
       <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setHelpOpen(true)}
+          className=" w-9 h-9 rounded-full bg-fleet-blue hover:bg-fleet-blue/90"
+          aria-label="Open help center"
+        >
+          <CircleQuestionMark className="w-8 h-8 text-fleet-surface" />
+        </Button>
         {/* Avatar */}
         <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center">
           <span className="text-white text-xs font-bold">{initials}</span>
         </div>
       </div>
+
+      <HelpPanel
+        isOpen={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        role={user?.role || 'viewer'}
+      />
     </header>
   )
 }

@@ -1,54 +1,6 @@
 import { AlertTriangle, Zap, Power, PlayCircle } from 'lucide-react'
 import PropTypes from 'prop-types'
 
-const MOCK_EVENTS = [
-  {
-    id: 'evt-001',
-    vehicleId: 'VH-0042',
-    eventType: 'speeding',
-    description: 'Exceeded speed limit: 95 km/h in 80 zone',
-    location: 'N1 Highway, Midrand',
-    severity: 'HIGH',
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'evt-002',
-    vehicleId: 'VH-0031',
-    eventType: 'harsh_braking',
-    description: 'Harsh braking detected',
-    location: 'R21 Highway',
-    severity: 'MEDIUM',
-    timestamp: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'evt-003',
-    vehicleId: 'VH-0007',
-    eventType: 'engine_off',
-    description: 'Engine turned off',
-    location: 'Sandton Depot',
-    severity: 'LOW',
-    timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'evt-004',
-    vehicleId: 'VH-0055',
-    eventType: 'engine_on',
-    description: 'Engine started',
-    location: 'OR Tambo, Johannesburg',
-    severity: 'LOW',
-    timestamp: new Date(Date.now() - 31 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'evt-005',
-    vehicleId: 'VH-0019',
-    eventType: 'speeding',
-    description: 'Exceeded speed limit: 112 km/h in 100 zone',
-    location: 'N14 Highway, Krugersdorp',
-    severity: 'HIGH',
-    timestamp: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
-  },
-]
-
 const SEVERITY_STYLES = {
   HIGH: 'bg-red-100 text-fleet-alert border border-red-200',
   MEDIUM: 'bg-orange-100 text-fleet-warning border border-orange-200',

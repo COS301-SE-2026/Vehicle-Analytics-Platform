@@ -12,7 +12,6 @@ export function ZoneDetails() {
         handleSubmit,
         handleCancel,
         control,
-        reset,
         formState: { errors, isSubmitting },
     } = useForm({
         resolver: zodResolver(zoneSchema),

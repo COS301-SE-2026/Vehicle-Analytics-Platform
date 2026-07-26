@@ -29,6 +29,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
     const mapContainer = useRef(null)
     const map = useRef(null)
     const playbackMarker = useRef(null)
+    const currentIndexRef = useRef(0)
 
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isPlaying, setIsPlaying] = useState(false)
@@ -105,13 +106,17 @@ export default function RouteMap({ routePoints, routeLabel}) {
         }, [currentIndex, isPlaying, routePoints])
 
         useEffect(() => {
+            currentIndexRef.current = currentIndex
+        }, [currentIndex])
+
+        useEffect(() => {
             if (!isPlaying || !playbackMarker.current){
                 return
             }
 
             let animationId = null
             let segmentStartTime = null
-            let segmentIndex = currentIndex
+            let segmentIndex = currentIndexRef.current
 
 
             function animateSegment(timestamp) {

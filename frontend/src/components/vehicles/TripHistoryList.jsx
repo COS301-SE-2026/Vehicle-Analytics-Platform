@@ -48,8 +48,6 @@ export default function TripHistoryList({ trips, overallScore}){
 
     useEffect(() => {
         if (!expandedTripId) {
-            setTripRoute([])
-            setTripEvents([])
             return
         }
 

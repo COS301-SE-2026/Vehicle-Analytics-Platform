@@ -133,6 +133,57 @@ export const helpMenuData = [
                     },
                 ],
             },
+            {
+                id: "what-counts-as-a-trip",
+                title: "What counts as a trip",
+                preview: "Why one vehicle can show multiple trips",
+                roles: [ROLES.VIEWER, ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                content: [
+                    {
+                        type: "text",
+                        text: "A trip starts the moment a vehicle's speed goes about 5 km/h, the movement metric is on, and the ignition is also on. It ends once the vehicle stay at or is below 5 km/h for 10 minutes and with the ignition off.",
+                    },
+                    {
+                        type: "callout",
+                        text: "One long drive with a big stop in the middle will show up as two seperate trips.That's expected, not a bug.",
+                    },
+                    {
+                        type: "text",
+                        text: "The same stationary period is also used to track rest breaks for fatigue detection"
+                    },
+                ],  
+            },
+            {
+                id: "green-driving-breakdown",
+                title: "Green Driving Breakdown",
+                preview: "Per-trip counts of harsh events",
+                roles: [ROLES.VIEWER, ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                content: [
+                    {
+                        type: "text",
+                        text: "Under each trip, you will see a simple breakdown of three counts: harsh braking, hard acceleration, and harsh cornering. This tells you not just that a trip scored low, but which specific behaviour cause the drop.",
+                    },
+                ],
+            },
+            {
+                id: "daily-vs-per-trip-scores",
+                title: "Daily vs. Per-Trip Scores",
+                preview: "Toggling between aggregation views",
+                roles: [ROLES.FLEET_MANAGER,ROLES.ADMIN],
+                content: [
+                    {
+                        type: "list",
+                        items: [
+                            "Per-trip view - a score for each individual trip.",
+                            "Daily view - scores aggregated across a full day.",
+                        ],
+                    },
+                    {
+                        type: "text",
+                        text: "Daily view is better for spotting patterns rather than reacting to a single rough trip.",
+                    },
+                ],
+            },
         ],
     },
 ];

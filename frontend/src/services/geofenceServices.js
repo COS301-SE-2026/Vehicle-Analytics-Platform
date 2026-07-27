@@ -43,6 +43,18 @@ export async function getGeofences() {
     };
 }
 
+// GET /api/geofence/geojson -- existing zones as a FeatureCollection
+export async function getGeofencesGeoJSON(vehicle_id) {
+    const headers = await getAuthHeaders();
+    const url = vehicle_id
+        ? `${API_BASE_URL}/api/geofences/geojson?vehicle_id=${vehicle_id}`
+        : `${API_BASE_URL}/api/geofences/geojson`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error('Failed to fetch geofences geojson');
+    const data = await res.json();
+    return data.data; // { type: 'FeatureCollection', features: [...]}
+}
+
 // PATCH /api/geofence/:geofence_id
 export async function updateGeofence(geofence_id, update){
     const headers = await getAuthHeaders();

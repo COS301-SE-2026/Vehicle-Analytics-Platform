@@ -18,6 +18,7 @@ const router = express.Router();
 
 router.post('/', authenticate, requireRole(['admin', 'fleet_manager']), createGeofence);
 router.get('/', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getGeofences);
+router.get('/geojson', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getGeofenceGeoJSON);
 router.get('/events', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getGeofenceEvents);
 router.get('/discover/stops', authenticate, requireRole(['admin', 'fleet_manager']), discoverFrequentStops);
 router.get('/discover/events', authenticate, requireRole(['admin', 'fleet_manager']), discoverFrequentEvents);

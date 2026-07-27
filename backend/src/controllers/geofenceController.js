@@ -60,6 +60,16 @@ catch (err){
     }
 }
 
+async function getGeofencesGeoJSON(req, res) {
+    const { vehicle_id } = req.query;
+    try {
+        const result = await pool.query(`SELECT get_geofences_geojson($1) AS fc`, [vehicle_id || null]);
+        return success(res, result.rows[0].fc, 200);
+    } catch(err) {
+        console.error('Get geofences GeoJson error:', err);
+        return error(res, 'Failed to fetch geofences geojson: ' + err.message, 500);
+    }
+}
 
 async function getGeofenceById(req, res) {
 const {id} = req.params;

@@ -12,6 +12,8 @@
  * { type: 'table', headers: [], rows: [[...]] }
  */
 
+import { preview } from "vite";
+
 export const ROLES = {
     VIEWER: "viewer",
     FLEET_MANAGER: "fleet_manager",
@@ -181,6 +183,68 @@ export const helpMenuData = [
                     {
                         type: "text",
                         text: "Daily view is better for spotting patterns rather than reacting to a single rough trip.",
+                    },
+                ],
+            },
+            {
+                id: "vehicle-profiles",
+                title: "Vehicle Profiles",
+                icon: "car",
+                roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                articles: [
+                    {
+                        id: "current-trip-vs-history",
+                        title: "Current Trip vs History Tabs",
+                        preview: "What's live vs. historical",
+                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        content: [
+                            {
+                                type: "table",
+                                headers: ["Current Trip", "History"],
+                                rows: [
+                                    [
+                                        "Live GPS position, elapsed time, live event feed, real-time score.",
+                                        "Every past trip with its score, plus the vehicle's overall average.",
+                                    ],
+                                ],
+                            },
+                            {
+                                type: "callout",
+                                text: "No active trip? The profile automatically shows History instead.",
+                            },
+                            {
+                                type: "callout",
+                                text: "No trip history available yet for this vehicle.",
+                            },
+                        ],
+                    },
+                    {
+                        id: "expanding-a-past-trip",
+                        title: "Expanding a Past Trip",
+                        preview: "View the event timeline and route",
+                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        content: [
+                            {
+                                type: "text",
+                                text: "Click any trip in the History tab to expand it. You'll see the full event timeline - each unsafe event with its type, timestamp, and location - plus the trip's replay drawn on the map with event locations marked along it.",
+                            },
+                        ],
+                    },
+                    {
+                        id: "reading-the-vehicle-list",
+                        title: "Reading the vehicle List",
+                        preview: "What each column means",
+                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        content: [
+                            {
+                                type: "list",
+                                items: [
+                                    "Vehicle ID",
+                                    "Current status (active, idle, offline)",
+                                    "Current safety score",
+                                ],
+                            },
+                        ],
                     },
                 ],
             },

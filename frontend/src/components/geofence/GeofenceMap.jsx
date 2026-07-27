@@ -3,10 +3,12 @@ import { Loader2 } from "lucide-react";
 import mapboxgl from "mapbox-gl"
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
+import { getGeofencesGeoJSON } from "@/services/geofenceServices";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 const DEFAULT_CENTER = [28.2293, -25.75456]; //maps fallsback if geolocation fails
+const ZONES_SOURCE_ID = "existing-geofences";
 
 export default function GeofenceMap({ onZoneDrawn }) {
     const mapContainer = useRef(null);
@@ -62,6 +64,25 @@ export default function GeofenceMap({ onZoneDrawn }) {
             }
         });
         
+        map.current.on("load", () => {
+            map.current.addSource(ZONES_SOURCE_ID, {
+                type: "geojson",
+                data: { type: "FeatureCollection", features: [] },
+            });
+            map.current.addLayer({
+                id: `${ZONES_SOURCE_ID}-fill`,
+                type: "fill",
+                source: ZONES_SOURCE_ID,
+                paint: {"fill-color": "#3b82f6", "fill-opacity": 0.15 },
+            });
+            map.current.addLayer({
+                id: `${ZONES_SOURCE_ID}-outline`,
+                type: "line",
+                source: ZONES_SOURCE_ID,
+                paint: {"line-color": "#3b82f6", "line-width": 2 },
+            })
+        });
+
         map.current.addControl(draw.current, "top-left");
 
         function handleDrawChange(){
@@ -81,6 +102,34 @@ export default function GeofenceMap({ onZoneDrawn }) {
         };
     
     }, [center ]);
+
+    // load/refresh existing zones. Separate from map init so a 
+    // refreshToken bump doesnt tear and rebuild the whole map
+    // it just re-populates the one source.
+    useEffect(() => {
+        if (!map.current) return;
+
+        let cancelled = false;
+
+        function loadZones() {
+            getGeofencesGeoJSON().then((featureCollections) => {
+                if(cancelled) return;
+                const source = map.current?.getSource(ZONES_SOURCE_ID);
+                if (source) source.setData(featureCollections);
+            })
+            .catch((err) => {
+                console.error("Failed to load existing zones:", err);
+            });
+        }
+
+        if (map.current.isStyleLoaded()) {
+            loadZones();
+        } else {
+            map.current.once("load", loadZones);
+        }
+
+        return () => { cancelled = true; };
+    }, [center, refreshToken]);
 
     return(
     <div className="relative w-full h-full">

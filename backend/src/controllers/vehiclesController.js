@@ -178,19 +178,22 @@ async function getVehicleTrips(req, res) {
             stats: {
 
 
-                safety_rating: Math.round(statsResult.rows[0].avg_safety_score || 0),
+                safety_rating: Math.round(statsResult.rows[0].avg_safety_score||0),
 
-                total_distance: statsResult.rows[0].total_distance || 0,
-
-
+                total_distance: statsResult.rows[0].total_distance||0,
 
 
 
-                trips_recorded: statsResult.rows[0].total_trips || 0,
 
-                active_days: statsResult.rows[0].active_days || 0,
 
-                incidents_per_100km: parseFloat(statsResult.rows[0].incidents_per_100km || 0).toFixed(1)
+                trips_recorded: statsResult.rows[0].total_trips||0,
+
+                active_days: statsResult.rows[0].active_days||0,
+
+
+             incidents_per_100km: Number.parseFloat(statsResult.rows[0].incidents_per_100km||0).toFixed(1)
+
+
 
             }
 

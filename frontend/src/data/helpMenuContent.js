@@ -169,7 +169,7 @@ export const helpMenuData = [
                 id: "daily-vs-per-trip-scores",
                 title: "Daily vs. Per-Trip Scores",
                 preview: "Toggling between aggregation views",
-                roles: [ROLES.FLEET_MANAGER,ROLES.ADMIN],
+                roles: [ROLES.VIEWER,ROLES.FLEET_MANAGER,ROLES.ADMIN],
                 content: [
                     {
                         type: "list",
@@ -184,17 +184,19 @@ export const helpMenuData = [
                     },
                 ],
             },
+        ],
+    },
             {
                 id: "vehicle-profiles",
                 title: "Vehicle Profiles",
                 icon: "car",
-                roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                roles: [ROLES.VIEWER,ROLES.FLEET_MANAGER, ROLES.ADMIN],
                 articles: [
                     {
                         id: "current-trip-vs-history",
                         title: "Current Trip vs History Tabs",
                         preview: "What's live vs. historical",
-                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        roles: [ROLES.VIEWER,ROLES.FLEET_MANAGER, ROLES.ADMIN],
                         content: [
                             {
                                 type: "table",
@@ -220,7 +222,7 @@ export const helpMenuData = [
                         id: "expanding-a-past-trip",
                         title: "Expanding a Past Trip",
                         preview: "View the event timeline and route",
-                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        roles: [ROLES.VIEWER,ROLES.FLEET_MANAGER, ROLES.ADMIN],
                         content: [
                             {
                                 type: "text",
@@ -232,7 +234,7 @@ export const helpMenuData = [
                         id: "reading-the-vehicle-list",
                         title: "Reading the vehicle List",
                         preview: "What each column means",
-                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        roles: [ROLES.VIEWER,ROLES.FLEET_MANAGER, ROLES.ADMIN],
                         content: [
                             {
                                 type: "list",
@@ -275,13 +277,13 @@ export const helpMenuData = [
                 id: "geofencing",
                 title: "Geofencing",
                 icon: "map-pin",
-                roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                roles: [ROLES.VIEWER,ROLES.FLEET_MANAGER, ROLES.ADMIN],
                 articles: [
                     {
                         id: "creating-a-geofence-zone",
                         title: "Creating a Geofence Zone",
                         preview: "Step-by-step zone setup",
-                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        roles: [ROLES.VIEWER, ROLES.FLEET_MANAGER, ROLES.ADMIN],
                         content: [
                             {
                                 type: "list",
@@ -304,7 +306,7 @@ export const helpMenuData = [
                         id: "entry-exit-triggers",
                         title: "Entry & Exit Triggers",
                         preview: "How breach alerts work",
-                        roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                        roles: [ROLES.VIEWER,ROLES.ADMIN, ROLES.FLEET_MANAGER],
                         content: [
                             {
                                 type: "text",
@@ -316,7 +318,7 @@ export const helpMenuData = [
                         id: "editing-deleting-zones",
                         title: 'Editing & Deleting Zones',
                         preview: "Adjust boundaries and settings",
-                        roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                        roles: [ROLES.VIEWER,ROLES.ADMIN, ROLES.FLEET_MANAGER],
                         content: [
                             {
                                 type: "text",
@@ -328,7 +330,7 @@ export const helpMenuData = [
                         id: "zone-level-event-tallies",
                         title: "Zone-Level Event Tallies",
                         preview: "Spotting hight-risk locations",
-                        roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                        roles: [ROLES.VIEWER, ROLES.ADMIN, ROLES.FLEET_MANAGER],
                         content: [
                             {
                                 type: "text",
@@ -342,7 +344,7 @@ export const helpMenuData = [
                 id: "trip-replay",
                 title: "Trip Replay",
                 icon: "play-circle",
-                roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                roles: [ROLES.VIEWER,ROLES.ADMIN, ROLES.FLEET_MANAGER],
                 articles: [
                     {
                         id: "Understanding-speed-overlay",
@@ -368,7 +370,7 @@ export const helpMenuData = [
                         id: "using-playback-controls",
                         title: "Using playback controls",
                         preview: "Play, pause, and scrub",
-                        roles: [ROLES.FLEET_MANAGER,ROLES.ADMIN],
+                        roles: [ROLES.VIEWER,ROLES.FLEET_MANAGER,ROLES.ADMIN],
                         content: [
                             {
                                 type: "text",
@@ -394,8 +396,6 @@ export const helpMenuData = [
                     },
                 ],
             },
-        ],
-    },
 ];
 
 export function getHelpMenuForRole(role) {

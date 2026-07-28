@@ -21,7 +21,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
             {article.content.map((block, i) => (
                 <div key={i}>
                   {block.type === "text" && ( 
-                    <p className='text-sm text-fleet-secondary leading-relaxed'>{block.title}</p>
+                    <p className='text-sm text-fleet-text leading-relaxed'>{block.text}</p>
                   )}
 
                   {block.type === "list" && (
@@ -41,7 +41,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                   {block.type === "table" && (
                     <div className='overflow-x-auto rounded-lg border border-fleet-secondary'>
                       <table className='w-full text-sm text-left'>
-                        <thead className='bg-fleet-secondary'>
+                        <thead className='bg-fleet-bg'>
                             <tr>
                               {block.headers.map((header, j) => (
                                 <th key={j} className='px-3 py-2 font-medium text-fleet-secondary'>

@@ -12,8 +12,6 @@
  * { type: 'table', headers: [], rows: [[...]] }
  */
 
-import { preview } from "vite";
-
 export const ROLES = {
     VIEWER: "viewer",
     FLEET_MANAGER: "fleet_manager",
@@ -243,6 +241,154 @@ export const helpMenuData = [
                                     "Current status (active, idle, offline)",
                                     "Current safety score",
                                 ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                id: "vehicle-status-changes",
+                title: "Vehicle Status Changes",
+                preview: "Active, Inactive, and Maintenance explained",
+                roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                content: [
+                    {
+                        type: "glossary",
+                        terms: [
+                            {
+                                term: "Active",
+                                definition: "The vehicle is currently moving.",
+                            },
+                            {
+                                term: "Idle",
+                                definition: "The vehicle's engine is on, but the vehicle is not moving.",
+                            },
+                            {
+                                term: "Offline",
+                                definition: "The engine is off, or a vehicle is powered down and not transmitting.",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                id: "geofencing",
+                title: "Geofencing",
+                icon: "map-pin",
+                roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                articles: [
+                    {
+                        id: "creating-a-geofence-zone",
+                        title: "Creating a Geofence Zone",
+                        preview: "Step-by-step zone setup",
+                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        content: [
+                            {
+                                type: "list",
+                                items: [    
+                                    "Go to the Geofencing section",
+                                    "Click the draw icon on the top left of the map",
+                                    "Click points on the map to draw your zone's boundary",
+                                    "Name the zone (e.g. \"Durban Port,\" \"Pretoria Depot\")",
+                                    "Choose a trigger type: entry, exit, or both",
+                                    "Save - monitoring starts immediately",
+                                ],
+                            },
+                            {
+                                type: "callout",
+                                text: "If a vehicle is already inside the zone when you create it, no entry alerts fires for that vehicle - monitoring only applies going foward.",
+                            },
+                        ],
+                    },
+                    {
+                        id: "entry-exit-triggers",
+                        title: "Entry & Exit Triggers",
+                        preview: "How breach alerts work",
+                        roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                        content: [
+                            {
+                                type: "text",
+                                text: "When a vehicle crosses a zone boundary, you will get an aler showing the vehicle ID, zone name, whether it entered or exited, and the timestamp. Click the alert to acknowledge it.",
+                            },
+                        ],
+                    },
+                    {
+                        id: "editing-deleting-zones",
+                        title: 'Editing & Deleting Zones',
+                        preview: "Adjust boundaries and settings",
+                        roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                        content: [
+                            {
+                                type: "text",
+                                text: "Select any existing zone to adjust its boundary or trigger settings. Deleting a zone stops monitiring immediately - vehicles inside it at the time won't trigger an exit alert.",
+                            },
+                        ],
+                    },
+                    {
+                        id: "zone-level-event-tallies",
+                        title: "Zone-Level Event Tallies",
+                        preview: "Spotting hight-risk locations",
+                        roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                        content: [
+                            {
+                                type: "text",
+                                text: "Every unsafe event that happens inside a zone gets added to that zone's own event count. Over time, this lets you compare zones side by side and spot which locations produce the most risky driving.",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                id: "trip-replay",
+                title: "Trip Replay",
+                icon: "play-circle",
+                roles: [ROLES.ADMIN, ROLES.FLEET_MANAGER],
+                articles: [
+                    {
+                        id: "Understanding-speed-overlay",
+                        title: "Understanding speed overlay",
+                        preview: "What green, amber, and red mean",
+                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        content: [
+                            {
+                                id: "glossary",
+                                terms: [
+                                    { term: "Green", definition: "Safe speed"},
+                                    { term: "Amber", definition: "Elevated speed"},
+                                    { term:"Red", definition: "Speeding"},
+                                ],
+                            },
+                            {
+                                type: "text",
+                                text: "Markers apper along the route whenever an unsafe event was recorder, and clicking Play animated the vehicle moving along its actual path.",
+                            },
+                        ],
+                    },
+                    {
+                        id: "using-playback-controls",
+                        title: "Using playback controls",
+                        preview: "Play, pause, and scrub",
+                        roles: [ROLES.FLEET_MANAGER,ROLES.ADMIN],
+                        content: [
+                            {
+                                type: "text",
+                                text: "Use, Play, Pause, and scrubber bar to move any point in the trip, When playback reached an event marker, the event's details appear in a panel next to the map.",
+                            },
+                        ],
+                    },
+                    {
+                        id: "why-replay-may-be-unavailable",
+                        title: "Why Replay May Be Unavailable",
+                        preview: "Static map fallback for short trips",
+                        roles: [ROLES.FLEET_MANAGER, ROLES.ADMIN],
+                        content: [
+                            {
+                                type: "callout",
+                                text: "Replay isn;t available for this trip - showing a static route map instead.",
+                            },
+                            {
+                                type: "text",
+                                text: "Very short trips sometimes do not have enough recorded telemetry points for smooth animated playback.",
                             },
                         ],
                     },

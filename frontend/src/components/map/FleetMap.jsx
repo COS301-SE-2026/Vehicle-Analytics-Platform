@@ -2,89 +2,75 @@ import { useRef, useEffect } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import PropTypes from 'prop-types'
+import { getGeofencesGeoJSON } from '@/services/geofenceServices';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 const STATUS_COLORS = {
-  active: '#2d6a4f',
-  idle: '#f59e0b',
-  offline: '#9ca3af',
+  active: 'fleet-green',
+  idle: 'fleet-warning',
+  offline: 'fleet-blue',
 }
 
-function playVehicle(entry, incomingFrames) {
-  if (!incomingFrames || incomingFrames.length === 0) return;
+const EMPTY_FC = { type: 'FeatureCollection', features: [] }
+const GEOFENCE_SOURCE_ID = 'fleetmap-geofences'
+const TRAIL_SOURCE_ID = 'fleetmap-trails' 
 
-  if (entry.animationFrame) {
-    cancelAnimationFrame(entry.animationFrame);
-  }
+function playTrail(entry, coordinates, times) {
+  if(!coordinates || coordinates.length === 0) return;
+  if(entry.animationFrame) cancelAnimationFrame(entry.animationFrame);
 
-  // 1. ANTI-JUMP: Filter out old historical frames we've already animated past
-  let newFrames = incomingFrames;
-  if (entry.lastAnimatedTime) {
-    newFrames = incomingFrames.filter(f => new Date(f.time).getTime() > entry.lastAnimatedTime);
-  }
-
-  if (newFrames.length === 0) return;
-
-  // 2. ANTI-TELEPORT: Get the EXACT physical location the marker is sitting at right now
-  const currentPos = entry.marker.getLngLat();
-  
-  // Create a smooth transition array combining current screen location + new target path
+  const current = entry.marker.getLngLat();
   const frames = [
-    {
-      latitude: currentPos.lat,
-      longitude: currentPos.lng,
-      time: new Date().getTime() // Fake timestamp placeholder for the current moment
-    },
-    ...newFrames
+    { lng: current.lng, lat: current.lat, time: Date.now() },
+    ...coordinates.ma((c, i) => ({
+      lng: c[0],
+      lat: c[1],
+      time: new Date(times[i]).getTime(),
+    })),
   ];
 
   let frame = 0;
   let startTime = null;
 
   function animate(timestamp) {
-    if (!startTime) startTime = timestamp;
+    if(!startTime) startTime = timestamp;
 
     const from = frames[frame];
-    const to = frames[frame + 1];
+    const to = frames[frames + 1];
 
-    if (!to) {
+    if(!to) {
       entry.animationFrame = null;
       return;
     }
 
-    const fromTime = typeof from.time === 'number' ? from.time : new Date(from.time).getTime();
-    const toTime = new Date(to.time).getTime();
-    
-    let duration = Math.max(toTime - fromTime, 1000); 
-
-    if (duration > 5000 || duration <= 0) { 
-      duration = 2000; 
-    }
+    // Clamped: a genuinely huge gap(device was offline, then caught up)
+    // should not freeze the marker mid-map for that whole real duration, and a near-zero gap should
+    // not cause an instant snap.
+    const rawDuration = to.time - from.time;
+    const duration = Math.min(Math.max(rawDuration, 200), 5000);
 
     const progress = Math.min((timestamp - startTime) / duration, 1);
 
-    const lat = from.latitude + (to.latitude - from.latitude) * progress;
-    const lng = from.longitude + (to.longitude - from.longitude) * progress;
+    entry.marker.setLngLat([
+      from.lng + (to.lng - from.lng)*progress,
+      from.lat + (to.lat - from.lat)*progress,
+    ]);
 
-    entry.marker.setLngLat([lng, lat]);
-
-    if (progress >= 1) {
+    if(progress >= 1) {
       frame++;
-      startTime = null; 
-      
-      // Mark this timestamp as completely visited so we never jump backwards to it
-      entry.lastAnimatedTime = toTime;
+      startTime = null;
     }
 
-    if (frame < frames.length - 1) {
+    if(frame < frames.length - 1) {
       entry.animationFrame = requestAnimationFrame(animate);
     } else {
       entry.animationFrame = null;
     }
   }
-  
+
   entry.animationFrame = requestAnimationFrame(animate);
+
 }
 
 export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, minimal = false }) {
@@ -97,7 +83,7 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: [28.0473, -26.2041],
       zoom: minimal ? 9 : 10,
     })
@@ -108,8 +94,88 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
         'top-right'
       )
     }
+
+    map.current.on('load', () => {
+      map.current.addSource(GEOFENCE_SOURCE_ID, {type: 'geofence', data: EMPTY_FC });
+      map.current.addLayer({
+        id: `${GEOFENCE_SOURCE_ID}-fill`,
+        type: 'fill',
+        source: GEOFENCE_SOURCE_ID,
+        paint: {'fill-color': '#3b82f6', 'fill-opacity': 0.10},
+      });
+      map.current.addLayer({
+        id: `${GEOFENCE_SOURCE_ID}-outline`,
+        type: 'line',
+        source: GEOFENCE_SOURCE_ID,
+        paint: {'fill-color': '#3b82f6', 'line-width': 1.5},
+      });
+
+      getGeofencesGeoJSON().then((fc) => {
+        const source = map.current?.getSource(GEOFENCE_SOURCE_ID);
+        if(source) source.setDate(fc);
+      })
+      .catch((err) => console.error('FleetMap: failed to load geofences', err));
+
+      map.current.addSource(TRAIL_SOURCE_ID, {
+        type: 'geojson',
+        lineMetrics: true,
+        data: EMPTY_FC,
+      });
+      map.current.addLayer({
+        id: `${TRAIL_SOURCE_ID}-line`,
+        type: 'line',
+        source: TRAIL_SOURCE_ID,
+        layout: {'line-cap': 'round', 'line-join': 'round'},
+        paint: {
+          'line-width': 3,
+          'line-gradient': [
+            'interpolate', ['liner'], ['line-progress'],
+            0, 'rgba[59,130,246,0)',
+            1, 'rgba(59,130,246,0.9)',
+          ],
+        },
+      });
+    });
   }, [minimal])
 
+    // Trail line
+  useEffect(() => {
+    if(!map.current) return;
+
+    function setTrailData() {
+      const source = map?.getSource(TRAIL_SOURCE_ID);
+      if(source) source.setData(buffer ?? EMPTY_FC);
+
+      if(map.current.isStyleLoaded()) {
+        setTrailData();
+      } else {
+        map.current.once('load', setTrailData);
+      }
+    }
+  }, [buffer])
+
+  // add Marker Playback useEffect
+  useEffect(() => {
+    if(!map.current) return;
+
+    for(const feature of buffer?.feature ?? []){
+      const vehicleId = feature.properties?.vehicleId;
+      const entry = markers.current[vehicleId];
+      if(!entry) continue; //marker created in effect below
+
+      const coordinates = feature.geometry?.coordinates;
+      const times = features.properties?.times;
+      if(!coordinates?.length || !times?.length) continue;
+
+      const lastTime = times[times.length - 1];
+      if(entry.lastPlayedTime === lastTime) continue
+      
+      entry.lastPlayedTime = lastTime;
+      playTrail(entry, coordinates, times);
+    }
+  }, [buffer])
+
+  // Marker creation/removal and status colour
   useEffect(() => {
     if (!map.current) return
 
@@ -119,21 +185,12 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
       nextMarkerIds.add(vehicle.id);
 
       const existingEntry = markers.current[vehicle.id];
-      const frames = buffer?.[vehicle.id];
       
       if (existingEntry) {
         existingEntry.vehicle = vehicle;
 
         existingEntry.marker.getElement().style.background = 
           STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
-
-        if (frames && frames.length >= 2) {
-          const lastFrameTime = frames[frames.length - 1].time;
-          if (existingEntry.lastTime !== lastFrameTime) {
-            existingEntry.lastTime = lastFrameTime;
-            playVehicle(existingEntry, frames);
-          }
-        }
       } else {
         const el = document.createElement('div')
         el.className = 'vehicle-marker'
@@ -174,10 +231,8 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
           marker, 
           vehicle, 
           animationFrame: null, 
-          lastTime: frames && frames.length > 0 ? frames[frames.length - 1].time : null
+          lastPlayedTime: null
         };
-
-        if (frames) playVehicle(markers.current[vehicle.id], frames);
       }
     })
 

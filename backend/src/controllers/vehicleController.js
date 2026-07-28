@@ -24,22 +24,18 @@ async function getLiveLocations(req, res) {
 
       v.vehicle_id as id, v.device_id,
 
-      CASE WHEN cvp.last_update IS NULL THEN 'offline'
+      get_vehicle_status(cvp.last_update, cvp.movemonet, cvp.speed) AS status
 
-      WHEN cvp.last_update < NOW() AT TIME ZONE 'UTC' - INTERVAL '15 minutes' THEN 'offline'
+      cvp.latitude, cvp.longitude,
+      cvp.speed, cvp.total_odometer,
+      cvp.ignition, cvp.movement,
+      cvp.last_update,
 
-      WHEN cvp.speed > 0 THEN 'active' WHEN cvp.movement = 'Movement On' THEN 'active'
-
-      WHEN cvp.ignition = 'Ignition On' THEN 'idle' ELSE 'offline'
-
-      END as status, cvp.latitude,
-
-      cvp.longitude,  cvp.speed,
-
-      cvp.total_odometer, cvp.ignition,
-
-      cvp.movement,cvp.last_update,
-
+      vlc.road, vlc.road_class,
+      vlc.route_number, vlc.speed_limit,
+      vlc.suburb, vlc.city,
+      vlc.province, vlc.country,
+      vlc.display_name,
 
       
       COALESCE(daily_sum.total_distance, 0) as distance_today
@@ -48,20 +44,15 @@ async function getLiveLocations(req, res) {
       
       LEFT JOIN current_vehicle_position cvp ON v.vehicle_id = cvp.id
       
-      LEFT JOIN (
+      LEFT JOIN vehicle_location_cacke vlc ON vlc.vehicle_id = v.vehicle_id
+
+      LEFT JOIN vehicle_daily_distance daily
+
+       ON daily.vehicle_id = v.vehicle_id
+
+      AND daily.day = date_trunc('day', NOW() AT TIME ZONE 'UTC)
       
-      SELECT
-      
-      vehicle_id,
-      
-      SUM(distance_km) as total_distance FROM vehicle_daily_distance
-
-
-      WHERE bucket = date_trunc('day', NOW() AT TIME ZONE 'UTC') GROUP BY vehicle_id
-
-      ) daily_sum ON v.vehicle_id = daily_sum.vehicle_id ORDER BY v.vehicle_id
-
-      `);
+      ORDER BY v.vehicle_id; `);
 
       
     return success(res, {
@@ -132,17 +123,10 @@ async function getVehicleById(req, res) {
 
       v.vehicle_id as id, v.device_id,
 
-      v.created_at, CASE
-
-      WHEN cvp.last_update IS NULL THEN 'offline'
-
-      WHEN cvp.last_update < NOW() - INTERVAL '15 minutes' THEN 'offline'
-
-      WHEN cvp.movement = 'Movement On' THEN 'active'  WHEN cvp.ignition = 'Ignition On' THEN 'idle'
-
-      WHEN cvp.speed > 0 THEN 'active'
-
-      ELSE 'offline' END as status,
+      v.created_at, 
+      
+      get_vehicle_status(cvp.last_update, cvp.movement, cvp.speed) AS status,
+      
 
       cvp.latitude,
 
@@ -154,9 +138,21 @@ async function getVehicleById(req, res) {
 
       cvp.movement, cvp.last_update
 
+      vlc.road, vlc.road_class,
+
+      vlc.route_number, vlc.speed_limit,
+
+      vlc.suburb, vlc.city,
+
+      vlc.province, vlc.country,
+
+      vlc.display_name
+
       FROM vehicles v
 
-      LEFT JOIN current_vehicle_position cvp ON v.vehicle_id = cvp.id
+      LEFT JOIN current_vehicle_position cvp ON v.vehicle_id = cvp.vehicle_id
+
+      LEFT JOIN vehicle_location_cache vlc ON vlc.vehicle_id = v.vehicle_id
 
       WHERE v.vehicle_id = $1
 
@@ -259,28 +255,50 @@ async function getVehiclePositionBuffer(req, res){
 
       SELECT 
 
-      vehicle_id,
+      ct.vehicle_id,
 
-      time,
+      ct.time,
 
-      latitude,
+      ct.latitude,
 
-      longitude,
+      ct.longitude,
 
-      speed,
+      ct.speed,
 
-      ignition,
+      ct.ignition,
 
 
-      movement,
+      ct.movement,
 
-      total_odometer
+      ct.total_odometer
 
-      FROM clean_telemetry
+      get_vehicle_status(ct.time, ct.movement, ct.speed) AS status,
+
+      vcl.road,
+      
+      vlc.road_class,
+
+      vlc.route_number,
+
+      vlc.speed_limit,
+
+      vlc.suburb,
+
+      vlc.city,
+
+      vlc.province,
+
+      vlc.country,
+
+      vlc.display_name
+
+      FROM clean_telemetry ct
+
+      LEFT JOIN vehicle_location_cache vlc ON vlc.vehicle_id = ct.vehicle_id
 
       WHERE 
 
-      measurement = 'avl'
+      ct.measurement = 'avl'
 
       AND time >= (SELECT MAX(time) FROM clean_telemetry) - INTERVAL '30 seconds'
 
@@ -314,27 +332,72 @@ async function getVehiclePositionBuffer(req, res){
 
 
 
-        bucket[row.vehicle_id].push({
+        bucket[row.vehicle_id].push(row);
 
-          time: row.time,
+      }
+
+      const features = [];
+
+      for(const [vehicleId, points] of Object.entries(bucket)) {
+
+        const latest = points[points.length - 1];
+
+        const coordinates = points.map(point => [
+          Number(point.longitude),
+          Number(point.latutude)
+        ]);
+
+        features.push({
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates
+          },
+          properties: {
+
+          vehicleId,
+
+          deviceId: latest.device_id,
+
+          status: latest.status,
+            
+          times: row.time,
 
           latitude: Number(row.latitude),
 
           longitude: Number(row.longitude),
 
-          speed: row.speed,
+          speed: Number(latest.speed),
 
           ignition: row.ignition,
 
-         
-         
-          movement: row.movement,
-         
-          total_odometer: row.total_odometer
+          movement: latest.movement,
 
+          odometer: Number(latest.total_odometer),
 
-        })
-        ;
+          timestamp: latest.time,
+
+          times: points.map(point => point.time),
+
+          road: latest.road,
+
+          roadClass: latest.road_class,
+
+          speedLimit: latest.speed_limit,
+
+          suburb: latest.subrub,
+
+          city: latest.city,
+
+          province = latest.province,
+
+          country: latest.country,
+
+          displayName: latest.display_name
+
+          }
+
+        });
 
 
       }
@@ -342,11 +405,12 @@ async function getVehiclePositionBuffer(req, res){
 
       
       return success(res, {
+        type: "FeatyreCollection",
       
         timestamp: new Date().toISOString(),
       
       
-        vehicles: bucket
+        features
 
 
 

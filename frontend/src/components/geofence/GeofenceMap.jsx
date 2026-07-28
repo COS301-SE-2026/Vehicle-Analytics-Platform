@@ -10,7 +10,7 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = [28.2293, -25.75456]; //maps fallsback if geolocation fails
 const ZONES_SOURCE_ID = "existing-geofences";
 
-export default function GeofenceMap({ onZoneDrawn }) {
+export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
     const mapContainer = useRef(null);
     const map = useRef(null);
     const draw = useRef(null);

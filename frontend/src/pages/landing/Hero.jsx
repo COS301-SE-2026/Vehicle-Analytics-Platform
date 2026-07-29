@@ -26,7 +26,7 @@ export default function Header() {
     <section className="max-w-7xl mx-auto px-6 py-16">
       {/* HEADING & IMAGE */}
       <div className='grid md:grid-cols-2 gap-12 items-center'>
-      {/* TEXT */}
+       {/* TEXT */}
        <div>
         <h1 className='text-3xl md:text-3xl font-bold text-slate-900 leading-tight'>
           Know Where <br />
@@ -49,8 +49,8 @@ export default function Header() {
        </div>
 
          {/* IMAGE*/}
-       <div className='rounded-lg overflow-hidden shadow-lg'>
-        <img src={LiveMap} alt="Dashboard" className='w-full h-full object-cover' />
+       <div className=' w-full rounded-lg overflow-hidden shadow-lg'>
+        <img src={LiveMap} alt="Dashboard" className='w-full h-auto object-contain' />
        </div>
       </div>
 

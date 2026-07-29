@@ -3,6 +3,7 @@ import {
     Radio, CloudCog, Gauge, ArrowRight, TrendingUpDown, TrendingUp
 } from "lucide-react";
 import Dashboard from "./img/dashboard.png"
+import{ motion } from "framer-motion";
 
 function WhatYouGet() {
     const features = [
@@ -77,19 +78,26 @@ export function HowItWorks(){
         <section className="max-w-7xl mx-auto px-6 py-20 text-center">
             <h2 className="text-3xl font-bold text-slate-900 mb-16"> HOW V.A.P.O.R WORKS</h2>
 
-            <div className="flex flex-col md:flex-row items-center justify gap-8 md:gap-4 max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-4 max-w-4xl mx-auto">
                 {flow.map(({icon: Icon, title, description }, i) => (
-                    <div key={title} className="flex items-center gap-4">
+                    <motion.div
+                        key={title} 
+                        className="flex items-center gap-4"
+                        initial={{ opacity: 0, y: 20}}
+                        whileInView={{ opacity: 1, y: 0}}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: i * 0.15 }}
+                    >
                         <div className="max-w-[220px]">
-                         <Icon className="w-6 h-6 text-fleet-green mc-auto mb-3"/>
+                         <Icon className="w-6 h-6 text-fleet-green mx-auto mb-3"/>
                          <h3 className="font-bold text-slate-900">{title}</h3>
                          <p className="text-sm text-slate-500 mt-1">{description}</p>
                         </div>
 
                         {i < flow.length - 1 && (
-                            <ArrowRight className="w-h h-5 text-fleet-green text-slate-300 hidden md:block shrink-0" />
+                            <ArrowRight className="w-5 h-5 text-fleet-green text-slate-300 hidden md:block shrink-0" />
                         )}
-                    </div>
+                    </motion.div>
                 ))}
             </div>
         </section>

@@ -163,7 +163,7 @@ export default function AdminDashboard() {
           icon={Users}
           label="Registered Users"
           value={users.length}
-          sub={`${adminCount} Admin · ${managerCount} Mgr · ${viewerCount} Vwr`}
+          sub={`${adminCount} Admin - ${managerCount} Mgr - ${viewerCount} Vwr`}
         />
         <DataFeedStatusCard
           isLive={kpis !== null}

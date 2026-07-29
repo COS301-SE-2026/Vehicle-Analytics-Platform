@@ -1,6 +1,3 @@
-
-
-
 const {pool} = require('../db/pool');
 
 const {success, error} = require('../utils/response');
@@ -62,36 +59,14 @@ async function getFleetKPIs(req, res) {
 
     
       const alerts_result = await pool.query(`
-    
-        SELECT
-    
-        time,
-    
-        vehicle_id,
-    
-        event_category,
-    
-    
-        event_detail,
-        speed,
-    
-        latitude,
-    
-    
-        longitude
-    
-        FROM vehicle_events
-    
-        WHERE time >= NOW() AT TIME ZONE 'UTC' - INTERVAL '15 seconds'
-    
-
-    
-        
-      AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
-      
-      ORDER BY time DESC;
-
-
+      -- Was scoped to INTERVAL '15 seconds' -- not "today", so this almost
+      -- always read 0-2. Also selected 7 columns of every row purely to
+      -- take .length; COUNT(*) does it in the database.
+      -- 'speeding' dropped: no such event_category is ever emitted.
+      SELECT COUNT(*) AS alert_count
+      FROM vehicle_events
+      WHERE time >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
+        AND event_category IN ('green_driving_type', 'crash_detection')
     `);
 
 
@@ -107,7 +82,7 @@ async function getFleetKPIs(req, res) {
       FROM vehicle_daily_distance
     
     
-      WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC');
+      WHERE day >= date_trunc('day', NOW() AT TIME ZONE 'UTC');
 
 
       
@@ -120,8 +95,6 @@ async function getFleetKPIs(req, res) {
     const v = vehicles_result.rows[0];
     
     const d = distance_result.rows[0];
-    
-    const alertsCount = alerts_result.rows.length;
 
 
     
@@ -133,7 +106,7 @@ async function getFleetKPIs(req, res) {
       active_vehicles: parseInt(v.active_vehicles)||0,
     
     
-      alerts_today:    alertsCount,
+      alerts_today:    parseInt(alerts_result.rows[0].alert_count) || 0,
     
       distance_today:  parseFloat(d.distance_today)||0,
     
@@ -442,7 +415,7 @@ async function getTotalDistanceToday(req, res) {
 
       SUM(distance_km) FILTER (
 
-      WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
+      WHERE day >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
 
       ),
 
@@ -452,7 +425,7 @@ async function getTotalDistanceToday(req, res) {
 
       COUNT(DISTINCT vehicle_id) FILTER (
 
-      WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
+      WHERE day >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
         ) AS vehicles_driven_today
 
 
@@ -508,198 +481,73 @@ async function getTotalDistanceToday(req, res) {
 
 
 async function getFleetStats(req, res) {
-
   try {
-
     const result = await pool.query(`
-
       SELECT 
-
-
       COUNT(*) as total_vehicles,
         COUNT(*) FILTER (WHERE status = 'active') as active_vehicles,
-
-
         COUNT(*) FILTER (WHERE status = 'idle') as idle_vehicles,
-
         COUNT(*) FILTER (WHERE status = 'offline') as offline_vehicles,
-
         COUNT(*) FILTER (WHERE has_alert) as alerts
-
         FROM (
-
         SELECT 
-
-
         v.vehicle_id,
           CASE
-
           WHEN pos.last_update IS NULL THEN 'offline'
-
-
           WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
-
           WHEN COALESCE(pos.speed, 0) > 0 THEN 'active'
             ELSE 'idle'
-
-
             END as status,
           CASE 
-
-
           WHEN ve.vehicle_id IS NOT NULL THEN true 
-
           ELSE false 
-
           END as has_alert
-
           FROM vehicles v
-
-          LEFT JOIN current_vehicle_position pos ON v.vehicle_id = pos.id
-
-
+          LEFT JOIN current_vehicle_position pos ON pos.vehicle_id = v.vehicle_id
           LEFT JOIN (
-
           SELECT DISTINCT vehicle_id 
           FROM vehicle_events 
-
           WHERE time > NOW() - INTERVAL '1 hour'
-
-
           AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
         ) ve ON v.vehicle_id = ve.vehicle_id
-
         ) stats
-
-        `);
-
-
-
-
+        `); 
     
-    
-        const distanceResult = await pool.query(`
-    
-    
+        const distanceResult = await pool.query(`  
           SELECT COALESCE(SUM(distance_km), 0) as total_distance
-    
-    
           FROM vehicle_daily_distance
-    
-          WHERE bucket = date_trunc('day', NOW())
-
-
-
+          WHERE day = date_trunc('day', NOW())
     `);
 
-
-
-
-    
     const userResult = await pool.query(`
-    
       SELECT COUNT(*) as total_users,
-    
       COUNT(*) FILTER (WHERE role = 'admin') as admins,
-    
-    
       COUNT(*) FILTER (WHERE role = 'fleet_manager') as managers,
-    
       COUNT(*) FILTER (WHERE role = 'viewer') as viewers
-    
       FROM users
-    
       WHERE is_active = true
     `);
-
-
-
-
-    
     const users = userResult.rows[0];
-
-
-
-    
     return success(res, {
-    
-    
-     
       total_vehicles: parseInt(result.rows[0].total_vehicles)||0,
-     
       active_vehicles: parseInt(result.rows[0].active_vehicles)||0,
-    
-
-    
-
-      
       idle_vehicles: parseInt(result.rows[0].idle_vehicles)||0,
-    
-
-      
       offline_vehicles: parseInt(result.rows[0].offline_vehicles)||0,
-    
-
-      
       alerts: parseInt(result.rows[0].alerts)||0,
-    
-
-      
       total_distance_today: parseFloat(distanceResult.rows[0].total_distance)||0,
-      
       users: {
-    
-
-    
-
-        
         total: parseInt(users.total_users)||0,
-    
-
-
-    
-
-    
-
         admins: parseInt(users.admins)||0,
-    
         managers: parseInt(users.managers)||0,
-    
-    
         viewers: parseInt(users.viewers)||0
-    
       },
       last_updated: new Date().toISOString()
-
-
-
-
-      
     }, 200);
   } 
   
-  
-
-
-
-  
-  
-  catch (err) {
-  
-
-    
+  catch (err) {  
     console.error('Get fleet stats error:', err);
-  
-
-  
-
-    
     return error(res, 'Failed to fetch fleet stats: '+err.message, 500);
-
-
-
-    
-
   }
 }
 
@@ -707,5 +555,3 @@ async function getFleetStats(req, res) {
 
 
 module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistanceToday, getFleetStats };
-
-

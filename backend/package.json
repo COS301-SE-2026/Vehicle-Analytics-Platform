@@ -1,7 +1,12 @@
+
+
+
 {
+
   "name": "vehicle-analytics-backend",
- 
- "version": "1.0.0",
+
+  "version": "1.0.0",
+
 
   "description": "Vehicle Analytics Platform REST API with AWS Cognito",
 
@@ -10,15 +15,23 @@
 
   "scripts": {
 
+
+
     "start": "node index.js",
 
+
+
     "dev": "nodemon index.js",
+
+
 
     "test": "NODE_ENV=test jest --coverage --forceExit --detectOpenHandles --runInBand",
 
     "lint": "eslint .",
 
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+
+    "cron:safety": "node scripts/update-safety-scores.js"
 
   },
 
@@ -63,11 +76,6 @@
   "jest": {
 
     "testEnvironment": "node",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
-    "coverageReporters": [
-      "text",
-      "lcov"
-    ],
 
     "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
 
@@ -79,23 +87,23 @@
 
     "coverageDirectory": "coverage",
 
-    "coverageThreshold": {
 
+    "coverageThreshold": {
       "global": {
 
         "branches": 80,
 
         "functions": 80,
 
-        "lines": 80,
 
+        "lines": 80,
         "statements": 80
 
       }
 
-    }
 
+    }
   }
 
-}
 
+}

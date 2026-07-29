@@ -9,7 +9,7 @@ class MapErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div className={`${this.props.height} items-center justify-center bg-gray-50 text-gray-400 text-sm`}>
-          Map unavailable — Mapbox token not configured
+          The Mapbox token has not been configured therefore map unavailable
         </div>
       )
     }

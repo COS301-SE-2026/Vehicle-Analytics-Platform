@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Truck, Waypoints, Activity, RefreshCw } from 'lucide-react'
 import { getKPIs, getVehicleLocations, getAlerts, getActivityHistory } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
@@ -11,8 +11,8 @@ function formatActivityPoints(points, range) {
   return points.map((point) => {
     const date = new Date(point.bucket)
     const timeLabel = range === 'week'
-      ? date.toLocaleDateString('en-US', { weekday: 'short' })
-      : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+      ? date.toLocaleDateString('en-ZA', { weekday: 'short' })
+      : date.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false })
     return {
       time: timeLabel,
       vehicles: point.active_vehicles ?? 0,
@@ -29,7 +29,7 @@ export default function ManagerDashboard() {
   const [error, setError] = useState(null)
   const [events, setEvents] = useState([])
 
-  async function fetchAll() {
+  const fetchAll = useCallback(async () => {
     try {
       const [k, l, a] = await Promise.all([
         getKPIs(),
@@ -57,13 +57,14 @@ export default function ManagerDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activityRange])
 
   useEffect(() => {
+// eslint-disable-next-line react-hooks/set-state-in-effect -- intentional polling fetch to sync with backend on mount and range change
     fetchAll()
     const interval = setInterval(fetchAll, 5000) //5 seconds
     return () => clearInterval(interval)
-  }, [activityRange])
+  }, [fetchAll])
 
   if (loading) {
     return (

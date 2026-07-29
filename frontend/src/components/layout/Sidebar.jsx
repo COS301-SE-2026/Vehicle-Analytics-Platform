@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
@@ -9,17 +10,24 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000'
 
-const navItems = [
+const baseNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/viewer' },
   { icon: Map, label: 'Live Map', path: '/map' },
+  { icon: Globe, label: 'Geofence', path: '/geofence'}
 ]
 
-export default function Sidebar({ role, collapsed, onToggle }) {
+const managerNavItems = [
+  {icon: Truck, label: 'Vehicles', path: '/vehicles' },
+]
+
+export default function Sidebar({ role = 'viewer', collapsed, onToggle }) {
   const navigate = useNavigate()
   const { user, role: storeRole } = useAuthStore()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   
   const displayRole = storeRole ?? role
+  const isManager = displayRole === 'manager' || displayRole === 'fleet_manager'
+  const navItems = isManager ? [...baseNavItems, ...managerNavItems] : baseNavItems
   const name = user?.name ?? 'User Name'
   
   // Safe extraction of initials
@@ -108,7 +116,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
       {/* User Profile Footer */}
       <div className={`flex flex-col gap-3 px-1 ${collapsed ? 'items-center' : ''}`}>
         <div className="flex items-center gap-3 w-full">
-          <div className="w-8 h-8 rounded-full bg-fleet-blue disabled:opacity-80 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center shrink-0">
             <span className="text-white text-xs font-bold">{initials}</span>
           </div>
           
@@ -140,8 +148,4 @@ Sidebar.propTypes = {
   onToggle: PropTypes.func.isRequired,
   collapsed: PropTypes.bool.isRequired,
   role: PropTypes.string,
-}
-
-Sidebar.defaultProps = {
-  role: 'user',
 }

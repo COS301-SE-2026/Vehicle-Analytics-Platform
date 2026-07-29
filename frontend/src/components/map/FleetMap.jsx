@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import PropTypes from 'prop-types'
+import { getGeofencesGeoJSON } from '@/services/geofenceServices'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -11,83 +12,47 @@ const STATUS_COLORS = {
   offline: '#9ca3af',
 }
 
-function playVehicle(entry, incomingFrames) {
-  if (!incomingFrames || incomingFrames.length === 0) return;
+const EMPTY_FC = { type: 'FeatureCollection', features: [] }
+const GEOFENCE_SOURCE_ID = 'fleetmap-geofences'
+const TRAIL_SOURCE_ID = 'fleetmap-trails'
 
-  if (entry.animationFrame) {
-    cancelAnimationFrame(entry.animationFrame);
-  }
+// Replaces the old frame-by-frame playVehicle() replay. That approach made
+// sense when `buffer` was an array of historical {lat,lng,time} frames to
+// step through. Now that the backend hands back a ready GeoJSON LineString
+// per vehicle (see trail rendering below), the marker only ever needs one
+// target -- its current position -- so a straight tween is simpler and has
+// nothing left to desync (no frame filtering, no "anti-teleport" bookkeeping).
+function easeMarkerTo(entry, targetLngLat, durationMs = 900) {
+  if (entry.animationFrame) cancelAnimationFrame(entry.animationFrame);
 
-  // 1. ANTI-JUMP: Filter out old historical frames we've already animated past
-  let newFrames = incomingFrames;
-  if (entry.lastAnimatedTime) {
-    newFrames = incomingFrames.filter(f => new Date(f.time).getTime() > entry.lastAnimatedTime);
-  }
+  const start = entry.marker.getLngLat();
+  const [targetLng, targetLat] = targetLngLat;
 
-  if (newFrames.length === 0) return;
+  if (start.lng === targetLng && start.lat === targetLat) return;
 
-  // 2. ANTI-TELEPORT: Get the EXACT physical location the marker is sitting at right now
-  const currentPos = entry.marker.getLngLat();
-  
-  // Create a smooth transition array combining current screen location + new target path
-  const frames = [
-    {
-      latitude: currentPos.lat,
-      longitude: currentPos.lng,
-      time: new Date().getTime() // Fake timestamp placeholder for the current moment
-    },
-    ...newFrames
-  ];
-
-  let frame = 0;
   let startTime = null;
-
-  function animate(timestamp) {
+  function step(timestamp) {
     if (!startTime) startTime = timestamp;
+    const progress = Math.min((timestamp - startTime) / durationMs, 1);
 
-    const from = frames[frame];
-    const to = frames[frame + 1];
+    entry.marker.setLngLat([
+      start.lng + (targetLng - start.lng) * progress,
+      start.lat + (targetLat - start.lat) * progress,
+    ]);
 
-    if (!to) {
-      entry.animationFrame = null;
-      return;
-    }
-
-    const fromTime = typeof from.time === 'number' ? from.time : new Date(from.time).getTime();
-    const toTime = new Date(to.time).getTime();
-    
-    let duration = Math.max(toTime - fromTime, 1000); 
-
-    if (duration > 5000 || duration <= 0) { 
-      duration = 2000; 
-    }
-
-    const progress = Math.min((timestamp - startTime) / duration, 1);
-
-    const lat = from.latitude + (to.latitude - from.latitude) * progress;
-    const lng = from.longitude + (to.longitude - from.longitude) * progress;
-
-    entry.marker.setLngLat([lng, lat]);
-
-    if (progress >= 1) {
-      frame++;
-      startTime = null; 
-      
-      // Mark this timestamp as completely visited so we never jump backwards to it
-      entry.lastAnimatedTime = toTime;
-    }
-
-    if (frame < frames.length - 1) {
-      entry.animationFrame = requestAnimationFrame(animate);
+    if (progress < 1) {
+      entry.animationFrame = requestAnimationFrame(step);
     } else {
       entry.animationFrame = null;
     }
   }
-  
-  entry.animationFrame = requestAnimationFrame(animate);
+  entry.animationFrame = requestAnimationFrame(step);
 }
 
-export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, minimal = false }) {
+// buffer: a GeoJSON FeatureCollection of per-vehicle LineStrings (from
+// getVehiclePositionBuffer), rendered as fading trails -- NOT the old
+// {vehicleId: [frames]} shape. See vehicleService.jsx.
+export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleClick, minimal = false }) {
   const mapContainer = useRef(null)
   const map = useRef(null)
   const markers = useRef({})
@@ -108,7 +73,79 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
         'top-right'
       )
     }
+
+    map.current.on('load', () => {
+      // Geofences: context layer, read-only here (editing happens on the
+      // dedicated Geofence page's GeofenceMap). Fetched once on load --
+      // zones change rarely enough that a live-tracking view doesn't need
+      // to poll for them.
+      map.current.addSource(GEOFENCE_SOURCE_ID, { type: 'geojson', data: EMPTY_FC });
+      map.current.addLayer({
+        id: `${GEOFENCE_SOURCE_ID}-fill`,
+        type: 'fill',
+        source: GEOFENCE_SOURCE_ID,
+        paint: { 'fill-color': '#3b82f6', 'fill-opacity': 0.10 },
+      });
+      map.current.addLayer({
+        id: `${GEOFENCE_SOURCE_ID}-outline`,
+        type: 'line',
+        source: GEOFENCE_SOURCE_ID,
+        paint: { 'line-color': '#3b82f6', 'line-width': 1.5 },
+      });
+
+      getGeofencesGeoJSON()
+        .then((fc) => {
+          const source = map.current?.getSource(GEOFENCE_SOURCE_ID);
+          if (source) source.setData(fc);
+        })
+        .catch((err) => console.error('FleetMap: failed to load geofences', err));
+
+      // Fading trails. lineMetrics: true is required for line-gradient --
+      // it's what lets Mapbox compute ["line-progress"] (0 at the start of
+      // the line, 1 at the end) to interpolate opacity along its length.
+      // One color for all trails rather than per-vehicle-status gradients:
+      // line-gradient is a single expression per layer, and mixing it with
+      // data-driven per-feature colors would mean splitting into one
+      // source/layer per status -- not worth the complexity for a trail
+      // that's already color-coded via the marker itself.
+      map.current.addSource(TRAIL_SOURCE_ID, {
+        type: 'geojson',
+        lineMetrics: true,
+        data: EMPTY_FC,
+      });
+      map.current.addLayer({
+        id: `${TRAIL_SOURCE_ID}-line`,
+        type: 'line',
+        source: TRAIL_SOURCE_ID,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-width': 3,
+          'line-gradient': [
+            'interpolate', ['linear'], ['line-progress'],
+            0, 'rgba(59,130,246,0)',
+            1, 'rgba(59,130,246,0.9)',
+          ],
+        },
+      });
+    });
   }, [minimal])
+
+  // Trail data. Guarded the same way GeofenceMap guards its zones load --
+  // buffer can update before the map/style is ready.
+  useEffect(() => {
+    if (!map.current) return;
+
+    function setTrailData() {
+      const source = map.current?.getSource(TRAIL_SOURCE_ID);
+      if (source) source.setData(buffer ?? EMPTY_FC);
+    }
+
+    if (map.current.isStyleLoaded()) {
+      setTrailData();
+    } else {
+      map.current.once('load', setTrailData);
+    }
+  }, [buffer])
 
   useEffect(() => {
     if (!map.current) return
@@ -119,20 +156,15 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
       nextMarkerIds.add(vehicle.id);
 
       const existingEntry = markers.current[vehicle.id];
-      const frames = buffer?.[vehicle.id];
-      
+
       if (existingEntry) {
         existingEntry.vehicle = vehicle;
 
-        existingEntry.marker.getElement().style.background = 
+        existingEntry.marker.getElement().style.background =
           STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
 
-        if (frames && frames.length >= 2) {
-          const lastFrameTime = frames[frames.length - 1].time;
-          if (existingEntry.lastTime !== lastFrameTime) {
-            existingEntry.lastTime = lastFrameTime;
-            playVehicle(existingEntry, frames);
-          }
+        if (Number.isFinite(vehicle.lng) && Number.isFinite(vehicle.lat)) {
+          easeMarkerTo(existingEntry, [vehicle.lng, vehicle.lat]);
         }
       } else {
         const el = document.createElement('div')
@@ -171,13 +203,10 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
           .addTo(map.current)
 
         markers.current[vehicle.id] = {
-          marker, 
-          vehicle, 
-          animationFrame: null, 
-          lastTime: frames && frames.length > 0 ? frames[frames.length - 1].time : null
+          marker,
+          vehicle,
+          animationFrame: null,
         };
-
-        if (frames) playVehicle(markers.current[vehicle.id], frames);
       }
     })
 
@@ -190,14 +219,14 @@ export default function FleetMap({ vehicles = [], buffer = {}, onVehicleClick, m
       }
     });
 
-  }, [vehicles, buffer, minimal, onVehicleClick])
+  }, [vehicles, minimal, onVehicleClick])
 
   return <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 }
 
 FleetMap.propTypes = {
   vehicles: PropTypes.array,
-  buffer: PropTypes.object,
+  buffer: PropTypes.object, // GeoJSON FeatureCollection of per-vehicle trail LineStrings
   onVehicleClick: PropTypes.func,
   minimal: PropTypes.bool,
 }

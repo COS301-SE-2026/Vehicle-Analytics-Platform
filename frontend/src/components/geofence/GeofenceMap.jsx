@@ -10,6 +10,8 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = [28.2293, -25.75456]; //maps fallsback if geolocation fails
 const ZONES_SOURCE_ID = "existing-geofences";
 
+// refreshToken: bump this (e.g. a counter) whenever a zone is created,
+// edited, or deleted elsewhere in the app, and this layer refetches.
 export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
     const mapContainer = useRef(null);
     const map = useRef(null);
@@ -34,7 +36,7 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
                 setLocationStatus("denied");
                 setCenter(DEFAULT_CENTER);
             },
-            { 
+            {
                 enableHighAccuracy: true,
                 timeout:5000
             }
@@ -63,8 +65,11 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
                 trash: true
             }
         });
-        
+
         map.current.on("load", () => {
+            // Empty source now, populated by the zones-loading effect below.
+            // Added on "load" so it's always ready before the fetch resolves,
+            // regardless of fetch timing relative to map init.
             map.current.addSource(ZONES_SOURCE_ID, {
                 type: "geojson",
                 data: { type: "FeatureCollection", features: [] },
@@ -73,14 +78,14 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
                 id: `${ZONES_SOURCE_ID}-fill`,
                 type: "fill",
                 source: ZONES_SOURCE_ID,
-                paint: {"fill-color": "#3b82f6", "fill-opacity": 0.15 },
+                paint: { "fill-color": "#3b82f6", "fill-opacity": 0.15 },
             });
             map.current.addLayer({
                 id: `${ZONES_SOURCE_ID}-outline`,
                 type: "line",
                 source: ZONES_SOURCE_ID,
-                paint: {"line-color": "#3b82f6", "line-width": 2 },
-            })
+                paint: { "line-color": "#3b82f6", "line-width": 2 },
+            });
         });
 
         map.current.addControl(draw.current, "top-left");
@@ -100,11 +105,11 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
             map.current?.remove();
             map.current = null;
         };
-    
+
     }, [center ]);
 
-    // load/refresh existing zones. Separate from map init so a 
-    // refreshToken bump doesnt tear and rebuild the whole map
+    // Load / refresh existing zones. Separate from map init so a
+    // refreshToken bump doesn't tear down and rebuild the whole map --
     // it just re-populates the one source.
     useEffect(() => {
         if (!map.current) return;
@@ -112,14 +117,15 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
         let cancelled = false;
 
         function loadZones() {
-            getGeofencesGeoJSON().then((featureCollections) => {
-                if(cancelled) return;
-                const source = map.current?.getSource(ZONES_SOURCE_ID);
-                if (source) source.setData(featureCollections);
-            })
-            .catch((err) => {
-                console.error("Failed to load existing zones:", err);
-            });
+            getGeofencesGeoJSON()
+                .then((featureCollection) => {
+                    if (cancelled) return;
+                    const source = map.current?.getSource(ZONES_SOURCE_ID);
+                    if (source) source.setData(featureCollection);
+                })
+                .catch((err) => {
+                    console.error("Failed to load existing zones:", err);
+                });
         }
 
         if (map.current.isStyleLoaded()) {
@@ -143,6 +149,6 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
                 </div>
             )}
         </div>
-    </div>    
+    </div>
     );
 }

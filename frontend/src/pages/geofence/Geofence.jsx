@@ -6,6 +6,12 @@ import GeofenceMap  from "@/components/geofence/GeofenceMap";
 
 export default function Geofence() {
     const [ drawnShape, setDrawnShape] = useState(null);
+    // Bumped whenever a zone is created, edited, or deleted anywhere on
+    // this page. ExistingZones and GeofenceMap both refetch when it
+    // changes -- previously a newly created zone never appeared in the
+    // table or on the map without a full page reload.
+    const [ zonesVersion, setZonesVersion ] = useState(0);
+    const bumpZonesVersion = useCallback(() => setZonesVersion((v) => v + 1), []);
 
     const handleZoneDrawn = useCallback((shape) => {
         setDrawnShape(shape);
@@ -17,15 +23,11 @@ export default function Geofence() {
                 {/* left column: map + existing zone table */}
                 <div className="space-y-6">
                     <div className="border rounded-lg h-96 flex items-center justify-center text-muted-foreground">
-                        <GeofenceMap onZoneDrawn={handleZoneDrawn} />
-                        {/* <GeofenceMap onZoneDrawn={(shape) => {
-                            console.log("Drawn shape:", shape );
-                            setDrawnShape(shape); } 
-                        }/> */}
+                        <GeofenceMap onZoneDrawn={handleZoneDrawn} refreshToken={zonesVersion} />
                     </div>
 
                     <div className="border rounded-lg bg-fleet-surface p-4">
-                        <ExistingZones/>
+                        <ExistingZones refreshToken={zonesVersion} onZonesChanged={bumpZonesVersion} />
                     </div>
                 </div>
 
@@ -33,14 +35,15 @@ export default function Geofence() {
                 <div className="space-y-6">
                     <div className="border rounded-lg bg-fleet-surface p-4">
                         <h2 className="font-display font-medium text-lg mb-4 text-fleet-text">Zone Details</h2>
-                        <ZoneDetails 
+                        <ZoneDetails
                             drawnShape={drawnShape}
                             onZoneCreated={() => {
-                                setDrawnShape(null)
+                                setDrawnShape(null);
+                                bumpZonesVersion();
                             }}
                         />
                     </div>
-                    <ZoneAlerts/>   
+                    <ZoneAlerts/>
                 </div>
             </div>
         </div>

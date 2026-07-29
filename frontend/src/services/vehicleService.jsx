@@ -69,9 +69,23 @@ export async function getVehicleLocations() {
       status: v.status,
       total_odometer: v.total_odometer,
       ignition: v.ignition,
-      movement: v.movement, 
+      movement: v.movement,
       lastUpdate: v.last_update,
       distanceToday: Number.parseFloat(v.distance_today) || 0,
+      // Reverse-geocoded fields from vehicle_location_cache, joined in by
+      // getLiveLocations. Previously fetched by the backend but never
+      // surfaced past this mapping step -- LiveFleetMapPlaceholder's
+      // VehiclePanel falls back to raw coordinates specifically because
+      // these were never here to prefer.
+      road: v.road,
+      roadClass: v.road_class,
+      routeNumber: v.route_number,
+      speedLimit: v.speed_limit,
+      suburb: v.suburb,
+      city: v.city,
+      province: v.province,
+      country: v.country,
+      displayName: v.display_name,
     }))
     .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
 
@@ -146,7 +160,13 @@ export async function deleteUser(userId) {
   return await res.json()
 }
 
-// GET /api/vehicles/buffer (for live map)
+// GET /api/vehicles/buffer (for live map trails)
+// Was: `return data.data.vehicles` -- getVehiclePositionBuffer on the
+// backend returns {type:'FeatureCollection', timestamp, features}, which
+// has no .vehicles key. This silently returned undefined, so FleetMap's
+// buffer prop has effectively always been empty. Now returns the
+// FeatureCollection itself, which FleetMap consumes directly as trail
+// source data (see FleetMap.jsx) -- no shape conversion needed on either end.
 export async function getVehiclePositionBuffer() {
   const headers = await getAuthHeaders();
 
@@ -154,13 +174,11 @@ export async function getVehiclePositionBuffer() {
     headers
   });
 
-  if(!res.ok){
+  if (!res.ok) {
     throw new Error('Failed to fetch playback buffer')
   }
 
   const data = await res.json();
 
-  return data.data.vehicles;
-
+  return data.data; // { type: 'FeatureCollection', timestamp, features: [...] }
 }
-

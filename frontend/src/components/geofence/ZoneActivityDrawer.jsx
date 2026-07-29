@@ -28,7 +28,7 @@ import {
     CornerUpRight,
     AlertCircle,
 } from "lucide-react";
-import { getGeofenceEvents, getGeofences } from "@/services/geofenceServices";
+import { getGeofenceEvents } from "@/services/geofenceServices";
 
 // const mockActivityLog = [
 //     {
@@ -78,26 +78,14 @@ const activityIconStyles = {
 export function ZoneActivityDrawer({ open, onOpenChange }) {
     const [ currentPage, setCurrentPage ] = useState(1);
     const [ events, setEvents ] = useState([]);
-    const [ zones, setZones ] = useState([]);
-    const [ selectedZone, setSelectedZone] = useState("all");
     const [ isLoading, setIsLoading ] = useState(true);
     const totalPages = 3;
 
-    // fetch list of zones for the dropdown
-    useEffect(() => {
-        if (!open) return;
-        getGeofences().then((result) => setZones(result.geofences))
-                      .catch((err) => console.error("Failed to fetch zones:", err));
-    }, [open])
-
-    // fetch activity 
     useEffect(() => {
         if (!open) return;
 
         setIsLoading(true);
-        const geofenceId = selectedZone === "all" ? undefined : selectedZone;
-
-        getGeofenceEvents(geofenceId).then((result) => {
+        getGeofenceEvents().then((result) => {
             setEvents(result.events);
             setIsLoading(false);
         })
@@ -105,7 +93,7 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
             console.error("Failed to fetch activity:", err);
             setIsLoading(false);
         });
-    }, [open, selectedZone]);
+    }, [open]);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange} className="sm:max-w-2xl">
@@ -123,17 +111,15 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                         <label className="text-xs font-medium tracking-wide text-fleet-secondary uppercase">
                             By Zone
                         </label>
-                        <Select value={selectedZone} onValueChange={setSelectedZone}>
+                        <Select defaultValue="all">
                             <SelectTrigger className="border-fleet-border bg-fleet-surface text-fleet-text">
                                 <SelectValue/>
                             </SelectTrigger>
                             <SelectContent className="bg-fleet-surface">
                                 <SelectItem value="all">All Zones</SelectItem>
-                                {zones.map((zone) => (
-                                    <SelectItem key={zone.id} value={String(zone.id)}>
-                                        {zone.name}
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="pretoria">Pretoria</SelectItem>
+                                <SelectItem value="durban">Durban Port</SelectItem>
+                                <SelectItem value="johannesburg">Johanneburg</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -173,7 +159,7 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                                                 {entry.message}
                                             </p>
                                             <div className="flex items-center gap-1 mt-1">
-                                                <p className="text-xs text-flex-secondary">{entry.time}</p>
+                                                <p className="text-xs text-fleet-secondary">{entry.time}</p>
                                                 {entry.acknowledged && (
                                                     <Badge className="bg-fleet-green/30 text-fleet border-0 rounded-lg text-[9px] px-1.5 py-0">
                                                         ACKNOWLEDGED

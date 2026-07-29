@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Table,
     TableHeader,
@@ -12,15 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Pencil, Trash } from "lucide-react";
 import DeleteZoneModal from "@/components/geofence/DeleteZoneModal";
 import { EditZoneModal } from "@/components/geofence/EditZoneModal";
-import { getGeofences } from "@/services/geofenceServices";
-import { Result } from "postcss";
-
-// mock data
-// const mockZones = [
-//     { id: 1, name: "Pretoria Depot", triggerType: "entry"},
-//     { id: 2, name: "Durban Port", triggerType: "both"},
-//     { id: 3, name:  "Johannesburg Port", triggerType: "exit" },
-// ];
+import { getGeofences, deleteGeofence, updateGeofence } from "@/services/geofenceServices";
 
 const triggerStyles = {
     entry: "bg-fleet-blue/10 text-fleet-blue",
@@ -28,31 +20,61 @@ const triggerStyles = {
     exit: "bg-fleet-idle/10 text-fleet-secondary",
 };
 
-export function ExistingZones({ onEdit, onDelete }){
+// refreshToken: bump this from the parent whenever a zone is created
+// elsewhere (e.g. drawn on the map), so this table stays in sync.
+// onZonesChanged: called after this component itself changes a zone
+// (edit/delete), so siblings like the map layer can refetch too.
+export function ExistingZones({ refreshToken, onZonesChanged }){
     const [ zones, setZones ] = useState([]);
     const [ isLoading, setIsLoading ] = useState(true);
     const [ zoneToDelete, setZoneToDelete ] = useState(null);
     const [ zoneToEdit, setZoneToEdit ] = useState(null);
 
-    useEffect(() => {
-        getGeofences().then((Result) => {
-            setZones(Result.geofences);
-            setIsLoading(false);
-        })
-        .catch((err) => {
-            console.error("Failed to fetch zones:", err);
-            setIsLoading(false);
-        })
+    const loadZones = useCallback(() => {
+        setIsLoading(true);
+        return getGeofences()
+            .then((result) => {
+                setZones(result.geofences);
+                setIsLoading(false);
+            })
+            .catch((err) => {
+                console.error("Failed to fetch zones:", err);
+                setIsLoading(false);
+            });
     }, []);
 
+    useEffect(() => {
+        loadZones();
+    }, [loadZones, refreshToken]);
+
     function handleConfirmDelete(zone) {
-        onDelete?.(zone);
-        setZoneToDelete(null);
+        deleteGeofence(zone.id)
+            .then(() => {
+                setZoneToDelete(null);
+                loadZones();
+                onZonesChanged?.();
+            })
+            .catch((err) => {
+                console.error("Failed to delete zone:", err);
+            });
     }
 
+    // EditZoneModal's form uses camelCase (triggerType) per zoneSchema;
+    // the API expects snake_case (trigger_type). Mapping happens here,
+    // at the point where the service call is made.
     function handleSaveEdit(zone) {
-        onEdit?.(zone);
-        setZoneToEdit(null);
+        updateGeofence(zone.id, {
+            name: zone.name,
+            trigger_type: zone.triggerType,
+        })
+            .then(() => {
+                setZoneToEdit(null);
+                loadZones();
+                onZonesChanged?.();
+            })
+            .catch((err) => {
+                console.error("Failed to update zone:", err);
+            });
     }
 
     if(isLoading) {
@@ -95,7 +117,7 @@ export function ExistingZones({ onEdit, onDelete }){
                             >
                                 <Pencil className="h-3 w-4 text-fleet-secondary" />
                             </Button>
-                            <Button 
+                            <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
@@ -104,21 +126,21 @@ export function ExistingZones({ onEdit, onDelete }){
                                 <Trash className="h-4 w-4 text-fleet-alert"/>
                             </Button>
                         </TableCell>
-                      </TableRow>   
+                      </TableRow>
                     ))}
                 </TableBody>
             </Table>
-            <DeleteZoneModal 
-                open={!!zoneToDelete} 
+            <DeleteZoneModal
+                open={!!zoneToDelete}
                 onOpenChange={(isOpen) => !isOpen && setZoneToDelete(null)}
                 zone={zoneToDelete}
-                onConfrim={handleConfirmDelete}
+                onConfirm={handleConfirmDelete}
             />
             <EditZoneModal
                 open={!!zoneToEdit}
                 onOpenChange={(isOpen) => !isOpen && setZoneToEdit(null)}
                 zone={zoneToEdit}
-                onSave={handleSaveEdit}
+                onConfirm={handleSaveEdit}
             />
         </div>
     );

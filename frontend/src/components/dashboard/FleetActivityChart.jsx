@@ -1,30 +1,42 @@
+import { useState, useEffect, useCallback } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
 } from 'recharts'
 import PropTypes from 'prop-types'
-
-const DEFAULT_DATA = [
-  { time: '06:00', vehicles: 3 },
-  { time: '08:00', vehicles: 9 },
-  { time: '10:00', vehicles: 11 },
-  { time: '12:00', vehicles: 8 },
-  { time: '14:00', vehicles: 12 },
-  { time: '16:00', vehicles: 11 },
-  { time: '18:00', vehicles: 7 },
-  { time: '20:00', vehicles: 4 },
-]
+import { getActivityHistory } from '@/services/vehicleService'
 
 export default function FleetActivityChart({
-  data = [],
+  range = 'day',
   title = 'Fleet Activity Today',
   xLabel = 'Time of Day',
   yLabel = 'Vehicles Active',
   yDomain = [0, 15],
-  useFallback = true,
 }) {
-  const hasData = Array.isArray(data) && data.length > 0
-  const chartData = hasData ? data : (useFallback ? DEFAULT_DATA : [])
+  const [data, setData] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+
+  const loadActivity = useCallback(() => {
+    setIsLoading(true)
+    setLoadError(false)
+    return getActivityHistory(range)
+      .then((points) => {
+        setData(points)
+        setIsLoading(false)
+      })
+      .catch((err) => {
+        console.error('Failed to fetch activity history:', err)
+        setLoadError(true)
+        setIsLoading(false)
+      })
+  }, [range])
+
+  useEffect(() => {
+    loadActivity()
+  }, [loadActivity])
+
+  const hasData = !isLoading && !loadError && data.length > 0
 
   return (
     <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5">
@@ -38,14 +50,28 @@ export default function FleetActivityChart({
         </div>
       </div>
 
-      {chartData.length === 0 ? (
+      {isLoading && (
+        <div className="h-[220px] flex items-center justify-center text-fleet-secondary text-sm">
+          Loading…
+        </div>
+      )}
+
+      {!isLoading && loadError && (
+        <div className="h-[220px] flex items-center justify-center text-fleet-alert text-sm">
+          Couldn't load activity data.
+        </div>
+      )}
+
+      {!isLoading && !loadError && !hasData && (
         <div className="h-[220px] flex items-center justify-center text-fleet-secondary text-sm">
           No activity data available
         </div>
-      ) : (
+      )}
+
+      {hasData && (
         <ResponsiveContainer width="100%" height={220}>
           <BarChart
-            data={chartData}
+            data={data}
             margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
             barCategoryGap="30%"
             barGap={4}
@@ -104,10 +130,9 @@ export default function FleetActivityChart({
 }
 
 FleetActivityChart.propTypes = {
-  data: PropTypes.array,
+  range: PropTypes.oneOf(['day', 'week']),
   title: PropTypes.string,
   xLabel: PropTypes.string,
   yLabel: PropTypes.string,
   yDomain: PropTypes.array,
-  useFallback: PropTypes.bool,
 }

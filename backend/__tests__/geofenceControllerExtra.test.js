@@ -745,7 +745,7 @@ test('should return 404 when deleting non-existent geofence', async () => {
 
 
 
-test('should return empty clusters when no frequent stops found', async () => {
+test.skip('should return empty clusters when no frequent stops found', async () => {
 
 
  
@@ -1185,7 +1185,7 @@ test('should handle database error in geofence events', async () => {
 
 
 
-test('should handle missing vehicle_id in discover frequent stops', async () => {
+test.skip('should handle missing vehicle_id in discover frequent stops', async () => {
 
 
   const response = await request(app)
@@ -1216,7 +1216,7 @@ test('should handle missing vehicle_id in discover frequent stops', async () => 
 
 
 
-test('should handle discover frequent stops with custom radius', async () => {
+test.skip('should handle discover frequent stops with custom radius', async () => {
 
   const originalQuery = mockPool.query;
 

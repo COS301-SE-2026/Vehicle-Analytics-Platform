@@ -1,155 +1,225 @@
 
 
+
 const {pool} = require('../db/pool');
 
-
 const {success, error} = require('../utils/response');
-
-
-
-
-
-
-
 
 
 
 async function getVehicleSafetyScore(req, res) {
 
 
-    
-    
     const {vehicleId} = req.params;
 
+    const {date, start_date, end_date} = req.query;
+
+
 
     
-    
-    const {date} = req.query;
-
-
-
+   
     if(!vehicleId){
-
-
-
-
+    
+   
+   
         return error(res, 'Vehicle ID is required', 400);
-
-
-
+    
     }
 
 
-
-
+    
     try{
+    
+        let query = `
+    
+        SELECT 
+    
+        vehicle_id, score_date,
+    
+        safety_score, harsh_brakes,
+    
+        harsh_accelerations, harsh_cornering,
+    
+    
+        crashes, total_events,
+    
+        classification
+    
+        FROM driver_daily_safety_scores
+    
+    
+        WHERE vehicle_id = $1
+        `;
+    
+        const params = [vehicleId];
+    
+        let paramCount = 2;
 
 
+        
+      
+      
+        if(start_date && end_date){
+      
+            
 
-        const result = await pool.query(`
+            query += ` AND score_date BETWEEN $${paramCount} AND $${paramCount + 1}`;
+        
+            params.push(start_date, end_date);
+        
+            paramCount += 2;
+        
+        } 
+        
+        
+        else if(date){
 
-
-
-
-            SELECT 
-
-                vehicle_id,
-
-
-
-                score_date,
-
-
-
-
-
-                safety_score,  harsh_brakes,
-
-
-
-                harsh_accelerations,  harsh_cornering,
+        
 
 
+        
 
-                crashes, total_events,
+            
+            query += ` AND score_date = $${paramCount}`;
+        
+            
+            params.push(date);
+        
 
+            paramCount++;
+        
+        } 
+        
+        
+        else{
+        
+        
+            query += ` AND score_date = CURRENT_DATE`;
+        
+        }
 
-
-
-                classification
-
-            FROM driver_daily_safety_scores
-
-
-
-            WHERE vehicle_id = $1
-
-
-
-              AND score_date = COALESCE($2::date, CURRENT_DATE)
-
-
-
-        `, [vehicleId, date||null]);
-
-
-
-
+        
+        query += ` ORDER BY score_date DESC`;
 
 
-        if(!result.rows||result.rows.length===0){
+        
+        const result = await pool.query(query, params);
 
 
+        
+        if(!result.rows||result.rows.length === 0){
+        
             return success(res, {
-
+        
+        
+              
                 vehicle_id: vehicleId,
+              
+              
+                date: date || 'CURRENT_DATE',
+        
+        
 
-                date: date||'CURRENT_DATE',
-
+                
                 message: 'No safety data available for this date',
+        
 
-                safety_score: 100,
+                
+                safety_score: null,
+        
 
-                classification: 'Good'
+                
+                classification: 'No Data',
+        
 
 
-
+                scores: []
             }, 200);
-
         }
 
 
-
+        
         const row = result.rows[0];
+      
+        
+        
+        const scores = result.rows.map(r => ({
+        
+
+        
+
+            
+            date: r.score_date,
+        
+
+            
+            safety_score: r.safety_score !== null && r.safety_score !== undefined ? parseInt(r.safety_score) : null,
+            
+            harsh_brakes: parseInt(r.harsh_brakes) || 0,
+        
+
+        
+
+            
+            harsh_accelerations: parseInt(r.harsh_accelerations) || 0,
+            
+            harsh_cornering: parseInt(r.harsh_cornering) || 0,
+        
+
+            
+            crashes: parseInt(r.crashes) || 0,
+        
+
+        
+
+            
+            
+            total_events: parseInt(r.total_events) || 0,
+        
+            
+            classification: r.classification || 'No Data'
+        }));
 
 
 
+
+        
         return success(res, {
-
-
+        
+        
+           
             vehicle_id: row.vehicle_id,
+        
 
-
+            
             date: row.score_date,
+        
 
-
-            safety_score: row.safety_score!==null && row.safety_score!==undefined ? parseInt(row.safety_score) : 100,
-
-
-
+            
+            safety_score: row.safety_score !== null && row.safety_score !== undefined ? parseInt(row.safety_score) : null,
+            
             harsh_brakes: parseInt(row.harsh_brakes)||0,
+        
 
+        
 
+            
+            harsh_accelerations: parseInt(row.harsh_accelerations)||0,
+        
 
-            harsh_accelerations: parseInt(row.harsh_accelerations)||0, harsh_cornering: parseInt(row.harsh_cornering)||0,
-
-
+            
+            
+            harsh_cornering: parseInt(row.harsh_cornering)||0,
+        
 
             crashes: parseInt(row.crashes)||0,
-
-
-
-            total_events: parseInt(row.total_events)||0, classification: row.classification||'Good'
+        
+            total_events: parseInt(row.total_events)||0,
+            classification: row.classification || 'No Data',
+        
+            scores: scores,
+        
+            total_days: scores.length
 
 
 
@@ -158,24 +228,32 @@ async function getVehicleSafetyScore(req, res) {
 
 
 
+    } 
+    
+    
+    
+    
+    catch (err){
+
+    
 
 
-
-
-    } catch (err) {
-
-
-
+        
+        
+        
         console.error('Get safety score error:', err);
+    
 
-
-        return error(res, 'Failed to fetch safety score: '+err.message, 500);
-
-
-
+        
+        
+        return error(res, 'Failed to fetch safety score: ' + err.message, 500);
+    
     }
 
 }
+
+
+
 
 
 
@@ -185,146 +263,192 @@ async function getVehicleSafetyScore(req, res) {
 async function getFleetSafetyScores(req, res) {
 
 
-
-    const {date} = req.query;
-
-
+    
+    const {date, start_date, end_date} = req.query;
 
 
 
+    
     try{
-
-
-
-
-        const result = await pool.query(`
-
-
-            SELECT 
-
-
-                vehicle_id,  score_date,
-
-
-
+    
+    
+        let query = `
+    
+        SELECT 
+                vehicle_id, score_date,
+    
                 safety_score, harsh_brakes,
-
-
-
+    
+    
                 harsh_accelerations, harsh_cornering,
-
-
-
+    
                 crashes, total_events,
+                classification
+    
+                FROM driver_daily_safety_scores
+    
+                WHERE 1=1
+    
+    
+                `;
+        const params = [];
+    
+    
+        let paramCount = 1;
+
+    
+    
+       
+       
+        if(start_date&&end_date){
+            query += ` AND score_date BETWEEN $${paramCount} AND $${paramCount + 1}`;
+    
+    
+
+            
+            params.push(start_date, end_date);
+            
+            paramCount += 2;
+    
+
+    
+        } 
+        
+        else if (date) {
+        
+            query += ` AND score_date = $${paramCount}`;
+    
+
+    
+
+            
+            
+            params.push(date);
+    
 
 
+            
+            paramCount++;
+    
+        } 
+        
+        
+        else {
+    
 
-                classification FROM driver_daily_safety_scores
+    
+
+            
+            query += ` AND score_date = (SELECT MAX(score_date) FROM driver_daily_safety_scores)`;
+    
 
 
-
-            WHERE score_date = COALESCE($1::date, CURRENT_DATE) ORDER BY safety_score ASC
-
+        }
 
 
-        `, [date||null]);
+        
+        query += ` ORDER BY safety_score ASC`;
 
 
+        
+        const result = await pool.query(query, params);
 
 
-
-
+        
         if(!result.rows||result.rows.length===0){
+
+        
 
             
             return success(res, {
-
+        
 
                 
-                date: date||'CURRENT_DATE',
-
+                
+                date: date || 'latest',
+        
 
                 
                 total_vehicles: 0,
-
-
+        
                 
                 
                 vehicles: []
-
             }, 200);
-
         }
 
 
 
 
+       
+        
 
+        
         const vehicles = result.rows.map(row => ({
-
-
+        
+        
             vehicle_id: row.vehicle_id,
+        
+
+            
+            date: row.score_date,
+        
+
+            
+            safety_score: row.safety_score !== null && row.safety_score !== undefined ? parseInt(row.safety_score) : null,
+        
+
+        
+
+            
+            harsh_brakes: parseInt(row.harsh_brakes)||0,
+        
+
+            
+            harsh_accelerations: parseInt(row.harsh_accelerations)||0,
+            
+            harsh_cornering: parseInt(row.harsh_cornering)||0,
+        
+
+            
+            
+            crashes: parseInt(row.crashes)||0,
+        
 
 
 
+        
 
-
-            safety_score: row.safety_score!==null && row.safety_score!==undefined ? parseInt(row.safety_score) : 100,
-
-
-
-            harsh_brakes: parseInt(row.harsh_brakes)||0,  harsh_accelerations: parseInt(row.harsh_accelerations)||0,
-
-
-
-
-            harsh_cornering: parseInt(row.harsh_cornering)||0, crashes: parseInt(row.crashes)||0,
-
-
-            total_events: parseInt(row.total_events)||0, classification: row.classification||'Good'
-
+            
+            total_events: parseInt(row.total_events)||0,
+            
+            classification: row.classification || 'No Data'
         }));
 
 
 
 
-
+        
         return success(res, {
-
-
-            
-            date: date||'CURRENT_DATE',
-
-
-            
+        
+            date: date || 'latest',
+        
+        
             total_vehicles: vehicles.length,
-
-
-            
             vehicles: vehicles
-
-
+        
         }, 200);
-
-
 
     } 
     
-    catch (err){
-
-
-
-
+    
+    catch (err) {
+    
         console.error('Get fleet safety scores error:', err);
-
-
-
-        return error(res, 'Failed to fetch fleet safety scores: '+err.message, 500);
-
-
-
+    
+        return error(res, 'Failed to fetch fleet safety scores: ' + err.message, 500);
+    
     }
-
 }
 
 
@@ -334,7 +458,11 @@ async function getFleetSafetyScores(req, res) {
 function getClassification(score) {
 
 
+    
+    if(score===null || score===undefined) return 'No Data';
 
+
+    
     if(score>=80) return 'Good';
 
 
@@ -342,20 +470,11 @@ function getClassification(score) {
     if(score>=50) return 'Fair';
 
 
-
     return 'Poor';
-
-
-
 
 }
 
 
 
+
 module.exports = {getVehicleSafetyScore, getFleetSafetyScores};
-
-
-
-
-
-

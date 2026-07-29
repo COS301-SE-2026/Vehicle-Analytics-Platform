@@ -12,7 +12,6 @@ export function ZoneDetails({ drawnShape, onZoneCreated }) {
         register,
         handleSubmit,
         control,
-        reset,
         formState: { errors, isSubmitting },
     } = useForm({
         resolver: zodResolver(zoneSchema),

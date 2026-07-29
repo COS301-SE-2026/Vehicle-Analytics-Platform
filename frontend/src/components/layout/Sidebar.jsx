@@ -9,18 +9,24 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000'
 
-const navItems = [
+const baseNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/viewer' },
   { icon: Map, label: 'Live Map', path: '/map' },
   { icon: Globe, label: 'Geofence', path: '/geofence'}
 ]
 
-export default function Sidebar({ role, collapsed, onToggle }) {
+const managerNavItems = [
+  {icon: Car, label: 'Vehicles', path: '/vehicles' },
+]
+
+export default function Sidebar({ role = 'viewer', collapsed, onToggle }) {
   const navigate = useNavigate()
   const { user, role: storeRole } = useAuthStore()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   
   const displayRole = storeRole ?? role
+  const isManager = displayRole === 'manager' || displayRole === 'fleet_manager'
+  const navItems = isManager ? [...baseNavItems, ...managerNavItems] : baseNavItems
   const name = user?.name ?? 'User Name'
   
   // Safe extraction of initials
@@ -141,8 +147,4 @@ Sidebar.propTypes = {
   onToggle: PropTypes.func.isRequired,
   collapsed: PropTypes.bool.isRequired,
   role: PropTypes.string,
-}
-
-Sidebar.defaultProps = {
-  role: 'user',
 }

@@ -415,260 +415,110 @@ async function getVehiclePositionBuffer(req, res){
 
 
 
-async function getVehiclesList(req, res) {
-
-
-
-  
-  
+async function getVehiclesList(req, res) { 
   const {status, min_score, max_score, alerts, page = 1, limit = 20} = req.query;
-
-
-  
-  
   const offset = (parseInt(page) - 1) * parseInt(limit);
-
-
-
-  
   try {
-    let query = `
-  
-  
+    let query = `  
     SELECT 
-  
     v.vehicle_id as id,
-  
     CASE
           WHEN pos.last_update IS NULL THEN 'offline'
-  
           WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
-  
-  
           WHEN COALESCE(pos.speed, 0) > 0 THEN 'moving'
-  
           ELSE 'idle'
         END as status,
-  
-  
         pos.speed as current_speed,
-  
         pos.latitude,
         pos.longitude,
-  
         pos.last_update as last_updated,
-  
-  
         COALESCE(s.safety_score, 0) as safety_score,
-  
         COALESCE(ds.distance_today, 0) as distance_today,
-  
         CASE 
-  
         WHEN ve.vehicle_id IS NOT NULL THEN true 
-  
-  
         ELSE false 
         END as has_alert,
-  
-  
         CASE 
           WHEN pos.speed > 80 THEN true 
-  
-  
           ELSE false 
-  
           END as is_speeding
       FROM vehicles v
-  
-  
       LEFT JOIN current_vehicle_position pos ON v.vehicle_id = pos.id
       LEFT JOIN driver_daily_safety_scores s ON v.vehicle_id = s.vehicle_id AND s.score_date = CURRENT_DATE
-  
       LEFT JOIN (
-  
       SELECT vehicle_id, SUM(distance_km) as distance_today
-  
       FROM vehicle_daily_distance
-  
-  
       WHERE bucket = date_trunc('day', NOW())
-  
-  
       GROUP BY vehicle_id
-  
       ) ds ON v.vehicle_id = ds.vehicle_id
-  
       LEFT JOIN (
-  
-  
       SELECT DISTINCT vehicle_id 
         FROM vehicle_events 
-  
         WHERE time > NOW() - INTERVAL '1 hour'
-  
         AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
-  
-  
         ) ve ON v.vehicle_id = ve.vehicle_id
       WHERE 1=1
-  
       `;
-  
-  
-     
-     
       const params = [];
-  
-
-
       let paramCount = 1;
-
-
-      
-    
-    
       if(status){
-    
         query += ` AND status = $${paramCount}`;
-    
         params.push(status);
-    
-    
         paramCount++;
-
-
     }
-
-
-
-
-    
     if(min_score){
-    
       query += ` AND COALESCE(s.safety_score, 0) >= $${paramCount}`;
-    
-    
       params.push(min_score);
-    
-    
       paramCount++;
-    
-    
     }
 
-
-
-
-    
-    if(max_score){
-    
-    
+    if(max_score){    
       query += ` AND COALESCE(s.safety_score, 0) <= $${paramCount}`;
-    
       params.push(max_score);
-    
-    
       paramCount++;
-
-
-      
     }
-
-
-
-
-    
     if(alerts === 'true'){
-    
       query += ` AND ve.vehicle_id IS NOT NULL`;
-    
-    
     }
-
-    
-    
     query += ` ORDER BY v.vehicle_id LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-    
     params.push(parseInt(limit), offset);
-
-
-    
-    
     const result = await pool.query(query, params);
-
-    
-    
     const statsResult = await pool.query(`
-    
       SELECT 
         COUNT(*) as total,
-    
         COUNT(*) FILTER (WHERE status = 'moving') as moving,
-    
         COUNT(*) FILTER (WHERE status = 'idle') as idle,
-    
         COUNT(*) FILTER (WHERE status = 'offline') as offline,
-    
         COUNT(*) FILTER (WHERE has_alert) as alerts,
-    
         COUNT(*) FILTER (WHERE is_speeding) as speeding,
-    
         (
-    
-    
         SELECT ROUND(AVG(CAST(safety_score AS numeric)), 1)
           FROM driver_daily_safety_scores
-    
           WHERE score_date = (
-    
           SELECT MAX(score_date) FROM driver_daily_safety_scores
-    
           )
-    
           ) as avg_safety_score
-    
           FROM (
-    
           SELECT 
           v.vehicle_id,
-    
-    
           CASE
-    
           WHEN pos.last_update IS NULL THEN 'offline'
-    
           WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
-    
-    
           WHEN COALESCE(pos.speed, 0) > 0 THEN 'moving'
-    
           ELSE 'idle'
           END as status,
-    
           CASE 
-    
-    
           WHEN ve.vehicle_id IS NOT NULL THEN true 
             ELSE false 
           END as has_alert,
-    
           CASE 
-    
           WHEN pos.speed > 80 THEN true 
-    
           ELSE false 
-    
           END as is_speeding
-    
           FROM vehicles v
-    
-    
           LEFT JOIN current_vehicle_position pos ON v.vehicle_id = pos.id
         LEFT JOIN (
-    
         SELECT DISTINCT vehicle_id 
-    
         FROM vehicle_events 
     
         WHERE time > NOW() - INTERVAL '1 hour'

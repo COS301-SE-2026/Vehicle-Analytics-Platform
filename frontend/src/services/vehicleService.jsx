@@ -117,7 +117,7 @@ export async function getVehicleById(vehicleId) {
     latitude: parseFloat(v.latitude),
     longitude: parseFloat(v.longitude),
     speed: Number(v.speed),
-    speedLimit: Number(v.speedLimit),
+    speedLimit: Number(v.speed_limit),
     tripStartTime: trip ? trip.start_time: null,
 
   },

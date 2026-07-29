@@ -90,28 +90,13 @@ export async function getGeofenceEvents(geofence_id){
     const data = await res.json()
     return {
         total: data.data.total,
-        events: data.data.events.map(e => {
-            // Was `${e.vehicle_id} ${e.event_type} ${e.name}` -- the
-            // controller aliases the zone name as `geofence_name`, so
-            // `e.name` was always undefined and every alert rendered as
-            // e.g. "1024 entry undefined".
-            const zoneName = e.geofence_name ?? "unknown zone";
-
-            // hotspot_created rows have no vehicle_id -- a hotspot belongs
-            // to no single vehicle -- so they need their own message shape
-            // rather than falling through to the vehicle-crossing wording.
-            const isHotspot = e.event_type === "hotspot_created";
-
-            return {
-                id: e.id,
-                type: isHotspot || e.event_type === "entry" ? "alert" : "notification",
-                message: isHotspot
-                    ? `New event hotspot detected: ${zoneName}`
-                    : `${e.vehicle_id} ${e.event_type} ${zoneName}`,
-                time: new Date(e.created_at).toLocaleString(),
-                read: false,
-            };
-        }),
+        events: data.data.events.map(e => ({
+            id: e.id,
+            type: e.event_type === "entry" ? "alert" : "notification",
+            message: `${e.vehicle_id} ${e.event_type} ${e.name}`,
+            time: new Date(e.created_at).toLocaleString(),
+            read: false,
+        })),
     };
 }
 

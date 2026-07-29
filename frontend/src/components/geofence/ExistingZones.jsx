@@ -32,9 +32,7 @@ export function ExistingZones({ refreshToken, onZonesChanged }){
 
     const loadZones = useCallback(() => {
         setIsLoading(true);
-        // 'user' excludes auto-generated hotspot and security-marker zones --
-        // this table is for zones a person created and can edit or delete.
-        return getGeofences('user')
+        return getGeofences()
             .then((result) => {
                 setZones(result.geofences);
                 setIsLoading(false);

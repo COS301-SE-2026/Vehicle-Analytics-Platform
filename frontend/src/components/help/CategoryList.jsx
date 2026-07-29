@@ -1,10 +1,32 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { 
+  ChevronDown, 
+  ChevronRight,
+  ChartLine,
+  Car,
+  Globe,
+  PlayCircle,
+  Compass,
+ } from 'lucide-react';
 import { ArticleView } from './ArticleView';
 
-export function CategoryList({ categories }) {
+const ICONS = {
+  "bar-chart": ChartLine,
+  car: Car,
+  "map-pin": Globe,
+  "play-circle": PlayCircle,
+};
+
+export function CategoryList({ categories, externalArticle, onArticleShown }) {
     const [expandedId, setExpandedId] = useState(null);
     const [ activeArticle, setActiveArticle ] = useState(null);
+
+    useEffect(() => {
+      if(externalArticle) {
+        setActiveArticle(externalArticle);
+        onArticleShown?.();
+      }
+    }, [externalArticle]);
 
     if(activeArticle) {
         const category = categories.find((c) => c.id === activeArticle.categoryId);
@@ -20,25 +42,28 @@ export function CategoryList({ categories }) {
         }
     }
 
+
     return (
         <div className='flex-1 overflow-y-auto px-2 py-2'>
           {categories.map((category) => {
             const isExpanded = expandedId === category.id;
+            const CategoryIcon = ICONS[category.icon] ?? Compass;
+
             return (
-                <div 
-                 key={category.id}
-                 className='border-b border-fleet-secondary last:border-b-0'
-                 >
-                
+              <div key={category.id}>
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : category.id)}
-                  className='w-full flex items-center justify-between px-2 py-3 text-sm font-medium text-left text-fleet-text hover:text-fleet-blue/90 transition-colors'
+                  className={`w-full flex items-center justify-between px-2 py-3 text-m font-medium text-left text-fleet-text transition-colors ${
+                    isExpanded ? 'text-fleet-blue' : 'text-fleet-text hover:bg-fleet-bg'}`}
                 >
-                  <span>{category.title}</span>
+                  <div className="flex items-center gap-3">
+                    <CategoryIcon size={16} />
+                    <span >{category.title}</span>
+                  </div>
                   {isExpanded ? (
-                    <ChevronDown size={16} className='text-fleet-secondary'/>
+                    <ChevronDown size={16} className='text-fleet-blue'/>
                   ) : (
-                    <ChevronRight size={16} className='text-fleet-secondary'/>
+                    <ChevronRight size={16} className='text-fleet-text'/>
                   )}
                 </button>
 
@@ -53,7 +78,7 @@ export function CategoryList({ categories }) {
                                     articleId: article.id,
                                 })
                             }
-                            className='w-full text-left px-4 py-2 rounded-md hover-md hover:bg-fleet-blue/90 transition-colors'
+                            className='w-full text-left px-4 py-2 rounded-md hover-md hover:bg-fleet-idle/30 transition-all'
                         >
                           <div className='text-md text-fleet-text'>{article.title}</div>
                           <div className='text-sm text-fleet-text mt-0.5'>{article.preview}</div>
@@ -61,7 +86,7 @@ export function CategoryList({ categories }) {
                     ))}
                   </div>
                 )}
-                </div>
+              </div>
             );
           })}
         </div>

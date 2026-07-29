@@ -1,3 +1,4 @@
+import{ useState } from 'react';
 import { X, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getHelpMenuForRole } from '@/data/helpMenuContent';
@@ -5,6 +6,8 @@ import { CategoryList } from './CategoryList';
 import { Button } from '../ui/button';
 
 export function HelpPanel({ isOpen, onClose, role }){
+    const [query, setQuery] = useState('');
+    const [view, setView] = useState({type: 'category-list'});
     const categories = getHelpMenuForRole(role);
 
     return(
@@ -32,7 +35,7 @@ export function HelpPanel({ isOpen, onClose, role }){
              <h1 className='text-xl font-bold text-fleet-blue'>Help Center</h1>
              <Button
               onClick={onClose}
-              className='text-fleet-secondary hover:text-fleet-secondary transition-colors'
+              className='text-fleet-surface bg-fleet-blue hover:bg-fleet-blue/80 transition-colors'
               aria-label="Close help panel"
              >
                 <X size={18}/>
@@ -40,14 +43,15 @@ export function HelpPanel({ isOpen, onClose, role }){
            </div>
 
            {/* Search */}
-           <div className='px-4 py-3 border-b border-fleet-secondary'>
-             <div className='flex item-center gap-2 rounded-lg border border-fleet-secondary px-3 py-2'>
+           <div className='px-4 py-3'>
+             <div className='flex items-center gap-2 rounded-lg border border-fleet-secondary px-3 py-2'>
                 <Search size={16} className='text-fleet-text'/>
                 <input
                   type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search for guides, tips or troubleshooting..."
-                  abled
-                  className='flex-1 text-sm text-fleet-secondary placeholder:text-fleet-secondary/90 outline-none bg-transparent cursor-not-allowed'
+                  className='flex-1 text-sm text-fleet-secondary placeholder:text-fleet-secondary/90 outline-none bg-transparent cursor-text'
                 />
              </div>
            </div>

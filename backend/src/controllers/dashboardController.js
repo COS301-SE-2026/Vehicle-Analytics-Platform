@@ -120,8 +120,6 @@ async function getFleetKPIs(req, res) {
     const v = vehicles_result.rows[0];
     
     const d = distance_result.rows[0];
-    
-    const alertsCount = alerts_result.rows.length;
 
 
     

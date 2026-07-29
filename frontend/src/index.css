@@ -23,5 +23,9 @@
     --ring: 150 24% 40%;
     --radius: 0.75rem;
     --input: 40 12% 85%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 75 8% 16%;
+    --accent: 43 15% 90%;
+    --accent-foreground: 75 8% 16%;
   }
 }

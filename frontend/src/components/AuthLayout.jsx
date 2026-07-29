@@ -2,16 +2,6 @@ import './AuthLayout.css';
 import vaporLogo from '../assets/logo.png';
 import PropTypes from 'prop-types';
 
-const getStatus = (index) => {
-  if (index === 4) return 'warning';
-  if (index === 9) return 'offline';
-  return 'active';
-};
-
-const vehicles = Array.from({ length: 15 }, (_, i) => ({
-  id: i,
-  status: getStatus(i),
-}));
 
 export default function AuthLayout({ children }) {
   return (

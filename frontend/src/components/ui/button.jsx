@@ -1,6 +1,6 @@
-//import * as React from "react"
+import * as React from "react"
 import { cva } from "class-variance-authority";
-import { Slot } from "radix-ui"
+import { Slot } from "@radix-ui/react-slot"
 import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"

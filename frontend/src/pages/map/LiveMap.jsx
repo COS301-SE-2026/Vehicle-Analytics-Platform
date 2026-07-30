@@ -6,6 +6,18 @@ import FleetMap from '../../components/map/FleetMap'
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
+// POLLING RATES
+//
+// Buffer every 10s against a 30s window: 3x overlap, so the playback queue
+// always has points to consume and the trail never fully ages out between
+// polls. Polling at the same rate as the window (the old 30s/30s) left the
+// trail stale for most of each interval.
+//
+// Locations every 15s. Markers no longer take their POSITION from this --
+// that comes from the buffer's timestamped points via FleetMap's playback
+// queue. This call now only supplies status colour, the vehicle list, and
+// the fleet counts, none of which need to be fast. That's the deliberate
+// trade: smooth continuous motion over up-to-the-second position.
 export default function LiveMap() {
   // Matches the FeatureCollection shape getVehiclePositionBuffer now
   // actually returns (previously {} happened to "work" only because the
@@ -40,7 +52,7 @@ export default function LiveMap() {
 
   useEffect(() => {
     fetchVehiclePositionBuffer();
-    const interval = setInterval(fetchVehiclePositionBuffer, 30000);
+    const interval = setInterval(fetchVehiclePositionBuffer, 10000);
     return () => clearInterval(interval)
   },[]);
 
@@ -51,7 +63,7 @@ export default function LiveMap() {
     // per the architecture doc). That mismatch was pure wasted load, not
     // extra freshness. 5000ms still comfortably clears the "within 5-10
     // seconds of events" requirement.
-    const interval = setInterval(fetchLocations, 5000);
+    const interval = setInterval(fetchLocations, 15000);
     return () => clearInterval(interval)
   }, [])
 

@@ -22,7 +22,7 @@ export const helpMenuData = [
     {
         id: "getting-started",
         title: "Getting Started",
-        icon: "compass",
+        icon: "rocket",
         roles: [ROLES.VIEWER, ROLES.FLEET_MANAGER, ROLES.ADMIN],
         articles: [
             {

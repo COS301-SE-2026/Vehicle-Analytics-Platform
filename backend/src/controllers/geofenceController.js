@@ -33,6 +33,15 @@ async function createGeofence(req, res) {
 
 async function getGeofences(req, res) {
     try{
+
+        const { source } = req.query;
+        const params = [];
+        let where = '';
+        if (source) {
+            params.push(source);
+            where = 'WHERE source = $1';
+        }
+
         const result = await pool.query(`
             SELECT
                 id,
@@ -40,11 +49,14 @@ async function getGeofences(req, res) {
                 vehicle_id,
                 ST_AsGeoJSON(boundary)::json AS boundary,
                 trigger_type,
+                source,
+                hotspot_kind,
                 created_at,
                 updated_at
             FROM geofences
+            ${where}
             ORDER BY created_at DESC
-        `);
+        `, params);
 
         return success(res, {
             total: result.rows.length,
@@ -58,14 +70,6 @@ async function getGeofences(req, res) {
 }
 
 
-// GET /api/geofences/geojson -- existing zones as a ready FeatureCollection,
-// for GeofenceMap to render as a source/layer. Kept separate from
-// getGeofences (above), which the ExistingZones *table* still uses -- that
-// one wants flat rows (name, trigger_type) for a table, this one wants
-// a FeatureCollection for a map. Same table, two shapes for two consumers.
-//
-// ROUTING NOTE: register this route BEFORE `/api/geofences/:id` in your
-// router, or Express will match "geojson" as an :id param instead.
 async function getGeofencesGeoJSON(req, res) {
     const { vehicle_id } = req.query;
     try {
@@ -176,6 +180,7 @@ async function getGeofenceEvents(req, res) {
                 ST_Y(ge.location) AS latitude,
                 ST_X(ge.location) AS longitude,
                 ge.speed,
+                ge.event_time,
                 ge.created_at
             FROM geofence_events ge
             LEFT JOIN geofences g
@@ -195,7 +200,7 @@ async function getGeofenceEvents(req, res) {
             params.push(vehicle_id);
             paramCount++;
         }
-        query += ` ORDER BY ge.created_at DESC LIMIT $${paramCount}`;
+        query += ` ORDER BY ge.event_time DESC LIMIT $${paramCount}`;
         params.push(Number.parseInt(limit) || 50);
         const result = await pool.query(query, params);
         return success(res, {

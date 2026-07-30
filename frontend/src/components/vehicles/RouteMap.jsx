@@ -194,7 +194,22 @@ export default function RouteMap({ routePoints, routeLabel}) {
             setCurrentIndex(Math.min(Math.max(targetIndex, 0), lastIndex))
         }
 
+        function handleScrubKeyDown(event) {
+            if(event.key === 'ArrowRight') {
+                setIsPlaying(false)
+                setCurrentIndex((indx) => Math.min(lastIndex, indx + 1))
+            } else if(event.key === 'ArrowLeft') {
+                setIsPlaying(false)
+                setCurrentIndex((indx) => Math.min(lastIndex, indx - 1))
+            }else if(event.key === 'Home') {
+                setIsPlaying(false)
+                setCurrentIndex(0)
+            }else if(event.key === 'End') {
+                setIsPlaying(false)
+                setCurrentIndex(lastIndex)
+            }
 
+        }
 
     return (
     <div ref={wrapperRef}>
@@ -249,10 +264,15 @@ export default function RouteMap({ routePoints, routeLabel}) {
                     ))}
                 </div>
                 <div
-                    role="button"
+                    role="slider"
+                    aria-label="Trip playback position"
+                    aria-valuenow={Math.round(progressPercent)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
                     data-testid="scrub-bar"
                     tabIndex={0}
                     onClick={handleScrub}
+                    onKeyDown={handleScrubKeyDown}
                     className="flex-1 h-1 bg-fleet-border rounded-full overflow-hidden cursor-pointer">
                     <div className="h-full bg-fleet-blue rounded-full" style={{ width: `${progressPercent}%` }}/>
                     </div>

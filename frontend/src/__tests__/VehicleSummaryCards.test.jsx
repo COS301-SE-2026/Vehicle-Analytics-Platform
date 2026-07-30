@@ -68,7 +68,7 @@ describe('VehicleSummaryCards', () => {
 
     test('falls back to "-" when avgSafetyScore is null', () => {
         render(<VehicleSummaryCards summary={{ ...baseSummary, avgSafetyScore: null }} />)
-        expect(screen.getByText('-')).toBeInTheDocument
+        expect(screen.getByText('-')).toBeInTheDocument()
     })
 
     test('falls back to "-" when lowestScoringVehicle is missing', () => {

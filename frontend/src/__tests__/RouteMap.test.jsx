@@ -72,6 +72,15 @@ describe('RouteMap', () => {
         expect(screen.getByText('00:03/00:03')).toBeInTheDocument()
     })
 
+    test('scrub bar responds to keyboard arrow input', () => {
+        render(<RouteMap routePoints={routePoints} routeLabel="Depot to Warehouse" />)
+
+        const scrubBar = screen.getByTestId('scrub-bar')
+        fireEvent.keyDown(scrubBar, {key: 'End'})
+
+        expect(screen.getByText('00:03/00:03')).toBeInTheDocument()
+    })
+
     test('changes playback speed when button is clicked', () => {
         render(<RouteMap routePoints={routePoints} routeLabel="Depot to Warehouse" />)
 

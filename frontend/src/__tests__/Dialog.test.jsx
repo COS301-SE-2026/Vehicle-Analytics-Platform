@@ -13,6 +13,17 @@ jest.mock("@/components/ui/button", () => ({
   ),
 }))
 
+jest.mock("@radix-ui/react-dialog", () => ({
+  Root: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Trigger: ({ children, ...props }) => <button {...props}>{children}</button>,
+  Portal: ({ children }) => <>{children}</>,
+  Overlay: (props) => <div {...props} />,
+  Content: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Close: ({ children, asChild, ...props }) =>asChild ? children : <button {...props}>{children}</button>,
+  Title: ({ children, ...props }) => <h2 {...props}>{children}</h2>,
+  Description: ({ children, ...props }) => <p {...props}>{children}</p>,
+}))
+
 describe("Dialog", () => {
   it("renders with data-slot='dialog'", () => {
     const { container } = render(<Dialog><div>content</div></Dialog>)

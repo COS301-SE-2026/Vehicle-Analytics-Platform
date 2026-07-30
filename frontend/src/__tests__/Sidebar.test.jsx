@@ -22,10 +22,11 @@ jest.mock("class-variance-authority", () => ({
   },
 }))
 
-jest.mock("radix-ui", () => ({
-  Slot: {
-    Root: ({ children, ...props }) => <div data-testid="slot-root" {...props}>{children}</div>,
-  },
+jest.mock("@radix-ui/react-slot", () => ({
+  Slot: ({ children, ...props }) => (
+      <div data-testid="slot-root" {...props}>{children}</div>
+    ),
+  
 }))
 
 jest.mock("@/components/ui/button", () => ({

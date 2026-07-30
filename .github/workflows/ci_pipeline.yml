@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main, develop]
 
+
 jobs:
   backend_tests:
     runs-on: ubuntu-latest
@@ -146,3 +147,50 @@ jobs:
           flags: database
           directory: ./database/coverage
           fail_ci_if_error: false
+
+  deploy_frontend:
+    needs:
+      - backend_tests
+      - frontend_tests
+      - database_tests
+      
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'push'
+
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: arn:aws:iam::273949555549:role/github-actions-vehicle-analytics
+          aws-region: af-south-1
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci --ignore-scripts
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Upload to S3
+        run: |
+          aws s3 sync frontend/dist s3://kmj2 --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id E1PH3LDZUZ8DLL \
+            --paths "/*" 

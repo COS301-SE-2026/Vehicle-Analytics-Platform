@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main, develop]
 
-permissions:
-  id-token: write
-  contents: read
 
 jobs:
   backend_tests:
@@ -156,9 +153,14 @@ jobs:
       - backend_tests
       - frontend_tests
       - database_tests
+      
     runs-on: ubuntu-latest
 
     if: github.event_name == 'push'
+
+    permissions:
+      id-token: write
+      contents: read
     
     steps:
       - uses: actions/checkout@v4
@@ -170,7 +172,7 @@ jobs:
           cache-dependency-path: ./frontend/package-lock.json
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
           role-to-assume: arn:aws:iam::273949555549:role/github-actions-vehicle-analytics
           aws-region: af-south-1

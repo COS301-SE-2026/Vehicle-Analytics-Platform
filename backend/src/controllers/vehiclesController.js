@@ -131,7 +131,10 @@ async function getVehicleTrips(req, res) {
     
                 distance_km,
     
-                safety_score
+                safety_score,
+                harsh_brakes,
+                harsh_accelerations,
+                harsh_cornering
     
                 FROM get_trip_history_with_events($1, NULL, NULL, $2, $3)
     
@@ -185,7 +188,10 @@ async function getVehicleTrips(req, res) {
                 
                 distance: row.distance_km,
                 
-                safety_score: row.safety_score
+                safety_score: row.safety_score,
+                harsh_brakes: row.harsh_brakes,
+                harsh_accelerations: row.harsh_accelerations,
+                harsh_cornering: row.harsh_cornering
         
 
             })),

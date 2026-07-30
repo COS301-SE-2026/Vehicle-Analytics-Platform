@@ -69,9 +69,23 @@ export async function getVehicleLocations() {
       status: v.status,
       total_odometer: v.total_odometer,
       ignition: v.ignition,
-      movement: v.movement, 
+      movement: v.movement,
       lastUpdate: v.last_update,
       distanceToday: Number.parseFloat(v.distance_today) || 0,
+      // Reverse-geocoded fields from vehicle_location_cache, joined in by
+      // getLiveLocations. Previously fetched by the backend but never
+      // surfaced past this mapping step -- LiveFleetMapPlaceholder's
+      // VehiclePanel falls back to raw coordinates specifically because
+      // these were never here to prefer.
+      road: v.road,
+      roadClass: v.road_class,
+      routeNumber: v.route_number,
+      speedLimit: v.speed_limit,
+      suburb: v.suburb,
+      city: v.city,
+      province: v.province,
+      country: v.country,
+      displayName: v.display_name,
     }))
     .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
  
@@ -108,9 +122,25 @@ export async function getVehicleById(vehicleId) {
   const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}`, { headers })
   if (!res.ok) throw new Error('Failed to fetch vehicle details')
   const data = await res.json()
+  const v = data.data.vehicle
+  const trip = data.data.current_trip
+
   return {
-    vehicle: data.data.vehicle,
-    recent_events: data.data.recent_events,
+    vehicle:{
+    ...v,
+    latitude: Number.parseFloat(v.latitude),
+    longitude: Number.parseFloat(v.longitude),
+    speed: Number(v.speed),
+    speedLimit: Number(v.speed_limit),
+    tripStartTime: trip ? trip.start_time: null,
+
+  },
+    recent_events: (data.data.recent_events || []).map((e) => ({
+      ...e,
+      latitude: Number.parseFloat(e.latitude),
+      longitude: Number.parseFloat(e.longitude),
+      speed: Number(e.speed),
+    })),
   }
 }
  
@@ -145,27 +175,125 @@ export async function deleteUser(userId) {
   if (!res.ok) throw new Error('Failed to delete user')
   return await res.json()
 }
- 
-// GET /api/vehicles/buffer (for live map)
+
 export async function getVehiclePositionBuffer() {
   const headers = await getAuthHeaders();
  
   const res = await fetch(`${API_BASE_URL}/api/vehicles/buffer`, {
     headers
   });
- 
-  if(!res.ok){
+
+  if (!res.ok) {
     throw new Error('Failed to fetch playback buffer')
   }
  
   const data = await res.json();
- 
-  return data.data.vehicles;
- 
+
+  return data.data; // { type: 'FeatureCollection', timestamp, features: [...] }
 }
- 
-// Fleet Analytics section added here 
-// endpoint: GET /api/fleet/analytics?period=day|week (fleetAnalyticsController.getFleetAnalytics)
+
+export async function getVehicleSafetyScore(vehicleId, date = null) {
+  const headers = await getAuthHeaders()
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const res = await fetch(`${API_BASE_URL}/api/safety/scores/${vehicleId}${query}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicle safety score')
+  }
+
+  const data = await res.json()
+  return data.data
+  
+}
+
+export async function getFleetSafetyScores(date = null){
+  const headers = await getAuthHeaders()
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const res = await fetch(`${API_BASE_URL}/api/safety/scores${query}`, { headers })
+
+
+  if (!res.ok){
+    throw new Error('Failed to fetch fleet safety scores')
+  }
+
+  const data = await res.json()
+  return data.data.vehicles || []
+}
+
+export async function getVehiclesList({status, page = 1, limit = 20} = {}) {
+  const headers = await getAuthHeaders()
+
+  const params = new URLSearchParams()
+
+  if (status && status !== 'all'){
+    params.set('status', status)
+  }
+
+  params.set('page', page)
+  params.set('limit', limit)
+
+  const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`, {headers})
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicles list')
+  }
+
+  const data = await res.json()
+
+  return {
+    vehicles: data.data.vehicles || [],
+    stats: data.data.stats || {},
+    pagination: data.data.pagination || {}
+  }
+
+  
+}
+
+
+export async function getVehicleTrips(vehicleId, {limit = 10, before } = {}){
+  const headers = await getAuthHeaders()
+  const params = new URLSearchParams()
+  params.set('limit', limit)
+
+  if(before){
+    params.set('before', before)
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/trips?${params.toString()}`, {headers})
+
+  if(!res.ok){
+    throw new Error('Failed to fetch vehicle trips')
+  }
+    const data = await res.json()
+    return data.data
+}
+
+export async function getVehicleSafetyScoreTrend(vehicleId, days = 7) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/safety-trend?days=${days}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicle safety trend')
+  }
+
+  const data = await res.json()
+  return data.data
+  
+}
+
+export async function getTripReplay(tripId) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/trips/replay/${tripId}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch trip replay')
+  }
+
+  const data = await res.json()
+  return data.data
+  
+}
+
+
 
 const EVENT_TYPE_LABELS = {
   harsh_braking: 'Harsh Braking',

@@ -1,6 +1,11 @@
 //import React from 'react'
 import { render, screen } from '@testing-library/react'
 import RecentVehicleEvents from '../components/dashboard/RecentVehicleEvents'
+import {getAlerts} from '@/services/vehicleService'
+
+jest.mock('@/services/vehicleService', () => ({
+  getAlerts: jest.fn(),
+}))
 
 const mockEvents = [
   { id: 'e1', vehicleId: 'VH-001', eventType: 'speeding', description: 'Exceeded speed limit', location: 'N1 Highway', severity: 'HIGH', timestamp: new Date().toISOString() },
@@ -8,23 +13,27 @@ const mockEvents = [
 
 describe('RecentVehicleEvents', () => {
   test('renders heading', () => {
-    render(<RecentVehicleEvents events={mockEvents} />)
+    getAlerts.mockResolvedValue({ alerts: mockEvents})
+    render(<RecentVehicleEvents/>)
     expect(screen.getByText('Recent Vehicle Events')).toBeInTheDocument()
   })
 
-  test('renders events', () => {
-    render(<RecentVehicleEvents events={mockEvents} />)
-    expect(screen.getByText(/VH-001/)).toBeInTheDocument()
+  test('renders events', async () => {
+    getAlerts.mockResolvedValue({ alerts: mockEvents})
+    render(<RecentVehicleEvents/>)
+    expect(await screen.findByText(/VH-001/)).toBeInTheDocument()
   })
 
-  test('renders empty when no events', () => {
-    render(<RecentVehicleEvents events={[]} />)
-    expect(screen.getByText(/Showing last 0 events/)).toBeInTheDocument()
+  test('renders empty when no events', async () => {
+    getAlerts.mockResolvedValue({ alerts: []})
+    render(<RecentVehicleEvents/>)
+    expect(await screen.findByText(/Showing last 0 events/)).toBeInTheDocument()
   })
 
-  test('displays Unknown for null timestamp', () => {
+  test('displays Unknown for null timestamp', async () => {
     const event = { ...mockEvents[0], timestamp: null }
-    render(<RecentVehicleEvents events={[event]} />)
-    expect(screen.getByText('Unknown')).toBeInTheDocument()
+    getAlerts.mockResolvedValue({ alerts: [event ]})
+    render(<RecentVehicleEvents/>)
+    expect(await screen.findByText('Unknown')).toBeInTheDocument()
   })
 })

@@ -72,7 +72,7 @@ export default function MostActiveVehiclesTable({ vehicles = [] }) {
                     {vehicle.distanceToday} km
                   </td>
                   <td className="py-3">
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${STATUS_STYLES[vehicle.status] ?? STATUS_STYLES.offlines}`}>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${STATUS_STYLES[vehicle.status] ?? STATUS_STYLES.offline}`}>
                       {STATUS_LABELS[vehicle.status] ?? vehicle.status}
                     </span>
                   </td>

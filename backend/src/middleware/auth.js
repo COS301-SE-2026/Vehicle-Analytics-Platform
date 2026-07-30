@@ -1,8 +1,23 @@
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db/pool');
 const { error } = require('../utils/response');
+console.log("NODE_ENV =", process.env.NODE_ENV);
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("DISABLE_AUTH:", process.env.DISABLE_AUTH);
 
 async function authenticate(req, res, next) {
+  // DEVELOPMENT BYPASS
+  if (process.env.NODE_ENV === "development") {
+    req.user = {
+      id: "dev-user",
+      sub: "local-dev",
+      email: "dev@localhost",
+      password: "dev-password",
+      role: "manager",
+    };
+
+    return next();
+  }
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -66,6 +81,12 @@ async function authenticate(req, res, next) {
 
 function requireRole(allowedRoles) {
   return (req, res, next) => {
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("Development mode: Bypassing role check");
+      return next();
+    }
+
     if (!req.user || !allowedRoles.includes(req.user.role)) {
       return error(res, 'Insufficient permissions', 403);
     }

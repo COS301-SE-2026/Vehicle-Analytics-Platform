@@ -15,6 +15,13 @@ jest.mock("class-variance-authority", () => ({
   },
 }))
 
+jest.mock("@radix-ui/react-slot", () => ({
+  Slot: ({ children, ...props }) => (
+      <div data-testid="slot-root" {...props}>{children}</div>
+    ),
+  
+}))
+
 describe("Badge", () => {
   it("renders with default variant", () => {
     render(<Badge>New</Badge>)

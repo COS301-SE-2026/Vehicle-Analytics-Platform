@@ -70,14 +70,19 @@ export async function updateGeofence(geofence_id, update){
 }
 
 // DELETE /api/geofence
-export async function deleteGeofence(geofence_id){
-    const headers = await getAuthHeaders();
-    const res = await fetch(`${API_BASE_URL}/api/geofences/${geofence_id}`, {
-        method: 'DELETE',
-        headers,
-    })
-    if (!res.ok) throw new Error('Failed to delete geofence')
-        return await res.json()
+export async function deleteGeofence(geofence_id) {
+  const headers = await getAuthHeaders();
+
+  const res = await fetch(`${API_BASE_URL}/api/geofences/${geofence_id}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to delete geofence');
+  }
+
+  return await res.json();
 }
 
 // GET /api/geofence/

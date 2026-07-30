@@ -123,8 +123,8 @@ async function getVehicleById(req, res) {
       currentTrip = {
         trip_id: trip.trip_id,
         start_time: trip.start_time,
-        duration_seconds: parseInt(trip.duration_seconds) || 0,
-        distance_km: parseFloat(trip.distance_km) || 0,
+        duration_seconds: Number.parseInt(trip.duration_seconds) || 0,
+        distance_km: Number.parseFloat(trip.distance_km) || 0,
       };
     }
  

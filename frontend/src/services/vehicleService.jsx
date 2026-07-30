@@ -128,8 +128,8 @@ export async function getVehicleById(vehicleId) {
   return {
     vehicle:{
     ...v,
-    latitude: parseFloat(v.latitude),
-    longitude: parseFloat(v.longitude),
+    latitude: Number.parseFloat(v.latitude),
+    longitude: Number.parseFloat(v.longitude),
     speed: Number(v.speed),
     speedLimit: Number(v.speed_limit),
     tripStartTime: trip ? trip.start_time: null,
@@ -137,8 +137,8 @@ export async function getVehicleById(vehicleId) {
   },
     recent_events: (data.data.recent_events || []).map((e) => ({
       ...e,
-      latitude: parseFloat(e.latitude),
-      longitude: parseFloat(e.longitude),
+      latitude: Number.parseFloat(e.latitude),
+      longitude: Number.parseFloat(e.longitude),
       speed: Number(e.speed),
     })),
   }

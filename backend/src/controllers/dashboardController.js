@@ -104,14 +104,14 @@ async function getFleetKPIs(req, res) {
     return success(res, {
     
     
-      total_vehicles:  parseInt(v.total_vehicles)||0,
+      total_vehicles:  Number.parseInt(v.total_vehicles)||0,
     
-      active_vehicles: parseInt(v.active_vehicles)||0,
+      active_vehicles: Number.parseInt(v.active_vehicles)||0,
     
     
-      alerts_today:    parseInt(alerts_result.rows[0].alert_count) || 0,
+      alerts_today:    Number.parseInt(alerts_result.rows[0].alert_count) || 0,
     
-      distance_today:  parseFloat(d.distance_today)||0,
+      distance_today:  Number.parseFloat(d.distance_today)||0,
     
       last_updated:    new Date().toISOString()
     

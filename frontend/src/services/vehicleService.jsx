@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 import useAuthStore from '../store/authStore';
-
+ 
 async function getAuthHeaders() {
   try {
     const token = useAuthStore.getState().token;
@@ -15,22 +15,22 @@ async function getAuthHeaders() {
   }
   return { 'Content-Type': 'application/json' };
 }
-
+ 
 // GET /api/dashboard/kpis
 export async function getKPIs() {
   const headers = await getAuthHeaders();
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
+ 
     const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, {
       headers,
       signal: controller.signal
     });
-
+ 
     clearTimeout(timeout);
     if (!res.ok) throw new Error('Failed to fetch KPIs');
-
+ 
     const data = await res.json();
     return {
       totalVehicles: data.data.total_vehicles,
@@ -41,7 +41,7 @@ export async function getKPIs() {
     };
   } catch (err) {
     if (err.name === 'AbortError' || err.message === 'Failed to fetch KPIs') {
-      console.warn('KPI fetch timed out — using fallback');
+      console.warn('KPI fetch timed out - using fallback');
       return {
         totalVehicles: 0,
         activeVehicles: 0,
@@ -53,7 +53,7 @@ export async function getKPIs() {
     throw err;
   }
 }
-
+ 
 // GET /api/vehicles/locations
 export async function getVehicleLocations() {
   const headers = await getAuthHeaders()
@@ -88,13 +88,13 @@ export async function getVehicleLocations() {
       displayName: v.display_name,
     }))
     .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
-
+ 
   return {
     timestamp: data.data.timestamp,
     vehicles,
   }
 }
-
+ 
 // GET /api/dashboard/alerts
 export async function getAlerts(limit = 50) {
   const headers = await getAuthHeaders()
@@ -106,7 +106,7 @@ export async function getAlerts(limit = 50) {
     alerts: data.data.alerts,
   }
 }
-
+ 
 // GET /api/dashboard/activity
 export async function getActivityHistory(range = 'day') {
   const headers = await getAuthHeaders()
@@ -115,7 +115,7 @@ export async function getActivityHistory(range = 'day') {
   const data = await res.json()
   return data.data.points || []
 }
-
+ 
 // GET /api/vehicles/:vehicleId
 export async function getVehicleById(vehicleId) {
   const headers = await getAuthHeaders()
@@ -143,7 +143,7 @@ export async function getVehicleById(vehicleId) {
     })),
   }
 }
-
+ 
 // GET /api/users (admin only)
 export async function getUsers() {
   const headers = await getAuthHeaders()
@@ -152,7 +152,7 @@ export async function getUsers() {
   const data = await res.json()
   return data.data
 }
-
+ 
 // PATCH /api/admin/users/:userId/role
 export async function updateUserRole(userId, role) {
   const headers = await getAuthHeaders()
@@ -164,7 +164,7 @@ export async function updateUserRole(userId, role) {
   if (!res.ok) throw new Error('Failed to update user role')
   return await res.json()
 }
-
+ 
 // DELETE /api/admin/users/:userId
 export async function deleteUser(userId) {
   const headers = await getAuthHeaders()
@@ -185,7 +185,7 @@ export async function deleteUser(userId) {
 // source data (see FleetMap.jsx) -- no shape conversion needed on either end.
 export async function getVehiclePositionBuffer() {
   const headers = await getAuthHeaders();
-
+ 
   const res = await fetch(`${API_BASE_URL}/api/vehicles/buffer`, {
     headers
   });
@@ -193,7 +193,7 @@ export async function getVehiclePositionBuffer() {
   if (!res.ok) {
     throw new Error('Failed to fetch playback buffer')
   }
-
+ 
   const data = await res.json();
 
   return data.data; // { type: 'FeatureCollection', timestamp, features: [...] }

@@ -3,6 +3,7 @@ import {
     Radio, CloudCog, Gauge, ArrowRight, TrendingUpDown, TrendingUp
 } from "lucide-react";
 import Dashboard from "./img/dashboard.png"
+import Vehicle from "./img/vehicles.png"
 import{ motion } from "framer-motion";
 
 function WhatYouGet() {
@@ -38,7 +39,7 @@ function WhatYouGet() {
 
       <div className="grid md:grid-cols-2 gap-12 items-start">
         {/* ADD IMAGE HERE */}
-        <img src="" alt="Fleet of trucks" className="rounded-2xl w-full h-auto object-cover" />
+        <img src={Vehicle} alt="Fleet of trucks" className="rounded-2xl w-full h-auto object-cover" />
         <div className="flex flex-col gap-6">
             {features.map(({icon: Icon, title, description}) => (
                 <div key={title} className="flex gap-3">

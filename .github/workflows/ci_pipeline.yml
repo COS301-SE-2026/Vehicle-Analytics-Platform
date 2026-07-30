@@ -181,6 +181,13 @@ jobs:
         working-directory: ./frontend
         run: npm ci --ignore-scripts
 
+      
+      - name: Create .env
+        working-directory: ./frontend
+        run: |
+          echo "VITE_API_URL=${{ vars.VITE_API_URL }}" > .env
+          echo "VITE_MAPBOX_TOKEN=${{ vars.VITE_MAPBOX_TOKEN }}" >> .env
+        
       - name: Build frontend
         working-directory: ./frontend
         run: npm run build

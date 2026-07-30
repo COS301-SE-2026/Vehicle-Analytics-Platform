@@ -17,15 +17,15 @@ export default function DeleteZoneModal({open, onOpenChange, zone, onConfirm}) {
       <AlertDialogContent className="bg-fleet-surface">
         <AlertDialogHeader>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-fleet-alert/20 sm:sm-0">
-            <TriangleAlert className="h-8 w-8 text-fleet-alert"/>
+            <TriangleAlert className="h-8 w-8 text-fleet-alert" />
           </div>
           <AlertDialogTitle className="text-center text-fleet-text font-bold">
-             Delete Zone
+            Delete Zone
           </AlertDialogTitle>
           <AlertDialogDescription className="text-fleet-secondary">
-            Are you sure you want to delete the {" "}
-            <span className="font-medium text-fleet-text">{zone?.name} </span>
-              zone? This action cannot be undone.
+            Are you sure you want to delete the{" "}
+            <span className="font-medium text-fleet-text">{zone?.name}</span> zone?
+            This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex flex-col gap-2 sm:flex-col">

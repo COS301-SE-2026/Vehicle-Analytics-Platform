@@ -4,28 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ZoneActivityDrawer } from "./ZoneActivityDrawer";
 import { getGeofenceEvents } from "@/services/geofenceServices";
 
-// mock data 
-// const mockAlerts = [
-//     {
-//         id: 1,
-//         type: "alert",
-//         message: "TRK-2024-X1 entered Pretoria Depot",
-//         time: "Today, 14:22:05"
-//     },
-//     {
-//         id: 2,
-//         type: "notification",
-//         message: "TRK-552-Z exit Durban Depot",
-//         time: "Today, 11:45:05" 
-//     },
-//     {
-//         id: 3,
-//         type: "notification",
-//         message: "TRK-881-A entered Durban Depot",
-//         time: "Today, 09:22:05"
-//     },
-// ];
-
 const iconByType = {
     alert: AlertTriangle,
     notification: Bell,

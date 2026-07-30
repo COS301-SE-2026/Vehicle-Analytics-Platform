@@ -336,7 +336,7 @@ async function getFleetActivityHistory(req, res) {
             ? d.toLocaleDateString('en-US', { weekday: 'short' })
             : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         })(),
-        vehicles: parseInt(row.active_vehicles) || 0,
+        vehicles: Number.parseInt(row.active_vehicles) || 0,
       }));
 
 
@@ -507,17 +507,17 @@ async function getFleetStats(req, res) {
     `);
     const users = userResult.rows[0];
     return success(res, {
-      total_vehicles: parseInt(result.rows[0].total_vehicles)||0,
-      active_vehicles: parseInt(result.rows[0].active_vehicles)||0,
-      idle_vehicles: parseInt(result.rows[0].idle_vehicles)||0,
-      offline_vehicles: parseInt(result.rows[0].offline_vehicles)||0,
-      alerts: parseInt(result.rows[0].alerts)||0,
-      total_distance_today: parseFloat(distanceResult.rows[0].total_distance)||0,
+      total_vehicles: Number.parseInt(result.rows[0].total_vehicles)||0,
+      active_vehicles: Number.parseInt(result.rows[0].active_vehicles)||0,
+      idle_vehicles: Number.parseInt(result.rows[0].idle_vehicles)||0,
+      offline_vehicles: Number.parseInt(result.rows[0].offline_vehicles)||0,
+      alerts: Number.parseInt(result.rows[0].alerts)||0,
+      total_distance_today: Number.parseFloat(distanceResult.rows[0].total_distance)||0,
       users: {
-        total: parseInt(users.total_users)||0,
-        admins: parseInt(users.admins)||0,
-        managers: parseInt(users.managers)||0,
-        viewers: parseInt(users.viewers)||0
+        total: Number.parseInt(users.total_users)||0,
+        admins: Number.parseInt(users.admins)||0,
+        managers: Number.parseInt(users.managers)||0,
+        viewers: Number.parseInt(users.viewers)||0
       },
       last_updated: new Date().toISOString()
     }, 200);

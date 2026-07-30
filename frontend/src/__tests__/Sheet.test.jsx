@@ -13,36 +13,22 @@ jest.mock("@/components/ui/button", () => ({
   ),
 }))
 
-// KEY FIX: Mock radix-ui Dialog (used as SheetPrimitive) to render children
-// directly in the DOM instead of through a Portal. Without this, SheetContent,
-// SheetTrigger etc. are invisible to container.querySelector().
-// jest.mock("radix-ui", () => {
-//   const passthrough = (dataSlot) => {
-//     const Comp = ({ children, ...props }) => {
-//       // Remove Radix-specific props that cause React DOM warnings
-//       const { onOpenChange, onEscapeKeyDown, onPointerDownOutside,
-//               onInteractOutside, onFocusOutside, asChild, modal,
-//               defaultOpen, open, ...rest } = props
-//       return <div data-slot={dataSlot} {...rest}>{children}</div>
-//     }
-//     Comp.displayName = dataSlot
-//     return Comp
-//   }
-
-//   return {
-//     Dialog: {
-//       Root:        passthrough('sheet'),
-//       Trigger:     passthrough('sheet-trigger'),
-//       Close:       passthrough('sheet-close'),
-//       // Portal: render children inline (no actual portal)
-//       Portal:      ({ children }) => <>{children}</>,
-//       Overlay:     passthrough('sheet-overlay'),
-//       Content:     passthrough('sheet-content'),
-//       Title:       passthrough('sheet-title'),
-//       Description: passthrough('sheet-description'),
-//     },
-//   }
-// })
+jest.mock("@radix-ui/react-dialog", () => {
+  const passthrough = (Tag = "div") => ({ children, asChild, onOpenChange, ...props }) => (
+    <Tag {...props}>{children}</Tag>
+  )
+  return {
+    Root: passthrough(),
+    Trigger: passthrough("button"),
+    Close: ({ children, asChild, ...props }) =>
+      asChild ? children : <button {...props}>{children}</button>,
+    Portal: ({ children }) => <>{children}</>,
+    Overlay: passthrough(),
+    Content: passthrough(),
+    Title: passthrough("h2"),
+    Description: passthrough("p"),
+  }
+})
 
 describe("Sheet", () => {
   it("renders with data-slot='sheet'", () => {

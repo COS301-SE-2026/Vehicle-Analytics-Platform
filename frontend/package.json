@@ -26,7 +26,8 @@
       "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/__mocks__/fileMock.js",
       "^@/lib/utils$": "<rootDir>/src/lib/utils.js",
       "^@/(.*)$": "<rootDir>/src/$1",
-      "^mapbox-gl$": "<rootDir>/__mocks__/mapbox-gl.js"
+      "^mapbox-gl$": "<rootDir>/__mocks__/mapbox-gl.js",
+      "^@mapbox/mapbox-gl-draw$": "<rootDir>/__mocks__/mapbox-gl-draw.js"
     },
     "testPathIgnorePatterns": [
       "/node_modules/",

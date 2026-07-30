@@ -6,8 +6,11 @@ module.exports = {
     on: jest.fn((event, callback) => {
       if (event === 'load') callback()
     }),
+    once: jest.fn(),
     addSource: jest.fn(),
     addLayer: jest.fn(),
+    getSource: jest.fn(() => ({ setData: jest.fn()})),
+    isStyleLoaded: jest.fn(() => true),
   })),
   NavigationControl: jest.fn(),
   Marker: jest.fn().mockImplementation(() => ({

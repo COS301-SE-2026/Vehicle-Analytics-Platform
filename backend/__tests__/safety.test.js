@@ -1,6 +1,10 @@
 require('./setup/authMock');
 
-const { mockPool, mockQuery, setupMockData } = require('./setup/mockDb');
+const {
+    mockPool,
+    mockQuery,
+    setupMockData
+} = require('./setup/mockDb');
 
 jest.mock('../src/db/pool', () => ({ pool: mockPool }));
 

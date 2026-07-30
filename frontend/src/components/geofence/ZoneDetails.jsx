@@ -65,35 +65,39 @@ function handleCancel(){
             </div>
 
             <div className="flex flex-col gap-4 bg-fleet-surface">
-                <label className="text-fleet-text">Trigger Type</label>
+                <span id="trigger-type-label" className="text-fleet-text">Trigger Type</span>
                 <Controller
                     name="triggerType"
                     control={control}
                     render={({ field }) => (
-                    <ToggleGroup
-                        type="single"
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        className="justify-start gap-2"
-                    >
-                        <ToggleGroupItem 
-                            value="entry"
-                            className="rounded-md border border-fleet text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
-                        >Entry
-                        </ToggleGroupItem>
+                        <ToggleGroup
+                            type="single"
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            aria-labelledby="trigger-type-label"
+                            className="justify-start gap-2"
+                        >
+                            <ToggleGroupItem 
+                                value="entry"
+                                className="rounded-md border border-fleet text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
+                            >
+                                Entry
+                            </ToggleGroupItem>
 
-                        <ToggleGroupItem
-                            value="exit"
-                            className="rounder-md border border-fleet-border text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
-                        >Exit
-                        </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="exit"
+                                className="rounded-md border border-fleet-border text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
+                            >
+                                Exit
+                            </ToggleGroupItem>
 
-                        <ToggleGroupItem
-                            value="both"
-                            className="rounder-md border border-fleet-border text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
-                        >Both
-                        </ToggleGroupItem>
-                    </ToggleGroup>
+                            <ToggleGroupItem
+                                value="both"
+                                className="rounded-md border border-fleet-border text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
+                            >
+                                Both
+                            </ToggleGroupItem>
+                        </ToggleGroup>
                     )}
                 />
                 {errors.triggerType && (

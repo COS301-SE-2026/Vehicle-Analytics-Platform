@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
-export function EditZoneModal({open, onOpenChange, zone, onConfirm }) {
+export function EditZoneModal({open, onOpenChange, zone, onSave}) {
      const {
         register,
         handleSubmit,

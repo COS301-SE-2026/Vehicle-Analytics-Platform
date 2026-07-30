@@ -21,6 +21,9 @@
     "transform": {
       "^.+\\.(js|jsx)$": "babel-jest"
     },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(@radix-ui|lucide-react|mapbox-gl|@mapbox|nanoid)/)"
+    ],
     "moduleNameMapper": {
       "\\.(css)$": "identity-obj-proxy",
       "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/__mocks__/fileMock.js",
@@ -29,7 +32,7 @@
       "^mapbox-gl$": "<rootDir>/__mocks__/mapbox-gl.js"
     },
     "testPathIgnorePatterns": [
-      "/node_modules/",
+      "/node_modules/(?!(@radix-ui|lucide-react|mapbox-gl|@mapbox)/)",
       "src/__tests__/testUtils.js"
     ],
     "coverageReporters": [
@@ -54,10 +57,13 @@
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",
     "@hookform/resolvers": "^3.10.0",
+    "@mapbox/mapbox-gl-draw": "^1.5.1",
+    "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.3.7",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.2.8",

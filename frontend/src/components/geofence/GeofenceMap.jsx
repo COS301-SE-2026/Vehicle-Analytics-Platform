@@ -89,7 +89,7 @@ export default function GeofenceMap({ onZoneDrawn }) {
                 <div className="absolute inset-0 flex items-center justify-center bg-fleet-bg/60 z-10">
                     <div className="flex flex-col items-center gap-2 bg-fleet-surface px-6 py-4 rounded-lg shadow">
                         <Loader2 className="text-sm text-fleet-blue animate-spin"/>
-                        <p className="text-sm text-fleet-text">Loacating you...</p>
+                        <p className="text-sm text-fleet-text">Locating you...</p>
                     </div>
                 </div>
             )}

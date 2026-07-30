@@ -6,11 +6,10 @@ import FleetMap from '../../components/map/FleetMap'
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
+// POLLING RATES
+//
+// Buffer every 10s against a 30s window: 3x overlap
 export default function LiveMap() {
-  // Matches the FeatureCollection shape getVehiclePositionBuffer now
-  // actually returns (previously {} happened to "work" only because the
-  // buffer was silently always empty due to the .vehicles bug -- see
-  // vehicleService.jsx).
   const [buffer, setBuffer] = useState(EMPTY_FC)
   const [locations, setLocations] = useState(null)
   const [loading, setLoading]     = useState(true)
@@ -40,18 +39,13 @@ export default function LiveMap() {
 
   useEffect(() => {
     fetchVehiclePositionBuffer();
-    const interval = setInterval(fetchVehiclePositionBuffer, 30000);
+    const interval = setInterval(fetchVehiclePositionBuffer, 10000);
     return () => clearInterval(interval)
   },[]);
 
   useEffect(() => {
     fetchLocations();
-    // Was 1000ms -- polling every second for data that, per the ingestion
-    // pipeline, only actually changes once per Lambda batch (every 5-10s
-    // per the architecture doc). That mismatch was pure wasted load, not
-    // extra freshness. 5000ms still comfortably clears the "within 5-10
-    // seconds of events" requirement.
-    const interval = setInterval(fetchLocations, 5000);
+    const interval = setInterval(fetchLocations, 1000);
     return () => clearInterval(interval)
   }, [])
 

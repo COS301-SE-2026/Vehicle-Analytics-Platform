@@ -1,4 +1,4 @@
-import { cn } from '../lib/utils'
+import { cn } from '../pages/dashboard/lib/utils'
 
 describe('cn utility', () => {
   test('merges class names', () => {

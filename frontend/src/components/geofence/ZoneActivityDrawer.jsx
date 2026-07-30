@@ -30,37 +30,6 @@ import {
 } from "lucide-react";
 import { getGeofenceEvents } from "@/services/geofenceServices";
 
-// const mockActivityLog = [
-//     {
-//         id: 1,
-//         type: "alert",
-//         message: "TRK-2024-X1 entered Pretoria Depot",
-//         time: "14:22:05",
-//         acknowledged: false,
-//     },
-//     {
-//         id: 2,
-//         type: "notification",
-//         message: "TRK-552-Z exit Durban Depot",
-//         time: "11:45:05",
-//         acknowledged: true,
-//     },
-//     {
-//         id: 3,
-//         type: "exit-acknowledged",
-//         message: "TRK-881-A entered Durban Depot",
-//         time: "11:45:12",
-//         acknowledged: true,
-//     },
-//     {
-//         id: 4,
-//         type: "exit",
-//         message: "TRK-881-A exit Johannesburg Depot",
-//         time: "08:05:00",
-//         acknowledged: false,
-//     },
-// ];
-
 const mockSafetData = [
     { zone: "Pretoria Depot", speeding: 8, braking: 4, accel: 8, corner:4, crash: 0 },
     { zone: "Durban Depot", speeding: 2, braking: 1, accel: 0, corner:0, crash: 0 }, 
@@ -78,7 +47,7 @@ const activityIconStyles = {
 export function ZoneActivityDrawer({ open, onOpenChange }) {
     const [ currentPage, setCurrentPage ] = useState(1);
     const [ events, setEvents ] = useState([]);
-    const [ isLoading, setIsLoading ] = useState(true);
+    //const [ isLoading, setIsLoading ] = useState(true);
     const totalPages = 3;
 
     useEffect(() => {

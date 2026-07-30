@@ -716,4 +716,3 @@ SidebarMenuSkeleton.propTypes = { className: PropTypes.string, showIcon: PropTyp
 SidebarMenuSub.propTypes = { className: PropTypes.string }
 SidebarMenuSubItem.propTypes = { className: PropTypes.string }
 SidebarMenuSubButton.propTypes = { asChild: PropTypes.bool, size: PropTypes.string, isActive: PropTypes.bool, className: PropTypes.string }
-

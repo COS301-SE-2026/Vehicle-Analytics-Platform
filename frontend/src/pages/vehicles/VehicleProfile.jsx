@@ -20,6 +20,7 @@ import VehicleStatusBadge from '@/components/vehicles/VehicleStatusBadge'
 import TripHistoryList from '@/components/vehicles/TripHistoryList'
 import SafetyScoreTrendChart from '@/components/vehicles/SafetyScoreTrendChart'
 import OverallStatsFooter from '@/components/vehicles/OverallStatsFooter'
+import { getScoreSeverity } from '@/utils/safetyScore'
 
 
 const TABS = [
@@ -121,7 +122,7 @@ export default function VehicleProfile(){
                     // required -- none were being supplied, so the footer
                     // rendered "undefined / 100km" and "undefined Days".
                     // Derived here from the trips already fetched.
-                    const totalKm = Number(results.stats.total_distance) || 0
+                    const totalKm = Number(result.stats.total_distance) || 0
                     const totalIncidents = mappedTrips.reduce((sum, t) => sum + (t.harshBrakingCount + t.harshAccelerationCount + t.harshCorneringCount), 0)
                     const activeDays = new Set(mappedTrips.map((t) => new Date(t.date).toDateString())).size
 

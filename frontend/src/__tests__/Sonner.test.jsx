@@ -3,7 +3,6 @@ jest.mock('next-themes', () => ({
 }))
 
 jest.mock('sonner', () => ({
-  // eslint-disable-next-line no-unused-vars
   Toaster: jest.fn(({ theme, className,icons, ...props }) => (
     <div
       data-testid="sonner-toaster"

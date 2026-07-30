@@ -8,21 +8,8 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
 // POLLING RATES
 //
-// Buffer every 10s against a 30s window: 3x overlap, so the playback queue
-// always has points to consume and the trail never fully ages out between
-// polls. Polling at the same rate as the window (the old 30s/30s) left the
-// trail stale for most of each interval.
-//
-// Locations every 15s. Markers no longer take their POSITION from this --
-// that comes from the buffer's timestamped points via FleetMap's playback
-// queue. This call now only supplies status colour, the vehicle list, and
-// the fleet counts, none of which need to be fast. That's the deliberate
-// trade: smooth continuous motion over up-to-the-second position.
+// Buffer every 10s against a 30s window: 3x overlap
 export default function LiveMap() {
-  // Matches the FeatureCollection shape getVehiclePositionBuffer now
-  // actually returns (previously {} happened to "work" only because the
-  // buffer was silently always empty due to the .vehicles bug -- see
-  // vehicleService.jsx).
   const [buffer, setBuffer] = useState(EMPTY_FC)
   const [locations, setLocations] = useState(null)
   const [loading, setLoading]     = useState(true)
@@ -58,11 +45,6 @@ export default function LiveMap() {
 
   useEffect(() => {
     fetchLocations();
-    // Was 1000ms -- polling every second for data that, per the ingestion
-    // pipeline, only actually changes once per Lambda batch (every 5-10s
-    // per the architecture doc). That mismatch was pure wasted load, not
-    // extra freshness. 5000ms still comfortably clears the "within 5-10
-    // seconds of events" requirement.
     const interval = setInterval(fetchLocations, 15000);
     return () => clearInterval(interval)
   }, [])

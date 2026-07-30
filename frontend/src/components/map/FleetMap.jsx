@@ -16,42 +16,16 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 const GEOFENCE_SOURCE_ID = 'fleetmap-geofences'
 const TRAIL_SOURCE_ID = 'fleetmap-trails'
 
-// Playback tuning.
-//
-// This is a jitter buffer, deliberately. Markers lag slightly behind the
-// newest data in exchange for continuous motion -- the previous approach
-// chased the latest position and produced move-then-freeze, because it
-// restarted animation from scratch on every poll and discarded whatever
-// was mid-flight.
+
 const PLAYBACK = {
-  // A segment's duration comes from the REAL gap between its two points,
-  // so motion is proportional to actual vehicle speed. Clamped only to
-  // survive outliers.
-  //
-  // MAX is above the ~7s ping interval on purpose: at 5s the previous code
-  // clamped every single segment, animating ~40% faster than reality and
-  // then idling until the next poll.
+
   minSegmentMs: 250,
   maxSegmentMs: 12000,
-  // Used for the very first segment, when there's no previous timestamp
-  // to measure a gap against.
   firstSegmentMs: 1200,
-  // Hard cap on unplayed points. Without it a backlog (tab backgrounded,
-  // slow render, a burst of data) grows without bound and the marker falls
-  // further behind forever.
   maxQueue: 40,
-  // Above this backlog, segments play at double speed to catch up rather
-  // than accumulating lag.
   catchUpAt: 12,
 }
 
-// Appends genuinely-new points to a vehicle's queue.
-//
-// Filtering by timestamp is what stops the marker rewinding: every poll
-// returns the whole trailing window, most of which has already been played.
-// The old code prepended the marker's current position to the FULL buffer
-// and animated through all of it, so each poll snapped the marker back to
-// where the vehicle was 30 seconds ago.
 function enqueuePoints(entry, coordinates, times) {
   if (!coordinates?.length || !times?.length) return;
 
@@ -64,16 +38,11 @@ function enqueuePoints(entry, coordinates, times) {
     entry.lastEnqueuedT = t;
   }
 
-  // Drop from the FRONT when over capacity -- the oldest unplayed points
-  // are the least interesting, and keeping them would only deepen the lag.
   if (entry.queue.length > PLAYBACK.maxQueue) {
     entry.queue.splice(0, entry.queue.length - PLAYBACK.maxQueue);
   }
 }
 
-// One continuous rAF loop per vehicle, running only while its queue has
-// something in it. Critically it is NOT restarted per poll: new points
-// append to the queue the running loop is already consuming.
 function ensureAnimating(entry) {
   if (entry.raf) return;
 
@@ -120,10 +89,6 @@ function ensureAnimating(entry) {
   entry.raf = requestAnimationFrame(step);
 }
 
-// buffer: GeoJSON FeatureCollection, one LineString per vehicle, each with
-// a properties.times array parallel to geometry.coordinates. Drives both
-// the fading trail and marker playback, so what the marker does always
-// matches what the trail shows it having done.
 export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleClick, minimal = false }) {
   const mapContainer = useRef(null)
   const map = useRef(null)
@@ -179,9 +144,6 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     });
   }, [minimal])
 
-  // Trail line. Skipped when the payload hasn't changed -- setData forces a
-  // full re-tessellation, which is wasted work when the poll returned the
-  // same window.
   useEffect(() => {
     if (!map.current) return;
 
@@ -196,8 +158,6 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     else map.current.once('load', apply);
   }, [buffer])
 
-  // Feed the playback queues. This does NOT move markers directly -- it
-  // hands points to the animation loop, which owns position entirely.
   useEffect(() => {
     if (!map.current) return;
 
@@ -211,8 +171,6 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     }
   }, [buffer])
 
-  // Marker lifecycle and status colour only. Position is never set here
-  // after creation -- that belongs to the playback loop.
   useEffect(() => {
     if (!map.current) return
 
@@ -275,14 +233,6 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     });
   }, [vehicles, minimal, onVehicleClick])
 
-  // Unmount cleanup.
-  //
-  // marker.remove() is essential, not just tidy: React StrictMode runs
-  // effects mount -> unmount -> mount in development. Clearing
-  // markers.current WITHOUT removing the markers left them on the map
-  // untracked, and the remount then created a second full set -- two
-  // markers per vehicle, one of them frozen forever because nothing held
-  // a reference to animate it.
   useEffect(() => () => {
     Object.values(markers.current).forEach((e) => {
       if (e.raf) cancelAnimationFrame(e.raf);

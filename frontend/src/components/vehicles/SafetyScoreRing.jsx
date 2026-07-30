@@ -14,8 +14,9 @@ export default function SafetyScoreRing({score, size=36, strokeWidth = 3, showLa
     return(
         <div className="flex items-center gap-2">
             <svg width={size} height={size} className="-rotate-90">
-                <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#E5E7EB" strokeWidth={strokeWidth}/>
+                <circle data-testid="background-ring" cx={size/2} cy={size/2} r={radius} fill="none" stroke="#E5E7EB" strokeWidth={strokeWidth}/>
                 <circle
+                    data-testid="progress-ring"
                     cx={size/2} cy={size/2} r={radius} fill="none"
                     stroke={colour} strokeWidth={strokeWidth} strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
                 />

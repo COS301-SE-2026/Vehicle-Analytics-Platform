@@ -208,6 +208,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 {/*REWIND*/}
                 <button 
                     type="button" 
+                    data-testid="rewind-button"
                     onClick={handleRewind}
                     className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
                     <Rewind className="w-4 h-4"/>
@@ -215,17 +216,19 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 {/*PLAY*/}
                 <button 
                     type="button" 
+                    data-testid="play-pause-button"
                     onClick={handlePlayPause}
                     className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center shrink-0">
                         {isPlaying ? (
-                            <Pause className="w-3.5 h-3.5 text-white fill-white"></Pause>
+                            <Pause className="w-3.5 h-3.5 text-white fill-white" data-testid="pause-icon"></Pause>
                         ) : (
-                            <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5"/>
+                            <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" data-testid="play-icon"/>
                         )}
                 </button>
                 {/*FAST FORWARD*/}
                 <button 
                     type="button" 
+                    data-testid="fast-forward-button"
                     onClick={handleFastForward}
                     className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
                     <FastForward className="w-4 h-4"/>
@@ -247,6 +250,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 </div>
                 <div
                     role="button"
+                    data-testid="scrub-bar"
                     tabIndex={0}
                     onClick={handleScrub}
                     className="flex-1 h-1 bg-fleet-border rounded-full overflow-hidden cursor-pointer">
@@ -257,6 +261,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 </span>
                 <button 
                     type="button" 
+                    data-testid="fullscreen-button"
                     onClick={handleFullscreen}
                     className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
                     <Maximize2 className="w-4 h-4" />

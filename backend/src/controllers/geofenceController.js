@@ -10,15 +10,13 @@ async function createGeofence(req, res) {
     }
 
     try {
-        // Stringify the GeoJSON payload so PostGIS can parse it
         const geojsonStr = JSON.stringify(boundary);
 
-        // We use ST_SetSRID(ST_GeomFromGeoJSON($3), 4326) to store it as a real spatial geometry
         const result = await pool.query(`
             INSERT INTO geofences (name, vehicle_id, boundary, trigger_type)
             VALUES ($1, $2, ST_GeomFromGeoJSON($3)::geometry(Polygon,4326), $4)
-            RETURNING id, name, vehicle_id,ST_AsGeoJSON(boundary)::json AS boundary, trigger_type, created_at, updated_at
-            `, 
+            RETURNING id, name, vehicle_id, ST_AsGeoJSON(boundary)::json AS boundary, trigger_type, created_at, updated_at
+            `,
             [name, vehicle_id || null, geojsonStr, trigger_type]
         );
 
@@ -33,7 +31,7 @@ async function createGeofence(req, res) {
 }
 
 
-async function getGeofences(req, res) {   
+async function getGeofences(req, res) {
     try{
         const result = await pool.query(`
             SELECT
@@ -52,17 +50,36 @@ async function getGeofences(req, res) {
             total: result.rows.length,
             geofences: result.rows
         }, 200);
-    } 
-
-catch (err){
+    }
+    catch (err){
         console.error('Get geofences error:', err);
         return error(res, 'Failed to fetch geofences: '+err.message, 500);
     }
 }
 
 
+// GET /api/geofences/geojson -- existing zones as a ready FeatureCollection,
+// for GeofenceMap to render as a source/layer. Kept separate from
+// getGeofences (above), which the ExistingZones *table* still uses -- that
+// one wants flat rows (name, trigger_type) for a table, this one wants
+// a FeatureCollection for a map. Same table, two shapes for two consumers.
+//
+// ROUTING NOTE: register this route BEFORE `/api/geofences/:id` in your
+// router, or Express will match "geojson" as an :id param instead.
+async function getGeofencesGeoJSON(req, res) {
+    const { vehicle_id } = req.query;
+    try {
+        const result = await pool.query(`SELECT get_geofences_geojson($1) AS fc`, [vehicle_id || null]);
+        return success(res, result.rows[0].fc, 200);
+    } catch (err) {
+        console.error('Get geofences GeoJSON error:', err);
+        return error(res, 'Failed to fetch geofences geojson: ' + err.message, 500);
+    }
+}
+
+
 async function getGeofenceById(req, res) {
-const {id} = req.params;
+    const {id} = req.params;
     try{
         const result = await pool.query(`
             SELECT id, name, vehicle_id, ST_AsGeoJSON(boundary)::json as boundary, trigger_type, created_at, updated_at
@@ -75,14 +92,11 @@ const {id} = req.params;
         }
 
         return success(res, {geofence: result.rows[0]}, 200);
-    } 
-
-catch (err){
-
+    }
+    catch (err){
         console.error('Get geofence by ID error:', err);
         return error(res, 'Failed to fetch geofence: '+err.message, 500);
     }
-
 }
 
 async function updateGeofence(req, res) {
@@ -101,8 +115,7 @@ async function updateGeofence(req, res) {
         }
 
         if (boundary) {
-            // Apply ST_GeomFromGeoJSON dynamically to the parameter number
-            query += `, boundary = ST_GeomFromGeoJSON($${paramCount})::geometry(Polygon,4326)`;;
+            query += `, boundary = ST_GeomFromGeoJSON($${paramCount})::geometry(Polygon,4326)`;
             params.push(JSON.stringify(boundary));
             paramCount++;
         }
@@ -112,7 +125,6 @@ async function updateGeofence(req, res) {
             params.push(trigger_type);
             paramCount++;
         }
-
 
         query += ` WHERE id = $${paramCount} RETURNING id, name, vehicle_id, ST_AsGeoJSON(boundary)::json AS boundary, trigger_type, created_at, updated_at`;
         params.push(id);
@@ -136,15 +148,15 @@ async function updateGeofence(req, res) {
 
 
 async function deleteGeofence(req, res) {
- const {id} = req.params;
+    const {id} = req.params;
     try{
         const result = await pool.query('DELETE FROM geofences WHERE id = $1 RETURNING id', [id]);
         if(result.rows.length===0){
             return error(res, 'Geofence not found', 404);
         }
         return success(res, {message: 'Geofence deleted successfully'}, 200);
-    } 
-catch (err){
+    }
+    catch (err){
         console.error('Delete geofence error:', err);
         return error(res, 'Failed to delete geofence: '+err.message, 500);
     }
@@ -152,9 +164,9 @@ catch (err){
 
 
 async function getGeofenceEvents(req, res) {
-const {geofence_id, vehicle_id, limit=50} = req.query;
+    const {geofence_id, vehicle_id, limit=50} = req.query;
     try{
- let query = `
+        let query = `
             SELECT
                 ge.id,
                 ge.geofence_id,
@@ -179,7 +191,6 @@ const {geofence_id, vehicle_id, limit=50} = req.query;
         }
 
         if(vehicle_id){
-
             query += ` AND ge.vehicle_id = $${paramCount}`;
             params.push(vehicle_id);
             paramCount++;
@@ -191,22 +202,24 @@ const {geofence_id, vehicle_id, limit=50} = req.query;
             total: result.rows.length,
             events: result.rows
         }, 200);
-    } 
-catch (err){
+    }
+    catch (err){
         console.error('Get geofence events error:', err);
         return error(res, 'Failed to fetch geofence events: '+err.message, 500);
     }
-
 }
 
+// Was: query cluster_points, then loop result.rows and hand-build
+// {type:'Feature', geometry:{...}, properties:{...}} for each one.
+// get_frequent_stops_geojson (V13) does exactly that assembly in Postgres.
+// The response envelope below is kept identical to the old shape
+// (total_clusters / clusters: Feature[]) so geofenceServices.js and
+// everything downstream of it needs zero changes.
 async function discoverFrequentStops(req, res) {
- const {vehicle_id, days=7, min_points=3, radius_km=0.5 } = req.query;
+    const {vehicle_id, days=7, min_points=3, radius_km=0.5 } = req.query;
     try{
         const result = await pool.query(
-            `
-            SELECT *
-            FROM cluster_points($1, $2, $3, $4)
-            `,
+            `SELECT get_frequent_stops_geojson($1, $2, $3, $4) AS fc`,
             [
                 vehicle_id || null,
                 Number.parseInt(days),
@@ -214,67 +227,71 @@ async function discoverFrequentStops(req, res) {
                 Number.parseInt(min_points)
             ]
         );
-        const features = result.rows.map(row => ({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [
-                    Number.parseFloat(row.centroid_lng),
-                    Number.parseFloat(row.centroid_lat)
-                ]
-            },         
-   properties: {
-                vehicle_id: row.vehicle_id,
-                cluster_id: row.cluster_id,
-                point_count: Number.parseInt(row.point_count),
-                first_seen: row.first_seen,
-                last_seen: row.last_seen,
-                name: null
-            }
-        }));      
-  return success(res, {
-            total_clusters: features.length,
-            clusters: features
+        const fc = result.rows[0].fc; // { type: 'FeatureCollection', features: [...] }
+        return success(res, {
+            total_clusters: fc.features.length,
+            clusters: fc.features
         }, 200);
     }
- catch (err){
+    catch (err){
         console.error('Discover frequent stops error:', err);
         return error(res, 'Failed to discover frequent stops: '+err.message, 500);
     }
 }
 
+// Was: identical hand-rolled mapping over cluster_events rows. Now backed
+// by get_frequent_hotspots_geojson (V17), same envelope preserved.
+async function discoverFrequentEvents(req, res) {
+    const { vehicle_id, event_category, event_detail, days = 7, min_points = 3, radius_km = 0.5 } = req.query;
+
+    try{
+        const result = await pool.query(
+            `SELECT get_frequent_hotspots_geojson($1, $2, $3, $4, $5, $6) AS fc`,
+            [
+                event_category || null,
+                event_detail || null,
+                vehicle_id || null,
+                Number.parseInt(days),
+                Number.parseFloat(radius_km),
+                Number.parseInt(min_points)
+            ]
+        );
+        const fc = result.rows[0].fc;
+        return success(res, {
+            total_hotspots: fc.features.length,
+            hotspots: fc.features
+        }, 200);
+    } catch (err){
+        console.error('Discover frequent events error:', err);
+        return error(res, 'Failed to discover frequent events: ' + err.message, 500);
+    }
+}
+
+// Was: JS computed a square boundary from radius_km using a flat-Earth
+// degrees-per-km approximation. Now: make_circular_geofence_boundary
+// (V17) does an accurate geodesic circle via PostGIS ST_Buffer, in one
+// SQL call. Response shape is unchanged.
 async function createGeofenceFromCluster(req, res) {
     const { name, vehicle_id, center_lat, center_lng, radius_km = 0.5 } = req.body;
-    
+
     if (!name || !center_lat || !center_lng) {
         return error(res, 'Name, center_lat, and center_lng are required', 400);
     }
 
     try {
-        // Approximate degree conversions for a bounding-box square boundary based on radius
-        const latDegrees = Number.parseFloat(radius_km) / 111.32;
-        const lngDegrees = Number.parseFloat(radius_km) / (111.32 * Math.cos(Number.parseFloat(center_lat) * Math.PI / 180));
-        
-        const boundary = {
-            type: 'Polygon',
-            coordinates: [[
-                [Number.parseFloat(center_lng) - lngDegrees, Number.parseFloat(center_lat) - latDegrees],
-                [Number.parseFloat(center_lng) + lngDegrees, Number.parseFloat(center_lat) - latDegrees],
-                [Number.parseFloat(center_lng) + lngDegrees, Number.parseFloat(center_lat) + latDegrees],
-                [Number.parseFloat(center_lng) - lngDegrees, Number.parseFloat(center_lat) + latDegrees],
-                [Number.parseFloat(center_lng) - lngDegrees, Number.parseFloat(center_lat) - latDegrees] // Close the loop
-            ]]
-        };
-
-
-        // Insert into the database using 'boundary' to match the database trigger structure
-        const geojsonStr = JSON.stringify(boundary);
         const result = await pool.query(`
             INSERT INTO geofences (name, vehicle_id, boundary, trigger_type)
-            VALUES ($1, $2, ST_GeomFromGeoJSON($3)::geometry(Polygon,4326), $4)
-            RETURNING id, name, vehicle_id,ST_AsGeoJSON(boundary)::json AS boundary, trigger_type, created_at, updated_at
-            `, 
-            [name, vehicle_id || null, geojsonStr, 'both']
+            VALUES ($1, $2, make_circular_geofence_boundary($3, $4, $5), $6)
+            RETURNING id, name, vehicle_id, ST_AsGeoJSON(boundary)::json AS boundary, trigger_type, created_at, updated_at
+            `,
+            [
+                name,
+                vehicle_id || null,
+                Number.parseFloat(center_lng),
+                Number.parseFloat(center_lat),
+                Number.parseFloat(radius_km),
+                'both'
+            ]
         );
 
         return success(res, {
@@ -288,58 +305,10 @@ async function createGeofenceFromCluster(req, res) {
     }
 }
 
-async function discoverFrequentEvents(req, res) {
-    const { vehicle_id, event_category, event_detail,days = 7, min_points = 3, radius_km = 0.5 } = req.query;
-
-    try{
-        const result = await pool.query(
-            `
-            SELECT *
-            FROM cluster_events($1, $2, $3, $4, $5, $6)
-            `,
-            [
-                event_category || null,
-                event_detail || null,
-                vehicle_id || null,
-                Number.parseInt(days),
-                Number.parseFloat(radius_km),
-                Number.parseInt(min_points)
-            ]
-        );
-
-        const hotspots = result.rows.map(row => ({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [
-                    Number.parseFloat(row.centroid_lng),
-                    Number.parseFloat(row.centroid_lat)
-                ]
-            },
-            properties: {
-                cluster_id: row.cluster_id,
-                event_category: row.event_category,
-                event_detail: row.event_detail,
-                event_count: Number.parseInt(row.event_count),
-                vehicle_count: Number.parseInt(row.vehicle_count),
-                first_seen: row.first_seen,
-                last_seen: row.last_seen
-            }
-        }));
-
-        return success(res, {
-            total_hotspots: hotspots.length,
-            hotspots: hotspots
-        }, 200);
-    }catch (err){
-        console.error('Discover frequent events error:', err);
-        return error(res, 'Failed to discover frequent events: ' + err.message, 500);
-    }
-}
-
 module.exports = {
     createGeofence,
     getGeofences,
+    getGeofencesGeoJSON,
     getGeofenceById,
     updateGeofence,
     deleteGeofence,

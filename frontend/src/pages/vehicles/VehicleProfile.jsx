@@ -116,11 +116,23 @@ export default function VehicleProfile(){
                     }))
 
                     setTrips(mappedTrips)
+                    // OverallStatsFooter destructures overallRating,
+                    // incidentsPer100Km and activeDays and marks them
+                    // required -- none were being supplied, so the footer
+                    // rendered "undefined / 100km" and "undefined Days".
+                    // Derived here from the trips already fetched.
+                    const totalKm = Number(results.stats.total_distance) || 0
+                    const totalIncidents = mappedTrips.reduce((sum, t) => sum + (t.harshBrakingCount + t.harshAccelerationCount + t.harshCorneringCount), 0)
+                    const activeDays = new Set(mappedTrips.map((t) => new Date(t.date).toDateString())).size
 
                     setOverallStats({
-                        overallSafetyScore: result.stats.safety_rating,
-                        totalDistanceKm: result.stats.total_distance,
-                        totalTrips: result.stats.trips_recorded,
+                        overallSafetyScore: Number(result.stats.safety_rating) || 0,
+                        overallRating: getScoreSeverity(Number(result.stats.safety_rating) || 0).label,
+
+                        totalDistanceKm: totalKm,
+                        totalTrips: Number(result.stats.trips_recorded) || 0,
+                        incidentsPer100Km: totalKm > 0 ? Math.round((totalIncidents / totalKm) * 100 * 10) / 10 : 0,
+                        activeDays: activeDays,
                     })
 
                 } catch (err) {

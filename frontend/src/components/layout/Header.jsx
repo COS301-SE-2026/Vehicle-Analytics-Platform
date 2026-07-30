@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,9 @@ export default function Header({ title, collapsed }) {
     .toUpperCase()
     .slice(0, 2)
 
+    const openHelp = useCallback(() => setHelpOpen(true), []);
+    const closeHelp = useCallback(() => setHelpOpen(false), []);
+
   return (
     <header className={`h-[60px] bg-fleet-surface border-b border-fleet-border fixed top-0 right-0 ${collapsed ? 'left-[64px]' : 'left-[220px]'} transition-all duration-300 z-10 flex items-center justify-between px-6`}>
       
@@ -28,7 +31,7 @@ export default function Header({ title, collapsed }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setHelpOpen(true)}
+          onClick={openHelp}
           className=" w-9 h-9 rounded-full bg-fleet-blue hover:bg-fleet-blue/90"
           aria-label="Open help center"
         >
@@ -42,7 +45,7 @@ export default function Header({ title, collapsed }) {
 
       <HelpPanel
         isOpen={helpOpen}
-        onClose={() => setHelpOpen(false)}
+        onClose={closeHelp}
         role={user?.role || 'viewer'}
       />
     </header>

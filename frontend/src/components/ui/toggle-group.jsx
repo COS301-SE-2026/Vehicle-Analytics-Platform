@@ -32,7 +32,7 @@ function ToggleGroup({
         "--gap": spacing
       }}
       className={cn(
-        "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
+        "group/toggle-group flex w-fit flex-row items-center gap-[var(--gap)] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
         className
       )}
       {...props}>

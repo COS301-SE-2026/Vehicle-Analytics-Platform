@@ -300,5 +300,49 @@ export async function getTripReplay(tripId) {
   
 }
 
+export async function getFleetAnalytics(range = 'day') {
+  const headers = await getAuthHeaders()
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/fleet/analytics?period=${encodeURIComponent(range)}`, { headers })
+    if (!res.ok) throw new Error('Failed to fetch fleet analytics')
+    const data = await res.json()
+    const body = data.data
+ 
+    const safetyTrend = (body.trend ?? []).map(row => ({
+      label: new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      score: Math.round(row.avg_score),
+    }))
+ 
+    const eventBreakdown = (body.event_breakdown ?? []).map(row => ({
+      type: EVENT_TYPE_LABELS[row.type] ?? row.type,
+      count: row.count,
+    }))
+ 
+    const totalEvents = (body.vehicle_contributions ?? [])
+      .reduce((sum, row) => sum + (row.total_events || 0), 0) || 1
+    const topContributors = (body.vehicle_contributions ?? [])
+      .slice(0, 5)
+      .map(row => ({
+        vehicleId: row.vehicle_id,
+        percentage: Math.round((row.total_events / totalEvents) * 100),
+      }))
+ 
+    // ranked (worst first)
+    const lowestSafetyScores = (body.ranked_vehicles ?? [])
+      .slice(0, 5)
+      .map(row => ({
+        vehicleId: row.vehicle_id,
+        score: Math.round(row.avg_score),
+        status: classifyScore(row.avg_score),
+        daysTracked: row.days_count, // note that no per-vehicle timestamp exists here
+      }))
+ 
+    return { safetyTrend, eventBreakdown, topContributors, lowestSafetyScores }
+  } catch (err) {
+    console.error('Fleet analytics fetch failed:', err.message)
+    throw err
+  }
+}
+
 
 

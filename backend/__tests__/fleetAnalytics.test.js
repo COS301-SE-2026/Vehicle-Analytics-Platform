@@ -72,7 +72,7 @@ describe('Fleet Analytics Controller', () => {
 
       expect(event_breakdown[0]).toMatchObject({ type: expect.any(String), count: expect.any(Number) });
 
-      expect(vehicle_contributions[0].vehicle_id).toBe('V001');
+      expect(vehicle_contributions[0].vehicle_id).toBe('1001');
       expect(vehicle_contributions[0]).toMatchObject({
         vehicle_id: expect.any(String),
         total_events: expect.any(Number),

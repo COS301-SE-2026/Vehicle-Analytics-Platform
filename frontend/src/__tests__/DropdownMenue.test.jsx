@@ -14,6 +14,29 @@ jest.mock("lucide-react", () => ({
   ChevronRightIcon: ({ className }) => <svg data-testid="chevron-right-icon" className={className} />,
 }))
 
+jest.mock("@radix-ui/react-dropdown-menu", () => {
+  const passthrough = (Tag = "div") => ({ children, asChild, ...props }) => (
+    <Tag {...props}>{children}</Tag>
+  )
+  return {
+    Root: passthrough(),
+    Portal: ({ children }) => <>{children}</>,
+    Trigger: passthrough("button"),
+    Content: passthrough(),
+    Group: passthrough(),
+    Item: passthrough(),
+    CheckboxItem: passthrough(),
+    RadioGroup: passthrough(),
+    RadioItem: passthrough(),
+    Label: passthrough(),
+    Separator: passthrough(),
+    Sub: passthrough(),
+    SubTrigger: passthrough(),
+    SubContent: passthrough(),
+    ItemIndicator: ({ children }) => <>{children}</>,
+  }
+})
+
 describe("DropdownMenu", () => {
   it("renders with data-slot='dropdown-menu'", () => {
     const { container } = render(<DropdownMenu><div>content</div></DropdownMenu>)

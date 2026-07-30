@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Sheet,
     SheetContent,
@@ -6,13 +6,6 @@ import {
     SheetTitle,
     SheetDescription,
 } from "@/components/ui/sheet";
-import {
-    Select,
-    SelectTrigger,
-    SelectValue,
-    SelectContent,
-    SelectItem,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,48 +15,8 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
-    Gauge,
-    Zap,
-    RotateCw,
-    CornerUpRight,
-    AlertCircle,
 } from "lucide-react";
-
-const mockActivityLog = [
-    {
-        id: 1,
-        type: "alert",
-        message: "TRK-2024-X1 entered Pretoria Deport",
-        time: "14:22:05",
-        acknowledged: false,
-    },
-    {
-        id: 2,
-        type: "notification",
-        message: "TRK-552-Z exit Durban Depot",
-        time: "11:45:05",
-        acknowledged: true,
-    },
-    {
-        id: 3,
-        type: "exit-acknowledged",
-        message: "TRK-881-A entered Durban Depot",
-        time: "11:45:12",
-        acknowledged: true,
-    },
-    {
-        id: 4,
-        type: "exit",
-        message: "TRK-881-A exit Johannesburg Port",
-        time: "08:05:00",
-        acknowledged: false,
-    },
-];
-
-const mockSafetData = [
-    { zone: "Pretoria Port", speeding: 12, braking: 4, accel: 8, corner:4, crash: 0 },
-    { zone: "Durban Port", speeding: 2, braking: 1, accel: 0, corner:0, crash: 0 },    
-];
+import { getGeofenceEvents } from "@/services/geofenceServices";
 
 const activityIconStyles = {
     alert: { icon: AlertTriangle, bg: "bg-fleet-alert/10", color: "text-fleet-alert" },
@@ -74,8 +27,24 @@ const activityIconStyles = {
 };
 
 export function ZoneActivityDrawer({ open, onOpenChange }) {
-    const [currentPage, setCurrentPage] = useState(1);
+    const [ currentPage, setCurrentPage ] = useState(1);
+    const [ events, setEvents ] = useState([]);
+    const [ isLoading, setIsLoading ] = useState(true);
     const totalPages = 3;
+
+    useEffect(() => {
+        if (!open) return;
+
+        setIsLoading(true);
+        getGeofenceEvents().then((result) => {
+            setEvents(result.events);
+            setIsLoading(false);
+        })
+        .catch((err) => {
+            console.error("Failed to fetch activity:", err);
+            setIsLoading(false);
+        });
+    }, [open]);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange} className="sm:max-w-2xl">
@@ -87,26 +56,6 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                     </SheetDescription>
                 </SheetHeader>
 
-                {/* filters */}
-                <div className="grid grid-cols-2 gap-2 mt-6">
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-medium tracking-wide text-fleet-secondary uppercase">
-                            By Zone
-                        </label>
-                        <Select defaultValue="all">
-                            <SelectTrigger className="border-fleet-border bg-fleet-surface text-fleet-text">
-                                <SelectValue/>
-                            </SelectTrigger>
-                            <SelectContent className="bg-fleet-surface">
-                                <SelectItem value="all">All Zones</SelectItem>
-                                <SelectItem value="pretoria">Pretoria</SelectItem>
-                                <SelectItem value="durban">Durban Port</SelectItem>
-                                <SelectItem value="johannesburg">Johanneburg</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-
                 {/* Activity log */}
                 <div className="mt-8">
                     <div className="flex items-center justify-between mb-3">
@@ -114,13 +63,13 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                             Activity Log
                         </h3>
                         <Badge className="bg-fleet-blue/10 text-fleet-blue border-0 rounded-lg">
-                            Showing 4 of 10
+                            Showing {events.length} of {events.length}
                         </Badge>
                     </div>
 
                     <div className="border border-fleet-border w-full rounded-lg bg-fleet-surface divide-y divide-fleet-border">
-                        {mockActivityLog.map((entry) => {
-                            const style = activityIconStyles[entry.type];
+                        {events.map((entry) => {
+                            const style = activityIconStyles[entry.type] ?? activityIconStyles.entry;
                             const Icon = style.icon;
 
                             return (
@@ -141,9 +90,9 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                                                 {entry.message}
                                             </p>
                                             <div className="flex items-center gap-1 mt-1">
-                                                <p className="text-xs text-flex-secondart">{entry.time}</p>
+                                                <p className="text-xs text-fleet-secondary">{entry.time}</p>
                                                 {entry.acknowledged && (
-                                                    <Badge className="bg-fleet-idle/20 text-fleet border-0 rounded-lg text-[9px] px-1.5 py-0">
+                                                    <Badge className="bg-fleet-green/30 text-fleet border-0 rounded-lg text-[9px] px-1.5 py-0">
                                                         ACKNOWLEDGED
                                                     </Badge>
                                                 )}
@@ -208,39 +157,7 @@ export function ZoneActivityDrawer({ open, onOpenChange }) {
                         </Button>
                     </div>
                 </div>
-
-                {/* Safety breakdown */}
-                <div className="space-y-3">
-                    {mockSafetData.map((zone) => (
-                        <div
-                            key={zone.zone}
-                            className="border border-fleet-boreder bg-fleet-surface rounded-lg p-4"
-                        >
-                            <p className="text-sm font-medium text-fleet-text mb-3">
-                                {zone.zone}
-                            </p>
-                            <div className="grid grid-cols-5 gap-2 text-center">
-                                <SafetyStat icon={Gauge} value={zone.speeding} label="Speeding" />
-                                <SafetyStat icon={Zap} value={zone.braking} label="Braking" />
-                                <SafetyStat icon={RotateCw} value={zone.accel} label="Accel" />
-                                <SafetyStat icon={CornerUpRight} value={zone.corner} label="Corner" />
-                                <SafetyStat icon={AlertCircle} value={zone.crash} label="Crash" />
-                            </div>
-                        </div>
-                        )
-                    )}
-                </div>
             </SheetContent>
         </Sheet>
-    );
-}
-
-function SafetyStat({ icon: Icon, value, label}) {
-    return (
-        <div>
-            <Icon className="h-3.5 w-3.5 text-fleet-secondary mx-auto mb-1" />
-            <p className="text-sm font-semibold text-fleet-text">{value}</p>
-            <p className="text-[9px] tracking-wide text-fleet-secondary uppercase">{label}</p>
-        </div>
     );
 }

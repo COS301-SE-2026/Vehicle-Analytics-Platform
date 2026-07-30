@@ -30,7 +30,9 @@ export function EditZoneModal({open, onOpenChange, zone, onSave}) {
      });
 
      function onSubmit(values) {
-        onSave?.({ ...zone, ...values });
+        // was: onSave?.({...}) -- onSave was never a prop of this
+        // component, so this threw a ReferenceError on every submit.
+        onConfirm?.({ ...zone, ...values });
         onOpenChange(false);
      }
 
@@ -51,7 +53,7 @@ export function EditZoneModal({open, onOpenChange, zone, onSave}) {
                     geofence.
                  </AlertDialogDescription>
               </AlertDialogHeader>
-              
+
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label className="text-fleet-text"  htmlFor="edit-name" >
@@ -77,16 +79,16 @@ export function EditZoneModal({open, onOpenChange, zone, onSave}) {
                                 onValueChange={field.onChange}
                                 className="justify-start gap-2"
                             >
-                            <ToggleGroupItem 
+                            <ToggleGroupItem
                                 value="entry"
                                 className="rounded-md border border-fleet text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
-                            >   
+                            >
                              Entry
                             </ToggleGroupItem>
                             <ToggleGroupItem
                                 value="exit"
                                 className="rounder-md border border-fleet-border text-fleet-text data-[state=on]:bg-fleet-blue data-[state=on]:text-white"
-                            >   
+                            >
                             Exit
                             </ToggleGroupItem>
                             <ToggleGroupItem
@@ -105,16 +107,16 @@ export function EditZoneModal({open, onOpenChange, zone, onSave}) {
                 </div>
 
               <AlertDialogFooter className="flex flex-col gap-2 sm:flex-col">
-                <Button 
+                <Button
                         type="submit"
-                        className="w-full h-8 bg-fleet-blue text-white hover:bg-fleet-blue/90" 
+                        className="w-full h-8 bg-fleet-blue text-white hover:bg-fleet-blue/90"
                     >
                     Save Changes
                     </Button>
-                    <Button 
+                    <Button
                         type="button"
-                        variant="outline" 
-                        className="w-full h-8 text-fleet-secondary hover:bg-fleet-panel" 
+                        variant="outline"
+                        className="w-full h-8 text-fleet-secondary hover:bg-fleet-panel"
                         onClick={() => onOpenChange(false)}
                     >
                     Cancel

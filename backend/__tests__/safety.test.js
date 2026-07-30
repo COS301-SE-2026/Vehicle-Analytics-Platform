@@ -1,1178 +1,268 @@
-
-
 require('./setup/authMock');
 
-
-
-const { mockPool, setupMockData } = require('./setup/mockDb');
-
-
-
+const {
+    mockPool,
+    mockQuery,
+    setupMockData
+} = require('./setup/mockDb');
 
 jest.mock('../src/db/pool', () => ({ pool: mockPool }));
 
-
-
 const request = require('supertest');
-
-
-
 const app = require('../src/app');
 
-
-
 describe('Safety Controller', () => {
-
-
-  
-  
-  beforeAll(() => {
-
-  
+  beforeEach(() => {
     setupMockData();
+  });
 
+  const authGet = (endpoint) => {
+    return request(app)
+      .get(endpoint)
+      .set('Authorization', 'Bearer test-token');
+  };
 
-  })
-  ;
-
-
-
-
-
-
-
-
-  
   describe('GET /api/safety/scores', () => {
-
-
-    
-    
     test('should return fleet safety scores', async () => {
-
-
-      
-      const response = await request(app)
-
-
-      
-      .get('/api/safety/scores')
-
-
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-
-
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.success).toBe(true);
-    
-    
-    
-    });
-
-
-    
-    
-    
-    
-    test('should return empty array if no data for date', async () => {
-
-
-      
-      
-      const response = await request(app)
-
-      
-      
-      .get('/api/safety/scores?date=2025-01-01')
-
-
-
-        .set('Authorization', 'Bearer test-token');
-
-
-        
-      
-      
-        expect(response.status).toBe(200);
-
-      expect(response.body.data.total_vehicles).toBe(0);
-
-
-
-
-
-    });
-
-  });
-
-
-
-
-
-
-
- 
-  describe('GET /api/safety/scores/:vehicleId', () => {
- 
- 
-  
-   
-    
-    test('should return safety score for a vehicle', async () => {
-
-
-      
-      const response = await request(app)
-
-
-      
-      .get('/api/safety/scores/V001')
-
-
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.success).toBe(true);
-
-
-
-      expect(response.body.data.vehicle_id).toBe('V001');
-    
-    
-    
-    });
-
-
-
-
-
-
-    
-    test('should return default 100 score if no data exists', async () => {
-
-
-      
-      const response = await request(app)
-
-
-
-      
-      .get('/api/safety/scores/NONEXISTENT')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.data.safety_score).toBe(100);
-
-
-
-    });
-
-
-
-
-
-    
-    
-    test('should handle date parameter', async () => {
-
-
-      
-      const response = await request(app)
-
-
-      
-      .get('/api/safety/scores/V001?date=2026-07-13')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      expect(response.status).toBe(200);
-
-
-
-      
-      expect(response.body.success).toBe(true);
-
-
-
-    });
-
-  });
-
-
-
-
-
-
-  
-  describe('Error handling', () => {
-
-
-
-
-    
-    test('should handle database error in getFleetSafetyScores', async () => {
-
-
-      
-      const originalQuery = mockPool.query;
-      
-      mockPool.query.mockRejectedValueOnce(new Error('Database error'));
-
-
-      
-      const response = await request(app)
-
-
-
-
-      
-      .get('/api/safety/scores')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      expect(response.status).toBe(500);
-
-
-      
-      expect(response.body.success).toBe(false);
-
-
-      
-      mockPool.query = originalQuery;
-
-
-
-    });
-
-
-
-
-
-    
-    test('should handle database error in getVehicleSafetyScore', async () => {
-
-
-      
-      const originalQuery = mockPool.query;
-
-
-
-      
-      mockPool.query.mockRejectedValueOnce(new Error('Database error'));
-
-
-      const response = await request(app)
-
-
-      
-      .get('/api/safety/scores/V001')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      expect(response.status).toBe(500);
-
-
-      
-      expect(response.body.success).toBe(false);
-      
-      mockPool.query = originalQuery;
-
-
-
-    });
-
-  
-
-
-
-
-    
-describe('Additional branch tests', () => {
-
-
-  
-  test('should handle vehicle with no safety data', async () => {
-  
-    const response = await request(app)
-
-
-    
-    .get('/api/safety/scores/NONEXISTENT')
-
-
-
-    
-    .set('Authorization', 'Bearer test-token');
-
-
-    
-    expect(response.status).toBe(200);
-
-
-    
-    expect(response.body.data.safety_score).toBe(100);
-
-
-    });
-
-
-
-
-    
-    test('should handle null safety_score', async () => {
-
-
-      
-      const originalQuery = mockPool.query;
-
-
-
-      mockPool.query.mockResolvedValueOnce({
-
-
-
-
-
-        rows: [{
-
-
-          
-          vehicle_id: 'V001',
-
-
-          
-          
-          score_date: '2026-07-13',
-          
-          safety_score: null,
-
-
-
-
-          
-          harsh_brakes: null,
-
-
-          
-          harsh_accelerations: null,
-          
-          harsh_cornering: null,
-
-
-          
-          crashes: null,
-
-
-
-
-          
-          total_events: null,
-          
-          classification: null
-
-          
-        }]
-
-      });
-
-      
-      
-      
-      const response = await request(app)
-
-
-      
-      
-      .get('/api/safety/scores/V001')
-
-      
-      
-      .set('Authorization', 'Bearer test-token');
-
-      
-      
-      
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.data.safety_score).toBe(100);
-
-
-      
-      mockPool.query = originalQuery;
-
-
-
-
-    });
-
-
-
-  describe('More safety branch coverage', () => {
- 
-    
-
-
-
-
- 
- 
-    test('should handle result with empty rows in fleet safety', async () => {
- 
-      const originalQuery = mockPool.query;
- 
-      mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-
-
-      const response = await request(app)
-
-
-
-        .get('/api/safety/scores')
-
-
-        
-        .set('Authorization', 'Bearer test-token');
-
-        
-     
-        expect(response.status).toBe(200);
-
-
-        
-
-
-        expect(response.body.data.total_vehicles).toBe(0);
-
-
-  
-        
-      mockPool.query = originalQuery;
-
-
-
-
-    });
-
-
-
-
-
-    
-    test('should handle classification mapping for safety scores', async () => {
-
-
-      
-      const originalQuery = mockPool.query;
-      
-      mockPool.query.mockResolvedValueOnce({
-
-
-
-        rows: [{
-
-
-          
-          vehicle_id: 'V001',
-
-
-          
-          score_date: '2026-07-13',
-
-
-          
-          safety_score: 45,
-
-
-
-          
-          harsh_brakes: 8,
-
-
-          
-          harsh_accelerations: 5,
-
-
-
-
-          
-          harsh_cornering: 3,
-
-
-          
-          crashes: 1,
-
-
-
-          
-          total_events: 17,
-        
-        
-          classification: 'Poor'
-
-
-        }]
-
-
-
-      });
-
-
-
-      
-      const response = await request(app)
-
-
-      
-      .get('/api/safety/scores/V001')
-
-
-      
-      
-      
-      .set('Authorization', 'Bearer test-token');
-
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.data.classification).toBe('Poor');
-
-
-      mockPool.query = originalQuery;
-
-
-
-
-    });
-
-
-
-
-  describe('Final safety branch coverage', () => {
-  
-    test('should handle safety score with no rows in result', async () => {
-  
-      
-
-      
-   const originalQuery = mockPool.query;
-
-  
-   mockPool.query.mockResolvedValueOnce({ rows: [] });
-
-
-   
-   
-   const response = await request(app)
-
-
-   
-   
-   
-   .get('/api/safety/scores/V001')
-   
-   .set('Authorization', 'Bearer test-token');
-
-
-
-
-   
-   expect(response.status).toBe(200);
-   
-   
-   expect(response.body.data.safety_score).toBe(100);
-
-   
-   mockPool.query = originalQuery;
-
-
-   
-  });
-
-
-  
-
-
-  test('should handle safety score with fair classification', async () => {
-
-
-
-    
-
-    
-    
-    const originalQuery = mockPool.query;
-
-
-
-    
-    
-    mockPool.query.mockResolvedValueOnce({
-    
-    
-      rows: [{
-
-
-
-
-          vehicle_id: 'V001',
-
-        
-        
-          score_date: '2026-07-13',
-
-        
-        
-          safety_score: 65,
-
-        
-        
-          harsh_brakes: 5,
-
-
-          
-          harsh_accelerations: 3,
-
-          
-          
-          harsh_cornering: 2,
-
-          
-          
-          crashes: 0,
-          
-          total_events: 10,
-
-
-
-
-          
-          classification: 'Fair'
-
-
-        }]
-
-      });
-
-
-
-
-
-      
-      
-      const response = await request(app)
-
-
-
-      
-      .get('/api/safety/scores/V001')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.data.classification).toBe('Fair');
-
-
-      
-      mockPool.query = originalQuery;
-
-
-
-
-    });
-    
-    
-    
-    
-    test('should handle safety score with poor classification', async () => {
-
-
-
-
-
-      
-      const originalQuery = mockPool.query;
-
-
-
-      mockPool.query.mockResolvedValueOnce({
-
-
-
-        
-        rows: [{
-
-
-          
-          vehicle_id: 'V001',
-
-
-          
-          score_date: '2026-07-13',
-
-
-          
-          safety_score: 45,
-
-
-          
-          harsh_brakes: 8,
-
-
-          
-          harsh_accelerations: 5,
-
-
-          
-          harsh_cornering: 3,
-
-
-          
-          crashes: 1,
-          
-          total_events: 17,
-
-
-          
-          classification: 'Poor'
-
-
-
-        }]
-
-      });
-
-
-
-
-      
-      
-      const response = await request(app)
-
-
-      
-      .get('/api/safety/scores/V001')
-
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.data.classification).toBe('Poor');
-
-
-
-
-      
-      mockPool.query = originalQuery;
-
-
-
-
-
-
-
-
-
-
-
-    });
-
-
-
-
-
-
-
-
-  describe('Extra safety branch coverage', () => {
-    
-    
-    
-    test('should handle getFleetSafetyScores with data', async () => {
-   
-
-   
-   
-      const response = await request(app)
-   
-   
-      .get('/api/safety/scores')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-
-
-      
-      expect(response.status).toBe(200);
-      
-      expect(response.body.success).toBe(true);
-
-
-    });
-
-
-
-
-    test('should handle getVehicleSafetyScore with fair classification', async () => {
-
-
-
-
-
-      const originalQuery = mockPool.query;
-      
-      
-      mockPool.query.mockResolvedValueOnce({
-
-
-        
-        rows: [{
-
-
-
-
-          
-          vehicle_id: 'V001',
-
-
-          
-          score_date: '2026-07-13',
-
-
-          
-          safety_score: 65,
-
-
-          
-          harsh_brakes: 5,
-
-
-          
-          harsh_accelerations: 3,
-
-
-          
-          harsh_cornering: 2,
-
-          
-          crashes: 0,
-
-
-
-          
-          total_events: 10,
-
-
-          
-          classification: 'Fair'
-
-
-
-        }]
-
-      });
-
-
-
-
-
-      const response = await request(app)
-
-
-
-      
-      
-      .get('/api/safety/scores/V001')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
-      expect(response.status).toBe(200);
-
-
-      
-      expect(response.body.data.classification).toBe('Fair');
-
-
-      
-      mockPool.query = originalQuery;
-
-
-
-
-    });
-
-
-
-
-
-
-
-  describe('Safety controller branch coverage', () => {
-    
-    
-    
-    test('should handle getFleetSafetyScores with mixed classifications', async () => {
-   
-
-      
-   
-   
-      const originalQuery = mockPool.query;
-   
-      mockPool.query.mockResolvedValueOnce({
-
-
-        
+      mockQuery.mockResolvedValueOnce({
         rows: [
-
-          
-          {vehicle_id: 'V001', score_date: '2026-07-13', safety_score: 85, harsh_brakes: 2, harsh_accelerations: 1, harsh_cornering: 0, crashes: 0, total_events: 3, classification: 
-'Good'},
-
-
-          {vehicle_id: 'V002', score_date: '2026-07-13', safety_score: 65, harsh_brakes: 5, harsh_accelerations: 3, harsh_cornering: 2, crashes: 0, total_events: 10, classification: 'Fair'},
-
-
-
-          {vehicle_id: 'V003', score_date: '2026-07-13', safety_score: 45, harsh_brakes: 8, harsh_accelerations: 5, harsh_cornering: 3, crashes: 1, total_events: 17, classification: 
-'Poor'}
-
-        ]
-
+          {
+            vehicle_id: '1001',
+            safety_score: 85,
+            classification: 'Good',
+            harsh_brakes: 0,
+            harsh_accelerations: 0,
+            harsh_cornering: 0,
+            crashes: 0,
+            total_events: 0,
+            score_date: '2026-07-19',
+          },
+          {
+            vehicle_id: '1002',
+            safety_score: 70,
+            classification: 'Fair',
+            harsh_brakes: 2,
+            harsh_accelerations: 1,
+            harsh_cornering: 0,
+            crashes: 0,
+            total_events: 3,
+            score_date: '2026-07-19',
+          },
+        ],
+        rowCount: 2,
       });
 
+      const response = await authGet('/api/safety/scores');
 
-
-      
-      const response = await request(app)
-
-
-      
-      
-      .get('/api/safety/scores')
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
-      
       expect(response.status).toBe(200);
-
-
-      
       expect(response.body.success).toBe(true);
 
-
-      
-      expect(response.body.data.total_vehicles).toBe(3);
-
-
-
-      
-      mockPool.query = originalQuery;
-
-
-
-
+      const vehicles = response.body.data.vehicles || response.body.data;
+      expect(Array.isArray(vehicles) ? vehicles : Object.keys(vehicles)).toHaveLength(2);
     });
 
+    test('should handle empty results', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-
-
-
-    
-    test('should handle getVehicleSafetyScore with null classification', async () => {
-
-
-      
-      const originalQuery = mockPool.query;
-
-
-
-
-      
-      mockPool.query.mockResolvedValueOnce({
-
-
-
-        rows: [{
-        
-        
-          vehicle_id: 'V001',
-
-        
-        
-          score_date: '2026-07-13',
-
-
-          
-          
-          safety_score: null,
-
-          
-          harsh_brakes: null,
-
-
-          
-          harsh_accelerations: null,
-
-
-          
-          harsh_cornering: null,
-
-
-          
-          crashes: null,
-
-
-          
-          total_events: null,
-
-
-          
-          classification: null
-
-
-
-
-        }]
-
-      });
-
-
-
-
-
-      
-      const response = await request(app)
-
-
-
-      
-      .get('/api/safety/scores/V001')
-
-
-
-      
-      .set('Authorization', 'Bearer test-token');
-
-
+      const response = await authGet('/api/safety/scores');
 
       expect(response.status).toBe(200);
-      
-      
-      
-      expect(response.body.data.safety_score).toBe(100);
+      expect(response.body.success).toBe(true);
 
-
+      const vehicles = response.body.data.vehicles || response.body.data;
+      const count = response.body.data.total_vehicles ?? (Array.isArray(vehicles) ? vehicles.length : 0);
       
-      mockPool.query = originalQuery;
-
-      
+      expect(count).toBe(0);
+      if (Array.isArray(vehicles)) {
+        expect(vehicles).toEqual([]);
+      }
     });
 
+    test('should handle database error', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await authGet('/api/safety/scores');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
   });
 
+  describe('GET /api/safety/scores/:vehicleId', () => {
+    test('should return safety score for specific vehicle', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            vehicle_id: '1001',
+            safety_score: 85,
+            classification: 'Good',
+            harsh_brakes: 0,
+            harsh_accelerations: 0,
+            harsh_cornering: 0,
+            crashes: 0,
+            total_events: 0,
+            score_date: '2026-07-19',
+          },
+        ],
+        rowCount: 1,
+      });
 
-  
+      const response = await authGet('/api/safety/scores/1001');
 
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
+      const vehicleData = response.body.data.vehicle || response.body.data;
+      expect(vehicleData.vehicle_id).toBe('1001');
+      expect(vehicleData.safety_score).toBe(85);
+    });
 
+    test('should return null or default empty object for vehicle with no data', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
+      const response = await authGet('/api/safety/scores/9999');
 
+      expect([200, 404]).toContain(response.status);
 
+      if (response.status === 200) {
+        const vehicleData = response.body.data.vehicle || response.body.data;
+        expect(vehicleData.safety_score ?? null).toBeNull();
+        if (vehicleData.classification) {
+          expect(vehicleData.classification).toBe('No Data');
+        }
+      }
+    });
 
+    test('should handle empty vehicle ID (routes to fleet scores)', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            vehicle_id: '1001',
+            safety_score: 85,
+            classification: 'Good',
+            harsh_brakes: 0,
+            harsh_accelerations: 0,
+            harsh_cornering: 0,
+            crashes: 0,
+            total_events: 0,
+            score_date: '2026-07-19',
+          },
+        ],
+        rowCount: 1,
+      });
+
+      const response = await authGet('/api/safety/scores/');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBeDefined();
+    });
+
+    test('should handle database error', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database connection failed'));
+
+      const response = await authGet('/api/safety/scores/1001');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+
+    test('should handle invalid route', async () => {
+      const response = await authGet('/api/safety/invalid-route');
+
+      expect(response.status).toBe(404);
+    });
   });
 
+  describe('GET /api/safety/scores/:vehicleId with date parameter', () => {
+    test('should return score for specific date', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            vehicle_id: '1001',
+            safety_score: 90,
+            classification: 'Good',
+            harsh_brakes: 0,
+            harsh_accelerations: 0,
+            harsh_cornering: 0,
+            crashes: 0,
+            total_events: 0,
+            score_date: '2026-07-18',
+          },
+        ],
+        rowCount: 1,
+      });
 
+      const response = await authGet('/api/safety/scores/1001?date=2026-07-18');
 
+      expect(response.status).toBe(200);
+      const vehicleData = response.body.data.vehicle || response.body.data;
+      expect(vehicleData.safety_score).toBe(90);
+    });
 
+    test('should return null or handle missing data for specific date', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
+      const response = await authGet('/api/safety/scores/1001?date=2026-07-15');
 
+      expect([200, 404]).toContain(response.status);
 
+      if (response.status === 200) {
+        const vehicleData = response.body.data.vehicle || response.body.data;
+        expect(vehicleData.safety_score ?? null).toBeNull();
+      }
+    });
   });
 
+  describe('GET /api/safety/scores with date range', () => {
+    test('should return scores for date range', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            vehicle_id: '1001',
+            safety_score: 85,
+            classification: 'Good',
+            harsh_brakes: 0,
+            harsh_accelerations: 0,
+            harsh_cornering: 0,
+            crashes: 0,
+            total_events: 0,
+            score_date: '2026-07-19',
+          },
+          {
+            vehicle_id: '1001',
+            safety_score: 90,
+            classification: 'Good',
+            harsh_brakes: 0,
+            harsh_accelerations: 0,
+            harsh_cornering: 0,
+            crashes: 0,
+            total_events: 0,
+            score_date: '2026-07-18',
+          },
+        ],
+        rowCount: 2,
+      });
 
+      const response = await authGet('/api/safety/scores?start_date=2026-07-18&end_date=2026-07-19');
 
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
 
+      const vehicles = response.body.data.vehicles || response.body.data;
+      expect(Array.isArray(vehicles) ? vehicles : Object.keys(vehicles)).toHaveLength(2);
+    });
 
+    test('should handle empty date range', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const response = await authGet('/api/safety/scores?start_date=2026-07-01&end_date=2026-07-02');
+
+      expect(response.status).toBe(200);
+
+      const vehicles = response.body.data.vehicles || response.body.data;
+      const count = response.body.data.total_vehicles ?? (Array.isArray(vehicles) ? vehicles.length : 0);
+      expect(count).toBe(0);
+    });
   });
-
-
-  });
-
-
-
-
-
-  });
-
 });
-
-

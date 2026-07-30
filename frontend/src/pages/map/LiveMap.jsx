@@ -4,8 +4,13 @@ import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicl
 import LiveFleetMapPlaceholder from '@/components/dashboard/LiveFleetMapPlaceholder'
 import FleetMap from '../../components/map/FleetMap'
 
+const EMPTY_FC = { type: 'FeatureCollection', features: [] }
+
+// POLLING RATES
+//
+// Buffer every 10s against a 30s window: 3x overlap
 export default function LiveMap() {
-  const [buffer, setBuffer] = useState({})
+  const [buffer, setBuffer] = useState(EMPTY_FC)
   const [locations, setLocations] = useState(null)
   const [loading, setLoading]     = useState(true)
 
@@ -34,7 +39,7 @@ export default function LiveMap() {
 
   useEffect(() => {
     fetchVehiclePositionBuffer();
-    const interval = setInterval(fetchVehiclePositionBuffer, 30000);
+    const interval = setInterval(fetchVehiclePositionBuffer, 10000);
     return () => clearInterval(interval)
   },[]);
 

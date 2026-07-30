@@ -1,37 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertTriangle, Bell, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ZoneActivityDrawer } from "./ZoneActivityDrawer";
-
-// mock data 
-const mockAlerts = [
-    {
-        id: 1,
-        type: "alert",
-        message: "TRK-2024-X1 entered Pretoria Depot",
-        time: "Today, 14:22:05"
-    },
-    {
-        id: 2,
-        type: "notification",
-        message: "TRK-552-Z exit Durban Depot",
-        time: "Today, 11:45:05" 
-    },
-    {
-        id: 3,
-        type: "notification",
-        message: "TRK-881-A entered Durban Depot",
-        time: "Today, 09:22:05"
-    },
-];
+import { getGeofenceEvents } from "@/services/geofenceServices";
 
 const iconByType = {
     alert: AlertTriangle,
     notification: Bell,
 };
 
-export function ZoneAlerts({ alerts = mockAlerts, onViewAll }) {
-    const [drawerOpen, setDrawerOpen ] = useState(false);
+export function ZoneAlerts({ onViewAll }) {
+    const [ drawerOpen, setDrawerOpen ] = useState(false);
+    const [ alerts, setAlerts ] = useState([]);
+    const [ isLoading, setIsLoading ] = useState(true);
+
+    useEffect(() => {
+        getGeofenceEvents().then((result) => {
+            setAlerts(result.events);
+            setIsLoading(false);
+        })
+        .catch((err) => {
+            console.error("Failed to fetch alerts: ", err);
+            setIsLoading(false);
+        });
+    }, []);
+
+    if (isLoading) {
+        return <p className="text-fleet-secondary">Loading alerts...</p>;
+    }
 
     const handleViewAll = () => {
         setDrawerOpen(true);
@@ -55,7 +51,7 @@ export function ZoneAlerts({ alerts = mockAlerts, onViewAll }) {
                         className={`flex items-start justify-between gap-3 rounded-md p-3 ${
                             isUrgent
                             ? "bg-fleet-alert/10"
-                            : alert.red
+                            : alert.read
                             ? "opacity-50"
                             : ""
                         }`}

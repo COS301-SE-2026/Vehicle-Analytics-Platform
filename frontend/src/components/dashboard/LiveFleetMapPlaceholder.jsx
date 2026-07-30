@@ -26,13 +26,18 @@ function VehiclePanel({ vehicle, onClose }) {
     ? 'bg-green-100 text-green-700'
     : 'bg-amber-100 text-amber-700'
 
-  const location = v.lat && v.lng
-    ? `${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}`
-    : v.location || 'Unknown'
+  // Prefers the reverse-geocoded name (vehicle_location_cache, via
+  // getVehicleLocations) over raw coordinates.
+  const location = v.displayName || v.city
+    || (v.lat && v.lng ? `${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}` : 'Unknown')
 
-  const lastUpdate = (() =>{
-    if (!v.last_update) return 'Unknown'
-    const value = v.last_update
+  const lastUpdate = (() => {
+    // Was v.last_update (snake_case) -- getVehicleLocations in
+    // vehicleService.jsx maps this field to lastUpdate (camelCase), so
+    // this always read undefined and fell straight to 'Unknown' below
+    // regardless of whether the vehicle had actually reported recently.
+    if (!v.lastUpdate) return 'Unknown'
+    const value = v.lastUpdate
     if (value instanceof Date) {
       return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }
@@ -91,7 +96,7 @@ function VehiclePanel({ vehicle, onClose }) {
   )
 }
 
-export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles, buffer = [] }) {
+export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles, buffer }) {
   const [selectedVehicle, setSelectedVehicle] = useState(null)
 
   return (
@@ -149,6 +154,7 @@ FleetMapPlaceholder.propTypes = {
   offline:  PropTypes.number,
   total:    PropTypes.number,
   vehicles: PropTypes.array,
+  buffer:   PropTypes.object,
 }
 
 VehiclePanel.propTypes = {

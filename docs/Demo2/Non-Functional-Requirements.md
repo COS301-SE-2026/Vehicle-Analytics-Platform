@@ -11,13 +11,15 @@
 
 **NFR1: Performance**
 
-NFR1.1: API requests must complete within 2 seconds for 95% of requests under normal load.
+NFR1.1: API requests must execute with a response time of of <80ms under steady loads,with a hard maximum cap 2s for 95% of complex spatial reports under peak concurrency.
 
-NFR1.2: Telemetry data must be processed and stored within 2 seconds of arriving in Kinesis.
+NFR1.2: Ingestion gateway must acknowledge telemetry inputs <50ms by offloading incoming payloads asynchronously to the stream buffer.
 
 NFR1.3: The dashboard must load and become interactive within 5 seconds.
 
 NFR1.4: Vehicle positions on the map must update within 10 seconds of receiving telemetry.
+
+NFR1.5: System must fully parse telemetry data, spatially index data via PostGIS, and commit to timeseries hypertables within <2.0s of arriving at the ingestion stream edge.
 
 
 **NFR2: Scalability**
@@ -26,7 +28,7 @@ NFR2.1: System shall handle 15 concurrent vehicles at steady state, scalable to 
 
 NFR2.2: System shall ingest 48 records per minute at steady state, scalable to 160 records per minute.
 
-NFR2.3: System shall handle growth without major performance drops.
+NFR2.3: System  must maintain linear write speeds and experience zero write degradation up to 100M+ rows of historical telemetry.
 
 NFR2.4: System shall support 15 concurrent users minimum, scalable to 500 users.
 
@@ -67,4 +69,4 @@ NFR5.4: All public APIs shall be documented and maintained in repo.
 
 NFR5.5: Development environments shall be reproducible using Docker Compose in under 30 minutes.
 
-NFR5.6: All database schema changes must be version controlled using database migration files and executed automatically via CI/CD pipeline
+NFR5.6: All schema modifications must be managed via structured database migration files and applied deterministically through the automated deployment pipeline.

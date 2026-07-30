@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Table,
     TableHeader,
@@ -12,13 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Pencil, Trash } from "lucide-react";
 import DeleteZoneModal from "@/components/geofence/DeleteZoneModal";
 import { EditZoneModal } from "@/components/geofence/EditZoneModal";
-
-// mock data
-const mockZones = [
-    { id: 1, name: "Pretoria Depot", triggerType: "entry"},
-    { id: 2, name: "Durban Port", triggerType: "both"},
-    { id: 3, name:  "Johannesburg Port", triggerType: "exit" },
-];
+import { getGeofences, deleteGeofence, updateGeofence } from "@/services/geofenceServices";
 
 const triggerStyles = {
     entry: "bg-fleet-blue/10 text-fleet-blue",
@@ -26,18 +20,65 @@ const triggerStyles = {
     exit: "bg-fleet-idle/10 text-fleet-secondary",
 };
 
-export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
+// refreshToken: bump this from the parent whenever a zone is created
+// elsewhere (e.g. drawn on the map), so this table stays in sync.
+// onZonesChanged: called after this component itself changes a zone
+// (edit/delete), so siblings like the map layer can refetch too.
+export function ExistingZones({ refreshToken, onZonesChanged }){
+    const [ zones, setZones ] = useState([]);
+    const [ isLoading, setIsLoading ] = useState(true);
     const [ zoneToDelete, setZoneToDelete ] = useState(null);
     const [ zoneToEdit, setZoneToEdit ] = useState(null);
 
+    const loadZones = useCallback(() => {
+        setIsLoading(true);
+        return getGeofences()
+            .then((result) => {
+                setZones(result.geofences);
+                setIsLoading(false);
+            })
+            .catch((err) => {
+                console.error("Failed to fetch zones:", err);
+                setIsLoading(false);
+            });
+    }, []);
+
+    useEffect(() => {
+        loadZones();
+    }, [loadZones, refreshToken]);
+
     function handleConfirmDelete(zone) {
-        onDelete?.(zone);
-        setZoneToDelete(null);
+        deleteGeofence(zone.id)
+            .then(() => {
+                setZoneToDelete(null);
+                loadZones();
+                onZonesChanged?.();
+            })
+            .catch((err) => {
+                console.error("Failed to delete zone:", err);
+            });
     }
 
+    // EditZoneModal's form uses camelCase (triggerType) per zoneSchema;
+    // the API expects snake_case (trigger_type). Mapping happens here,
+    // at the point where the service call is made.
     function handleSaveEdit(zone) {
-        onEdit?.(zone);
-        setZoneToEdit(null);
+        updateGeofence(zone.id, {
+            name: zone.name,
+            trigger_type: zone.triggerType,
+        })
+            .then(() => {
+                setZoneToEdit(null);
+                loadZones();
+                onZonesChanged?.();
+            })
+            .catch((err) => {
+                console.error("Failed to update zone:", err);
+            });
+    }
+
+    if(isLoading) {
+        return <p className="text-fleet-secondary">Loading zones..</p>
     }
 
     return (
@@ -55,16 +96,16 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {zone.map((zone) => (
+                    {zones.map((zone) => (
                       <TableRow key={zone.id} className="border-fleet-border">
                         <TableCell className="text-fleet-text font-medium">
                             {zone.name}
                         </TableCell>
                         <TableCell>
                             <Badge
-                                className={`uppercase text-xs font-bold rounded-md ${triggerStyles[zone.triggerType]}`}
+                                className={`uppercase text-xs font-bold rounded-md ${triggerStyles[zone.trigger_type]}`}
                             >
-                                {zone.triggerType}
+                                {zone.trigger_type}
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -76,7 +117,7 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                             >
                                 <Pencil className="h-3 w-4 text-fleet-secondary" />
                             </Button>
-                            <Button 
+                            <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
@@ -85,21 +126,21 @@ export function ExistingZones({ zone = mockZones, onEdit, onDelete }){
                                 <Trash className="h-4 w-4 text-fleet-alert"/>
                             </Button>
                         </TableCell>
-                      </TableRow>   
+                      </TableRow>
                     ))}
                 </TableBody>
             </Table>
-            <DeleteZoneModal 
-                open={!!zoneToDelete} 
+            <DeleteZoneModal
+                open={!!zoneToDelete}
                 onOpenChange={(isOpen) => !isOpen && setZoneToDelete(null)}
                 zone={zoneToDelete}
-                onConfrim={handleConfirmDelete}
+                onConfirm={handleConfirmDelete}
             />
             <EditZoneModal
                 open={!!zoneToEdit}
                 onOpenChange={(isOpen) => !isOpen && setZoneToEdit(null)}
                 zone={zoneToEdit}
-                onSave={handleSaveEdit}
+                onConfirm={handleSaveEdit}
             />
         </div>
     );

@@ -100,7 +100,7 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/mapbox/light-v11',
       center: [28.0473, -26.2041],
       zoom: minimal ? 9 : 10,
     })
@@ -240,6 +240,25 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     });
     markers.current = {};
   }, [])
+
+  useEffect(() => {
+    if(!map.current || !minimal || vehicles.length !== 1){
+      return
+    }
+
+    const {lat , lng} = vehicles[0]
+    if(!Number.isFinite(lat) || !Number.isFinite(lng)){
+      return
+    }
+
+    const recenter = () => map.current.easeTo({center: [lng, lat], zoom: 15, duration: 800})
+
+    if(map.current.isStyleLoaded()){
+      recenter()
+    }else{
+      map.current.once('load', recenter)
+    }
+  }, [minimal, vehicles[0]?.lat, vehicles[0]?.lng])
 
   return <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 }

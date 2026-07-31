@@ -53,6 +53,9 @@ V.A.P.O.R. is a real-time fleet analytics platform built for FuseIT. It ingests 
 
 | Resource | Link |
 |---|---|
+| | <img src="https://cdn.simpleicons.org/googlechrome/4285F4" width="14"/> Live Web Application | [V.A.P.O.R. Live Demo](https://d25bouomowr0it.cloudfront.net/) |
+| <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> Software Requirements Specification (SRS) | [View srs.md](./docs/Demo2/srs/srs.md) |
+| <img src="https://cdn.simpleicons.org/adobeacrobatreader/EC1C24" width="14"/> Software Architecture Specification (SAS) | [View SAS.pdf](./docs/Demo2/SAS.pdf) |
 | <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> Functional Requirements (SRS) | [View Document](#) |
 | <img src="https://cdn.simpleicons.org/github/181717" width="14"/> GitHub Project Board | [View Board](https://github.com/orgs/COS301-SE-2026/projects) |
 | <img src="https://cdn.simpleicons.org/gmail/EA4335" width="14"/> Team Email | kilimanjaro.capstone@gmail.com |

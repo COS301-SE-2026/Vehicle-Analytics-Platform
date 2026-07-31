@@ -23,9 +23,10 @@ export function ZoneDetails({ drawnShape, onZoneCreated }) {
     });
 
     function onSubmit(values) {
-        console.log("drawnShape at Sumbit time:", drawnShape);
+        console.log("Zone saved:", values);
         if (!drawnShape) {
             alert("Please draw a geofence on the map first")
+            return;
         }
     
     const payload = {

@@ -29,6 +29,11 @@ export function ZoneAlerts({ onViewAll }) {
         return <p className="text-fleet-secondary">Loading alerts...</p>;
     }
 
+    const handleViewAll = () => {
+        setDrawerOpen(true);
+        onViewAll?.();
+    };
+
   return (
     <div className="border border-fleet-border bg-fleet-surface rounded-lg p-6">
         <h2 className="font-display font-medium text-lg mb-4 text-fleet-text">
@@ -82,7 +87,7 @@ export function ZoneAlerts({ onViewAll }) {
                 type="button"
                 variant="link"
                 className="text-fleet-secondary text-sm"
-                onClick={() => setDrawerOpen(true)}
+                onClick={handleViewAll}
             >
                 View All Activity
             </Button>

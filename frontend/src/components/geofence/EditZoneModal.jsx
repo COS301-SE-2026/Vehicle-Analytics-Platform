@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
-export function EditZoneModal({open, onOpenChange, zone, onConfirm }) {
+export function EditZoneModal({open, onOpenChange, zone, onSave}) {
      const {
         register,
         handleSubmit,
@@ -32,7 +32,7 @@ export function EditZoneModal({open, onOpenChange, zone, onConfirm }) {
      function onSubmit(values) {
         // was: onSave?.({...}) -- onSave was never a prop of this
         // component, so this threw a ReferenceError on every submit.
-        onConfirm?.({ ...zone, ...values });
+        onSave?.({ ...zone, ...values });
         onOpenChange(false);
      }
 

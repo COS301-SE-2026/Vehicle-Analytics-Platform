@@ -16,7 +16,7 @@ export function ZoneAlerts({ onViewAll }) {
 
     useEffect(() => {
         getGeofenceEvents().then((result) => {
-            setAlerts(result.events);
+            setAlerts(result.events ?? []);
             setIsLoading(false);
         })
         .catch((err) => {
@@ -28,6 +28,11 @@ export function ZoneAlerts({ onViewAll }) {
     if (isLoading) {
         return <p className="text-fleet-secondary">Loading alerts...</p>;
     }
+
+    const handleViewAll = () => {
+        setDrawerOpen(true);
+        onViewAll?.();
+    };
 
   return (
     <div className="border border-fleet-border bg-fleet-surface rounded-lg p-6">
@@ -82,7 +87,7 @@ export function ZoneAlerts({ onViewAll }) {
                 type="button"
                 variant="link"
                 className="text-fleet-secondary text-sm"
-                onClick={() => setDrawerOpen(true)}
+                onClick={handleViewAll}
             >
                 View All Activity
             </Button>

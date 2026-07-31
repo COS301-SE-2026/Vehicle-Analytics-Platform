@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppShell from './components/layout/AppShell'
 import PropTypes from 'prop-types'
+import Landing from './pages/landing/Landing'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import VerifyEmail from './pages/auth/VerifyEmail'
@@ -41,7 +42,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Auth routes - no sidebar */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/login"  element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
 
@@ -108,7 +110,7 @@ function App() {
         </Route>
 
         {/* Default redirect - TEMP for testing */}
-        <Route path="/" element={<Navigate to="/dashboard/viewer" />}/>
+        <Route path="/landing" element={<Landing />} />
       </Routes>
     </BrowserRouter>
   )

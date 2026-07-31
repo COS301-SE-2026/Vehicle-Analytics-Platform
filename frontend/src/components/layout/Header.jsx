@@ -28,16 +28,8 @@ export default function Header({ title, collapsed }) {
 
       {/* Right Side */}
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={openHelp}
-          className=" w-9 h-9 rounded-full bg-fleet-blue hover:bg-fleet-blue/90"
-          aria-label="Open help center"
-        >
-          <CircleQuestionMark className="w-8 h-8 text-fleet-surface" />
-        </Button>
-        {/* Avatar */}
+        <CircleQuestionMark className="w-8 h-8 text-fleet-blue rounded-full" />
+        {/* Avatar & help menu*/}
         <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center">
           <span className="text-white text-xs font-bold">{initials}</span>
         </div>

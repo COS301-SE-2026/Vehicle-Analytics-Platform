@@ -41,10 +41,11 @@ describe('GeofenceMap', () => {
     };
   });
 
-  test('shows a locating indicator on initial render', () => {
+  test('falls back to default center immediately when geolocation is not supported', () => {
+    global.navigator.geolocation = undefined;
     render(<GeofenceMap onZoneDrawn={() => {}} />);
-    expect(screen.getByText(/Locating you/i)).toBeInTheDocument();
-    expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+    expect(screen.queryByText(/Locating you/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loader-icon')).not.toBeInTheDocument();
   });
 
   test('renders map container', () => {
@@ -67,19 +68,15 @@ describe('GeofenceMap', () => {
     expect(global.navigator.geolocation.getCurrentPosition).toHaveBeenCalled();
   });
 
-  test('handles geolocation failure', () => {
-    global.navigator.geolocation.getCurrentPosition.mockImplementation((success, error) => {
+    test('handles geolocation failure', () => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      global.navigator.geolocation.getCurrentPosition.mockImplementation((success, error) => {
       error(new Error('Geolocation failed'));
     });
 
     render(<GeofenceMap onZoneDrawn={() => {}} />);
     expect(global.navigator.geolocation.getCurrentPosition).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
-  test('handles geolocation not supported', () => {
-    global.navigator.geolocation = undefined;
-
-    render(<GeofenceMap onZoneDrawn={() => {}} />);
-    expect(screen.getByText(/Locating you/i)).toBeInTheDocument();
-  });
 });

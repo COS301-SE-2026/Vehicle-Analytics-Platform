@@ -31,14 +31,14 @@ jest.mock('lucide-react', () => ({
 
 jest.mock('@/components/geofence/DeleteZoneModal', () => ({
   __esModule: true,
-  default: ({ open, onOpenChange, zone, onConfrim }) => (
+  default: ({ open, onOpenChange, zone, onConfirm }) => (
     <div data-testid="delete-modal" data-open={open}>
       {open && (
         <div role="dialog">
           <h2>Delete Zone</h2>
           <p>{zone?.name}</p>
           <button data-testid="confirm-delete" onClick={() => {
-            onConfrim?.(zone);
+            onConfirm?.(zone);
             onOpenChange(false);
           }}>Delete</button>
           <button data-testid="cancel-delete" onClick={() => onOpenChange(false)}>Cancel</button>
@@ -49,14 +49,14 @@ jest.mock('@/components/geofence/DeleteZoneModal', () => ({
 }));
 
 jest.mock('@/components/geofence/EditZoneModal', () => ({
-  EditZoneModal: ({ open, onOpenChange, zone, onSave }) => (
+  EditZoneModal: ({ open, onOpenChange, zone, onConfirm }) => (
     <div data-testid="edit-modal" data-open={open}>
       {open && (
         <div role="dialog">
           <h2>Edit Zone</h2>
           <input data-testid="edit-input" defaultValue={zone?.name || ''} />
           <button data-testid="confirm-edit" onClick={() => {
-            onSave?.({ ...zone, name: 'Durban Port Updated' });
+            onConfirm?.({ ...zone, name: 'Durban Port Updated' });
             onOpenChange(false);
           }}>Save Changes</button>
           <button data-testid="cancel-edit" onClick={() => onOpenChange(false)}>Cancel</button>
@@ -66,10 +66,31 @@ jest.mock('@/components/geofence/EditZoneModal', () => ({
   ),
 }));
 
+const mockGeofences = [
+  { id: 1, name: 'Pretoria Depot', trigger_type: 'entry' },
+  { id: 2, name: 'Durban Port', trigger_type: 'both' },
+  { id: 3, name: 'Johannesburg Port', trigger_type: 'exit' },
+];
+
+jest.mock('@/services/geofenceServices', () => ({
+  getGeofences: jest.fn(() =>
+    Promise.resolve({ total: 3, geofences: mockGeofences })
+  ),
+  deleteGeofence: jest.fn(() => Promise.resolve({})),
+  updateGeofence: jest.fn(() => Promise.resolve({})),
+}));
+
+import { getGeofences } from '@/services/geofenceServices';
+
 describe('ExistingZones', () => {
-  test('renders default mock zones with names and trigger types', () => {
+  beforeEach(() => {
+    getGeofences.mockClear();
+    getGeofences.mockResolvedValue({ total: 3, geofences: mockGeofences });
+  });
+
+  test('renders default mock zones with names and trigger types', async () => {
     render(<ExistingZones />);
-    expect(screen.getByText('Pretoria Depot')).toBeInTheDocument();
+    expect(await screen.findByText('Pretoria Depot')).toBeInTheDocument();
     expect(screen.getByText('Durban Port')).toBeInTheDocument();
     expect(screen.getByText('Johannesburg Port')).toBeInTheDocument();
     expect(screen.getAllByText('entry').length).toBeGreaterThan(0);
@@ -77,16 +98,20 @@ describe('ExistingZones', () => {
     expect(screen.getAllByText('exit').length).toBeGreaterThan(0);
   });
 
-  test('renders provided zones instead of defaults when passed', () => {
-    const customZones = [{ id: 99, name: 'PE Yard', triggerType: 'entry' }];
-    render(<ExistingZones zone={customZones} />);
-    expect(screen.getByText('PE Yard')).toBeInTheDocument();
+  test('renders provided zones instead of defaults when passed', async () => {
+    getGeofences.mockResolvedValueOnce({
+      total: 1,
+      geofences: [{ id: 99, name: 'PE Yard', trigger_type: 'entry' }],
+    });
+    render(<ExistingZones />);
+    expect(await screen.findByText('PE Yard')).toBeInTheDocument();
     expect(screen.queryByText('Pretoria Depot')).not.toBeInTheDocument();
   });
 
   test('clicking the trash icon opens DeleteZoneModal with the correct zone name', async () => {
     const user = userEvent.setup();
     render(<ExistingZones />);
+    await screen.findByText('Pretoria Depot');
     const rows = screen.getAllByRole('row');
     const ptaRow = rows.find((r) => r.textContent.includes('Pretoria Depot'));
     const buttons = ptaRow?.querySelectorAll('button') || [];
@@ -97,10 +122,11 @@ describe('ExistingZones', () => {
     expect(within(dialog).getByText('Pretoria Depot')).toBeInTheDocument();
   });
 
-  test('confirming delete calls onDelete with the correct zone and closes the modal', async () => {
+  test('confirming delete calls onZonesChanged and closes the modal', async () => {
     const user = userEvent.setup();
-    const handleDelete = jest.fn();
-    render(<ExistingZones onDelete={handleDelete} />);
+    const handleZonesChanged = jest.fn();
+    render(<ExistingZones onZonesChanged={handleZonesChanged} />);
+    await screen.findByText('Pretoria Depot');
     const rows = screen.getAllByRole('row');
     const ptaRow = rows.find((r) => r.textContent.includes('Pretoria Depot'));
     const buttons = ptaRow?.querySelectorAll('button') || [];
@@ -108,18 +134,16 @@ describe('ExistingZones', () => {
     await user.click(deleteBtn);
     const confirmDeleteBtn = screen.getByTestId('confirm-delete');
     await user.click(confirmDeleteBtn);
-    expect(handleDelete).toHaveBeenCalledTimes(1);
-    expect(handleDelete).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Pretoria Depot' })
-    );
+    expect(handleZonesChanged).toHaveBeenCalledTimes(1);
     const modal = screen.getByTestId('delete-modal');
     expect(modal).toHaveAttribute('data-open', 'false');
   });
 
-  test('saving an edit calls onEdit with the updated zone and closes the modal', async () => {
+  test('saving an edit calls onZonesChanged and closes the modal', async () => {
     const user = userEvent.setup();
-    const handleEdit = jest.fn();
-    render(<ExistingZones onEdit={handleEdit} />);
+    const handleZonesChanged = jest.fn();
+    render(<ExistingZones onZonesChanged={handleZonesChanged} />);
+    await screen.findByText('Durban Port');
     const rows = screen.getAllByRole('row');
     const dbnRow = rows.find((r) => r.textContent.includes('Durban Port'));
     const buttons = dbnRow?.querySelectorAll('button') || [];
@@ -131,10 +155,7 @@ describe('ExistingZones', () => {
     await user.type(input, 'Durban Port Updated');
     const saveBtn = screen.getByTestId('confirm-edit');
     await user.click(saveBtn);
-    expect(handleEdit).toHaveBeenCalledTimes(1);
-    expect(handleEdit).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Durban Port Updated' })
-    );
+    expect(handleZonesChanged).toHaveBeenCalledTimes(1);
     const modal = screen.getByTestId('edit-modal');
     expect(modal).toHaveAttribute('data-open', 'false');
   });

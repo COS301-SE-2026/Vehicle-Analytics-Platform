@@ -1,11 +1,25 @@
 import { render, screen } from '@testing-library/react';
 import GeofenceMap from '@/components/geofence/GeofenceMap';
 
+jest.mock('@/services/geofenceServices', () => ({
+  getGeofencesGeoJSON: jest.fn().mockResolvedValue({
+    type: 'FeatureCollection',
+    features: [],
+  }),
+}));
+
 jest.mock('mapbox-gl', () => ({
   Map: jest.fn(() => ({
     addControl: jest.fn(),
     on: jest.fn(),
+    once: jest.fn(),
     remove: jest.fn(),
+    isStyleLoaded: jest.fn().mockReturnValue(true),
+    getSource: jest.fn().mockReturnValue({
+      setData: jest.fn(),
+    }),
+    addSource: jest.fn(),
+    addLayer: jest.fn(),
   })),
   NavigationControl: jest.fn(),
 }));
@@ -21,6 +35,7 @@ jest.mock('lucide-react', () => ({
 
 describe('GeofenceMap', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     global.navigator.geolocation = {
       getCurrentPosition: jest.fn(),
     };
@@ -30,5 +45,41 @@ describe('GeofenceMap', () => {
     render(<GeofenceMap onZoneDrawn={() => {}} />);
     expect(screen.getByText(/Locating you/i)).toBeInTheDocument();
     expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+  });
+
+  test('renders map container', () => {
+    const { container } = render(<GeofenceMap onZoneDrawn={() => {}} />);
+    expect(container.querySelector('.relative.w-full.h-full')).toBeInTheDocument();
+  });
+
+  test('handles geolocation success', () => {
+    const mockPosition = {
+      coords: {
+        longitude: 28.2293,
+        latitude: -25.75456,
+      },
+    };
+    global.navigator.geolocation.getCurrentPosition.mockImplementation((success) => {
+      success(mockPosition);
+    });
+
+    render(<GeofenceMap onZoneDrawn={() => {}} />);
+    expect(global.navigator.geolocation.getCurrentPosition).toHaveBeenCalled();
+  });
+
+  test('handles geolocation failure', () => {
+    global.navigator.geolocation.getCurrentPosition.mockImplementation((success, error) => {
+      error(new Error('Geolocation failed'));
+    });
+
+    render(<GeofenceMap onZoneDrawn={() => {}} />);
+    expect(global.navigator.geolocation.getCurrentPosition).toHaveBeenCalled();
+  });
+
+  test('handles geolocation not supported', () => {
+    global.navigator.geolocation = undefined;
+
+    render(<GeofenceMap onZoneDrawn={() => {}} />);
+    expect(screen.getByText(/Locating you/i)).toBeInTheDocument();
   });
 });

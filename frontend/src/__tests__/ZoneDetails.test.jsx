@@ -88,13 +88,13 @@ describe('ZoneDetails form', () => {
     expect(screen.getByTestId('toggle-exit')).toBeInTheDocument();
     expect(screen.getByTestId('toggle-both')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /save zone/i })).toBeInTheDocument();
+     expect(screen.getByRole('button', { name: /save geofence/i })).toBeInTheDocument();
   });
 
   test('shows validation errors when submitted empty', async () => {
     const user = userEvent.setup();
     render(<ZoneDetails />);
-    await user.click(screen.getByRole('button', { name: /save zone/i }));
+    await user.click(screen.getByRole('button', { name: /save geofence/i }));
     expect(await screen.findByText('Zone name is required')).toBeInTheDocument();
     expect(await screen.findByText('Select a trigger type')).toBeInTheDocument();
   });
@@ -105,7 +105,7 @@ describe('ZoneDetails form', () => {
     render(<ZoneDetails />);
     await user.type(screen.getByLabelText(/zone name/i), 'Pretoria Depot');
     await user.click(screen.getByTestId('toggle-entry'));
-    await user.click(screen.getByRole('button', { name: /save zone/i }));
+    await user.click(screen.getByRole('button', { name: /save geofence/i }));
     expect(logSpy).toHaveBeenCalledWith(
       'Zone saved:',
       expect.objectContaining({ name: 'Pretoria Depot', triggerType: 'entry' })

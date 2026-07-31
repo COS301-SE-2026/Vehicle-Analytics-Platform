@@ -32,7 +32,7 @@ export function EditZoneModal({open, onOpenChange, zone, onSave}) {
      function onSubmit(values) {
         // was: onSave?.({...}) -- onSave was never a prop of this
         // component, so this threw a ReferenceError on every submit.
-        onConfirm?.({ ...zone, ...values });
+        onSave?.({ ...zone, ...values });
         onOpenChange(false);
      }
 

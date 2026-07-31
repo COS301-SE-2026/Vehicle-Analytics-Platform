@@ -287,6 +287,9 @@ cd backend && npm run test
 │       │   └── settings
 │       ├── services
 │       └── store
+├── infrastructure          # AWS CDK infrastructure as code (IaC)
+│   ├── bin
+│   └── lib
 └── lambdas
     └── kinesis_telemetry_ingestion
         └── tests

@@ -52,6 +52,7 @@ export function CategoryList({ categories, externalArticle, onArticleShown }) {
             return (
               <div key={category.id}>
                 <button
+                  type="button"
                   onClick={() => setExpandedId(isExpanded ? null : category.id)}
                   className={`w-full flex items-center justify-between px-2 py-3 text-m font-medium text-left text-fleet-text transition-colors ${
                     isExpanded ? 'text-fleet-blue' : 'text-fleet-text hover:bg-fleet-bg'}`}
@@ -71,6 +72,7 @@ export function CategoryList({ categories, externalArticle, onArticleShown }) {
                   <div className='pb-2'>
                     {category.articles.map((article) => (
                         <button
+                            type="button"
                             key={article.id}
                             onClick={() => 
                                 setActiveArticle({

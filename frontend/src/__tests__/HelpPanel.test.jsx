@@ -70,7 +70,7 @@ describe('HelpPanel', () => {
         const onClose = jest.fn();
         render(<HelpPanel isOpen={true} onClose={onClose} role="viewer"/>);
         fireEvent.click(screen.getByLabelText('Close help panel'));
-        expect(onClose).toHaveBeenCalledTimes(1);;
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 
     test('update search input value as the user types', () => {

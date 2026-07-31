@@ -7,26 +7,29 @@ import { Button } from '../ui/button';
 
 export function HelpPanel({ isOpen, onClose, role }){
     const [query, setQuery] = useState('');
-    const [view, setView] = useState({type: 'category-list'});
     const categories = getHelpMenuForRole(role);
 
     return(
         <>
           {/* Backdrop */}
-          <div
-           onClick={(e) => e.stopPropagation()}
+          <button
+           type="button"
+           aria-label="Dismiss help panel"
+           tabIndex={isOpen ? 0 : - 1}
+           onClick={onClose}
            className={cn("fixed inset-0 bg-fleet-blue/20 transition-opacity duration-200 z-40",
             isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
            )}
-          >
+          />
 
            {/* Panel */}
-           <div className={cn("fixed top-0 right-0 h-full w-full sm:w-[380px] bg-fleet-surface shadow-xl z-50",
+           <dialog
+             open
+             aria-label="Help Center"
+             className={cn("fixed top-0 right-0 h-full w-full sm:w-[380px] bg-fleet-surface shadow-xl z-50",
                 "flex flex-col transition-transform duration-200 ease-out",
                 isOpen ? "translate-x-0" : "translate-x-full"
            )}
-            role="dialog"
-            aria-label="Help Center"
             inert={!isOpen}
            >
 
@@ -58,8 +61,7 @@ export function HelpPanel({ isOpen, onClose, role }){
 
            <CategoryList categories={categories} />
 
-           </div>
-          </div>
+           </dialog>
         </>
     );
 }

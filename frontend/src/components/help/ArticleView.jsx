@@ -17,6 +17,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
         <div className='flex flex-col h-full'>
           <div className='flex items-center gap-2 px-4 py-3 border-b border-fleet-secondary'>
             <button
+              type="button"
               onClick={onBack}
               className='text-fleet-secondary hover:text-fleet-secondary/90 transition-colors'
               aria-label={`Back to ${categoryTitle}`}
@@ -30,7 +31,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
             <h2 className='text-base font-bold text-fleet-secondary'>{article.title}</h2>
 
             {article.content.map((block, i) => (
-                <div key={i}>
+                <div key={block.id ?? block.type + (block.text ?? '')}>
                   {block.type === "text" && ( 
                     <p className='text-sm text-fleet-text leading-relaxed'>{block.text}</p>
                   )}
@@ -38,7 +39,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                   {block.type === "list" && (
                     <ul className='list-disc list-inside space-y-1.5 text-sm text-fleet-secondary'>
                         {block.items.map((item, j) =>
-                           <li key={j}>{item}</li> 
+                           <li key={item}>{item}</li> 
                         )}
                     </ul>
                   )}
@@ -65,7 +66,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                                 <thead className='bg-fleet-idle/20'>
                                 <tr>
                                   {block.headers.map((header, j) => (
-                                  <th key={j} className='px-3 py-2 font-medium text-fleet-secondary'>
+                                  <th key={header} className='px-3 py-2 font-medium text-fleet-secondary'>
                                    {header}
                                   </th>
                                 ))}
@@ -73,7 +74,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                              </thead>
                              <tbody>
                               {block.rows.map((row, j) =>(
-                              <tr key={j} className={cn(j > 0 && "border-t border-fleet-secondary")}>
+                              <tr  key={row.join('|')} className={cn(row !== block.rows[0] && "border-t border-fleet-secondary")}>
                               {row.map((cell, k) => (
                                 <td key={k} className={cn('px-3 py-3 text-fleet-secondary', k > 0 && 'text-center')}>
                                   {renderCell(cell)}
@@ -92,7 +93,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                             style={{ gridTemplateColumns: `repeat(${block.headers.length}, minmax(0, 1fr))`}}
                         >
                           {block.headers.map((header, j) => (
-                            <div key={j} className="text-sm font-semibold text-fleet-secondary pb-2">
+                            <div key={header} className="text-sm font-semibold text-fleet-secondary pb-2">
                               {header}
                             </div>
                           ))}
@@ -111,7 +112,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                   {block.type === "glossary" && (
                     <dl className='space-y-4'>
                       {block.terms.map(({ term, definition }, j) => (
-                        <div key={j} className="relative pl-4 border-1-2 border-fleet-blue/30">
+                        <div key={term} className="relative pl-4 border-1-2 border-fleet-blue/30">
                           <dt className='text-sm font-semibold text-fleet-secondary tracking-tight'>{term}</dt>
                           <dd className='text-sm text-fleet-secondary/80 loading-mixed mt-1'>{definition}</dd>
                         </div>

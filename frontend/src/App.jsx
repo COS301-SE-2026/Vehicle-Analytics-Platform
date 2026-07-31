@@ -11,6 +11,7 @@ import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
 import Geofence from './pages/geofence/Geofence'
 import useAuthStore from './store/authStore'
+import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 import VehiclesList from './pages/vehicles/VehiclesList'
 import VehicleProfile from './pages/vehicles/VehicleProfile'
 
@@ -46,6 +47,7 @@ function App() {
         <Route path="/login"  element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
+        <Route path="/style-guide" element={<BrandStyleGuide />} />
 
         {/* All protected routes wrapped in AppShell */}
         <Route element={<AppShell role={role} />}>

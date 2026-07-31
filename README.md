@@ -1,14 +1,14 @@
 <div align="center">
 
-![V.A.P.O.R. logo](./docs/design/assets/logo.png)
+![V.A.P.O.R. logo](./docs/Demo2/assets/newLogo.png)
 
 **Kilimanjaro StoneCap &nbsp;·&nbsp; COS301 Capstone 2026 &nbsp;·&nbsp; University of Pretoria**
 
 <!-- Logos -->
 <p align="center">
-  <img src="./docs/design/assets/KM_logo.png" alt="KM logo" height="80" style="margin-right: 30px;" />
-  <img src="./docs/design/assets/FuseIT_logo.png" alt="FUSEIT logo" height="80" style="margin-right: 30px;" />
-  <img src="./docs/design/assets/University_of_Pretoria_logo.png" alt="UP logo" height="80" />
+  <img src="./docs/Demo2/assets/KM_logo.png" alt="KM logo" height="80" style="margin-right: 30px;" />
+  <img src="./docs/Demo2/assets/FuseIT_logo.png" alt="FUSEIT logo" height="80" style="margin-right: 30px;" />
+  <img src="./docs/Demo2/assets/University_of_Pretoria_logo.png" alt="UP logo" height="80" />
 </p>
 
 

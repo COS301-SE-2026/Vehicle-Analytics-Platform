@@ -9,11 +9,12 @@ import ManagerDashboard from './pages/dashboard/ManagerDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
 import useAuthStore from './store/authStore'
+import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
 
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Na  vigate to="/login" replace />
 
   if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     const redirect = useAuthStore.getState().getDashboardPath()
@@ -41,6 +42,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
+        <Route path="/style-guide" element={<BrandStyleGuide />} />
 
         {/* All protected routes wrapped in AppShell */}
         <Route element={<AppShell role={role} />}>

@@ -6,7 +6,7 @@ import Dashboard from "./img/dashboard.png"
 import Vehicle from "./img/vehicles.png"
 import{ motion } from "framer-motion";
 
-function WhatYouGet() {
+export function WhatYouGet() {
     const features = [
         {
             icon: MapPin,

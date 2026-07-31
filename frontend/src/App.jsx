@@ -8,7 +8,10 @@ import ViewerDashboard from './pages/dashboard/ViewerDashboard'
 import ManagerDashboard from './pages/dashboard/ManagerDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
+import Geofence from './pages/geofence/Geofence'
 import useAuthStore from './store/authStore'
+import VehiclesList from './pages/vehicles/VehiclesList'
+import VehicleProfile from './pages/vehicles/VehicleProfile'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
@@ -71,15 +74,41 @@ function App() {
           <Route
             path="/map"
             element={
-              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager', 'admin']}>
+              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager']}>
                 <LiveMap />
               </ProtectedRoute>
             }
           />
+          <Route
+          path="/vehicles"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <VehiclesList />
+              </ProtectedRoute>
+          }
+          />
+
+          <Route
+          path="/vehicles/:id"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <VehicleProfile />
+              </ProtectedRoute>
+          }
+          />
+
+           <Route
+          path="/geofence"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <Geofence />
+              </ProtectedRoute>
+          }
+          />
         </Route>
 
         {/* Default redirect - TEMP for testing */}
-        <Route path="/" element={<Navigate to="/dashboard/viewer" />} />
+        <Route path="/" element={<Navigate to="/dashboard/viewer" />}/>
       </Routes>
     </BrowserRouter>
   )

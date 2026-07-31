@@ -7,6 +7,16 @@ import {
 
 jest.mock("@/lib/utils", () => ({ cn: (...args) => args.filter(Boolean).join(" ") }))
 
+jest.mock("@radix-ui/react-avatar", () => {
+  const mockActual = jest.requireActual("@radix-ui/react-avatar")
+    return {
+    ...mockActual,
+    Image: (props) => <img {...props} />,
+  }
+
+})
+
+
 describe("Avatar", () => {
   it("renders with default size", () => {
     const { container } = render(<Avatar />)

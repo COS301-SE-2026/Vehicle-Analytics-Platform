@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
-import GoogleButton from "../../components/GoogleButton";
 import PasswordToggleIcon from "../../components/PasswordToggleIcon";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
@@ -59,10 +58,6 @@ export default function Signup() {
       <div className="auth-card">
         <h2>Create Your Account</h2>
         <p className="auth-subtitle">Join the next generation of logistics management.</p>
-
-        <GoogleButton />
-
-        <div className="auth-divider"><span>OR</span></div>
 
         {error && <div className="auth-error">{error}</div>}
 

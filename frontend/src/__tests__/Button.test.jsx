@@ -23,12 +23,11 @@ jest.mock("class-variance-authority", () => ({
 }))
 
 // Mock Slot.Root so asChild renders a detectable element
-jest.mock("radix-ui", () => ({
-  Slot: {
-    Root: ({ children, ...props }) => (
+jest.mock("@radix-ui/react-slot", () => ({
+  Slot: ({ children, ...props }) => (
       <div data-testid="slot-root" {...props}>{children}</div>
     ),
-  },
+  
 }))
 
 describe("Button", () => {

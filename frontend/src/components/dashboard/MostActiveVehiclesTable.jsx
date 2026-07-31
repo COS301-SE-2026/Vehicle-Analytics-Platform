@@ -2,12 +2,14 @@ import PropTypes from "prop-types"
 
 const STATUS_STYLES = {
   moving: 'bg-fleet-green text-white',
+  active: 'bg-fleet-green text-white',
   idle: 'bg-fleet-warning text-white',
   offline: 'bg-fleet-idle text-white',
 }
 
 const STATUS_LABELS = {
   moving: 'MOVING',
+  active: 'ACTIVE',
   idle: 'IDLE',
   offline: 'OFFLINE',
 }
@@ -52,7 +54,8 @@ export default function MostActiveVehiclesTable({ vehicles = [] }) {
           </thead>
           <tbody className="divide-y divide-fleet-border">
             {vehicles.map((vehicle, index) => {
-              const secondsDiff = getSecondsDiff(vehicle.lastUpdated)
+              const currentTimeStamp = vehicle.lastUpdate
+              const secondsDiff = getSecondsDiff(currentTimeStamp)
               const timeColor = getTimestampColor(secondsDiff)
 
               return (
@@ -66,7 +69,7 @@ export default function MostActiveVehiclesTable({ vehicles = [] }) {
                     </span>
                   </td>
                   <td className="py-3 text-fleet-text font-medium">
-                    {vehicle.distanceToday ?? vehicle.distance ?? 0} km
+                    {vehicle.distanceToday} km
                   </td>
                   <td className="py-3">
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${STATUS_STYLES[vehicle.status] ?? STATUS_STYLES.offline}`}>
@@ -74,12 +77,12 @@ export default function MostActiveVehiclesTable({ vehicles = [] }) {
                     </span>
                   </td>
                   <td className={`py-3 text-xs font-medium ${timeColor}`}>
-                    {formatLastUpdated(vehicle.lastUpdated ?? vehicle.last_updated)}
+                    {formatLastUpdated(currentTimeStamp)}
                   </td>
                 </tr>
               )
-            })}
-
+            })
+}
             {vehicles.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-fleet-secondary text-sm">

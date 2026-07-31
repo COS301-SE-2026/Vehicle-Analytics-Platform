@@ -1,0 +1,325 @@
+require('./setup/authMock');
+
+const { mockPool, mockQuery, setupMockData } = require('./setup/mockDb');
+
+jest.mock('../src/db/pool', () => ({ pool: mockPool }));
+
+const request = require('supertest');
+const app = require('../src/app');
+
+describe('Geofence Controller - Extra Branch Coverage', () => {
+  beforeEach(() => {
+    setupMockData();
+  });
+
+  describe('GET /api/geofences', () => {
+    test('should return all geofences including inactive when active_only=false', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 1, name: 'Active Zone', vehicle_id: null, polygon: '{}', trigger_type: 'both', is_active: true, created_at: new Date(), updated_at: new Date() },
+          { id: 2, name: 'Inactive Zone', vehicle_id: null, polygon: '{}', trigger_type: 'entry', is_active: false, created_at: new Date(), updated_at: new Date() },
+        ],
+        rowCount: 2,
+      });
+
+      const response = await request(app)
+        .get('/api/geofences?active_only=false')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.geofences.length).toBe(2);
+    });
+
+    test('should return empty array when no active geofences exist', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const response = await request(app)
+        .get('/api/geofences?active_only=true')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.geofences).toEqual([]);
+    });
+
+    test('should handle database error when fetching geofences', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .get('/api/geofences')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/geofences/:id', () => {
+    test('should handle database error when fetching geofence by id', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .get('/api/geofences/1')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/geofences', () => {
+    test('should return 400 when polygon/boundary is missing in geofence creation', async () => {
+      const response = await request(app)
+        .post('/api/geofences')
+        .set('Authorization', 'Bearer test-token')
+        .send({ name: 'Test Zone' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    test('should handle database error when creating geofence', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .post('/api/geofences')
+        .set('Authorization', 'Bearer test-token')
+        .send({
+          name: 'Test Zone',
+          boundary: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]] },
+          trigger_type: 'both',
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('PUT /api/geofences/:id', () => {
+    test('should return 404 when updating non-existent geofence', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const response = await request(app)
+        .put('/api/geofences/99999')
+        .set('Authorization', 'Bearer test-token')
+        .send({ name: 'Updated Zone' });
+
+      expect(response.status).toBe(404);
+    });
+
+    test('should handle database error when updating geofence', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .put('/api/geofences/1')
+        .set('Authorization', 'Bearer test-token')
+        .send({
+          name: 'Updated Zone',
+          trigger_type: 'entry',
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('DELETE /api/geofences/:id', () => {
+    test('should return 404 when deleting non-existent geofence', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const response = await request(app)
+        .delete('/api/geofences/99999')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(404);
+    });
+
+    test('should handle database error when deleting geofence', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .delete('/api/geofences/1')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/geofences/events', () => {
+    test('should return geofence events with no filters', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 1, geofence_id: 1, geofence_name: 'Test Zone', vehicle_id: 'V001', event_type: 'entry', latitude: -25.0, longitude: 28.0, speed: 60, created_at: new Date() },
+        ],
+        rowCount: 1,
+      });
+
+      const response = await request(app)
+        .get('/api/geofences/events')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.events).toBeDefined();
+    });
+
+    test('should filter geofence events by geofence_id', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 1, geofence_id: 1, geofence_name: 'Test Zone', vehicle_id: 'V001', event_type: 'entry', latitude: -25.0, longitude: 28.0, speed: 60, created_at: new Date() },
+        ],
+        rowCount: 1,
+      });
+
+      const response = await request(app)
+        .get('/api/geofences/events?geofence_id=1')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should filter geofence events by vehicle_id', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 1, geofence_id: 1, geofence_name: 'Test Zone', vehicle_id: 'V001', event_type: 'entry', latitude: -25.0, longitude: 28.0, speed: 60, created_at: new Date() },
+        ],
+        rowCount: 1,
+      });
+
+      const response = await request(app)
+        .get('/api/geofences/events?vehicle_id=V001')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should respect limit parameter in geofence events', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 1, geofence_id: 1, geofence_name: 'Test Zone', vehicle_id: 'V001', event_type: 'entry', latitude: -25.0, longitude: 28.0, speed: 60, created_at: new Date() },
+        ],
+        rowCount: 1,
+      });
+
+      const response = await request(app)
+        .get('/api/geofences/events?limit=5')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should return empty events when no geofence events found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const response = await request(app)
+        .get('/api/geofences/events')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.events).toEqual([]);
+    });
+
+    test('should handle database error when fetching geofence events', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .get('/api/geofences/events')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('GET /api/geofences/discover/stops', () => {
+    test('should handle missing vehicle_id in discover frequent stops', async () => {
+      const response = await request(app)
+        .get('/api/geofences/discover/stops?days=7')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should handle discover frequent stops with custom radius', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          { vehicle_id: 'V001', cluster_id: 1, centroid_lat: -25.0, centroid_lng: 28.0, point_count: 5, first_seen: new Date(), last_seen: new Date() },
+        ],
+        rowCount: 1,
+      });
+
+      const response = await request(app)
+        .get('/api/geofences/discover/stops?vehicle_id=V001&days=7&radius_km=1.0')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should return empty clusters when no frequent stops found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      const response = await request(app)
+        .get('/api/geofences/discover/stops?vehicle_id=V001&days=7')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.clusters).toEqual([]);
+    });
+
+    test('should handle database error when discovering stops', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database connection failed'));
+
+      const response = await request(app)
+        .get('/api/geofences/discover/stops?vehicle_id=V001&days=7')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Database connection failed');
+    });
+  });
+
+  describe('POST /api/geofences/discover/create', () => {
+    test('should return 400 when creating geofence from cluster with missing center_lat', async () => {
+      const response = await request(app)
+        .post('/api/geofences/discover/create')
+        .set('Authorization', 'Bearer test-token')
+        .send({ name: 'Test Cluster', center_lng: 28.0, radius_km: 0.5 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    test('should return 400 when creating geofence from cluster with missing center_lng', async () => {
+      const response = await request(app)
+        .post('/api/geofences/discover/create')
+        .set('Authorization', 'Bearer test-token')
+        .send({ name: 'Test Cluster', center_lat: -25.0, radius_km: 0.5 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+    });
+
+    test('should handle database error when creating geofence from cluster', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      const response = await request(app)
+        .post('/api/geofences/discover/create')
+        .set('Authorization', 'Bearer test-token')
+        .send({
+          name: 'Cluster Zone',
+          center_lat: -25.0,
+          center_lng: 28.0,
+          radius_km: 0.5,
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body.success).toBe(false);
+    });
+  });
+});

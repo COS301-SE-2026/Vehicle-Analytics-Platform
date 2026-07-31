@@ -3,28 +3,6 @@ import { Truck, X, MapPin, Clock, Waypoints } from 'lucide-react'
 import FleetMap from '../map/FleetMap'
 import PropTypes from 'prop-types'
 
-const mockVehicleDetail = {
-  id: 'VH-0042',
-  model: 'TRUCK-DAF-XF-2023',
-  status: 'moving',
-  currentSpeed: 87,
-  tripDuration: '1h 24m 12s',
-  distanceToday: 142.8,
-  lastSignal: '2023-10-27 14:22:04',
-  gpsSignal: 'EXCELLENT',
-}
-
-const mockIdleVehicle = {
-  id: 'VH-0031',
-  model: 'TRUCK-MAN-TGX-2022',
-  status: 'idle',
-  currentSpeed: 0,
-  tripDuration: '0h 00m 00s',
-  distanceToday: 45.2,
-  lastSignal: '2023-10-27 14:20:11',
-  gpsSignal: 'GOOD',
-}
-
 function DetailRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-2">
@@ -37,18 +15,10 @@ function DetailRow({ icon: Icon, label, value }) {
   )
 }
 
-// Fallback data shown until the API provides these fields
-const MOCK_FALLBACK = {
-  model: 'TRUCK-DAF-XF-2023',
-  tripDuration: '1h 24m 12s',
-  distanceToday: 142.8,
-}
-
 function VehiclePanel({ vehicle, onClose }) {
   if (!vehicle) return null
 
-  // Merge real vehicle over mock fallback so missing fields still display
-  const v = { ...MOCK_FALLBACK, ...vehicle }
+  const v = vehicle
 
   const isMoving = v.status === 'active'
   const statusLabel = isMoving ? 'MOVING' : v.status?.toUpperCase() ?? 'UNKNOWN'
@@ -56,9 +26,31 @@ function VehiclePanel({ vehicle, onClose }) {
     ? 'bg-green-100 text-green-700'
     : 'bg-amber-100 text-amber-700'
 
-  const location = v.lat && v.lng
-    ? `${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}`
-    : v.location || 'Unknown'
+  // Prefers the reverse-geocoded name (vehicle_location_cache, via
+  // getVehicleLocations) over raw coordinates.
+  const location = v.displayName || v.city
+    || (v.lat && v.lng ? `${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}` : 'Unknown')
+
+  const lastUpdate = (() => {
+    // Was v.last_update (snake_case) -- getVehicleLocations in
+    // vehicleService.jsx maps this field to lastUpdate (camelCase), so
+    // this always read undefined and fell straight to 'Unknown' below
+    // regardless of whether the vehicle had actually reported recently.
+    if (!v.lastUpdate) return 'Unknown'
+    const value = v.lastUpdate
+    if (value instanceof Date) {
+      return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    }
+
+    if (typeof value === 'string') {
+      const parsed = new Date(value)
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      }
+      return value
+    }
+    return value
+  })()
 
   return (
     <div className="w-[220px] shrink-0 bg-white border-l border-gray-100 flex flex-col overflow-y-auto">
@@ -72,7 +64,7 @@ function VehiclePanel({ vehicle, onClose }) {
               {statusLabel}
             </span>
           </div>
-          <p className="text-[10px] text-gray-400 mt-0.5">{v.model}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{v.device_id || 'Vehicle'}</p>
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
           <X className="w-4 h-4" />
@@ -84,7 +76,7 @@ function VehiclePanel({ vehicle, onClose }) {
         <div>
           <p className="text-[10px] text-gray-400 uppercase tracking-wide">Current Speed</p>
           <p className="text-2xl font-bold text-gray-800">
-            {v.currentSpeed ?? v.speed ?? 0}
+            {v.speed ?? 0}
             <span className="text-xs font-normal text-gray-400 ml-1">km/h</span>
           </p>
         </div>
@@ -94,15 +86,17 @@ function VehiclePanel({ vehicle, onClose }) {
       {/* Details */}
       <div className="px-4 py-3 flex flex-col gap-3 flex-1">
         <DetailRow icon={MapPin} label="Location" value={location} />
-        <DetailRow icon={Clock} label="Trip Duration" value={v.tripDuration} />
-        <DetailRow icon={Waypoints} label="Distance Today" value={`${v.distanceToday} km`} />
+        <DetailRow icon={Clock} label="Last Update" value={lastUpdate} />
+        <DetailRow icon={Waypoints} label="Odometer" value={v.total_odometer != null ? `${v.total_odometer}` : 'Unknown'} />
+        <DetailRow icon={Truck} label="Ignition" value={v.ignition || 'Unknown'} />
+        <DetailRow icon={Truck} label="Movement" value={v.movement || 'Unknown'} />
       </div>
 
     </div>
   )
 }
 
-export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles = [] }) {
+export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles, buffer }) {
   const [selectedVehicle, setSelectedVehicle] = useState(null)
 
   return (
@@ -110,25 +104,25 @@ export default function FleetMapPlaceholder({ active, idle, offline, total, vehi
       <div className="relative flex-1">
 
         {/* Fleet Summary Card */}
-        <div className="absolute top-4 left-4 z-10 bg-white rounded-xl shadow p-3 w-44">
+        <div className="absolute top-4 left-4 z-10 bg-white rounded-xl shadow p-3 w-60 h-55">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-              <span className="text-xs font-semibold text-gray-700">Live Fleet</span>
+              <span className="text-md font-semibold text-gray-700">Live Fleet</span>
             </div>
-            <span className="text-sm font-bold text-gray-800">{total}</span>
+            <span className="text-xl font-bold text-gray-800">{total}</span>
           </div>
-          <div className="grid grid-cols-2 gap-y-1 text-xs">
+          <div className="grid grid-cols-2 gap-y-1 text-md">
             <div>
-              <p className="text-gray-400 uppercase text-[10px]">Moving</p>
+              <p className="text-gray-400 uppercase text-[12px]">Moving</p>
               <p className="font-bold text-gray-700">{active}</p>
             </div>
             <div>
-              <p className="text-gray-400 uppercase text-[10px]">Offline</p>
+              <p className="text-gray-400 uppercase text-[12px]">Offline</p>
               <p className="font-bold text-gray-700">{offline}</p>
             </div>
             <div>
-              <p className="text-gray-400 uppercase text-[10px]">Idle</p>
+              <p className="text-gray-400 uppercase text-[12px]">Idle</p>
               <p className="font-bold text-gray-700">{idle}</p>
             </div>
           </div>
@@ -138,6 +132,7 @@ export default function FleetMapPlaceholder({ active, idle, offline, total, vehi
         {/* Real Map */}
         <FleetMap
           vehicles={vehicles}
+          buffer={buffer}
           onVehicleClick={setSelectedVehicle}
           minimal={false}
         />
@@ -159,6 +154,7 @@ FleetMapPlaceholder.propTypes = {
   offline:  PropTypes.number,
   total:    PropTypes.number,
   vehicles: PropTypes.array,
+  buffer:   PropTypes.object,
 }
 
 VehiclePanel.propTypes = {

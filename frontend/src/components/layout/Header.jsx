@@ -1,7 +1,12 @@
+import { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import { Button } from '@/components/ui/button'
+import { CircleQuestionMark } from 'lucide-react'
+import { HelpPanel } from '@/components/help/HelpPanel';
 
 export default function Header({ title, collapsed }) {
+  const [ helpOpen, setHelpOpen ] = useState(false);
   const { user } = useAuthStore()
   const initials = (user?.name || 'User')
     .split(' ')
@@ -10,21 +15,31 @@ export default function Header({ title, collapsed }) {
     .toUpperCase()
     .slice(0, 2)
 
+    const openHelp = useCallback(() => setHelpOpen(true), []);
+    const closeHelp = useCallback(() => setHelpOpen(false), []);
+
   return (
     <header className={`h-[60px] bg-fleet-surface border-b border-fleet-border fixed top-0 right-0 ${collapsed ? 'left-[64px]' : 'left-[220px]'} transition-all duration-300 z-10 flex items-center justify-between px-6`}>
       
       {/* Page Title */}
-      <h1 className="font-display font-bold text-xl text-fleet-text">
+      <h1 className="font-display font-bold text-xl text-fleet-blue">
         {title}
       </h1>
 
       {/* Right Side */}
       <div className="flex items-center gap-4">
-        {/* Avatar */}
-        <div className="w-8 h-8 rounded-full bg-fleet-green flex items-center justify-center">
+        <CircleQuestionMark className="w-8 h-8 text-fleet-blue rounded-full" />
+        {/* Avatar & help menu*/}
+        <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center">
           <span className="text-white text-xs font-bold">{initials}</span>
         </div>
       </div>
+
+      <HelpPanel
+        isOpen={helpOpen}
+        onClose={closeHelp}
+        role={user?.role || 'viewer'}
+      />
     </header>
   )
 }

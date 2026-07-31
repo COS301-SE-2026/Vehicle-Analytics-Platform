@@ -1,4 +1,4 @@
-import React from "react"
+//import React from "react"
 import { render, screen, fireEvent, act } from "@testing-library/react"
 
 jest.mock("@/lib/utils", () => ({ cn: (...args) => args.filter(Boolean).join(" ") }))
@@ -22,10 +22,11 @@ jest.mock("class-variance-authority", () => ({
   },
 }))
 
-jest.mock("radix-ui", () => ({
-  Slot: {
-    Root: ({ children, ...props }) => <div data-testid="slot-root" {...props}>{children}</div>,
-  },
+jest.mock("@radix-ui/react-slot", () => ({
+  Slot: ({ children, ...props }) => (
+      <div data-testid="slot-root" {...props}>{children}</div>
+    ),
+  
 }))
 
 jest.mock("@/components/ui/button", () => ({

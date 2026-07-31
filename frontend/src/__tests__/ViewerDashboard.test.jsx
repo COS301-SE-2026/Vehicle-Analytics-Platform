@@ -1,5 +1,5 @@
-import React from 'react'
-import { render, screen, waitFor, act } from '@testing-library/react'
+//import React from 'react'
+import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 // Mock the map component
@@ -57,10 +57,8 @@ describe('ViewerDashboard', () => {
     expect(screen.getByTestId('spinner')).toBeInTheDocument()
   })
 
-  test('renders dashboard after loading', async () => {
-    await act(async () => {
+  test('renders dashboard after loading', async () => { 
       render(<ViewerDashboard />)
-    })
     await waitFor(() => {
       expect(screen.getByText('Active Vehicles')).toBeInTheDocument()
     })
@@ -69,10 +67,7 @@ describe('ViewerDashboard', () => {
   test('displays no data message when KPIs are null', async () => {
     getKPIs.mockResolvedValue(null)
     getVehicleLocations.mockResolvedValue(null)
-    
-    await act(async () => {
-      render(<ViewerDashboard />)
-    })
+    render(<ViewerDashboard />)
     
     await waitFor(() => {
       expect(screen.getByText('No data available')).toBeInTheDocument()
@@ -82,11 +77,8 @@ describe('ViewerDashboard', () => {
   test('displays error message on API failure', async () => {
     getKPIs.mockRejectedValue(new Error('API Error'))
     getVehicleLocations.mockRejectedValue(new Error('API Error'))
-    
-    await act(async () => {
-      render(<ViewerDashboard />)
-    })
-    
+    render(<ViewerDashboard />)
+
     await waitFor(() => {
       expect(screen.getByText('Failed to load dashboard data')).toBeInTheDocument()
     })

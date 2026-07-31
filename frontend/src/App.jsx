@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppShell from './components/layout/AppShell'
 import PropTypes from 'prop-types'
+import Landing from './pages/landing/Landing'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import VerifyEmail from './pages/auth/VerifyEmail'
@@ -8,7 +9,10 @@ import ViewerDashboard from './pages/dashboard/ViewerDashboard'
 import ManagerDashboard from './pages/dashboard/ManagerDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
+import Geofence from './pages/geofence/Geofence'
 import useAuthStore from './store/authStore'
+import VehiclesList from './pages/vehicles/VehiclesList'
+import VehicleProfile from './pages/vehicles/VehicleProfile'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
@@ -38,7 +42,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Auth routes - no sidebar */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/login"  element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
 
@@ -71,15 +76,41 @@ function App() {
           <Route
             path="/map"
             element={
-              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager', 'admin']}>
+              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager']}>
                 <LiveMap />
               </ProtectedRoute>
             }
           />
+          <Route
+          path="/vehicles"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <VehiclesList />
+              </ProtectedRoute>
+          }
+          />
+
+          <Route
+          path="/vehicles/:id"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <VehicleProfile />
+              </ProtectedRoute>
+          }
+          />
+
+           <Route
+          path="/geofence"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <Geofence />
+              </ProtectedRoute>
+          }
+          />
         </Route>
 
         {/* Default redirect - TEMP for testing */}
-        <Route path="/" element={<Navigate to="/dashboard/viewer" />} />
+        <Route path="/landing" element={<Landing />} />
       </Routes>
     </BrowserRouter>
   )

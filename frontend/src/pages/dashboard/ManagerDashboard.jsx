@@ -6,6 +6,7 @@ import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
 import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
+import FleetAnalytics from '../../components/dashboard/FleetAnalytics'
 
 function formatActivityPoints(points, range) {
   return points.map((point) => {
@@ -61,7 +62,7 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 10000)
+    const interval = setInterval(fetchAll, 5000) //5 seconds
     return () => clearInterval(interval)
   }, [activityRange])
 
@@ -96,8 +97,9 @@ export default function ManagerDashboard() {
   const total = kpis.totalVehicles ?? vehicles.length
   const inMotion = active
 
-  const mostActive = [...vehicles]
-    .sort((a, b) => (b.distanceToday ?? b.distance ?? 0) - (a.distanceToday ?? a.distance ?? 0))
+  const activeVehicles = vehicles.filter(v => (v.distanceToday ?? 0) > 0)
+  const mostActive = [...activeVehicles]
+    .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
     .slice(0, 5)
 
   const chartTitle = activityRange === 'week'
@@ -111,7 +113,7 @@ export default function ManagerDashboard() {
   return (
     <div className="space-y-4">
 
-      {/* Row 1 — KPI Cards */}
+      {/* Row 1 - KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           icon={Truck}
@@ -122,7 +124,7 @@ export default function ManagerDashboard() {
         <StatCard
           icon={Waypoints}
           label="Total Distance Today"
-          value={kpis.totalDistance ?? '—'}
+          value={kpis.distanceToday ?? '-'}
           sub="km across fleet"
         />
         <StatCard
@@ -134,7 +136,7 @@ export default function ManagerDashboard() {
         />
       </div>
 
-      {/* Row 2 — Fleet Status + Most Active */}
+      {/* Row 2 - Fleet Status + Most Active */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1">
           <FleetStatusCard
@@ -149,10 +151,10 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Row 3 — Recent Vehicle Events */}
+      {/* Row 3 - Recent Vehicle Events */}
       <RecentVehicleEvents events={events} limit={10} />
 
-      {/* Row 4 — Fleet Activity Chart */}
+      {/* Row 4 - Fleet Activity Chart */}
       <div className="flex items-center justify-end gap-2">
         <button
           type="button"
@@ -184,7 +186,7 @@ export default function ManagerDashboard() {
         yDomain={[0, 'dataMax']}
         useFallback={false}
       />
-
+      <FleetAnalytics />
     </div>
   )
 }

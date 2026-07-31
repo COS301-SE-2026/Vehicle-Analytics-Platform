@@ -1,12 +1,30 @@
+
+
 const express = require('express');
-const { getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistance } = require('../controllers/dashboardController');
-const { authenticate, requireRole } = require('../middleware/auth');
+
+const {getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistanceToday, getFleetStats} = require('../controllers/dashboardController');
+
+
+
+const {authenticate, requireRole} = require('../middleware/auth');
+
+
 
 const router = express.Router();
 
+
+
 router.get('/kpis', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getFleetKPIs);
+
 router.get('/alerts', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getActiveAlerts);
+
 router.get('/activity', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getFleetActivityHistory);
-router.get('/total-distance', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getTotalDistance);
+
+router.get('/total-distance', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getTotalDistanceToday);
+
+router.get('/stats', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getFleetStats);
+
+
 
 module.exports = router;
+

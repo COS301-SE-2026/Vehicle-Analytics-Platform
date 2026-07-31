@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Avatar as AvatarPrimitive } from "radix-ui"
+import * as AvatarPrimitive from "@radix-ui/react-avatar"
 import PropTypes from "prop-types"
 
 import { cn } from "@/lib/utils"

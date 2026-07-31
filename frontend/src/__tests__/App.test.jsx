@@ -1,4 +1,4 @@
-import React from 'react'
+//import React from 'react'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MemoryRouter } from 'react-router-dom'
@@ -90,8 +90,9 @@ describe('App routing', () => {
     expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
   })
 
-  test('/ redirects to /dashboard/viewer', () => {
-    setup('/', { id: 1 }, 'viewer', () => '/dashboard/viewer')
+   test('wrong role at /dashboard/admin redirects to their dashboard', () => {
+    setup('/dashboard/admin', { id: 1 }, 'viewer', () => '/dashboard/viewer')
+    expect(screen.queryByTestId('admin-dashboard')).not.toBeInTheDocument()
     expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
   })
 })

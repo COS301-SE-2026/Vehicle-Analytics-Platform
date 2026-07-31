@@ -1,4 +1,4 @@
-import React from "react"
+//import React from "react"
 import { render, screen } from "@testing-library/react"
 import { Badge, badgeVariants } from "@/components/ui/badge"
 
@@ -13,6 +13,13 @@ jest.mock("class-variance-authority", () => ({
     }
     return classes.filter(Boolean).join(" ")
   },
+}))
+
+jest.mock("@radix-ui/react-slot", () => ({
+  Slot: ({ children, ...props }) => (
+      <div data-testid="slot-root" {...props}>{children}</div>
+    ),
+  
 }))
 
 describe("Badge", () => {

@@ -1,4 +1,4 @@
-import React from "react"
+//import React from "react"
 import { render, screen } from "@testing-library/react"
 import {
   Dialog, DialogTrigger, DialogOverlay, DialogContent,
@@ -11,6 +11,17 @@ jest.mock("@/components/ui/button", () => ({
   Button: ({ children, className, variant, size, ...props }) => (
     <button className={className} data-variant={variant} data-size={size} {...props}>{children}</button>
   ),
+}))
+
+jest.mock("@radix-ui/react-dialog", () => ({
+  Root: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Trigger: ({ children, ...props }) => <button {...props}>{children}</button>,
+  Portal: ({ children }) => <>{children}</>,
+  Overlay: (props) => <div {...props} />,
+  Content: ({ children, ...props }) => <div {...props}>{children}</div>,
+  Close: ({ children, asChild, ...props }) =>asChild ? children : <button {...props}>{children}</button>,
+  Title: ({ children, ...props }) => <h2 {...props}>{children}</h2>,
+  Description: ({ children, ...props }) => <p {...props}>{children}</p>,
 }))
 
 describe("Dialog", () => {

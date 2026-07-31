@@ -1,4 +1,4 @@
-import React from "react"
+//import React from "react"
 import { render, screen } from "@testing-library/react"
 import {
   Avatar, AvatarImage, AvatarFallback, AvatarBadge,
@@ -6,6 +6,16 @@ import {
 } from "@/components/ui/avatar"
 
 jest.mock("@/lib/utils", () => ({ cn: (...args) => args.filter(Boolean).join(" ") }))
+
+jest.mock("@radix-ui/react-avatar", () => {
+  const mockActual = jest.requireActual("@radix-ui/react-avatar")
+    return {
+    ...mockActual,
+    Image: (props) => <img {...props} />,
+  }
+
+})
+
 
 describe("Avatar", () => {
   it("renders with default size", () => {

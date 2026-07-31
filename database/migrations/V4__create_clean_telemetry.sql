@@ -1,30 +1,37 @@
 CREATE TABLE IF NOT EXISTS clean_telemetry (
     time TIMESTAMPTZ NOT NULL,
-    vehicle_id VARCHAR(50) NOT NULL,
-    device_id VARCHAR(50),
-    measurement VARCHAR(50),
+    vehicle_id TEXT NOT NULL,
+    device_id TEXT,
+    measurement TEXT,
     latitude NUMERIC,
     longitude NUMERIC,
     speed INTEGER,
     total_odometer BIGINT,
+    ignition TEXT,
+    movement TEXT,
     UNIQUE (time, vehicle_id)
 );
 
 CREATE TABLE IF NOT EXISTS vehicle_events (
     time TIMESTAMPTZ NOT NULL,
-    vehicle_id VARCHAR(50) NOT NULL,
-    event_category VARCHAR(50),      -- e.g., 'ignition', 'green_driving_type'
-    event_detail VARCHAR(50),        -- e.g., 'harsh_acceleration', 'Ignition On'
+    vehicle_id TEXT NOT NULL,
+    device_id TEXT,
+    event_category TEXT,      -- e.g., 'ignition', 'green_driving_type'
+    event_detail TEXT,        -- e.g., 'harsh_acceleration', 'Ignition On'
     latitude NUMERIC,
     longitude NUMERIC,
     speed INTEGER,
-    UNIQUE (time, vehicle_id, event_category)
+    total_odometer BIGINT,
+    ignition TEXT,
+    movement TEXT,
+    UNIQUE (time, vehicle_id, event_category),
+    location GEOMETRY(POINT, 4326) GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)) STORED
 );
 
 CREATE TABLE IF NOT EXISTS telemetry_errors (
     id SERIAL PRIMARY KEY,
     time TIMESTAMPTZ DEFAULT NOW(),
-    vehicle_id VARCHAR(50),
+    vehicle_id TEXT,
     error_message TEXT,
     raw_payload TEXT,
     synced_to_cloudwatch BOOLEAN DEFAULT FALSE
@@ -45,7 +52,9 @@ BEGIN
     -- 0. Auto-register the vehicle if it's new
     INSERT INTO vehicles (vehicle_id, device_id)
     VALUES (NEW.vehicle_id, NEW.device_id)
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (vehicle_id)
+    DO UPDATE
+    SET device_id = EXCLUDED.device_id;
 
     -- 1. Safely parse numbers
     IF NEW.lat_lng IS NOT NULL AND position(',' in NEW.lat_lng) > 0 THEN
@@ -56,19 +65,47 @@ BEGIN
 
     -- 2. ALL records go into continuous clean_telemetry for breadcrumb routes
     INSERT INTO clean_telemetry (
-        time, vehicle_id, device_id, measurement, latitude, longitude, speed, total_odometer
+        time,
+        vehicle_id, 
+        device_id, 
+        measurement, 
+        latitude, 
+        longitude, 
+        speed, 
+        total_odometer, 
+        ignition, 
+        movement
     ) VALUES (
-        NEW.time, NEW.vehicle_id, NEW.device_id, NEW.measurement,
-        parsed_lat, parsed_lng, parsed_speed, NULLIF(NEW.total_odometer, '')::BIGINT
+        NEW.time, 
+        NEW.vehicle_id, 
+        NEW.device_id, 
+        NEW.measurement,
+        parsed_lat, 
+        parsed_lng, 
+        parsed_speed, 
+        NULLIF(NEW.total_odometer, '')::BIGINT, 
+        NEW.ignition, 
+        NEW.movement
     ) ON CONFLICT (time, vehicle_id) DO NOTHING;
 
     -- 3. If it's a safety trigger (avl_event), ALSO put it in the dedicated vehicle_events table
     IF NEW.measurement = 'avl_event' THEN
         INSERT INTO vehicle_events (
-            time, vehicle_id, event_category, event_detail, latitude, longitude, speed
+            time, 
+            vehicle_id, 
+            device_id, 
+            event_category, 
+            event_detail, 
+            latitude, 
+            longitude, 
+            speed, 
+            total_odometer, 
+            ignition, 
+            movement
         ) VALUES (
             NEW.time, 
             NEW.vehicle_id, 
+            NEW.device_id,
             NEW.event,
             -- Determine the specific detail based on the event type
             CASE 
@@ -79,15 +116,16 @@ BEGIN
             END,
             parsed_lat, 
             parsed_lng, 
-            parsed_speed
+            parsed_speed,
+            NULLIF(NEW.total_odometer, '')::BIGINT,
+            NEW.ignition,
+            NEW.movement
         ) ON CONFLICT (time, vehicle_id, event_category) DO NOTHING;
     END IF;
 
     RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-    INSERT INTO telemetry_errors (vehicle_id, error_message, raw_payload)
-    VALUES (NEW.vehicle_id, SQLERRM, row_to_json(NEW)::TEXT);
-    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN RAISE;
+    
 END;
 $$ LANGUAGE plpgsql;
 

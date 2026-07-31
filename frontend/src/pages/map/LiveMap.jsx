@@ -1,11 +1,29 @@
 import { useState, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { getVehicleLocations } from '@/services/vehicleService'
+import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicleService'
 import LiveFleetMapPlaceholder from '@/components/dashboard/LiveFleetMapPlaceholder'
+import FleetMap from '../../components/map/FleetMap'
 
+const EMPTY_FC = { type: 'FeatureCollection', features: [] }
+
+// POLLING RATES
+//
+// Buffer every 10s against a 30s window: 3x overlap
 export default function LiveMap() {
+  const [buffer, setBuffer] = useState(EMPTY_FC)
   const [locations, setLocations] = useState(null)
   const [loading, setLoading]     = useState(true)
+
+  async function fetchVehiclePositionBuffer(){
+    try{
+      const data = await getVehiclePositionBuffer();
+      setBuffer(data);
+    }catch(err){
+      console.error(err);
+    }finally{
+      setLoading(false);
+    }
+  }
 
   async function fetchLocations() {
     try {
@@ -18,11 +36,19 @@ export default function LiveMap() {
     }
   }
 
+
   useEffect(() => {
-    fetchLocations()
-    const interval = setInterval(fetchLocations, 5000)
+    fetchVehiclePositionBuffer();
+    const interval = setInterval(fetchVehiclePositionBuffer, 10000);
+    return () => clearInterval(interval)
+  },[]);
+
+  useEffect(() => {
+    fetchLocations();
+    const interval = setInterval(fetchLocations, 1000);
     return () => clearInterval(interval)
   }, [])
+
 
   if (loading) {
     return (
@@ -48,6 +74,7 @@ export default function LiveMap() {
         offline={offline}
         total={total}
         vehicles={locations?.vehicles}
+        buffer={buffer}
       />
     </div>
   )

@@ -16,7 +16,7 @@ export function ZoneAlerts({ onViewAll }) {
 
     useEffect(() => {
         getGeofenceEvents().then((result) => {
-            setAlerts(result.events);
+            setAlerts(result.events ?? []);
             setIsLoading(false);
         })
         .catch((err) => {

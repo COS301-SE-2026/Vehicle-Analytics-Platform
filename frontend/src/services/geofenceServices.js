@@ -1,262 +1,182 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { ZoneAlerts } from '@/components/geofence/ZoneAlerts';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+import useAuthStore from "../store/authStore";
 
-jest.mock('@/services/geofenceServices', () => ({
-    getGeofenceEvents: jest.fn(),
-}));
+async function getAuthHeaders() {
+    try{
+        const token = useAuthStore.getState().token;
+        if(token) {
+            return {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            }
+        }
+    } catch (err) {
+        console.error('Error fetching token from store', err);
+    } return { 'Content-Type': 'application/json'};
+}
 
-import { getGeofenceEvents } from '@/services/geofenceServices';
+// POST /api/geofence
+export async function createGeofence(geofence_payload){
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/geofences`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify( geofence_payload ),
+    })
+    if (!res.ok) throw new Error('Failed to create a geofence')
+    const data = await res.json()
+    return {
+        message: data.data.message,
+        geofence: data.data.geofence,
+    };
+}
 
-jest.mock('@/components/ui/button', () => ({
-    Button: ({ children, onClick, className, variant, type }) => (
-        <button type={type || 'button'} onClick={onClick} className={className}>{children}</button>
-    ),
-}));
+// GET /api/geofence
+export async function getGeofences(source) {
+    const headers = await getAuthHeaders();
+    // Pass source='user' to exclude auto-generated hotspot and security
+    // marker zones from the management table -- a single backfill can
+    // create well over a hundred of them, which would otherwise flood
+    // ExistingZones.
+    const url = source
+        ? `${API_BASE_URL}/api/geofences?source=${encodeURIComponent(source)}`
+        : `${API_BASE_URL}/api/geofences`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error('Failed to fetch geofences')
+    const data = await res.json()
+    return {
+        total: data.data.total,
+        geofences: data.data.geofences,
+    };
+}
 
-jest.mock('@/components/ui/select', () => ({
-    Select: ({ children }) => <div data-testid="select">{children}</div>,
-    SelectTrigger: ({ children }) => <div data-testid="select-trigger">{children}</div>,
-    SelectValue: ({ children }) => <div data-testid="select-value">{children}</div>,
-    SelectContent: ({ children }) => <div data-testid="select-content">{children}</div>,
-    SelectItem: ({ children }) => <div data-testid="select-item">{children}</div>,
-}));
+// GET /api/geofences/geojson -- existing zones as a FeatureCollection,
+// straight from Postgres (get_geofences_geojson), for map rendering.
+// Distinct from getGeofences above, which returns flat rows for the table.
+export async function getGeofencesGeoJSON(vehicle_id) {
+    const headers = await getAuthHeaders();
+    const url = vehicle_id
+        ? `${API_BASE_URL}/api/geofences/geojson?vehicle_id=${vehicle_id}`
+        : `${API_BASE_URL}/api/geofences/geojson`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error('Failed to fetch geofences geojson');
+    const data = await res.json();
+    return data.data; // { type: 'FeatureCollection', features: [...] }
+}
 
-jest.mock('@/components/geofence/ZoneActivityDrawer', () => ({
-    ZoneActivityDrawer: jest.fn(({ open, onOpenChange }) => (
-        <div data-testid="activity-drawer">
-            {open && (
-                <div role="dialog">
-                    <div>Drawer Content</div>
-                    <button data-testid="close-drawer" onClick={() => onOpenChange(false)}>
-                        Close
-                    </button>
-                </div>
-            )}
-        </div>
-    )),
-}));
+// PATCH /api/geofence/:geofence_id
+export async function updateGeofence(geofence_id, update){
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/geofences/${geofence_id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify( update ),
+    })
+    if (!res.ok) throw new Error('Failed to update geofence');
+    return await res.json()
+}
 
-jest.mock('lucide-react', () => ({
-    AlertTriangle: ({ className }) => <svg data-testid="alert-icon" className={className}>Alert</svg>,
-    Bell: ({ className }) => <svg data-testid="bell-icon" className={className}>Bell</svg>,
-    CheckCircle2: ({ className }) => <svg data-testid="check-icon" className={className}>Check</svg>,
-}));
+// DELETE /api/geofence
+export async function deleteGeofence(geofence_id) {
+  const headers = await getAuthHeaders();
 
-describe('ZoneAlerts', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+  const res = await fetch(`${API_BASE_URL}/api/geofences/${geofence_id}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to delete geofence');
+  }
+
+  return await res.json();
+}
+
+// GET /api/geofence/
+export async function getGeofenceEvents(geofence_id){
+    const headers = await getAuthHeaders();
+    const url = geofence_id ? `${API_BASE_URL}/api/geofences/events?geofence_id=${geofence_id}`
+                            : `${API_BASE_URL}/api/geofences/events`;
+    const res = await fetch( url, { headers });
+    if (!res.ok) throw new Error('Failed to fetch geofence events')
+    const data = await res.json()
+    return {
+        total: data.data.total,
+        events: data.data.events.map(e => {
+            // Was `${e.vehicle_id} ${e.event_type} ${e.name}` -- the
+            // controller aliases the zone name as `geofence_name`, so
+            // `e.name` was always undefined and every alert rendered as
+            // e.g. "1024 entry undefined".
+            const zoneName = e.geofence_name ?? "unknown zone";
+
+            // hotspot_created has no vehicle_id (fleet-level, not tied to
+            // one vehicle). security_alert DOES have a vehicle_id but
+            // isn't a crossing, so both need their own wording rather
+            // than falling through to "{vehicle} {event_type} {zone}" --
+            // that fallback is what rendered "1006 security_alert undefined".
+            const isHotspot = e.event_type === "hotspot_created";
+            const isSecurity = e.event_type === "security_alert";
+
+            let message;
+            if (isHotspot) {
+                message = `New event hotspot detected: ${zoneName}`;
+            } else if (isSecurity) {
+                message = `Security alert - ${e.vehicle_id}: ${zoneName}`;
+            } else {
+                message = `${e.vehicle_id} ${e.event_type} ${zoneName}`;
+            }
+
+            return {
+                id: e.id,
+                type: isHotspot || isSecurity || e.event_type === "entry"
+                    ? "alert" : "notification",
+                message,
+                // event_time is the telemetry timestamp (when it actually
+                // happened); created_at is when the row was written --
+                // they can differ under backfill/replay/future-stamped
+                // data. Falls back for any pre-migration rows that
+                // predate the event_time column.
+                time: new Date(e.event_time ?? e.created_at).toLocaleString(),
+                read: false,
+            };
+        }),
+    };
+}
+
+// GET
+export async function discoverFrequentStops(vehicle_id) {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/geofences/discover/stops?vehicle_id=${vehicle_id}` , { headers });
+    if (!res.ok) throw new Error('Failed to fetch geofence events')
+    const data = await res.json()
+    return {
+        total_clusters: data.data.total_clusters,
+        clusters: data.data.clusters,
+    };
+}
+
+export async function createGeofenceFromCluster(cluster_payload){
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/geofences/discover/create`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(cluster_payload),
     });
+    if (!res.ok) throw new Error('Failed to create geofence from cluster');
+    const data = await res.json()
+    return {
+        message: data.data.message,
+        geofence: data.data.geofence,
+    }
+}
 
-    test('renders default mock alerts with message and time', async () => {
-        const mockAlerts = [
-            { id: 1, type: 'alert', message: 'TRK-2024-X1 entered Pretoria Depot', time: 'Today, 14:22:05' },
-            { id: 2, type: 'notification', message: 'TRK-552-Z exit Durban Depot', time: 'Today, 11:45:05' },
-            { id: 3, type: 'notification', message: 'TRK-881-A entered Durban Depot', time: 'Today, 09:22:05' },
-        ];
-        getGeofenceEvents.mockResolvedValue(mockAlerts);
-
-        render(<ZoneAlerts />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        expect(screen.getByText(/entered pretoria depot/i)).toBeInTheDocument();
-        expect(screen.getByText(/exit durban depot/i)).toBeInTheDocument();
-        expect(screen.getByText(/entered durban depot/i)).toBeInTheDocument();
-        expect(screen.getByText('Today, 14:22:05')).toBeInTheDocument();
-        expect(screen.getByText('Today, 11:45:05')).toBeInTheDocument();
-        expect(screen.getByText('Today, 09:22:05')).toBeInTheDocument();
-    });
-
-    test('renders provided alerts instead of defaults when passed', async () => {
-        const customAlerts = [
-            { id: 99, type: 'alert', message: 'Custom test alert', time: 'Now' },
-        ];
-        render(<ZoneAlerts alerts={customAlerts} />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        expect(screen.getByText('Custom test alert')).toBeInTheDocument();
-        expect(screen.queryByText(/pretoria depot/i)).not.toBeInTheDocument();
-        expect(screen.queryByText('Today, 14:22:05')).not.toBeInTheDocument();
-    });
-
-    test('renders an empty state gracefully with no alerts', async () => {
-        getGeofenceEvents.mockResolvedValue([]);
-
-        render(<ZoneAlerts />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        expect(screen.getByRole('heading', { name: /zone alerts/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /view all activity/i })).toBeInTheDocument();
-        expect(screen.queryByText(/depot/i)).not.toBeInTheDocument();
-    });
-
-    test('falls back to Bell icon for an unknown alert type', async () => {
-        const customAlerts = [
-            { id: 1, type: 'unknown-type', message: 'Weird alert', time: 'Now' },
-        ];
-        render(<ZoneAlerts alerts={customAlerts} />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        expect(screen.getByText('Weird alert')).toBeInTheDocument();
-        expect(screen.getByTestId('bell-icon')).toBeInTheDocument();
-    });
-
-    test('opens ZoneActivityDrawer when "View All Activity" is clicked', async () => {
-        const user = userEvent.setup();
-        getGeofenceEvents.mockResolvedValue([]);
-
-        render(<ZoneAlerts />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        await user.click(screen.getByRole('button', { name: /view all activity/i }));
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText('Drawer Content')).toBeInTheDocument();
-    });
-
-    test('applies urgent styling for alert type alerts', async () => {
-        const alerts = [
-            { id: 1, type: 'alert', message: 'Urgent alert', time: 'Now' },
-            { id: 2, type: 'notification', message: 'Normal notification', time: 'Now' },
-        ];
-
-        render(<ZoneAlerts alerts={alerts} />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        const urgentElement = screen.getByText('Urgent alert').closest('.rounded-md');
-        expect(urgentElement.className).toContain('bg-fleet-alert/10');
-        const normalElement = screen.getByText('Normal notification').closest('.rounded-md');
-        expect(normalElement.className).not.toContain('bg-fleet-alert/10');
-    });
-
-    test('displays correct icon for alert vs notification types', async () => {
-        const alerts = [
-            { id: 1, type: 'alert', message: 'Alert message', time: 'Now' },
-            { id: 2, type: 'notification', message: 'Notification message', time: 'Now' },
-        ];
-
-        render(<ZoneAlerts alerts={alerts} />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        const alertIcons = screen.getAllByTestId('alert-icon');
-        expect(alertIcons.length).toBe(1);
-        const bellIcons = screen.getAllByTestId('bell-icon');
-        expect(bellIcons.length).toBe(1);
-    });
-
-    test('renders CheckCircle2 icon for every alert', async () => {
-        const alerts = [
-            { id: 1, type: 'alert', message: 'Alert 1', time: 'Now' },
-            { id: 2, type: 'notification', message: 'Alert 2', time: 'Now' },
-        ];
-        render(<ZoneAlerts alerts={alerts} />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        const checkIcons = screen.getAllByTestId('check-icon');
-        expect(checkIcons.length).toBe(2);
-    });
-
-    test('renders correct header with proper styling', async () => {
-        getGeofenceEvents.mockResolvedValue([]);
-
-        render(<ZoneAlerts />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        const header = screen.getByRole('heading', { name: /zone alerts/i });
-        expect(header).toBeInTheDocument();
-        expect(header.className).toContain('font-display');
-        expect(header.className).toContain('font-medium');
-        expect(header.className).toContain('text-lg');
-    });
-
-    test('View All Activity button has correct styling and text', async () => {
-        getGeofenceEvents.mockResolvedValue([]);
-
-        render(<ZoneAlerts />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        const button = screen.getByRole('button', { name: /view all activity/i });
-        expect(button).toBeInTheDocument();
-        expect(button).toHaveAttribute('type', 'button');
-    });
-
-    test('calls onViewAll prop when provided', async () => {
-        const mockOnViewAll = jest.fn();
-        const user = userEvent.setup();
-        getGeofenceEvents.mockResolvedValue([]);
-
-        render(<ZoneAlerts onViewAll={mockOnViewAll} />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        const button = screen.getByRole('button', { name: /view all activity/i });
-        await user.click(button);
-        expect(mockOnViewAll).toHaveBeenCalled();
-    });
-
-    test('renders all alerts with unique keys', async () => {
-        const alerts = [
-            { id: 1, type: 'alert', message: 'Alert 1', time: 'Now' },
-            { id: 2, type: 'notification', message: 'Alert 2', time: 'Now' },
-            { id: 3, type: 'alert', message: 'Alert 3', time: 'Now' },
-        ];
-
-        render(<ZoneAlerts alerts={alerts} />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        expect(screen.getByText('Alert 1')).toBeInTheDocument();
-        expect(screen.getByText('Alert 2')).toBeInTheDocument();
-        expect(screen.getByText('Alert 3')).toBeInTheDocument();
-    });
-
-    test('drawer closes when onOpenChange is called with false', async () => {
-        const user = userEvent.setup();
-        getGeofenceEvents.mockResolvedValue([]);
-
-        render(<ZoneAlerts />);
-
-        await waitFor(() => {
-            expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument();
-        });
-
-        await user.click(screen.getByRole('button', { name: /view all activity/i }));
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-        await user.click(screen.getByTestId('close-drawer'));
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
-});
+export async function discoverFrequentEvents(vehicle_id, event_category, event_detail){
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/geofences/discover/events?vehicle_id=${vehicle_id ?? ''}&event_category=${event_category ?? ''}&event_detail=${event_detail ?? ''}` , { headers });
+    if (!res.ok) throw new Error('Failed to fetch geofence events')
+    const data = await res.json()
+    return {
+        total_hotspots: data.data.total_hotspots,
+        hotspots: data.data.hotspots,
+    };
+}

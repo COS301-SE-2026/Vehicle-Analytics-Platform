@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 import useAuthStore from '../store/authStore';
-
+ 
 async function getAuthHeaders() {
   try {
     const token = useAuthStore.getState().token;
@@ -15,22 +15,22 @@ async function getAuthHeaders() {
   }
   return { 'Content-Type': 'application/json' };
 }
-
+ 
 // GET /api/dashboard/kpis
 export async function getKPIs() {
   const headers = await getAuthHeaders();
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
+ 
     const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, {
       headers,
       signal: controller.signal
     });
-
+ 
     clearTimeout(timeout);
     if (!res.ok) throw new Error('Failed to fetch KPIs');
-
+ 
     const data = await res.json();
     return {
       totalVehicles: data.data.total_vehicles,
@@ -41,7 +41,7 @@ export async function getKPIs() {
     };
   } catch (err) {
     if (err.name === 'AbortError' || err.message === 'Failed to fetch KPIs') {
-      console.warn('KPI fetch timed out — using fallback');
+      console.warn('KPI fetch timed out - using fallback');
       return {
         totalVehicles: 0,
         activeVehicles: 0,
@@ -53,7 +53,7 @@ export async function getKPIs() {
     throw err;
   }
 }
-
+ 
 // GET /api/vehicles/locations
 export async function getVehicleLocations() {
   const headers = await getAuthHeaders()
@@ -69,18 +69,32 @@ export async function getVehicleLocations() {
       status: v.status,
       total_odometer: v.total_odometer,
       ignition: v.ignition,
-      movement: v.movement, 
+      movement: v.movement,
       lastUpdate: v.last_update,
       distanceToday: Number.parseFloat(v.distance_today) || 0,
+      // Reverse-geocoded fields from vehicle_location_cache, joined in by
+      // getLiveLocations. Previously fetched by the backend but never
+      // surfaced past this mapping step -- LiveFleetMapPlaceholder's
+      // VehiclePanel falls back to raw coordinates specifically because
+      // these were never here to prefer.
+      road: v.road,
+      roadClass: v.road_class,
+      routeNumber: v.route_number,
+      speedLimit: v.speed_limit,
+      suburb: v.suburb,
+      city: v.city,
+      province: v.province,
+      country: v.country,
+      displayName: v.display_name,
     }))
     .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
-
+ 
   return {
     timestamp: data.data.timestamp,
     vehicles,
   }
 }
-
+ 
 // GET /api/dashboard/alerts
 export async function getAlerts(limit = 50) {
   const headers = await getAuthHeaders()
@@ -92,7 +106,7 @@ export async function getAlerts(limit = 50) {
     alerts: data.data.alerts,
   }
 }
-
+ 
 // GET /api/dashboard/activity
 export async function getActivityHistory(range = 'day') {
   const headers = await getAuthHeaders()
@@ -101,19 +115,35 @@ export async function getActivityHistory(range = 'day') {
   const data = await res.json()
   return data.data.points || []
 }
-
+ 
 // GET /api/vehicles/:vehicleId
 export async function getVehicleById(vehicleId) {
   const headers = await getAuthHeaders()
   const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}`, { headers })
   if (!res.ok) throw new Error('Failed to fetch vehicle details')
   const data = await res.json()
+  const v = data.data.vehicle
+  const trip = data.data.current_trip
+
   return {
-    vehicle: data.data.vehicle,
-    recent_events: data.data.recent_events,
+    vehicle:{
+    ...v,
+    latitude: Number.parseFloat(v.latitude),
+    longitude: Number.parseFloat(v.longitude),
+    speed: Number(v.speed),
+    speedLimit: Number(v.speed_limit),
+    tripStartTime: trip ? trip.start_time: null,
+
+  },
+    recent_events: (data.data.recent_events || []).map((e) => ({
+      ...e,
+      latitude: Number.parseFloat(e.latitude),
+      longitude: Number.parseFloat(e.longitude),
+      speed: Number(e.speed),
+    })),
   }
 }
-
+ 
 // GET /api/users (admin only)
 export async function getUsers() {
   const headers = await getAuthHeaders()
@@ -122,7 +152,7 @@ export async function getUsers() {
   const data = await res.json()
   return data.data
 }
-
+ 
 // PATCH /api/admin/users/:userId/role
 export async function updateUserRole(userId, role) {
   const headers = await getAuthHeaders()
@@ -134,7 +164,7 @@ export async function updateUserRole(userId, role) {
   if (!res.ok) throw new Error('Failed to update user role')
   return await res.json()
 }
-
+ 
 // DELETE /api/admin/users/:userId
 export async function deleteUser(userId) {
   const headers = await getAuthHeaders()
@@ -146,21 +176,181 @@ export async function deleteUser(userId) {
   return await res.json()
 }
 
-// GET /api/vehicles/buffer (for live map)
 export async function getVehiclePositionBuffer() {
   const headers = await getAuthHeaders();
-
+ 
   const res = await fetch(`${API_BASE_URL}/api/vehicles/buffer`, {
     headers
   });
 
-  if(!res.ok){
+  if (!res.ok) {
     throw new Error('Failed to fetch playback buffer')
   }
-
+ 
   const data = await res.json();
 
-  return data.data.vehicles;
-
+  return data.data; // { type: 'FeatureCollection', timestamp, features: [...] }
 }
 
+export async function getVehicleSafetyScore(vehicleId, date = null) {
+  const headers = await getAuthHeaders()
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const res = await fetch(`${API_BASE_URL}/api/safety/scores/${vehicleId}${query}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicle safety score')
+  }
+
+  const data = await res.json()
+  return data.data
+  
+}
+
+export async function getFleetSafetyScores(date = null){
+  const headers = await getAuthHeaders()
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  const res = await fetch(`${API_BASE_URL}/api/safety/scores${query}`, { headers })
+
+
+  if (!res.ok){
+    throw new Error('Failed to fetch fleet safety scores')
+  }
+
+  const data = await res.json()
+  return data.data.vehicles || []
+}
+
+export async function getVehiclesList({status, page = 1, limit = 20} = {}) {
+  const headers = await getAuthHeaders()
+
+  const params = new URLSearchParams()
+
+  if (status && status !== 'all'){
+    params.set('status', status)
+  }
+
+  params.set('page', page)
+  params.set('limit', limit)
+
+  const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`, {headers})
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicles list')
+  }
+
+  const data = await res.json()
+
+  return {
+    vehicles: data.data.vehicles || [],
+    stats: data.data.stats || {},
+    pagination: data.data.pagination || {}
+  }
+
+  
+}
+
+
+export async function getVehicleTrips(vehicleId, {limit = 10, before } = {}){
+  const headers = await getAuthHeaders()
+  const params = new URLSearchParams()
+  params.set('limit', limit)
+
+  if(before){
+    params.set('before', before)
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/trips?${params.toString()}`, {headers})
+
+  if(!res.ok){
+    throw new Error('Failed to fetch vehicle trips')
+  }
+    const data = await res.json()
+    return data.data
+}
+
+export async function getVehicleSafetyScoreTrend(vehicleId, days = 7) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/safety-trend?days=${days}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch vehicle safety trend')
+  }
+
+  const data = await res.json()
+  return data.data
+  
+}
+
+export async function getTripReplay(tripId) {
+  const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/trips/replay/${tripId}`, {headers})
+
+  if (!res.ok){
+    throw new Error('Failed to fetch trip replay')
+  }
+
+  const data = await res.json()
+  return data.data
+  
+}
+
+
+
+const EVENT_TYPE_LABELS = {
+  harsh_braking: 'Harsh Braking',
+  harsh_acceleration: 'Harsh Acceleration',
+  harsh_cornering: 'Harsh Cornering',
+  speeding: 'Speeding',
+  // side note that the backend's event_breakdown query does not query crash detection so that will not show anhythi
+  // at the moment 
+}
+ 
+function classifyScore(score) {
+  if (score >= 80) return 'GOOD'
+  if (score >= 50) return 'WARNING'
+  return 'POOR'
+}
+ 
+// range ('day' | 'week') maps directly to the backend's `period` query param
+export async function getFleetAnalytics(range = 'day') {
+  const headers = await getAuthHeaders()
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/fleet/analytics?period=${encodeURIComponent(range)}`, { headers })
+    if (!res.ok) throw new Error('Failed to fetch fleet analytics')
+    const data = await res.json()
+    const body = data.data
+ 
+    const safetyTrend = (body.trend ?? []).map(row => ({
+      label: new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      score: Math.round(row.avg_score),
+    }))
+ 
+    const eventBreakdown = (body.event_breakdown ?? []).map(row => ({
+      type: EVENT_TYPE_LABELS[row.type] ?? row.type,
+      count: row.count,
+    }))
+ 
+    const totalEvents = (body.vehicle_contributions ?? [])
+      .reduce((sum, row) => sum + (row.total_events || 0), 0) || 1
+    const topContributors = (body.vehicle_contributions ?? [])
+      .slice(0, 5)
+      .map(row => ({
+        vehicleId: row.vehicle_id,
+        percentage: Math.round((row.total_events / totalEvents) * 100),
+      }))
+ 
+    // ranked (worst first)
+    const lowestSafetyScores = (body.ranked_vehicles ?? [])
+      .slice(0, 5)
+      .map(row => ({
+        vehicleId: row.vehicle_id,
+        score: Math.round(row.avg_score),
+        status: classifyScore(row.avg_score),
+        daysTracked: row.days_count, // note that no per-vehicle timestamp exists here
+      }))
+ 
+    return { safetyTrend, eventBreakdown, topContributors, lowestSafetyScores }
+  } catch (err) {
+    console.error('Fleet analytics fetch failed:', err.message)
+    throw err
+  }
+}

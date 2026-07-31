@@ -69,7 +69,7 @@
       "lcov"
     ],
 
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "setupFilesAfterEnv": ["<rootDir>/__tests__/setup/jest.setup.js"],
 
     "testPathIgnorePatterns": ["/node_modules/", "/__tests__/setup/"],
 

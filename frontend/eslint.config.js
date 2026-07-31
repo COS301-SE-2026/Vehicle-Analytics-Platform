@@ -5,19 +5,17 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage']),
   {
-    files: ['jest.setup.js', 'src/__tests__/**/*.{js,jsx}'],
+    files: ['__mocks__/**/*.js'],
     languageOptions: {
-      globals: {
+      globals:{
         ...globals.node,
         ...globals.jest,
       },
     },
-    rules: {
-      'react-refresh/only-export-components': 'off',
-    },
   },
+  
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -31,6 +29,19 @@ export default defineConfig([
         ...globals.jest,
       },
       parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+  },
+
+  {
+    files: ['jest.setup.js', 'src/__tests__/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
-import GoogleButton from "../../components/GoogleButton";
 import PasswordToggleIcon from "../../components/PasswordToggleIcon";
 import useAuthStore from '../../store/authStore';
 
@@ -68,10 +67,6 @@ export default function Login() {
       <div className="auth-card">
         <h2>Welcome back</h2>
         <p className="auth-subtitle">Sign in to your fleet dashboard</p>
-
-        <GoogleButton />
-
-        <div className="auth-divider"><span>OR</span></div>
 
         {error && <div className="auth-error">{error}</div>}
 

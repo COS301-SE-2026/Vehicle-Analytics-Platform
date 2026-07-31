@@ -20,6 +20,12 @@ jest.mock('@/services/vehicleService', () => ({
   getVehicleLocations: jest.fn(),
   getAlerts: jest.fn(),
   getActivityHistory: jest.fn(),
+  getFleetAnalytics: jest.fn().mockResolvedValue({
+    safetyTrend: [],
+    eventBreakdown: [],
+    topContributors: [],
+    lowestSafetyScores: [],
+  }),
 }))
 jest.mock('lucide-react', () => ({
   Truck: () => <svg />,

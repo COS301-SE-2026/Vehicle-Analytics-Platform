@@ -1,34 +1,39 @@
+import { useState, useEffect } from "react";
 import { AlertTriangle, Bell, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-// mock data 
-const mockAlerts = [
-    {
-        id: 1,
-        type: "alert",
-        message: "TRK-2024-X1 entered Pretoria Depot",
-        time: "Today, 14:22:05"
-    },
-    {
-        id: 2,
-        type: "notification",
-        message: "TRK-552-Z exit Durban Depot",
-        time: "Today, 11:45:05" 
-    },
-    {
-        id: 3,
-        type: "notification",
-        message: "TRK-881-A entered Durban Depot",
-        time: "Today, 09:22:05"
-    },
-];
+import { ZoneActivityDrawer } from "./ZoneActivityDrawer";
+import { getGeofenceEvents } from "@/services/geofenceServices";
 
 const iconByType = {
     alert: AlertTriangle,
     notification: Bell,
 };
 
-export function ZoneAlerts({ alerts = mockAlerts, onViewAll }) {
+export function ZoneAlerts({ onViewAll }) {
+    const [ drawerOpen, setDrawerOpen ] = useState(false);
+    const [ alerts, setAlerts ] = useState([]);
+    const [ isLoading, setIsLoading ] = useState(true);
+
+    useEffect(() => {
+        getGeofenceEvents().then((result) => {
+            setAlerts(result.events);
+            setIsLoading(false);
+        })
+        .catch((err) => {
+            console.error("Failed to fetch alerts: ", err);
+            setIsLoading(false);
+        });
+    }, []);
+
+    if (isLoading) {
+        return <p className="text-fleet-secondary">Loading alerts...</p>;
+    }
+
+    const handleViewAll = () => {
+        setDrawerOpen(true);
+        onViewAll?.();
+    };
+
   return (
     <div className="border border-fleet-border bg-fleet-surface rounded-lg p-6">
         <h2 className="font-display font-medium text-lg mb-4 text-fleet-text">
@@ -46,7 +51,7 @@ export function ZoneAlerts({ alerts = mockAlerts, onViewAll }) {
                         className={`flex items-start justify-between gap-3 rounded-md p-3 ${
                             isUrgent
                             ? "bg-fleet-alert/10"
-                            : alert.red
+                            : alert.read
                             ? "opacity-50"
                             : ""
                         }`}
@@ -82,11 +87,13 @@ export function ZoneAlerts({ alerts = mockAlerts, onViewAll }) {
                 type="button"
                 variant="link"
                 className="text-fleet-secondary text-sm"
-                onClick={onViewAll}
+                onClick={handleViewAll}
             >
                 View All Activity
             </Button>
         </div>
+
+        <ZoneActivityDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
     </div>
   ); 
 }

@@ -4,6 +4,26 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/comp
 
 jest.mock("@/lib/utils", () => ({ cn: (...args) => args.filter(Boolean).join(" ") }))
 
+jest.mock("@radix-ui/react-tooltip", () => {
+  const passthrough = (Tag = "div") => ({ children, delayDuration, sideOffset, ...props }) => (
+    <Tag
+      {...props}
+      {...(delayDuration !== undefined ? { "data-delay": delayDuration } : {})}
+      {...(sideOffset !== undefined ? { "data-side-offset": sideOffset } : {})}
+    >
+      {children}
+    </Tag>
+  )
+  return {
+    Provider: passthrough(),
+    Root: passthrough(),
+    Trigger: passthrough("button"),
+    Portal: ({ children }) => <>{children}</>,
+    Content: passthrough(),
+    Arrow: (props) => <span data-testid="tooltip-arrow" {...props} />,
+  }
+})
+
 describe("TooltipProvider", () => {
   it("renders with data-slot='tooltip-provider'", () => {
     const { container } = render(<TooltipProvider><div /></TooltipProvider>)

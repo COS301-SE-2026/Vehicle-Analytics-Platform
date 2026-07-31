@@ -14,7 +14,7 @@ import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
 
-  if (!user) return <Na  vigate to="/login" replace />
+  if (!user) return <Navigate to="/login" replace />
 
   if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     const redirect = useAuthStore.getState().getDashboardPath()

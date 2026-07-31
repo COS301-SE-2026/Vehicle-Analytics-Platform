@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import { CircleQuestionMark } from 'lucide-react'
 
 export default function Header({ title, collapsed }) {
   const { user } = useAuthStore()
@@ -20,7 +21,8 @@ export default function Header({ title, collapsed }) {
 
       {/* Right Side */}
       <div className="flex items-center gap-4">
-        {/* Avatar */}
+        <CircleQuestionMark className="w-8 h-8 text-fleet-blue rounded-full" />
+        {/* Avatar & help menu*/}
         <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center">
           <span className="text-white text-xs font-bold">{initials}</span>
         </div>

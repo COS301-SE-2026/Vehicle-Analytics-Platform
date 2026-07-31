@@ -35,7 +35,10 @@ export default function DeleteZoneModal({open, onOpenChange, zone, onConfirm}) {
           >
             Delete
           </AlertDialogAction>
-          <AlertDialogCancel className="h-12 text-fleet-secondary">
+          <AlertDialogCancel 
+            className="h-12 text-fleet-secondary"
+            onClick={() => onOpenChange?.(false)}
+          >
             Cancel
           </AlertDialogCancel>
         </AlertDialogFooter>

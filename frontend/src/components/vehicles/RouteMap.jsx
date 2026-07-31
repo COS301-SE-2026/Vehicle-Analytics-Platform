@@ -194,7 +194,22 @@ export default function RouteMap({ routePoints, routeLabel}) {
             setCurrentIndex(Math.min(Math.max(targetIndex, 0), lastIndex))
         }
 
+        function handleScrubKeyDown(event) {
+            if(event.key === 'ArrowRight') {
+                setIsPlaying(false)
+                setCurrentIndex((indx) => Math.min(lastIndex, indx + 1))
+            } else if(event.key === 'ArrowLeft') {
+                setIsPlaying(false)
+                setCurrentIndex((indx) => Math.min(lastIndex, indx - 1))
+            }else if(event.key === 'Home') {
+                setIsPlaying(false)
+                setCurrentIndex(0)
+            }else if(event.key === 'End') {
+                setIsPlaying(false)
+                setCurrentIndex(lastIndex)
+            }
 
+        }
 
     return (
     <div ref={wrapperRef}>
@@ -208,6 +223,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 {/*REWIND*/}
                 <button 
                     type="button" 
+                    data-testid="rewind-button"
                     onClick={handleRewind}
                     className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
                     <Rewind className="w-4 h-4"/>
@@ -215,17 +231,19 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 {/*PLAY*/}
                 <button 
                     type="button" 
+                    data-testid="play-pause-button"
                     onClick={handlePlayPause}
                     className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center shrink-0">
                         {isPlaying ? (
-                            <Pause className="w-3.5 h-3.5 text-white fill-white"></Pause>
+                            <Pause className="w-3.5 h-3.5 text-white fill-white" data-testid="pause-icon"></Pause>
                         ) : (
-                            <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5"/>
+                            <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" data-testid="play-icon"/>
                         )}
                 </button>
                 {/*FAST FORWARD*/}
                 <button 
                     type="button" 
+                    data-testid="fast-forward-button"
                     onClick={handleFastForward}
                     className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
                     <FastForward className="w-4 h-4"/>
@@ -246,9 +264,15 @@ export default function RouteMap({ routePoints, routeLabel}) {
                     ))}
                 </div>
                 <div
-                    role="button"
+                    role="slider"
+                    aria-label="Trip playback position"
+                    aria-valuenow={Math.round(progressPercent)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    data-testid="scrub-bar"
                     tabIndex={0}
                     onClick={handleScrub}
+                    onKeyDown={handleScrubKeyDown}
                     className="flex-1 h-1 bg-fleet-border rounded-full overflow-hidden cursor-pointer">
                     <div className="h-full bg-fleet-blue rounded-full" style={{ width: `${progressPercent}%` }}/>
                     </div>
@@ -257,6 +281,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 </span>
                 <button 
                     type="button" 
+                    data-testid="fullscreen-button"
                     onClick={handleFullscreen}
                     className="w-7 h-7 flex items-center justify-center text-fleet-text hover:text-fleet-blue">
                     <Maximize2 className="w-4 h-4" />

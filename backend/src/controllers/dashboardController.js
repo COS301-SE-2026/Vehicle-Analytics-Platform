@@ -1,6 +1,3 @@
-
-
-
 const {pool} = require('../db/pool');
 
 const {success, error} = require('../utils/response');
@@ -51,7 +48,10 @@ async function getFleetKPIs(req, res) {
 
 
       
-      WHERE last_update >= NOW() AT TIME ZONE 'UTC' - INTERVAL '1 hour'
+      -- data_now(), not NOW(): telemetry runs ~3 days ahead, so every
+        -- vehicle satisfied a NOW()-relative window and active_vehicles
+        -- read 14/15 permanently, dead ones included.
+        WHERE last_update >= data_now() - INTERVAL '1 hour'
       
       ) as active_vehicles
     
@@ -62,36 +62,14 @@ async function getFleetKPIs(req, res) {
 
     
       const alerts_result = await pool.query(`
-    
-        SELECT
-    
-        time,
-    
-        vehicle_id,
-    
-        event_category,
-    
-    
-        event_detail,
-        speed,
-    
-        latitude,
-    
-    
-        longitude
-    
-        FROM vehicle_events
-    
-        WHERE time >= NOW() AT TIME ZONE 'UTC' - INTERVAL '15 seconds'
-    
-
-    
-        
-      AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
-      
-      ORDER BY time DESC;
-
-
+      -- Was scoped to INTERVAL '15 seconds' -- not "today", so this almost
+      -- always read 0-2. Also selected 7 columns of every row purely to
+      -- take .length; COUNT(*) does it in the database.
+      -- 'speeding' dropped: no such event_category is ever emitted.
+      SELECT COUNT(*) AS alert_count
+      FROM vehicle_events
+      WHERE time >= data_today()
+        AND event_category IN ('green_driving_type', 'crash_detection')
     `);
 
 
@@ -107,7 +85,7 @@ async function getFleetKPIs(req, res) {
       FROM vehicle_daily_distance
     
     
-      WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC');
+      WHERE day >= data_today();
 
 
       
@@ -126,14 +104,14 @@ async function getFleetKPIs(req, res) {
     return success(res, {
     
     
-      total_vehicles:  parseInt(v.total_vehicles)||0,
+      total_vehicles:  Number.parseInt(v.total_vehicles)||0,
     
-      active_vehicles: parseInt(v.active_vehicles)||0,
+      active_vehicles: Number.parseInt(v.active_vehicles)||0,
     
     
-      alerts_today:    alertsCount,
+      alerts_today:    Number.parseInt(alerts_result.rows[0].alert_count) || 0,
     
-      distance_today:  parseFloat(d.distance_today)||0,
+      distance_today:  Number.parseFloat(d.distance_today)||0,
     
       last_updated:    new Date().toISOString()
     
@@ -178,30 +156,27 @@ async function getActiveAlerts(req, res) {
   
 
       SELECT
-  
-      vehicle_id,
-        event_detail as type,
-  
-        event_category,
-  
-  
-  
-        latitude,
-  
-        longitude,
-  
-        speed,
-  
-  
-  
-        time as timestamp
-      FROM vehicle_events
-  
-  
-      WHERE event_category IN ('green_driving_type', 'crash_detection', 'speeding')
-     
-     
-      ORDER BY time DESC
+        ve.vehicle_id,
+        ve.event_detail as type,
+        ve.event_category,
+        ve.latitude,
+        ve.longitude,
+        ve.speed,
+        ve.time as timestamp,
+        vlc.display_name
+      FROM vehicle_events ve
+      -- Join the OSM cache so \`location\` reads as a road/suburb name
+      -- rather than a coordinate pair. Falls back to lat/lng when a
+      -- vehicle has no cached geocode yet.
+      LEFT JOIN vehicle_location_cache vlc ON vlc.vehicle_id = ve.vehicle_id
+      WHERE ve.event_category IN (
+              'green_driving_type', 'crash_detection',
+              -- 'speeding' dropped: the pipeline never emits it, so it
+              -- silently matched nothing. Security events added --
+              -- towing/unplug/immobilizer are the most urgent things here.
+              'towing', 'unplug', 'immobilizer'
+            )
+      ORDER BY ve.time DESC
   
       LIMIT $1
   
@@ -211,83 +186,58 @@ async function getActiveAlerts(req, res) {
       
     
     
+      // Field names must match what RecentVehicleEvents reads. The previous
+      // shape (vehicle_id / type / message, no location, lowercase
+      // severity) meant every field resolved to undefined and each row
+      // rendered blank -- an empty card with no error anywhere.
       const alerts = result.rows.map((alert, index) => {
-    
-        let severity = 'medium';
-    
-    
-        if(alert.type === 'harsh_braking'){
+        const detail = (alert.type || '').toLowerCase();
+        const category = alert.event_category;
 
-          
-        severity = 'high';
-    
-    
-      } 
-      
-      
-      else if(alert.event_category === 'crash_detection'){
+        let eventType = category || 'unknown';
+        let severity = 'LOW';
+        let description = alert.type || 'Event recorded';
 
-    
+        if (category === 'crash_detection') {
+          eventType = 'crash'; severity = 'HIGH';
+          description = alert.type || 'Impact detected';
+        } else if (detail.includes('harsh_braking')) {
+          eventType = 'harsh_braking'; severity = 'MEDIUM';
+          description = 'Harsh braking detected';
+        } else if (detail.includes('harsh_acceleration')) {
+          eventType = 'harsh_acceleration'; severity = 'MEDIUM';
+          description = 'Harsh acceleration detected';
+        } else if (detail.includes('harsh_cornering')) {
+          eventType = 'harsh_cornering'; severity = 'MEDIUM';
+          description = 'Harsh cornering detected';
+        } else if (category === 'towing' || category === 'unplug' || category === 'immobilizer') {
+          // Security/tamper events -- urgent individually.
+          eventType = category; severity = 'HIGH';
+          description = category === 'towing' ? 'Vehicle being towed'
+                      : category === 'unplug' ? 'Tracking device unplugged'
+                      : 'Immobilizer activated';
+        }
 
-        
-        severity = 'critical';
-    
+        const hasCoords = alert.latitude != null && alert.longitude != null;
 
-      }
+        return {
+          // Index alone collides across refetches; key on the event itself.
+          id: `${alert.vehicle_id}-${new Date(alert.timestamp).getTime()}-${index}`,
+          vehicleId: alert.vehicle_id,
+          eventType,
+          description,
+          location: alert.display_name
+            || (hasCoords
+                ? `${Number(alert.latitude).toFixed(4)}, ${Number(alert.longitude).toFixed(4)}`
+                : 'Unknown location'),
+          // Uppercase: SEVERITY_STYLES is keyed HIGH/MEDIUM/LOW, so
+          // lowercase silently fell through to the LOW style.
+          severity,
+          timestamp: alert.timestamp,
+        };
+      });
 
-    
-    
-      const alertType = alert.type || alert.event_category;
-
-    
-    
-      return {
-    
-      
-        id: index + 1,
-      
-      
-        vehicle_id: alert.vehicle_id,
-    
-
-    
-
-        
-        type: alertType,
-    
-
-        
-        severity: severity,
-    
-
-        
-        message: `${alert.vehicle_id}: ${alertType} at ${alert.speed} km/h`,
-    
-
-        
-        latitude: Number.parseFloat(alert.latitude),
-    
-
-        
-        longitude: Number.parseFloat(alert.longitude),
-    
-
-        
-        speed: alert.speed,
-    
-
-    
-
-        
-        timestamp: alert.timestamp,
-      };
-
-    });
-
-
-
-    
-    return success(res, { total: alerts.length, alerts }, 200);
+      return success(res, { total: alerts.length, alerts }, 200);
 
 
   } 
@@ -363,7 +313,7 @@ async function getFleetActivityHistory(req, res) {
         COUNT(DISTINCT vehicle_id) FILTER (WHERE speed >= 3) AS active_vehicles
   
         FROM clean_telemetry
-      WHERE time >= NOW() - $2::interval 
+      WHERE time >= data_now() - $2::interval 
   
       GROUP BY 1
   
@@ -375,15 +325,18 @@ async function getFleetActivityHistory(req, res) {
       
     
     
+      // Recharts reads dataKey="time" and dataKey="vehicles". Returning
+      // {bucket, active_vehicles} gave it rows whose keys it didn't
+      // recognise -- every bar had no value and no label, so the chart
+      // rendered blank rather than erroring.
       const points = result.rows.map((row) => ({
-    
-        bucket: row.bucket,
-    
-        active_vehicles: parseInt(row.active_vehicles)||0,
-
-
-
-    
+        time: (() => {
+          const d = new Date(row.bucket);
+          return range === 'week'
+            ? d.toLocaleDateString('en-US', { weekday: 'short' })
+            : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        })(),
+        vehicles: Number.parseInt(row.active_vehicles) || 0,
       }));
 
 
@@ -440,7 +393,7 @@ async function getTotalDistanceToday(req, res) {
 
       SUM(distance_km) FILTER (
 
-      WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
+      WHERE day >= data_today()
 
       ),
 
@@ -450,7 +403,7 @@ async function getTotalDistanceToday(req, res) {
 
       COUNT(DISTINCT vehicle_id) FILTER (
 
-      WHERE bucket >= date_trunc('day', NOW() AT TIME ZONE 'UTC')
+      WHERE day >= data_today()
         ) AS vehicles_driven_today
 
 
@@ -519,7 +472,7 @@ async function getFleetStats(req, res) {
         v.vehicle_id,
           CASE
           WHEN pos.last_update IS NULL THEN 'offline'
-          WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
+          WHEN pos.last_update < data_now() - INTERVAL '5 minutes' THEN 'offline'
           WHEN COALESCE(pos.speed, 0) > 0 THEN 'active'
             ELSE 'idle'
             END as status,
@@ -528,12 +481,12 @@ async function getFleetStats(req, res) {
           ELSE false 
           END as has_alert
           FROM vehicles v
-          LEFT JOIN current_vehicle_position pos ON v.vehicle_id = pos.id
+          LEFT JOIN current_vehicle_position pos ON pos.vehicle_id = v.vehicle_id
           LEFT JOIN (
           SELECT DISTINCT vehicle_id 
           FROM vehicle_events 
-          WHERE time > NOW() - INTERVAL '1 hour'
-          AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
+          WHERE time > data_now() - INTERVAL '1 hour'
+          AND event_category IN ('green_driving_type', 'crash_detection')
         ) ve ON v.vehicle_id = ve.vehicle_id
         ) stats
         `); 
@@ -541,7 +494,7 @@ async function getFleetStats(req, res) {
         const distanceResult = await pool.query(`  
           SELECT COALESCE(SUM(distance_km), 0) as total_distance
           FROM vehicle_daily_distance
-          WHERE bucket = date_trunc('day', NOW())
+          WHERE day = data_today()
     `);
 
     const userResult = await pool.query(`
@@ -554,17 +507,17 @@ async function getFleetStats(req, res) {
     `);
     const users = userResult.rows[0];
     return success(res, {
-      total_vehicles: parseInt(result.rows[0].total_vehicles)||0,
-      active_vehicles: parseInt(result.rows[0].active_vehicles)||0,
-      idle_vehicles: parseInt(result.rows[0].idle_vehicles)||0,
-      offline_vehicles: parseInt(result.rows[0].offline_vehicles)||0,
-      alerts: parseInt(result.rows[0].alerts)||0,
-      total_distance_today: parseFloat(distanceResult.rows[0].total_distance)||0,
+      total_vehicles: Number.parseInt(result.rows[0].total_vehicles)||0,
+      active_vehicles: Number.parseInt(result.rows[0].active_vehicles)||0,
+      idle_vehicles: Number.parseInt(result.rows[0].idle_vehicles)||0,
+      offline_vehicles: Number.parseInt(result.rows[0].offline_vehicles)||0,
+      alerts: Number.parseInt(result.rows[0].alerts)||0,
+      total_distance_today: Number.parseFloat(distanceResult.rows[0].total_distance)||0,
       users: {
-        total: parseInt(users.total_users)||0,
-        admins: parseInt(users.admins)||0,
-        managers: parseInt(users.managers)||0,
-        viewers: parseInt(users.viewers)||0
+        total: Number.parseInt(users.total_users)||0,
+        admins: Number.parseInt(users.admins)||0,
+        managers: Number.parseInt(users.managers)||0,
+        viewers: Number.parseInt(users.viewers)||0
       },
       last_updated: new Date().toISOString()
     }, 200);
@@ -580,5 +533,3 @@ async function getFleetStats(req, res) {
 
 
 module.exports = { getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistanceToday, getFleetStats };
-
-

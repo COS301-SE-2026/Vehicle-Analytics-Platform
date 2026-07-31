@@ -1,0 +1,705 @@
+---
+Metadata:
+  AWSToolsMetrics:
+    IaC_Generator: "arn:aws:cloudformation:af-south-1:273949555549:generatedTemplate/8cfe05cd-7abf-4454-87d8-56eca17d7101"
+Parameters:
+  LambdaFunctionKinesistelemetryingestionCodeS3ObjectVersionoOsa0:
+    NoEcho: "true"
+    Type: "String"
+    Description: "For versioned objects, the version of the deployment package object\
+      \ to use."
+  LambdaFunctionVehicleanalyticsapiCodeS3BucketWPRyX:
+    NoEcho: "true"
+    Type: "String"
+    Description: "An Amazon S3 bucket in the same AWS-Region as your function. The\
+      \ bucket can be in a different AWS-account."
+  LambdaFunctionVehicleanalyticsapiCodeS3KeyN5BXx:
+    NoEcho: "true"
+    Type: "String"
+    Description: "The Amazon S3 key of the deployment package."
+  LambdaFunctionVehicleanalyticsapiCodeSourceKMSKeyArnkw98k:
+    NoEcho: "true"
+    Type: "String"
+    Description: "The ARN of the KMSlong (KMS) customer managed key that's used to\
+      \ encrypt your function's .zip deployment package. If you don't provide a customer\
+      \ managed key, Lambda uses an [owned key](https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-owned-cmk)."
+  LambdaFunctionVehicleanalyticsapiCodeImageUri2ZAaJ:
+    NoEcho: "true"
+    Type: "String"
+    Description: "URI of a [container image](https://docs.aws.amazon.com/lambda/latest/dg/lambda-images.html)\
+      \ in the Amazon ECR registry."
+  LambdaFunctionKinesistelemetryingestionCodeZipFilemRUsC:
+    NoEcho: "true"
+    Type: "String"
+    Description: "(Node.js and Python) The source code of your Lambda function. If\
+      \ you include your function source inline with this parameter, CFN places it\
+      \ in a file named ``index`` and zips it to create a [deployment package](https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-package.html).\
+      \ This zip file cannot exceed 4MB. For the ``Handler`` property, the first part\
+      \ of the handler identifier must be ``index``. For example, ``index.handler``.\n\
+      \  When you specify source code inline for a Node.js function, the ``index``\
+      \ file that CFN creates uses the extension ``.js``. This means that Node.js\
+      \ treats the file as a CommonJS module.\n When using Node.js 24 or later, Node.js\
+      \ can automatically detect if a ``.js`` file should be treated as CommonJS or\
+      \ as an ES module. To enable auto-detection, add the ``--experimental-detect-module``\
+      \ flag to the ``NODE_OPTIONS`` environment variable. For more information, see\
+      \ [Experimental Node.js features](https://docs.aws.amazon.com//lambda/latest/dg/lambda-nodejs.html#nodejs-experimental-features).\n\
+      \   For JSON, you must escape quotes and special characters such as newline\
+      \ (``\\n``) with a backslash.\n If you specify a function that interacts with\
+      \ an AWS CloudFormation custom resource, you don't have to write your own functions\
+      \ to send responses to the custom resource that invoked the function. AWS CloudFormation\
+      \ provides a response module ([cfn-response](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-lambda-function-code-cfnresponsemodule.html))\
+      \ that simplifies sending responses. See [Using Lambda with CloudFormation](https://docs.aws.amazon.com/lambda/latest/dg/services-cloudformation.html)\
+      \ for details."
+  LambdaFunctionKinesistelemetryingestionCodeS3BucketyoKmR:
+    NoEcho: "true"
+    Type: "String"
+    Description: "An Amazon S3 bucket in the same AWS-Region as your function. The\
+      \ bucket can be in a different AWS-account."
+  LambdaFunctionKinesistelemetryingestionCodeS3Key7GN1q:
+    NoEcho: "true"
+    Type: "String"
+    Description: "The Amazon S3 key of the deployment package."
+  LambdaFunctionKinesistelemetryingestionCodeS3ObjectStorageModeKfoWH:
+    NoEcho: "true"
+    Type: "String"
+    Description: "Possible values: [COPY, REFERENCE]\nThis property can be replaced\
+      \ with other types"
+  LambdaFunctionVehicleanalyticsapiCodeS3ObjectVersionuJIGV:
+    NoEcho: "true"
+    Type: "String"
+    Description: "For versioned objects, the version of the deployment package object\
+      \ to use."
+  LambdaFunctionVehicleanalyticsapiCodeZipFile2y86g:
+    NoEcho: "true"
+    Type: "String"
+    Description: "(Node.js and Python) The source code of your Lambda function. If\
+      \ you include your function source inline with this parameter, CFN places it\
+      \ in a file named ``index`` and zips it to create a [deployment package](https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-package.html).\
+      \ This zip file cannot exceed 4MB. For the ``Handler`` property, the first part\
+      \ of the handler identifier must be ``index``. For example, ``index.handler``.\n\
+      \  When you specify source code inline for a Node.js function, the ``index``\
+      \ file that CFN creates uses the extension ``.js``. This means that Node.js\
+      \ treats the file as a CommonJS module.\n When using Node.js 24 or later, Node.js\
+      \ can automatically detect if a ``.js`` file should be treated as CommonJS or\
+      \ as an ES module. To enable auto-detection, add the ``--experimental-detect-module``\
+      \ flag to the ``NODE_OPTIONS`` environment variable. For more information, see\
+      \ [Experimental Node.js features](https://docs.aws.amazon.com//lambda/latest/dg/lambda-nodejs.html#nodejs-experimental-features).\n\
+      \   For JSON, you must escape quotes and special characters such as newline\
+      \ (``\\n``) with a backslash.\n If you specify a function that interacts with\
+      \ an AWS CloudFormation custom resource, you don't have to write your own functions\
+      \ to send responses to the custom resource that invoked the function. AWS CloudFormation\
+      \ provides a response module ([cfn-response](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-lambda-function-code-cfnresponsemodule.html))\
+      \ that simplifies sending responses. See [Using Lambda with CloudFormation](https://docs.aws.amazon.com/lambda/latest/dg/services-cloudformation.html)\
+      \ for details."
+  LambdaFunctionVehicleanalyticsapiCodeS3ObjectStorageModeL2WUy:
+    NoEcho: "true"
+    Type: "String"
+    Description: "Possible values: [COPY, REFERENCE]\nThis property can be replaced\
+      \ with other types"
+  LambdaFunctionKinesistelemetryingestionCodeImageUrixZtss:
+    NoEcho: "true"
+    Type: "String"
+    Description: "URI of a [container image](https://docs.aws.amazon.com/lambda/latest/dg/lambda-images.html)\
+      \ in the Amazon ECR registry."
+  LambdaFunctionKinesistelemetryingestionCodeSourceKMSKeyArnMeFry:
+    NoEcho: "true"
+    Type: "String"
+    Description: "The ARN of the KMSlong (KMS) customer managed key that's used to\
+      \ encrypt your function's .zip deployment package. If you don't provide a customer\
+      \ managed key, Lambda uses an [owned key](https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#aws-owned-cmk)."
+Resources:
+  CloudWatchDashboardVehicleAnalyticsDashboard:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::CloudWatch::Dashboard"
+    DeletionPolicy: "Retain"
+    Properties:
+      DashboardName: "Vehicle-Analytics-Dashboard"
+      DashboardBody: "{\"widgets\":[{\"type\":\"metric\",\"x\":0,\"y\":6,\"width\"\
+        :12,\"height\":6,\"properties\":{\"metrics\":[[\"AWS/EC2\",\"NetworkIn\",\"\
+        InstanceId\",\"i-04bae94df4c7582f1\",{\"region\":\"af-south-1\",\"visible\"\
+        :false}],[\".\",\"NetworkOut\",\".\",\".\",{\"region\":\"af-south-1\",\"visible\"\
+        :false}],[\".\",\"CPUUtilization\",\".\",\".\",{\"region\":\"af-south-1\"\
+        }]],\"view\":\"timeSeries\",\"stacked\":false,\"region\":\"af-south-1\",\"\
+        period\":300,\"stat\":\"Average\",\"title\":\"EC2 - CPUUtilization\"}},{\"\
+        type\":\"metric\",\"x\":12,\"y\":0,\"width\":6,\"height\":3,\"properties\"\
+        :{\"metrics\":[[\"AWS/Lambda\",\"IteratorAge\",\"FunctionName\",\"kinesis_telemetry_ingestion\"\
+        ,{\"region\":\"af-south-1\"}]],\"view\":\"singleValue\",\"stacked\":false,\"\
+        region\":\"af-south-1\",\"period\":60,\"stat\":\"Average\",\"title\":\"Input\
+        \ latency\"}},{\"type\":\"metric\",\"x\":18,\"y\":0,\"width\":6,\"height\"\
+        :3,\"properties\":{\"metrics\":[[\"AWS/ApiGateway\",\"Latency\",\"ApiName\"\
+        ,\"vehicle_analytics_api-API\",\"Stage\",\"prod\",{\"region\":\"af-south-1\"\
+        ,\"color\":\"#b088f5\"}]],\"view\":\"singleValue\",\"stacked\":true,\"region\"\
+        :\"af-south-1\",\"period\":60,\"stat\":\"Average\",\"title\":\"User to APIGateway\"\
+        }},{\"type\":\"metric\",\"x\":12,\"y\":3,\"width\":6,\"height\":3,\"properties\"\
+        :{\"metrics\":[[\"AWS/ApiGateway\",\"Count\",\"ApiName\",\"vehicle_analytics_api-API\"\
+        ,{\"region\":\"af-south-1\",\"color\":\"#b088f5\"}]],\"view\":\"singleValue\"\
+        ,\"stacked\":false,\"region\":\"af-south-1\",\"period\":60,\"stat\":\"Sum\"\
+        ,\"title\":\"API Gateway Count\"}},{\"type\":\"metric\",\"x\":18,\"y\":3,\"\
+        width\":6,\"height\":3,\"properties\":{\"metrics\":[[\"AWS/ApiGateway\",\"\
+        IntegrationLatency\",\"ApiName\",\"vehicle_analytics_api-API\",\"Stage\",\"\
+        prod\",{\"region\":\"af-south-1\",\"color\":\"#b088f5\"}]],\"view\":\"singleValue\"\
+        ,\"stacked\":false,\"region\":\"af-south-1\",\"title\":\"APIGateway to API\
+        \ lambda\",\"period\":300,\"stat\":\"Average\"}},{\"type\":\"metric\",\"x\"\
+        :6,\"y\":0,\"width\":6,\"height\":6,\"properties\":{\"metrics\":[[\"AWS/Lambda\"\
+        ,\"Duration\",\"FunctionName\",\"vehicle_analytics_api\",{\"region\":\"af-south-1\"\
+        ,\"color\":\"#f89256\"}]],\"sparkline\":true,\"view\":\"singleValue\",\"region\"\
+        :\"af-south-1\",\"title\":\"API lambda - Duration\",\"period\":60,\"stat\"\
+        :\"Average\"}},{\"type\":\"metric\",\"x\":0,\"y\":0,\"width\":6,\"height\"\
+        :6,\"properties\":{\"metrics\":[[\"AWS/Lambda\",\"Duration\",\"FunctionName\"\
+        ,\"kinesis_telemetry_ingestion\",{\"region\":\"af-south-1\"}]],\"sparkline\"\
+        :true,\"view\":\"singleValue\",\"region\":\"af-south-1\",\"title\":\"kinesis\
+        \ lambda - Duration\",\"period\":60,\"stat\":\"Average\"}},{\"type\":\"metric\"\
+        ,\"x\":12,\"y\":6,\"width\":12,\"height\":6,\"properties\":{\"metrics\":[[\"\
+        FleetAnalytics\",\"cpu_usage_system\",\"host\",\"ip-10-0-2-70\",\"cpu\",\"\
+        cpu-total\",{\"id\":\"m1\",\"region\":\"af-south-1\",\"visible\":false}],[\"\
+        .\",\"disk_used_percent\",\"path\",\"/\",\"host\",\"ip-10-0-2-70\",\"device\"\
+        ,\"nvme0n1p1\",\"fstype\",\"ext4\",{\"id\":\"m2\",\"region\":\"af-south-1\"\
+        }],[\".\",\"mem_used_percent\",\"host\",\"ip-10-0-2-70\",{\"id\":\"m3\",\"\
+        region\":\"af-south-1\"}]],\"view\":\"timeSeries\",\"stacked\":false,\"region\"\
+        :\"af-south-1\",\"title\":\"cpu_usage_system, disk_used_percent, mem_used_percent\"\
+        ,\"period\":300,\"stat\":\"Average\",\"start\":\"-PT168H\",\"end\":\"P0D\"\
+        }}]}"
+  ApiGatewayStageProd:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::Stage"
+    DeletionPolicy: "Retain"
+    Properties:
+      RestApiId: "8cvbs5cpn9"
+      DeploymentId: "amq2j4"
+      Description: "Created by AWS Lambda"
+      StageName: "prod"
+      TracingEnabled: false
+      CacheClusterEnabled: false
+  CognitoUserPool:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Cognito::UserPool"
+    DeletionPolicy: "Retain"
+    Properties:
+      UserPoolTags: {}
+      Policies:
+        PasswordPolicy:
+          TemporaryPasswordValidityDays: 7
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireLowercase: true
+          MinimumLength: 8
+          RequireSymbols: true
+        SignInPolicy:
+          AllowedFirstAuthFactors:
+          - ""
+      VerificationMessageTemplate:
+        DefaultEmailOption: "CONFIRM_WITH_CODE"
+      KeyConfiguration:
+        KeyType: "AWS_OWNED_KEY"
+      MfaConfiguration: "OFF"
+      Schema:
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "profile"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "address"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "10"
+          MinLength: "10"
+        Required: false
+        Name: "birthdate"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "gender"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "preferred_username"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "Number"
+        Required: false
+        NumberAttributeConstraints:
+          MinValue: "0"
+        Name: "updated_at"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "website"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "picture"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints: {}
+        Required: false
+        Name: "identities"
+      - DeveloperOnlyAttribute: false
+        Mutable: false
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "1"
+        Required: true
+        Name: "sub"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "phone_number"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "Boolean"
+        Required: false
+        Name: "phone_number_verified"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "zoneinfo"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints: {}
+        Required: false
+        Name: "custom:role"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "locale"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "email"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "Boolean"
+        Required: false
+        Name: "email_verified"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "given_name"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "family_name"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "middle_name"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: true
+        Name: "name"
+      - DeveloperOnlyAttribute: false
+        Mutable: true
+        AttributeDataType: "String"
+        StringAttributeConstraints:
+          MaxLength: "2048"
+          MinLength: "0"
+        Required: false
+        Name: "nickname"
+      AdminCreateUserConfig:
+        UnusedAccountValidityDays: 7
+        AllowAdminCreateUserOnly: false
+      UserPoolTier: "ESSENTIALS"
+      DeletionProtection: "ACTIVE"
+      UsernameConfiguration:
+        CaseSensitive: false
+      UserPoolName: "User pool - cwno5"
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate: []
+      EmailConfiguration:
+        EmailSendingAccount: "COGNITO_DEFAULT"
+      AliasAttributes: []
+      LambdaConfig: {}
+      UsernameAttributes:
+      - "email"
+      AutoVerifiedAttributes:
+      - "email"
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+        - Priority: 1
+          Name: "verified_email"
+        - Priority: 2
+          Name: "verified_phone_number"
+  ApiGatewayAuthorizer:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::Authorizer"
+    DeletionPolicy: "Retain"
+    Properties:
+      ProviderARNs:
+      - "arn:aws:cognito-idp:af-south-1:273949555549:userpool/af-south-1_dlcqW8WIA"
+      RestApiId: "8cvbs5cpn9"
+      IdentitySource: "method.request.header.Authorization"
+      Type: "COGNITO_USER_POOLS"
+      AuthType: "cognito_user_pools"
+      Name: "cognito_authorizer"
+  ApiGatewayGatewayResponseLd:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::GatewayResponse"
+    DeletionPolicy: "Retain"
+    Properties:
+      RestApiId: "8cvbs5cpn9"
+      ResponseTemplates:
+        application/json: "{\"message\":$context.error.messageString}"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Origin: "'http://localhost:5173'"
+        gatewayresponse.header.Access-Control-Max-Age: "'86400'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS'"
+      ResponseType: "DEFAULT_5XX"
+  LogsLogGroupawslambdakinesistelemetryingestion:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      FieldIndexPolicies: []
+      LogGroupClass: "STANDARD"
+      LogGroupName: "/aws/lambda/kinesis_telemetry_ingestion"
+      BearerTokenAuthenticationEnabled: false
+      DeletionProtectionEnabled: false
+      DataProtectionPolicy: {}
+  ApiGatewayRestApi:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::RestApi"
+    DeletionPolicy: "Retain"
+    Properties:
+      ApiKeySourceType: "HEADER"
+      Description: "Created by AWS Lambda"
+      EndpointConfiguration:
+        IpAddressType: "ipv4"
+        Types:
+        - "REGIONAL"
+      DisableExecuteApiEndpoint: false
+      SecurityPolicy: "TLS_1_0"
+      Name: "vehicle_analytics_api-API"
+  LambdaFunctionKinesistelemetryingestion:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Lambda::Function"
+    DeletionPolicy: "Retain"
+    Properties:
+      MemorySize: 256
+      Description: "This lambda handles the incoming data from the kinesis stream\
+        \ and inserts into the raw_telemetry table of the database in EC2"
+      TracingConfig:
+        Mode: "PassThrough"
+      VpcConfig:
+        SecurityGroupIds:
+        - "sg-02ee1c64ddc42df5b"
+        SubnetIds:
+        - "subnet-0ce8c1694fa7c9780"
+        Ipv6AllowedForDualStack: false
+      Timeout: 60
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: "Auto"
+      Handler: "index.handler"
+      Code:
+        SourceKMSKeyArn:
+          Ref: "LambdaFunctionKinesistelemetryingestionCodeSourceKMSKeyArnMeFry"
+        S3ObjectVersion:
+          Ref: "LambdaFunctionKinesistelemetryingestionCodeS3ObjectVersionoOsa0"
+        S3Bucket:
+          Ref: "LambdaFunctionKinesistelemetryingestionCodeS3BucketyoKmR"
+        ZipFile:
+          Ref: "LambdaFunctionKinesistelemetryingestionCodeZipFilemRUsC"
+        S3Key:
+          Ref: "LambdaFunctionKinesistelemetryingestionCodeS3Key7GN1q"
+        S3ObjectStorageMode:
+          Ref: "LambdaFunctionKinesistelemetryingestionCodeS3ObjectStorageModeKfoWH"
+        ImageUri:
+          Ref: "LambdaFunctionKinesistelemetryingestionCodeImageUrixZtss"
+      Role: "arn:aws:iam::273949555549:role/service-role/kinesis_telemetry_ingestion-role-a5c2mfw6"
+      FileSystemConfigs: []
+      FunctionName: "kinesis_telemetry_ingestion"
+      Runtime: "nodejs22.x"
+      PackageType: "Zip"
+      LoggingConfig:
+        LogFormat: "Text"
+        LogGroup: "/aws/lambda/kinesis_telemetry_ingestion"
+      RecursiveLoop: "Terminate"
+      Environment:
+        Variables:
+          DB_NAME: "fleet_analytics"
+          DB_PORT: "5432"
+          DB_HOST: "10.0.2.70"
+          DB_USER: "lambda_writer"
+      EphemeralStorage:
+        Size: 512
+      Architectures:
+      - "x86_64"
+  ApiGatewayResource:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::Resource"
+    DeletionPolicy: "Retain"
+    Properties:
+      ParentId: "pveuon89j7"
+      PathPart: "api"
+      RestApiId: "8cvbs5cpn9"
+  IAMRoleVehicleanalyticsapirolep14gr79b:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/service-role/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::273949555549:policy/service-role/AWSLambdaBasicExecutionRole-1cd0c350-921f-472b-b5da-5990524efd6a"
+      MaxSessionDuration: 3600
+      RoleName: "vehicle_analytics_api-role-p14gr79b"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "lambda.amazonaws.com"
+  SQSQueueTelemetryingestiondlq:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::SQS::Queue"
+    DeletionPolicy: "Retain"
+    Properties:
+      SqsManagedSseEnabled: true
+      ReceiveMessageWaitTimeSeconds: 0
+      DelaySeconds: 0
+      MessageRetentionPeriod: 345600
+      MaximumMessageSize: 1048576
+      VisibilityTimeout: 30
+      QueueName: "telemetry-ingestion-dlq"
+  ApiGatewayGatewayResponse:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::GatewayResponse"
+    DeletionPolicy: "Retain"
+    Properties:
+      RestApiId: "8cvbs5cpn9"
+      ResponseTemplates:
+        application/json: "{\"message\":$context.error.messageString}"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Origin: "'http://localhost:5173'"
+        gatewayresponse.header.Access-Control-Max-Age: "'86400'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS'"
+      ResponseType: "DEFAULT_4XX"
+  IAMRoleKinesistelemetryingestionrolea5c2mfw6:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/service-role/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::273949555549:policy/service-role/AWSLambdaBasicExecutionRole-33aacaa3-7f65-4341-a17b-a38518d7797d"
+      - "arn:aws:iam::273949555549:policy/service-role/AWSLambdaVPCAccessExecutionRole-0f6f5254-5d02-416b-8e05-9abfbfa8d06d"
+      MaxSessionDuration: 3600
+      RoleName: "kinesis_telemetry_ingestion-role-a5c2mfw6"
+      Policies:
+      - PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Resource: "arn:aws:sqs:af-south-1:273949555549:telemetry-ingestion-dlq"
+            Action:
+            - "sqs:SendMessage"
+            - "sqs:GetQueueAttributes"
+            Effect: "Allow"
+        PolicyName: "lambda-sqs-dlq"
+      - PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Resource: "arn:aws:kinesis:af-south-1:273949555549:stream/*"
+            Action:
+            - "kinesis:GetRecords"
+            - "kinesis:GetShardIterator"
+            - "kinesis:DescribeStream"
+            - "kinesis:ListStreams"
+            - "kinesis:ListShards"
+            Effect: "Allow"
+        PolicyName: "lambda_kinesis_reader"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "lambda.amazonaws.com"
+  LambdaFunctionVehicleanalyticsapi:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Lambda::Function"
+    DeletionPolicy: "Retain"
+    Properties:
+      MemorySize: 512
+      Description: "lambda function that wraps express REST API to query the databse\
+        \ and send it back to api gateway"
+      TracingConfig:
+        Mode: "PassThrough"
+      Timeout: 30
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: "Auto"
+      Handler: "lambda.handler"
+      Code:
+        SourceKMSKeyArn:
+          Ref: "LambdaFunctionVehicleanalyticsapiCodeSourceKMSKeyArnkw98k"
+        S3ObjectVersion:
+          Ref: "LambdaFunctionVehicleanalyticsapiCodeS3ObjectVersionuJIGV"
+        S3Bucket:
+          Ref: "LambdaFunctionVehicleanalyticsapiCodeS3BucketWPRyX"
+        ZipFile:
+          Ref: "LambdaFunctionVehicleanalyticsapiCodeZipFile2y86g"
+        S3Key:
+          Ref: "LambdaFunctionVehicleanalyticsapiCodeS3KeyN5BXx"
+        S3ObjectStorageMode:
+          Ref: "LambdaFunctionVehicleanalyticsapiCodeS3ObjectStorageModeL2WUy"
+        ImageUri:
+          Ref: "LambdaFunctionVehicleanalyticsapiCodeImageUri2ZAaJ"
+      Role: "arn:aws:iam::273949555549:role/service-role/vehicle_analytics_api-role-p14gr79b"
+      FileSystemConfigs: []
+      FunctionName: "vehicle_analytics_api"
+      Runtime: "nodejs22.x"
+      PackageType: "Zip"
+      LoggingConfig:
+        LogFormat: "Text"
+        LogGroup: "/aws/lambda/vehicle_analytics_api"
+      RecursiveLoop: "Terminate"
+      Environment:
+        Variables:
+          DB_SSL: "false"
+          DB_PORT: "6432"
+          DB_USER: "fleet_admin"
+          COGNITO_REGION: "af-south-1"
+          DB_NAME: "fleet_analytics"
+          NODE_ENV: "production"
+          COGNITO_CLIENT_ID: "33gvnl0c4db2h6smmp86p7qb6d"
+          COGNITO_USER_POOL_ID: "af-south-1_dlcqW8WIA"
+          DB_HOST: "13.246.7.45"
+          FRONTEND_URL: "http://localhost:5173"
+      EphemeralStorage:
+        Size: 512
+      Architectures:
+      - "x86_64"
+  LogsLogGroupawslambdavehicleanalyticsapi:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      FieldIndexPolicies: []
+      LogGroupClass: "STANDARD"
+      LogGroupName: "/aws/lambda/vehicle_analytics_api"
+      BearerTokenAuthenticationEnabled: false
+      DeletionProtectionEnabled: false
+      DataProtectionPolicy: {}
+  ApiGatewayModel:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::Model"
+    DeletionPolicy: "Retain"
+    Properties:
+      RestApiId: "8cvbs5cpn9"
+      Description: "This is a default empty schema model"
+      ContentType: "application/json"
+      Schema:
+        $schema: "http://json-schema.org/draft-04/schema#"
+        title: "Empty Schema"
+        type: "object"
+      Name: "Empty"
+  IAMRoleCapstoneec2cloudwatchrole:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::IAM::Role"
+    DeletionPolicy: "Retain"
+    Properties:
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      MaxSessionDuration: 3600
+      RoleName: "capstone-ec2-cloudwatch-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action: "sts:AssumeRole"
+          Effect: "Allow"
+          Principal:
+            Service: "ec2.amazonaws.com"
+      PermissionsBoundary: "arn:aws:iam::273949555549:policy/CapstoneStudentBoundary"
+  LogsLogGroupvehicleanalyticspostgresql:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::Logs::LogGroup"
+    DeletionPolicy: "Retain"
+    Properties:
+      FieldIndexPolicies: []
+      LogGroupClass: "STANDARD"
+      LogGroupName: "/vehicle-analytics/postgresql"
+      BearerTokenAuthenticationEnabled: false
+      DeletionProtectionEnabled: false
+      DataProtectionPolicy: {}
+  ApiGatewayModelSF:
+    UpdateReplacePolicy: "Retain"
+    Type: "AWS::ApiGateway::Model"
+    DeletionPolicy: "Retain"
+    Properties:
+      RestApiId: "8cvbs5cpn9"
+      Description: "This is a default error schema model"
+      ContentType: "application/json"
+      Schema:
+        $schema: "http://json-schema.org/draft-04/schema#"
+        title: "Error Schema"
+        type: "object"
+        properties:
+          message:
+            type: "string"
+      Name: "Error"

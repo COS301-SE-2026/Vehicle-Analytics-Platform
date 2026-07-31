@@ -303,7 +303,7 @@ describe('LiveMap', () => {
         ;({ container } = render(<LiveMap />))
       })
 
-      await act(async () => { jest.advanceTimersByTime(5_000) })
+      await act(async () => { jest.advanceTimersByTime(1_000) })
 
       expect(container.firstChild).toBeNull()
     })

@@ -13,7 +13,7 @@ import useAuthStore from './store/authStore'
 import VehiclesList from './pages/vehicles/VehiclesList'
 import VehicleProfile from './pages/vehicles/VehicleProfile'
 
-function ProtectedRoute({ children, allowedRoles = [] }) {
+function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
 
   if (!user) return <Navigate to="/login" replace />
@@ -29,6 +29,10 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
   allowedRoles: PropTypes.arrayOf(PropTypes.string)
+}
+
+ProtectedRoute.defaultProps = {
+  allowedRoles: []
 }
 
 function App() {
@@ -52,22 +56,6 @@ function App() {
             }
           />
           <Route
-            path = "/vehicles"
-            element={
-              <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
-                <VehiclesList/>
-              </ProtectedRoute>
-            }
-            />
-          <Route
-            path = "/vehicles/:id"
-            element={
-              <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
-                <VehicleProfile/>
-              </ProtectedRoute>
-            }
-            />
-          <Route
             path="/dashboard/admin"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -86,10 +74,27 @@ function App() {
           <Route
             path="/map"
             element={
-              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager', 'admin']}>
+              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager']}>
                 <LiveMap />
               </ProtectedRoute>
             }
+          />
+          <Route
+          path="/vehicles"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <VehiclesList />
+              </ProtectedRoute>
+          }
+          />
+
+          <Route
+          path="/vehicles/:id"
+          element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <VehicleProfile />
+              </ProtectedRoute>
+          }
           />
 
            <Route

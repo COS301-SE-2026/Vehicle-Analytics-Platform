@@ -24,13 +24,13 @@ export function HelpPanel({ isOpen, onClose, role }){
 
            {/* Panel */}
            <dialog
-             open
              aria-label="Help Center"
-             className={cn("fixed top-0 right-0 h-full w-full sm:w-[380px] bg-fleet-surface shadow-xl z-50",
+             className={cn("fixed top-0 right-0 left-auto bottom-auto m-0 max-w-none max-w-none max-h-none", 
+                "h-full w-full sm:w-[380px] bg-fleet-surface shadow-xl z-50",
                 "flex flex-col transition-transform duration-200 ease-out",
                 isOpen ? "translate-x-0" : "translate-x-full"
            )}
-            inert={!isOpen}
+            open={isOpen}
            >
 
            {/* Header */}

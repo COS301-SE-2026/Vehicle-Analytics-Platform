@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
-import { Button } from '@/components/ui/button'
 import { CircleQuestionMark } from 'lucide-react'
 import { HelpPanel } from '@/components/help/HelpPanel';
 
@@ -28,8 +27,15 @@ export default function Header({ title, collapsed }) {
 
       {/* Right Side */}
       <div className="flex items-center gap-4">
-        <CircleQuestionMark className="w-8 h-8 text-fleet-blue rounded-full" />
-        {/* Avatar & help menu*/}
+        <button
+          type="button"
+          onClick={openHelp}
+          aria-label="Open help"
+          className="h-8 w-8 flex items-center justify-center bg-fleet-blue rounded-full text-fleet-surface hover:text-fleet-surface/80 transition-colors"
+        >
+          <CircleQuestionMark className="w-6 h-6"/>
+        </button>
+        
         <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center">
           <span className="text-white text-xs font-bold">{initials}</span>
         </div>

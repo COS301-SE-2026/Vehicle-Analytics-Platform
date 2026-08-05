@@ -114,7 +114,7 @@ export default function ManagerDashboard() {
     <div className="space-y-4">
 
       {/* Row 1 - KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
         <StatCard
           icon={Truck}
           label="Active Vehicles"

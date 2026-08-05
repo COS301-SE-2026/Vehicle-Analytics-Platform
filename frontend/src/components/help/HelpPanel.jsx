@@ -73,6 +73,7 @@ export function HelpPanel({ isOpen, onClose, role }){
 
            {/* Panel */}
            <dialog
+             data-testid="help-panel"
              aria-label="Help Center"
              className={cn("fixed top-0 right-0 left-auto bottom-auto m-0 max-w-none max-w-none max-h-none", 
                 "h-full w-full sm:w-[380px] bg-fleet-surface shadow-xl z-50",
@@ -80,6 +81,7 @@ export function HelpPanel({ isOpen, onClose, role }){
                 isOpen ? "translate-x-0" : "translate-x-full"
            )}
             open={isOpen}
+            inert={!isOpen}
            >
 
            {/* Header */}

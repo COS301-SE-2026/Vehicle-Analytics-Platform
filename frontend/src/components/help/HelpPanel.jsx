@@ -27,6 +27,7 @@ function blockToText(block){
 
 export function HelpPanel({ isOpen, onClose, role }){
     const [query, setQuery] = useState('');
+    const [requestedArticle, setRequestedArticle] = useState(null);
     const categories = getHelpMenuForRole(role);
 
     const flatArticles = useMemo(() => {
@@ -108,18 +109,18 @@ export function HelpPanel({ isOpen, onClose, role }){
            </div>
 
            {results !== null ? (
-            <div class="flex-1 overflow-y-auto px-4 py-2">
+            <div className="flex-1 overflow-y-auto px-4 py-2">
               {results.length === 0 ? (
                 <p className="text-sm text-fleet-secondary/70 py-6 text-center">
-                  No results for {query}
+                  No results for "{query}"
                 </p>
               ) : (
-                <ul className='didvide-y divide-fleet-secondary/20'>
+                <ul className='divide-y divide-fleet-secondary/20'>
                   {results.map((article) => (
                     <li key={article.id}>
                       <button
                        type='button'
-                       onClick={() => {() => openFromSearch(article)}}
+                       onClick={() => openFromSearch(article)}
                         className='w-full flex items-center gap-3 py-3 text-left hover:bg-fleet-idle/10 transition-colors'
                       >
                         <FileText size={16} className="shrink-0 text-fleet-blue"/>
@@ -134,7 +135,11 @@ export function HelpPanel({ isOpen, onClose, role }){
               )}
             </div>
            ) : (
-             <CategoryList categories={categories} />
+             <CategoryList 
+              categories={categories} 
+              externalArticle={requestedArticle}
+              onArticleShown={() => setRequestedArticle(null)}
+              />
            )}
            </dialog>
         </>

@@ -100,7 +100,7 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: [28.0473, -26.2041],
       zoom: minimal ? 9 : 10,
     })

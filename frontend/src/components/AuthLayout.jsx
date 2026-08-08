@@ -1,5 +1,5 @@
 import './AuthLayout.css';
-import vaporLogo from '../assets/logo.png';
+import vaporLogo from '../assets/newLogo.png';
 import PropTypes from 'prop-types';
 
 const getStatus = (index) => {

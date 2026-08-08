@@ -9,8 +9,10 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000'
 
+const dashboardPath = useAuthStore.getState().getDashboardPath();
+
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/viewer' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
   { icon: Map, label: 'Live Map', path: '/map' },
   { icon: Globe, label: 'Geofence', path: '/geofence'},
   { icon: Truck, label: 'Vehicles', path: '/vehicles'}

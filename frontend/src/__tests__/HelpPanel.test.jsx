@@ -54,14 +54,14 @@ describe('HelpPanel', () => {
 
     test('shows open state styling when isOpen is true', () => {
         render(<HelpPanel isOpen={true} onClose={jest.fn()} role="viewer"/>);
-        const panel = screen.getByRole('dialog', {name: 'Help Center'});
+        const panel = screen.getByTestId('help-panel');
         expect(panel.className).toContain('translate-x-0');
         expect(panel).not.toHaveAttribute('inert');
     });
 
     test('shows closed state styling and inert attribure when isOpen is false', () => {
         render(<HelpPanel isOpen={false} onClose={jest.fn()} role="viewer"/>);
-        const panel = screen.getByRole('dialog', {name: 'Help Center'});
+        const panel = screen.getByTestId('help-panel');
         expect(panel.className).toContain('translate-x-full');
         expect(panel).toHaveAttribute('inert');
     });

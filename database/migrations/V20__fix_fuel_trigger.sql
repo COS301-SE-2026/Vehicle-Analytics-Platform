@@ -1,97 +1,21 @@
 
 
--- V19: fuel efficiency tables
+-- V20: Fix fuel efficiency trigger
 
 
 
+-- Drop existing trigger if exists
 
--- Table: trip_fuel_efficiency
-
-CREATE TABLE IF NOT EXISTS trip_fuel_efficiency (
-
-    id SERIAL PRIMARY KEY,
-
-    trip_id INTEGER NOT NULL REFERENCES trips(trip_id) ON DELETE CASCADE,
-
-    vehicle_id TEXT NOT NULL REFERENCES vehicles(vehicle_id),
-
-    trip_date DATE NOT NULL,
-
-
-    total_distance_km NUMERIC(10,2),
-
-    avg_speed_kmh NUMERIC(6,2),
+DROP TRIGGER IF EXISTS trigger_calculate_trip_fuel_efficiency ON trips;
 
 
 
-    estimated_fuel_consumed_liters NUMERIC(10,2),
-
-    fuel_efficiency_km_per_liter NUMERIC(6,2),
-
-    fuel_efficiency_l_per_100km NUMERIC(6,2),
-
-    road_breakdown JSONB,
-
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-
-
-    UNIQUE(trip_id)
-);
-
-
-
--- Indexes
-
-CREATE INDEX IF NOT EXISTS idx_trip_fuel_vehicle ON trip_fuel_efficiency(vehicle_id);
-
-CREATE INDEX IF NOT EXISTS idx_trip_fuel_vehicle_date ON trip_fuel_efficiency(vehicle_id, trip_date DESC);
-
-
-CREATE INDEX IF NOT EXISTS idx_trip_fuel_trip ON trip_fuel_efficiency(trip_id);
-
-
--- materialized view 
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS fleet_daily_fuel_summary AS
-
-SELECT
-
-    DATE(trip_date) AS date,
-
-    vehicle_id,
-
-    COUNT(*) AS trip_count,
-
-    SUM(total_distance_km) AS total_distance_km,
-
-    SUM(estimated_fuel_consumed_liters) AS total_fuel_liters,
-
-    AVG(fuel_efficiency_km_per_liter) AS avg_efficiency_km_per_l
-
-FROM trip_fuel_efficiency
-
-GROUP BY DATE(trip_date), vehicle_id;
-
-
-
--- indexes
-
-CREATE INDEX IF NOT EXISTS idx_fleet_daily_fuel_date ON fleet_daily_fuel_summary(date DESC);
-
-CREATE INDEX IF NOT EXISTS idx_fleet_daily_fuel_vehicle ON fleet_daily_fuel_summary(vehicle_id);
-
-
-
--- fuel rate mapping function
+-- Recreate functions (ensure latest version)
 
 CREATE OR REPLACE FUNCTION get_fuel_rate(road_class TEXT)
-
 RETURNS NUMERIC AS $$
 
 BEGIN
-
     RETURN CASE road_class
 
         WHEN 'motorway' THEN 6.0
@@ -114,7 +38,6 @@ BEGIN
 
         WHEN 'tertiary_link' THEN 9.5
 
-
         WHEN 'residential' THEN 10.0
 
         WHEN 'living_street' THEN 11.0
@@ -122,8 +45,6 @@ BEGIN
         WHEN 'service' THEN 9.0
 
         WHEN 'unclassified' THEN 8.5
-
-
 
         ELSE 8.5
 
@@ -134,8 +55,6 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-
--- speed factor function
 
 CREATE OR REPLACE FUNCTION get_speed_factor(avg_speed NUMERIC)
 
@@ -165,8 +84,6 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 
 
--- calc fuel efficiency when trip completes
-
 CREATE OR REPLACE FUNCTION calculate_trip_fuel_efficiency()
 
 RETURNS TRIGGER AS $$
@@ -187,15 +104,9 @@ DECLARE
 
 BEGIN
 
-
-    -- Only calc for completed trips
-
     IF NEW.status = 'completed' AND (OLD.status IS DISTINCT FROM 'completed') THEN
 
         
-
-
-        -- get trip data from clean_telemetry
 
         WITH trip_segments AS (
 
@@ -239,8 +150,6 @@ BEGIN
 
 
 
-        -- skip if no dist data
-
         IF total_distance <= 0 THEN
 
             RETURN NEW;
@@ -248,8 +157,6 @@ BEGIN
         END IF;
 
 
-
-        -- calc fuel
 
         WITH trip_segments AS (
 
@@ -351,8 +258,6 @@ BEGIN
 
 
 
-        -- use speed-based estimate if no fuel data
-
         IF fuel_consumed IS NULL OR fuel_consumed <= 0 THEN
 
             fuel_rate := get_speed_factor(avg_speed) * 8.5;
@@ -363,8 +268,6 @@ BEGIN
 
 
 
-        -- calc efficiency
-
         IF fuel_consumed > 0 THEN
 
             efficiency := total_distance / fuel_consumed;
@@ -373,12 +276,10 @@ BEGIN
 
 
 
-        -- insert into trip_fuel_efficiency
-
         INSERT INTO trip_fuel_efficiency (
 
-
             trip_id,
+
             vehicle_id,
 
             trip_date,
@@ -451,9 +352,7 @@ $$ LANGUAGE plpgsql;
 
 
 
--- trigger to calc fuel efficiency when trip completes
-
-DROP TRIGGER IF EXISTS trigger_calculate_trip_fuel_efficiency ON trips;
+-- Recreate trigger
 
 CREATE TRIGGER trigger_calculate_trip_fuel_efficiency
 
@@ -464,11 +363,5 @@ FOR EACH ROW
 WHEN (NEW.status = 'completed' AND OLD.status = 'open')
 
 EXECUTE FUNCTION calculate_trip_fuel_efficiency();
-
-
-
-GRANT SELECT ON trip_fuel_efficiency TO fleet_admin;
-
-GRANT SELECT ON fleet_daily_fuel_summary TO fleet_admin;
 
 

@@ -14,11 +14,15 @@ CREATE TABLE IF NOT EXISTS trip_fuel_efficiency (
 
     vehicle_id TEXT NOT NULL REFERENCES vehicles(vehicle_id),
 
+
+
     trip_date DATE NOT NULL,
 
     total_distance_km NUMERIC(10,2),
 
     avg_speed_kmh NUMERIC(6,2),
+
+
 
     estimated_fuel_consumed_liters NUMERIC(10,2),
 
@@ -122,9 +126,12 @@ BEGIN
 
     END;
 
+
 END;
 
 $$ LANGUAGE plpgsql IMMUTABLE;
+
+
 
 
 
@@ -188,35 +195,37 @@ BEGIN
 
 
 
-        -- Get trip data from clean_telemetry
+        -- Create temp table with all trip segments (calculated once)
 
-        WITH trip_segments AS (
+        CREATE TEMP TABLE temp_trip_segments ON COMMIT DROP AS
 
-            SELECT 
+        SELECT 
 
-                ct.latitude,
+            ct.latitude,
 
-                ct.longitude,
+            ct.longitude,
 
-                ct.speed,
+            ct.speed,
 
-                ST_Distance(
+            ST_Distance(
 
-                    ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326),
+                ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326),
 
-                    LAG(ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326)) OVER (ORDER BY ct.time)
+                LAG(ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326)) OVER (ORDER BY ct.time)
 
-                ) * 111.32 AS distance,
+            ) * 111.32 AS distance,
 
-                (ct.speed + LAG(ct.speed) OVER (ORDER BY ct.time)) / 2 AS avg_speed
+            (ct.speed + LAG(ct.speed) OVER (ORDER BY ct.time)) / 2 AS avg_speed
 
-            FROM clean_telemetry ct
+        FROM clean_telemetry ct
 
-            WHERE ct.vehicle_id = NEW.vehicle_id
+        WHERE ct.vehicle_id = NEW.vehicle_id
 
-              AND ct.time BETWEEN NEW.start_time AND NEW.end_time
+          AND ct.time BETWEEN NEW.start_time AND NEW.end_time;
 
-        )
+
+
+        -- Calculate total distance and average speed from temp table
 
         SELECT 
 
@@ -226,7 +235,7 @@ BEGIN
 
         INTO total_distance, avg_speed
 
-        FROM trip_segments
+        FROM temp_trip_segments
 
         WHERE distance > 0;
 
@@ -236,43 +245,18 @@ BEGIN
 
         IF total_distance <= 0 THEN
 
+            DROP TABLE temp_trip_segments;
+
             RETURN NEW;
+
 
         END IF;
 
 
 
-        -- Calculate fuel using road types
+        -- Calculate fuel using road types from temp table
 
-        WITH trip_segments AS (
-
-            SELECT 
-
-                ct.latitude,
-
-                ct.longitude,
-
-                ct.speed,
-
-                ST_Distance(
-
-                    ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326),
-
-                    LAG(ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326)) OVER (ORDER BY ct.time)
-
-                ) * 111.32 AS distance,
-
-                (ct.speed + LAG(ct.speed) OVER (ORDER BY ct.time)) / 2 AS avg_speed
-
-            FROM clean_telemetry ct
-
-            WHERE ct.vehicle_id = NEW.vehicle_id
-
-              AND ct.time BETWEEN NEW.start_time AND NEW.end_time
-
-        ),
-
-        road_matched AS (
+        WITH road_matched AS (
 
             SELECT 
 
@@ -282,7 +266,7 @@ BEGIN
 
                 r.road_class
 
-            FROM trip_segments s
+            FROM temp_trip_segments s
 
             CROSS JOIN LATERAL (
 
@@ -330,7 +314,6 @@ BEGIN
 
                     (distance / 100) * 
 
-
                     get_fuel_rate(road_class) *
 
                     get_speed_factor(avg_speed)
@@ -341,7 +324,17 @@ BEGIN
 
             GROUP BY road_class
 
+
+
         ) road_fuel;
+
+
+
+
+
+        -- Drop temp table
+
+        DROP TABLE temp_trip_segments;
 
 
 
@@ -397,7 +390,6 @@ BEGIN
 
             DATE(NEW.start_time),
 
-
             total_distance,
 
             avg_speed,
@@ -425,6 +417,8 @@ BEGIN
             road_breakdown = EXCLUDED.road_breakdown,
 
             updated_at = NOW();
+
+
 
     END IF;
 

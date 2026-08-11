@@ -8,8 +8,9 @@ const {calculateFuelForTrip} = require('../utils/fuelCalculations');
 
 
 
-async function getVehicleFuelStats(req, res) {
 
+
+async function getVehicleFuelStats(req, res) {
 
     const {vehicleId} = req.params;
 
@@ -17,14 +18,15 @@ async function getVehicleFuelStats(req, res) {
 
 
 
+   
 
-   
-   
- const validDays = Number.isInteger(Number(days)) && Number(days) > 0 ? Number(days) : 30;
+
+
+    const validDays = Number.isInteger(Number(days)) && Number(days) > 0 ? Number(days) : 30;
+
+
 
     const daysClause = ` AND trip_date >= NOW() - INTERVAL '${validDays} days'`;
-
-
 
 
 
@@ -138,17 +140,11 @@ async function getVehicleFuelStats(req, res) {
 
 
 
-
-
 async function getFleetFuelSummary(req, res) {
 
+    const {period = 'week'} = req.query;
 
-
-    const { period = 'week' } = req.query;
-
-
-
-    let interval = '7 days';
+    let interval;
 
 
 
@@ -163,6 +159,10 @@ async function getFleetFuelSummary(req, res) {
     } else if (period === 'month') {
 
         interval = '30 days';
+
+    } else {
+
+        interval = '7 days';
 
     }
 
@@ -246,14 +246,14 @@ async function getFleetFuelSummary(req, res) {
 
 
 
-
 async function getFuelDashboard(req, res) {
-   
- try {
+
+    try {
 
         const result = await pool.query(
 
             `
+
             SELECT 
 
                 COALESCE(AVG(fuel_efficiency_km_per_liter), 0) as avg_fleet_efficiency,
@@ -270,10 +270,7 @@ async function getFuelDashboard(req, res) {
 
             `
 
-      
-  );
-
-
+        );
 
 
 
@@ -312,22 +309,14 @@ async function calculateTripFuel(req, res) {
 
 
 
-
     const validTripId = Number.parseInt(tripId, 10);
 
-   
-
-
- if (Number.isNaN(validTripId)) {
+    if(Number.isNaN(validTripId)){
 
 
         return error(res, 'Invalid trip ID', 400);
 
-
-
     }
-
-
 
 
 
@@ -378,6 +367,7 @@ async function calculateTripFuel(req, res) {
                     ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326),
 
                     0.001
+
                 )
 
                 ORDER BY geom <-> ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326)
@@ -418,7 +408,8 @@ async function calculateTripFuel(req, res) {
 
 
 
-        
+       
+
         const existing = await pool.query(
 
             'SELECT trip_id FROM trip_fuel_efficiency WHERE trip_id = $1',
@@ -428,9 +419,11 @@ async function calculateTripFuel(req, res) {
         );
 
 
+
         if (existing.rows.length > 0) {
 
            
+
 
             await pool.query(
 
@@ -440,8 +433,7 @@ async function calculateTripFuel(req, res) {
 
                     total_distance_km = $1,
 
-    
-                avg_speed_kmh = $2,
+                    avg_speed_kmh = $2,
 
                     estimated_fuel_consumed_liters = $3,
 
@@ -479,23 +471,15 @@ async function calculateTripFuel(req, res) {
 
         } else {
 
-          
+            
 
             await pool.query(
 
-
-
                 `
-
-
 
                 INSERT INTO trip_fuel_efficiency (
 
-
-
                     trip_id, vehicle_id, trip_date,
-
-
 
                     total_distance_km, avg_speed_kmh,
 
@@ -570,5 +554,3 @@ module.exports = {
     calculateTripFuel
 
 };
-
-

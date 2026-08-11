@@ -28,7 +28,7 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
 const geofenceRoutes = require('./routes/geofence');
 
-
+const fuelRoutes = require('./routes/fuel');
 
 const app = express();
 
@@ -119,7 +119,7 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 
 app.use('/api/geofences', geofenceRoutes);
 
-
+app.use('/api/fuel', fuelRoutes);
 
 
 

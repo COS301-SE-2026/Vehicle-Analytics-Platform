@@ -2,12 +2,9 @@
 
 const {pool} = require('../db/pool');
 
-
 const {success, error} = require('../utils/response');
 
-
 const {calculateFuelForTrip} = require('../utils/fuelCalculations');
-
 
 
 
@@ -16,13 +13,24 @@ async function getVehicleFuelStats(req, res) {
 
     const {vehicleId} = req.params;
 
-
     const {days = 30} = req.query;
 
 
 
-    try{
 
+   
+   
+ const validDays = Number.isInteger(Number(days)) && Number(days) > 0 ? Number(days) : 30;
+
+    const daysClause = ` AND trip_date >= NOW() - INTERVAL '${validDays} days'`;
+
+
+
+
+
+
+
+    try {
 
         const result = await pool.query(
 
@@ -42,12 +50,7 @@ async function getVehicleFuelStats(req, res) {
 
                 fuel_efficiency_km_per_liter,
 
-
-
-
-
- 
-               fuel_efficiency_l_per_100km,
+                fuel_efficiency_l_per_100km,
 
                 road_breakdown
 
@@ -55,7 +58,7 @@ async function getVehicleFuelStats(req, res) {
 
             WHERE vehicle_id = $1
 
-              AND trip_date >= NOW() - INTERVAL '${days} days'
+            ${daysClause}
 
             ORDER BY trip_date DESC
 
@@ -87,11 +90,11 @@ async function getVehicleFuelStats(req, res) {
 
         for (const row of result.rows) {
 
-            summary.total_distance += parseFloat(row.total_distance_km) || 0;
+            summary.total_distance += Number.parseFloat(row.total_distance_km) || 0;
 
-            summary.total_fuel += parseFloat(row.estimated_fuel_consumed_liters) || 0;
+            summary.total_fuel += Number.parseFloat(row.estimated_fuel_consumed_liters) || 0;
 
-            totalEff += parseFloat(row.fuel_efficiency_km_per_liter) || 0;
+            totalEff += Number.parseFloat(row.fuel_efficiency_km_per_liter) || 0;
 
 
 
@@ -143,7 +146,25 @@ async function getFleetFuelSummary(req, res) {
 
     const { period = 'week' } = req.query;
 
-    const interval = period === 'day' ? '1 day' : period === 'week' ? '7 days' : '30 days';
+
+
+    let interval = '7 days';
+
+
+
+    if (period === 'day') {
+
+        interval = '1 day';
+
+    } else if (period === 'week') {
+
+        interval = '7 days';
+
+    } else if (period === 'month') {
+
+        interval = '30 days';
+
+    }
 
 
 
@@ -224,14 +245,15 @@ async function getFleetFuelSummary(req, res) {
 
 
 
-async function getFuelDashboard(req, res) {
 
-    try {
+
+async function getFuelDashboard(req, res) {
+   
+ try {
 
         const result = await pool.query(
 
             `
-
             SELECT 
 
                 COALESCE(AVG(fuel_efficiency_km_per_liter), 0) as avg_fleet_efficiency,
@@ -248,19 +270,22 @@ async function getFuelDashboard(req, res) {
 
             `
 
-        );
+      
+  );
+
+
 
 
 
         return success(res, {
 
-            avg_fleet_efficiency_km_l: parseFloat(result.rows[0].avg_fleet_efficiency) || 0,
+            avg_fleet_efficiency_km_l: Number.parseFloat(result.rows[0].avg_fleet_efficiency) || 0,
 
-            total_fuel_consumed_liters: parseFloat(result.rows[0].total_fuel_today) || 0,
+            total_fuel_consumed_liters: Number.parseFloat(result.rows[0].total_fuel_today) || 0,
 
-            total_distance_km: parseFloat(result.rows[0].total_distance_today) || 0,
+            total_distance_km: Number.parseFloat(result.rows[0].total_distance_today) || 0,
 
-            vehicles_tracked: parseInt(result.rows[0].vehicles_tracked) || 0,
+            vehicles_tracked: Number.parseInt(result.rows[0].vehicles_tracked, 10) || 0,
 
             last_updated: new Date().toISOString()
 
@@ -280,10 +305,29 @@ async function getFuelDashboard(req, res) {
 
 
 
-
 async function calculateTripFuel(req, res) {
 
-    const { tripId } = req.params;
+    const {tripId} = req.params;
+
+
+
+
+
+    const validTripId = Number.parseInt(tripId, 10);
+
+   
+
+
+ if (Number.isNaN(validTripId)) {
+
+
+        return error(res, 'Invalid trip ID', 400);
+
+
+
+    }
+
+
 
 
 
@@ -334,7 +378,6 @@ async function calculateTripFuel(req, res) {
                     ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326),
 
                     0.001
-
                 )
 
                 ORDER BY geom <-> ST_SetSRID(ST_MakePoint(ct.longitude, ct.latitude), 4326)
@@ -349,7 +392,7 @@ async function calculateTripFuel(req, res) {
 
             `,
 
-            [tripId]
+            [validTripId]
 
         );
 
@@ -375,19 +418,14 @@ async function calculateTripFuel(req, res) {
 
 
 
-       
-
-
-
-
+        
         const existing = await pool.query(
 
             'SELECT trip_id FROM trip_fuel_efficiency WHERE trip_id = $1',
 
-            [tripId]
+            [validTripId]
 
         );
-
 
 
         if (existing.rows.length > 0) {
@@ -396,20 +434,14 @@ async function calculateTripFuel(req, res) {
 
             await pool.query(
 
-
-
-
                 `
-
-
 
                 UPDATE trip_fuel_efficiency SET
 
-
-
                     total_distance_km = $1,
 
-                    avg_speed_kmh = $2,
+    
+                avg_speed_kmh = $2,
 
                     estimated_fuel_consumed_liters = $3,
 
@@ -439,7 +471,7 @@ async function calculateTripFuel(req, res) {
 
                     JSON.stringify(fuelData.road_breakdown),
 
-                    tripId
+                    validTripId
 
                 ]
 
@@ -447,16 +479,23 @@ async function calculateTripFuel(req, res) {
 
         } else {
 
-           
+          
+
             await pool.query(
 
+
+
                 `
+
 
 
                 INSERT INTO trip_fuel_efficiency (
 
 
+
                     trip_id, vehicle_id, trip_date,
+
+
 
                     total_distance_km, avg_speed_kmh,
 
@@ -474,7 +513,7 @@ async function calculateTripFuel(req, res) {
 
                 [
 
-                    tripId,
+                    validTripId,
 
                     vehicleId,
 
@@ -502,7 +541,7 @@ async function calculateTripFuel(req, res) {
 
         return success(res, {
 
-            trip_id: tripId,
+            trip_id: validTripId,
 
             ...fuelData
 
@@ -531,4 +570,5 @@ module.exports = {
     calculateTripFuel
 
 };
+
 

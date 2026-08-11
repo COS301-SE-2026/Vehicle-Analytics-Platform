@@ -1,29 +1,12 @@
 -- Route generation: manager waypoints -> road-snapped LINESTRING.
 --
 -- Runs ONLY when a route is created or edited, never in the telemetry
--- path. That's the whole point of storing the generated geometry: live
--- monitoring is then a single ST_DWithin against a GIST-indexed line
--- (V28's trigger), which stays fast however many vehicles report.
---
--- REQUIRES build_road_topology() to have been run once (V26). Without it
--- roads.source/target are NULL, there is no graph, and every call here
--- returns NULL.
+-- path.
 
 -- Nearest routable graph node to a lat/lng. The manager clicks anywhere on
 -- the map; Dijkstra needs an actual vertex.
 --
--- The 2km ceiling matters: without it this always returns SOMETHING, so a
--- click in the middle of nowhere silently snaps to a road tens of km away
--- and produces a route bearing no relation to what the manager drew. NULL
--- is the honest answer there, and route_generate turns it into a clear
--- error rather than a nonsense line.
--- LANGUAGE plpgsql, not sql: roads_vertices_pgr is created at RUNTIME by
--- pgr_createTopology(), not by any migration, so it does not exist when
--- this file is applied. Postgres fully resolves SQL-language function
--- bodies at CREATE time, so a sql version fails with
--- "relation roads_vertices_pgr does not exist" -- and because psql keeps
--- going, the functions after it get created anyway, leaving V28 half
--- applied. plpgsql defers name resolution to first call.
+-- The 2km ceiling matters
 CREATE OR REPLACE FUNCTION nearest_route_node(
     p_lat DOUBLE PRECISION,
     p_lon DOUBLE PRECISION,
@@ -34,13 +17,14 @@ LANGUAGE plpgsql STABLE AS $$
 DECLARE
     v_id BIGINT;
 BEGIN
-    IF to_regclass('public.roads_vertices_pgr') IS NULL THEN
+    IF to_regclass('public.ways_vertices_pgr') IS NULL
+       OR NOT EXISTS (SELECT 1 FROM ways_vertices_pgr LIMIT 1) THEN
         RAISE EXCEPTION
-            'Road topology not built. Run: SELECT build_road_topology();';
+            'Routing network not imported. Run osm2pgrouting -- see database/osm/README.md';
     END IF;
 
     SELECT v.id INTO v_id
-    FROM roads_vertices_pgr v
+    FROM ways_vertices_pgr v
     WHERE v.the_geom && ST_Expand(ST_SetSRID(ST_MakePoint(p_lon, p_lat), 4326), 0.02)
       AND ST_DWithin(
             v.the_geom::geography,
@@ -68,17 +52,21 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    -- directed := false -- this is an expected corridor, not directions.
-    -- Nobody drives it, so one-way restrictions are deliberately ignored;
-    -- honouring them would only produce longer corridors that real buses
-    -- then appear to deviate from.
-    SELECT ST_LineMerge(ST_Collect(r.geom ORDER BY d.seq))
+    -- directed := false -- this is an expected corridor,
+    -- length_m as cost so Dijkstra minimises real distance. osm2pgrouting's
+    -- own `cost` column is in DEGREES, which would make north-south edges
+    -- cost differently from east-west ones and skew every route.
+    -- reverse_cost is the same value, and directed := false, because this
+    -- is an expected CORRIDOR for deviation monitoring, not directions
+    -- given to a driver.
+    SELECT ST_LineMerge(ST_Collect(w.the_geom ORDER BY d.seq))
       INTO v_geom
     FROM pgr_dijkstra(
-            'SELECT id, source, target, cost, reverse_cost FROM roads WHERE source IS NOT NULL',
+            'SELECT gid AS id, source, target, length_m AS cost, '
+            'length_m AS reverse_cost FROM ways',
             p_source, p_target, directed := false
          ) d
-    JOIN roads r ON r.id = d.edge
+    JOIN ways w ON w.gid = d.edge
     WHERE d.edge <> -1;   -- -1 marks the terminating row, which has no edge
 
     -- ST_LineMerge yields a MULTILINESTRING when the path has a gap --

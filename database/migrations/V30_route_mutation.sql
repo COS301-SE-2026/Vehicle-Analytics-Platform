@@ -1,30 +1,15 @@
 -- Route mutation: create and edit.
---
 -- THE INVARIANT: routes.geom is ALWAYS the generated result of
 -- route_waypoints for that route. Never edited independently.
 --
--- Enforcing that as a convention ("remember to regenerate after editing")
--- only holds until one backend path updates geom directly -- after which
--- the stored corridor silently stops matching the manager's stops, with
--- nothing to catch it. Deviation alerts would then be measured against a
--- line nobody chose.
---
--- So both mutation paths live here as functions. Waypoints and geometry
--- are written in one statement, in one transaction: either both change or
--- neither does.
+-- So both mutation paths live here as functions
 --
 -- Deliberately NOT a trigger on route_waypoints. Regeneration runs
--- Dijkstra per waypoint pair -- far too expensive to fire per row, and a
--- delete-then-insert edit would fire it twice, generating a wrong
--- intermediate geometry from a half-empty waypoint list in between.
+-- Dijkstra per waypoint pair
 
 -- Create a route and assign it to a vehicle.
 --
--- p_waypoints: '[{"lat":-25.75,"lng":28.22,"name":"Depot"}, ...]'
---
--- Returns the new route_id, or raises with the generation error -- the
--- manager needs to know WHY a route couldn't be drawn (waypoint off the
--- road network, disconnected legs), not just that it failed.
+-- Returns the new route_id. The manager can then call route_set_waypoints
 CREATE OR REPLACE FUNCTION route_create(
     p_vehicle_id          TEXT,
     p_route_name          TEXT,

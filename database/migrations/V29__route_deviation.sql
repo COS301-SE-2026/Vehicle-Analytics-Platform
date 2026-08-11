@@ -6,16 +6,10 @@
 --
 -- The check itself is deliberately cheap -- a single ST_DWithin against a
 -- GIST-indexed LINESTRING. All the expensive work (Dijkstra, road
--- snapping) happened once at route creation. This is what keeps telemetry
--- processing fast as vehicle count grows.
+-- snapping) happened once at route creation.
 
 -- Hysteresis margin. A vehicle must come back within
 -- (allowed_deviation_m - this) to be considered recovered.
---
--- Without it, a bus parked exactly on the boundary flip-flops between
--- ON_ROUTE and OFF_ROUTE on consecutive pings, opening and closing an
--- incident every few seconds. Same class of problem as the geofence
--- entry/exit spam, solved the same way.
 CREATE OR REPLACE FUNCTION route_recovery_margin_m()
 RETURNS DOUBLE PRECISION LANGUAGE sql IMMUTABLE AS $$ SELECT 25; $$;
 
@@ -32,9 +26,7 @@ BEGIN
 
     CREATE TEMP TABLE _eval ON COMMIT DROP AS
     WITH latest AS (
-        -- One point per vehicle per batch. Deviation is a state, not a
-        -- per-ping fact -- evaluating every row would just re-derive the
-        -- same state N times.
+        -- One point per vehicle per batch
         SELECT DISTINCT ON (vehicle_id)
                vehicle_id, time, location
         FROM new_ct_rows
@@ -56,8 +48,7 @@ BEGIN
       ON r.vehicle_id = l.vehicle_id AND r.active
     LEFT JOIN route_state rs
       ON rs.vehicle_id = l.vehicle_id
-    -- Out-of-order guard: a late-arriving old ping must never flip state
-    -- backwards and fabricate a deviation that already resolved.
+    -- Out-of-order guard
     WHERE rs.last_checked_time IS NULL OR l.time > rs.last_checked_time;
 
     -- Transition ON -> OFF: open one incident.
@@ -89,9 +80,7 @@ BEGIN
       AND NOT v.was_on_route
       AND v.distance_m <= (v.allowed_deviation_m - route_recovery_margin_m());
 
-    -- Record current state. Note the asymmetric thresholds -- that
-    -- asymmetry IS the hysteresis: you go off-route at the full distance
-    -- but only come back inside the margin.
+    -- Record current state
     INSERT INTO route_state (
         vehicle_id, route_id, is_on_route, last_distance_m, last_checked_time, updated_at
     )
@@ -115,8 +104,6 @@ BEGIN
     RETURN NULL;
 
 EXCEPTION WHEN OTHERS THEN
-    -- Must never break ingestion: this runs in the same transaction as the
-    -- raw_telemetry insert that produced these rows.
     INSERT INTO telemetry_errors (vehicle_id, error_message, raw_payload)
     VALUES (NULL, 'Route deviation check failure: ' || SQLERRM, NULL);
     RETURN NULL;

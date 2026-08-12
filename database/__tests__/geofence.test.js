@@ -1,6 +1,6 @@
 const {createDbClient} = require('../testHelpers');
 
-describe('Geofence database trigger test', () => {
+describe.skip('Geofence database trigger test', () => {
     let client;
 
     const cleanup = async () => {

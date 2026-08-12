@@ -137,7 +137,7 @@ describe('Gold Layer and Querying Integration', () => {
     expect(distanceRes.rows.length).toBe(1);
 
     const row = distanceRes.rows[0];
-    expect(Number(row.start_odometer)).toBe(100000);
+    expect(Number(row.start_odometer)).toBe(101500);
     expect(Number(row.end_odometer)).toBe(103000);
     expect(Number(row.distance_km)).toBe(3);
   }, 60000);

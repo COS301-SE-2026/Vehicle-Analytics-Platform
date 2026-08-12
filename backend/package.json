@@ -60,42 +60,43 @@
 
   },
 
+ 
   "jest": {
-
+ 
     "testEnvironment": "node",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
-    "coverageReporters": [
-      "text",
-      "lcov"
-    ],
-
+ 
     "setupFilesAfterEnv": ["<rootDir>/__tests__/setup/jest.setup.js"],
-
+ 
     "testPathIgnorePatterns": ["/node_modules/", "/__tests__/setup/"],
-
-    "collectCoverageFrom": ["src/**/*.js", "!src/app.js", "!**/node_modules/**"],
-
+ 
+    "collectCoverageFrom": [
+ 
+      "src/**/*.js",
+ 
+      "!src/app.js",
+ 
+      "!**/node_modules/**"
+ 
+ 
+    ],
+ 
     "coverageReporters": ["text", "lcov"],
-
+ 
     "coverageDirectory": "coverage",
-
+ 
     "coverageThreshold": {
-
+ 
       "global": {
-
+ 
         "branches": 80,
-
+ 
         "functions": 80,
-
+ 
         "lines": 80,
-
+ 
         "statements": 80
-
+ 
       }
-
     }
-
   }
-
 }
-

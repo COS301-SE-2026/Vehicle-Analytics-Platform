@@ -1,44 +1,45 @@
 
+
+
 const jwt = require('jsonwebtoken');
 
 const {pool} = require('../db/pool');
 
 const {error} = require('../utils/response');
 
-console.log("NODE_ENV =", process.env.NODE_ENV);
 
-console.log("NODE_ENV:", process.env.NODE_ENV);
-
-console.log("DISABLE_AUTH:", process.env.DISABLE_AUTH);
 
 
 
 async function authenticate(req, res, next) {
 
+
   
 
+  
   if (process.env.NODE_ENV === "development") {
-
+  
     req.user = {
-
+  
       id: "dev-user",
-
+  
       sub: "local-dev",
-
+  
       email: "dev@localhost",
-
+  
       password: "dev-password",
-
+  
       role: "manager",
-
+  
     };
 
-    return next();
 
+    
+    return next();
   }
 
-
-
+  
+  
   const authHeader = req.headers.authorization;
 
 
@@ -75,21 +76,27 @@ async function authenticate(req, res, next) {
   
       return next();
   
-    } 
-    
+    }
     
     catch (err) {
   
+
+      
       return error(res, 'Invalid or expired token', 401);
-  
     }
-  
+
   }
+
+
 
 
   
   try {
-  
+
+
+    
+
+    
     const payload = jwt.decode(token);
 
 
@@ -107,8 +114,6 @@ async function authenticate(req, res, next) {
       'SELECT id, name, email, role, is_active FROM users WHERE cognito_sub = $1',
     
       [payload.sub]
-
-
     
     );
 
@@ -121,7 +126,7 @@ async function authenticate(req, res, next) {
     }
 
 
-
+    
     const user = userResult.rows[0];
     
     if (!user?.is_active) {
@@ -130,9 +135,11 @@ async function authenticate(req, res, next) {
     
     }
 
-
+    
+    
     
     req.user = {
+    
     
       id: user.id,
     
@@ -144,13 +151,13 @@ async function authenticate(req, res, next) {
     
     };
 
-
+    
+    
     
     next();
   } 
-
-
-
+  
+  
   catch (err) {
   
     const errorMsg = err?.message || 'Invalid or expired token';
@@ -165,16 +172,22 @@ async function authenticate(req, res, next) {
 
 
 
+
+
 function requireRole(allowedRoles) {
 
   return (req, res, next) => {
 
+
+
+
+    
     if (process.env.NODE_ENV === "development") {
-
+    
       console.log("Development mode: Bypassing role check");
-
+    
       return next();
-
+    
     }
 
 
@@ -185,10 +198,11 @@ function requireRole(allowedRoles) {
     
     }
     
+    
     next();
   };
-
 }
+
 
 
 

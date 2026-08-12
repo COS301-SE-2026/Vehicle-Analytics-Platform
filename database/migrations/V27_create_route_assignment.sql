@@ -1,17 +1,12 @@
 -- Route assignment.
---
--- A manager plots waypoints on the map, the backend snaps them to the road
--- network and the resulting LINESTRING is stored as the EXPECTED
--- CORRIDOR for that vehicle. Live telemetry is then checked against it.
---
+
 -- The route is a reference geometry
 
 CREATE TABLE routes (
     route_id            BIGSERIAL PRIMARY KEY,
     vehicle_id          TEXT NOT NULL REFERENCES vehicles(vehicle_id),
     route_name          TEXT NOT NULL,
-    -- Corridor half-width in metres. A bus is off-route when it's further
-    -- than this from the line.
+
     allowed_deviation_m INTEGER NOT NULL DEFAULT 150,
     geom                GEOMETRY(LINESTRING, 4326) NOT NULL,
     distance_m          DOUBLE PRECISION,
@@ -21,7 +16,8 @@ CREATE TABLE routes (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- One ACTIVE route per vehicle 
+-- One ACTIVE route per vehicle -- not one route per vehicle ever.
+
 CREATE UNIQUE INDEX idx_routes_one_active_per_vehicle
     ON routes (vehicle_id) WHERE active;
 
@@ -29,29 +25,13 @@ CREATE UNIQUE INDEX idx_routes_one_active_per_vehicle
 CREATE INDEX idx_routes_vehicle_active ON routes (vehicle_id) WHERE active;
 CREATE INDEX idx_routes_geom ON routes USING GIST (geom);
 
--- The manager's original clicks, kept separately from the generated line.
-CREATE TABLE route_waypoints (
-    waypoint_id BIGSERIAL PRIMARY KEY,
-    route_id    BIGINT NOT NULL REFERENCES routes(route_id) ON DELETE CASCADE,
-    sequence    INTEGER NOT NULL,
-    latitude    NUMERIC NOT NULL,
-    longitude   NUMERIC NOT NULL,
-    name        TEXT,
-    location    GEOMETRY(POINT, 4326) GENERATED ALWAYS AS
-                (ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)) STORED,
-    UNIQUE (route_id, sequence)
-);
 
-CREATE INDEX idx_route_waypoints_route ON route_waypoints (route_id, sequence);
-
--- One row per deviation INCIDENT
 CREATE TABLE route_deviation_events (
     event_id            BIGSERIAL PRIMARY KEY,
     route_id            BIGINT NOT NULL REFERENCES routes(route_id) ON DELETE CASCADE,
     vehicle_id          TEXT NOT NULL REFERENCES vehicles(vehicle_id),
     occurred_at         TIMESTAMPTZ NOT NULL,
     resolved_at         TIMESTAMPTZ,
-    -- Worst distance seen during the incident, not just the first reading.
     max_distance_m      DOUBLE PRECISION,
     distance_from_route DOUBLE PRECISION,
     latitude            NUMERIC,
@@ -66,13 +46,12 @@ CREATE INDEX idx_route_deviation_vehicle_time
 CREATE INDEX idx_route_deviation_route ON route_deviation_events (route_id);
 CREATE INDEX idx_route_deviation_location ON route_deviation_events USING GIST (location);
 
--- Open incidents only 
+-- Open incidents only -- what the monitoring trigger looks up on every
+-- batch, and what the alerts feed queries.
 CREATE INDEX idx_route_deviation_open
     ON route_deviation_events (vehicle_id) WHERE resolved_at IS NULL;
 
--- Current on/off-route state per vehicle
---
--- last_checked_time is the telemetry timestamp
+-- Current on/off-route state per vehicle.
 CREATE TABLE route_state (
     vehicle_id        TEXT PRIMARY KEY REFERENCES vehicles(vehicle_id),
     route_id          BIGINT REFERENCES routes(route_id) ON DELETE CASCADE,
@@ -84,7 +63,8 @@ CREATE TABLE route_state (
 
 CREATE INDEX idx_route_state_route ON route_state (route_id);
 
--- Routes as GeoJSON for the map layer
+-- Routes as GeoJSON for the map layer, same shape as
+-- get_geofences_geojson so the frontend consumes both identically.
 CREATE OR REPLACE FUNCTION get_routes_geojson(p_vehicle_id TEXT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE sql STABLE AS $$
@@ -112,17 +92,15 @@ LANGUAGE sql STABLE AS $$
 $$;
 
 -- current_vehicle_route: the single read surface for route status.
---
--- Dashboard, map, vehicle popup and alerts all read this
--- Returns EVERY vehicle, not just routed ones: 
+
 CREATE OR REPLACE VIEW current_vehicle_route AS
 SELECT
     v.vehicle_id,
     r.route_id,
     r.route_name,
     CASE
-        WHEN r.route_id IS NULL THEN 'NO_ROUTE'
-        WHEN rs.is_on_route     THEN 'ON_ROUTE'
+        WHEN r.route_id IS NULL          THEN 'NO_ROUTE'
+        WHEN COALESCE(rs.is_on_route, TRUE) THEN 'ON_ROUTE'
         ELSE 'OFF_ROUTE'
     END                                  AS status,
     COALESCE(rs.is_on_route, TRUE)       AS is_on_route,

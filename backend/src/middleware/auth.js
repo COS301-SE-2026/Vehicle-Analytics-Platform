@@ -1,21 +1,13 @@
 
-
-
 const jwt = require('jsonwebtoken');
 
 const {pool} = require('../db/pool');
 
 const {error} = require('../utils/response');
 
-
-
 console.log("NODE_ENV =", process.env.NODE_ENV);
 
-
-
 console.log("NODE_ENV:", process.env.NODE_ENV);
-
-
 
 console.log("DISABLE_AUTH:", process.env.DISABLE_AUTH);
 
@@ -23,11 +15,9 @@ console.log("DISABLE_AUTH:", process.env.DISABLE_AUTH);
 
 async function authenticate(req, res, next) {
 
- 
+  
 
-
-
-  if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
+  if (process.env.NODE_ENV === "development") {
 
     req.user = {
 
@@ -43,14 +33,13 @@ async function authenticate(req, res, next) {
 
     };
 
-
-    
     return next();
+
   }
 
-  
-  const authHeader = req.headers.authorization;
 
+
+  const authHeader = req.headers.authorization;
 
 
   
@@ -73,6 +62,7 @@ async function authenticate(req, res, next) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test_secret_key');
   
       req.user = {
+  
         id: decoded.id,
   
         sub: decoded.sub,
@@ -85,22 +75,21 @@ async function authenticate(req, res, next) {
   
       return next();
   
-    } catch (err) {
+    } 
+    
+    
+    catch (err) {
   
       return error(res, 'Invalid or expired token', 401);
   
     }
+  
   }
-
 
 
   
   try {
   
-
-    
-
-
     const payload = jwt.decode(token);
 
 
@@ -118,6 +107,8 @@ async function authenticate(req, res, next) {
       'SELECT id, name, email, role, is_active FROM users WHERE cognito_sub = $1',
     
       [payload.sub]
+
+
     
     );
 
@@ -130,7 +121,7 @@ async function authenticate(req, res, next) {
     }
 
 
-    
+
     const user = userResult.rows[0];
     
     if (!user?.is_active) {
@@ -157,20 +148,19 @@ async function authenticate(req, res, next) {
     
     next();
   } 
-  
-  
-  
+
+
+
   catch (err) {
-    
+  
     const errorMsg = err?.message || 'Invalid or expired token';
-    
+  
     console.error('Auth error:', errorMsg);
-    
+  
     return error(res, 'Invalid or expired token', 401);
+  
   }
-
 }
-
 
 
 
@@ -179,16 +169,12 @@ function requireRole(allowedRoles) {
 
   return (req, res, next) => {
 
+    if (process.env.NODE_ENV === "development") {
 
-    
-    if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
-    
       console.log("Development mode: Bypassing role check");
-    
+
       return next();
 
-
-    
     }
 
 
@@ -200,15 +186,11 @@ function requireRole(allowedRoles) {
     }
     
     next();
-
-    
   };
 
 }
 
 
 
+
 module.exports = {authenticate, requireRole};
-
-
-

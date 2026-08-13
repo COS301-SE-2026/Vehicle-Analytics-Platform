@@ -31,7 +31,7 @@ function getDbConfig(databaseName = process.env.DB_NAME || rootEnv.DB_NAME || 'f
     port: 5432,
     database: databaseName,
     user: process.env.DB_USER || 'fleet_admin',
-    password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || rootEnv.DB_PASSWORD || 'testpassword',
+    password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || rootEnv.DB_PASSWORD || 'CHANGE_ME_SET_DB_PASSWORD_ENV',
   };
 }
 

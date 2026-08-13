@@ -25,7 +25,7 @@ async function insertTestVehicle(vehicleId) {
     );
 }
  
-describe.skip('trips table constraints', () => {
+describe('trips table constraints', () => {
     test('rejects a second open trip for the same vehicle', async () => {
         await insertTestVehicle('TEST_VEHICLE_1');
  
@@ -66,7 +66,7 @@ describe.skip('trips table constraints', () => {
     });
 });
  
-describe.skip('get_trip_history', () => {
+describe('get_trip_history', () => {
     test('returns trips for a vehicle, most recent first', async () => {
         await insertTestVehicle('TEST_VEHICLE_4');
  
@@ -132,7 +132,7 @@ describe.skip('get_trip_history', () => {
     });
 });
  
-describe.skip('get_trip_replay', () => {
+describe('get_trip_replay', () => {
     test('returns telemetry points between trip start and end, in time order', async () => {
         await insertTestVehicle('TEST_VEHICLE_7');
  

@@ -6,7 +6,7 @@
 
 
 
-
+DROP FUNCTION IF EXISTS public.get_trip_history(text, timestamptz, timestamptz, timestamptz, int);
 
 CREATE OR REPLACE FUNCTION public.get_trip_history(
 

@@ -1,5 +1,5 @@
 const { Client } = require('pg');
-const { getDbConfig } = require('./testDbConfig');
+const { getDbConfig } = require('../testDbConfig');
 
 describe('Database Integrations', () => {
   let client;
@@ -30,3 +30,4 @@ describe('Database Integrations', () => {
     expect(tables).toContain('telemetry_errors');
   });
 });
+

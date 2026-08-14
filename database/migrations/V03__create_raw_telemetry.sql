@@ -11,10 +11,8 @@ CREATE TABLE IF NOT EXISTS raw_telemetry (
     movement TEXT,
     green_driving_type TEXT,
     crash_detection TEXT,
-    UNIQUE (time, vehicle_id, measurement, event)
+    UNIQUE (time, vehicle_id)
 );
 
+-- Convert it to a TimescaleDB hypertable partitioned by time
 SELECT create_hypertable('raw_telemetry', by_range('time'));
-
-CREATE INDEX IF NOT EXISTS idx_raw_telemetry_vehicle_time
-  ON raw_telemetry (vehicle_id, time DESC);

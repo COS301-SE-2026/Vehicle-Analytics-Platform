@@ -20,7 +20,8 @@
     ],
     "collectCoverageFrom": [
       "**/*.js",
-      "!node_modules/**"
+      "!node_modules/**",
+      "!**/*.test.js"
     ]
   },
   "keywords": [],

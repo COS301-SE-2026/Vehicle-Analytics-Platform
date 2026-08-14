@@ -66,7 +66,7 @@ jobs:
       # STEP 1: DATABASE INITIALISATION
       - name: Install database dependencies
         working-directory: ./database
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Bootstrap stubbed roads & spatial tables
         working-directory: ./database
@@ -110,7 +110,7 @@ jobs:
       # STEP 2: BACKEND INTEGRATION TESTS (REAL DB, NO MOCKS)
       - name: Install backend dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run API integration tests against live Postgres
         working-directory: ./backend

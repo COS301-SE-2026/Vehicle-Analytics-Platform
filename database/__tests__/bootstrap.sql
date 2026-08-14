@@ -1,11 +1,11 @@
 -- OSM fixture tables.
--- Geography is around Madadeni / Newcastle
+
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS postgis_topology;
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
--- roads
+
 CREATE TABLE IF NOT EXISTS roads (
     id            BIGSERIAL PRIMARY KEY,
     road_name     TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS roads (
     maxspeed_kmh  INTEGER,
     geom          GEOMETRY(LineString, 4326)
 );
-CREATE INDEX IF NOT EXISTS idx_roads_geom ON roads USING GIST (geom);
+CREATE INDEX IF NOT EXISTS roads_geom_idx ON roads USING GIST (geom);
 
 CREATE TABLE IF NOT EXISTS places (
     id          BIGSERIAL PRIMARY KEY,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS places (
     population  INTEGER,
     geom        GEOMETRY(Geometry, 4326)
 );
-CREATE INDEX IF NOT EXISTS idx_places_geom ON places USING GIST (geom);
+CREATE INDEX IF NOT EXISTS places_geom_idx ON places USING GIST (geom);
 
 CREATE TABLE IF NOT EXISTS admin_boundaries (
     id          BIGSERIAL PRIMARY KEY,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS admin_boundaries (
     admin_level INTEGER,
     geom        GEOMETRY(MultiPolygon, 4326)
 );
-CREATE INDEX IF NOT EXISTS idx_admin_boundaries_geom ON admin_boundaries USING GIST (geom);
+CREATE INDEX IF NOT EXISTS admin_boundaries_geom_idx ON admin_boundaries USING GIST (geom);
 
 TRUNCATE roads, places, admin_boundaries RESTART IDENTITY;
 

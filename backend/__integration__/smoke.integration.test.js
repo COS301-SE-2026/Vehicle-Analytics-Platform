@@ -17,8 +17,6 @@ describe('CI pipeline smoke test', () => {
   it('connects to a real database (not a mock)', async () => {
     const res = await pool.query('SELECT current_database() AS db, 1 + 1 AS math');
     expect(res.rows[0].math).toBe(2);
-    // If this were the mocked pool from __tests__/setup/mockDb.js, the
-    // query would return canned rows and current_database() would be absent.
     expect(res.rows[0].db).toBe(process.env.DB_NAME);
   });
 

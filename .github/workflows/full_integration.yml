@@ -125,7 +125,7 @@ jobs:
 
       - name: Upload integration coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@0565863a31f2c773c9f00f074ed015386629239a # v5.4.0
+        uses: codecov/codecov-action@e96185f4044c2f0cedf0f022454acf9811cf8057 # v5.4.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: api-integration

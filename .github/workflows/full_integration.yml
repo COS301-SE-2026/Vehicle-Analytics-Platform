@@ -18,9 +18,6 @@ jobs:
           POSTGRES_DB: fleet_analytics_full
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: testpassword
-          # POSTGRES_HOST_AUTH_METHOD: trust removed -- the -ha image manages
-          # its own pg_hba.conf and does not reliably honour it. Setting it
-          # alongside a password made the auth path ambiguous for no gain.
         ports:
           - 5432:5432
         options: >-
@@ -66,9 +63,7 @@ jobs:
           done
           echo "Postgres never became ready"; exit 1
 
-      # -------------------------------------------------------------
       # STEP 1: DATABASE INITIALISATION
-      # -------------------------------------------------------------
       - name: Install database dependencies
         working-directory: ./database
         run: npm ci
@@ -112,9 +107,7 @@ jobs:
             echo "No seeds/seed_data.sql; integration fixtures will self-seed."
           fi
 
-      # -------------------------------------------------------------
       # STEP 2: BACKEND INTEGRATION TESTS (REAL DB, NO MOCKS)
-      # -------------------------------------------------------------
       - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
@@ -132,7 +125,7 @@ jobs:
 
       - name: Upload integration coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v0565863a31f2c773c9f00f074ed015386629239a # v5.4.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: api-integration

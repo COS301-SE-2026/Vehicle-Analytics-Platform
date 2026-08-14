@@ -6,7 +6,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM geofences LIMIT 1) THEN
         RETURN NULL;
     END IF;
-
+ 
     WITH latest_points AS (
         SELECT DISTINCT ON (vehicle_id) vehicle_id, time, speed, location
         FROM new_ct_rows
@@ -22,7 +22,15 @@ BEGIN
         FROM latest_points lp
         JOIN geofences g
           ON (g.vehicle_id IS NULL OR g.vehicle_id = lp.vehicle_id)
-         AND g.boundary && lp.location
+         AND (
+               g.boundary && lp.location
+               OR EXISTS (
+                    SELECT 1 FROM geofence_state s2
+                    WHERE s2.geofence_id = g.id
+                      AND s2.vehicle_id = lp.vehicle_id
+                      AND s2.is_inside
+                  )
+             )
         LEFT JOIN geofence_state s
           ON s.geofence_id = g.id AND s.vehicle_id = lp.vehicle_id
         WHERE s.last_updated IS NULL OR lp.time > s.last_updated
@@ -34,7 +42,7 @@ BEGIN
     FROM evaluated
     WHERE (currently_inside AND NOT previously_inside AND trigger_type IN ('entry', 'both'))
        OR (NOT currently_inside AND previously_inside AND trigger_type IN ('exit', 'both'));
-
+ 
     WITH latest_points AS (
         SELECT DISTINCT ON (vehicle_id) vehicle_id, time, location
         FROM new_ct_rows
@@ -47,7 +55,15 @@ BEGIN
         FROM latest_points lp
         JOIN geofences g
           ON (g.vehicle_id IS NULL OR g.vehicle_id = lp.vehicle_id)
-         AND g.boundary && lp.location
+         AND (
+               g.boundary && lp.location
+               OR EXISTS (
+                    SELECT 1 FROM geofence_state s3
+                    WHERE s3.geofence_id = g.id
+                      AND s3.vehicle_id = lp.vehicle_id
+                      AND s3.is_inside
+                  )
+             )
     )
     INSERT INTO geofence_state (geofence_id, vehicle_id, is_inside, last_updated)
     SELECT geofence_id, vehicle_id, currently_inside, ns.time
@@ -57,10 +73,11 @@ BEGIN
         last_updated = EXCLUDED.last_updated
     WHERE geofence_state.last_updated IS NULL
        OR EXCLUDED.last_updated > geofence_state.last_updated;
-
+ 
     RETURN NULL;
 END;
 $$;
+
 
 CREATE TRIGGER geofence_event_trigger
 AFTER INSERT ON clean_telemetry

@@ -1,12 +1,11 @@
 const { createDbClient, resetTelemetryData } = require('../testHelpers');
 
-describe('Database Triggers Integration', () => {
-  let client;
+describe('Database Triggers Integration', () => {let client;
 
   beforeAll(async () => {
     client = await createDbClient();
     await resetTelemetryData(client, 'TEST-');
-    await client.query('DELETE FROM vehicles');
+    await client.query("DELETE FROM vehicles WHERE vehicle_id LIKE 'TEST-%'");
   });
 
   afterAll(async () => {

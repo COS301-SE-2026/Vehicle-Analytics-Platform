@@ -1,12 +1,7 @@
 const { Pool } = require('pg');
+const { getDbConfig } = require('./testDbConfig');
 
-const pool = new Pool({
-  host: 'localhost',
-  port:  5432,
-  database:  'fleet_test',
-  user: 'test_user',
-  password:  'test_password',
-});
+const pool = new Pool(getDbConfig());
 
 describe('Database Schema, Functions, and Trigger Integration Tests', () => {
   beforeAll(async () => {
@@ -190,9 +185,7 @@ describe('Database Schema, Functions, and Trigger Integration Tests', () => {
     });
   });
 
-  // -------------------------------------------------------------
   // TEST GROUP 4: Vehicle Status Logic
-  // -------------------------------------------------------------
   describe('get_vehicle_status Function', () => {
     it('should correctly classify vehicle activity status', async () => {
       const res = await pool.query(`

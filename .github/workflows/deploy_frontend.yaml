@@ -50,9 +50,12 @@ jobs:
 
       - name: Create .env
         working-directory: ./frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         run: |
-          echo "VITE_API_URL=${{ vars.VITE_API_URL }}" > .env
-          echo "VITE_MAPBOX_TOKEN=${{ secrets.VITE_MAPBOX_TOKEN }}" >> .env
+          echo "VITE_API_URL=${VITE_API_URL}" > .env
+          echo "VITE_MAPBOX_TOKEN=${VITE_MAPBOX_TOKEN}" >> .env
 
       - name: Build frontend
         working-directory: ./frontend

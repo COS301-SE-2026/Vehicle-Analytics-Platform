@@ -7,6 +7,11 @@
   },
   "jest": {
     "testEnvironment": "node",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "__tests__/testDbConfig.js",
+      "__tests__/testHelpers.js"
+    ],
     "coverageReporters": ["text", "lcov"],
     "coverageDirectory": "coverage",
     "forceCoverageMatch": [

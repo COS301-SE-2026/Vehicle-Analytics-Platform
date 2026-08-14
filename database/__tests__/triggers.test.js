@@ -74,7 +74,7 @@ describe('Database Triggers Integration', () => {let client;
     expect(eventRes.rows[0].event_detail).toBe('harsh_acceleration');
     expect(eventRes.rows[0].speed).toBe(32);
 
-    const currentPositionRes = await client.query("SELECT * FROM current_vehicle_position WHERE id = $1", [vehicleId]);
+    const currentPositionRes = await client.query("SELECT * FROM current_vehicle_position WHERE vehicle_id = $1", [vehicleId]);
     expect(currentPositionRes.rows[0].ignition).toBe('Ignition Off');
     expect(currentPositionRes.rows[0].movement).toBe('Movement Off');
   });

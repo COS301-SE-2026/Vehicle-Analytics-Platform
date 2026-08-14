@@ -197,7 +197,7 @@ RETURNS TEXT
 LANGUAGE sql STABLE AS $$
     SELECT CASE
         WHEN p_last_update IS NULL THEN 'offline'
-        WHEN p_last_update < (NOW() AT TIME ZONE 'UTC' - INTERVAL '5 minutes') THEN 'offline'
+        WHEN p_last_update < (NOW() - INTERVAL '5 minutes') THEN 'offline'
         WHEN COALESCE(p_movement, 'Movement Off') = 'Movement Off'
              AND COALESCE(p_speed, 0) < 5 THEN 'idle'
         ELSE 'active'

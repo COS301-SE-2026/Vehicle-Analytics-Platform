@@ -114,7 +114,7 @@ jobs:
 
       - name: Run API integration tests against live Postgres
         working-directory: ./backend
-        run: npx jest --config jest.integration.config.js --ci --coverage --coverageDirectory=coverage-integration
+        run: npx --no-install jest --config jest.integration.config.js --ci --coverage --coverageDirectory=coverage-integration
         env:
           NODE_ENV: test
           DB_HOST: localhost

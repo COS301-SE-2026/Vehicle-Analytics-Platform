@@ -179,7 +179,7 @@ jobs:
               THEN 'ok' ELSE 'MISSING' END;" | grep -qx ok
   
         - name: Run database tests
-          run: npx jest --ci --runInBand --coverage --coverageDirectory=coverage
+          run: npx --no-install jest --ci --runInBand --coverage --coverageDirectory=coverage
   
         - name: Upload coverage to Codecov
           if: always()

@@ -7,12 +7,10 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "__tests__/testDbConfig.js",
-      "__tests__/testHelpers.js"
+    "coverageReporters": [
+      "text",
+      "lcov"
     ],
-    "coverageReporters": ["text", "lcov"],
     "coverageDirectory": "coverage",
     "forceCoverageMatch": [
       "**/__tests__/**/*.js",
@@ -20,8 +18,7 @@
     ],
     "collectCoverageFrom": [
       "**/*.js",
-      "!node_modules/**",
-      "!**/*.test.js"
+      "!node_modules/**"
     ]
   },
   "keywords": [],

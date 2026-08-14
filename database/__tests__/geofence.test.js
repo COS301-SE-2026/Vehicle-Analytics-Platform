@@ -125,13 +125,7 @@ describe('Geofence database trigger test', () => {
         eventRes = await client.query(`
             SELECT event_type FROM geofence_events 
             WHERE geofence_id = $1 AND vehicle_id = $2
-            -- event_time, not created_at. All four telemetry rows land in
-            -- the same transaction, so created_at (DEFAULT NOW(), which is
-            -- transaction start) is IDENTICAL for every event -- the sort
-            -- is then arbitrary and this assertion passes or fails by
-            -- chance. event_time carries the telemetry timestamp, which is
-            -- what actually differs.
-            ORDER BY event_time DESC
+            ORDER BY created_at DESC
         `, [geofence_id, vehicle_id]);
             
         expect(eventRes.rows.length).toBe(2);

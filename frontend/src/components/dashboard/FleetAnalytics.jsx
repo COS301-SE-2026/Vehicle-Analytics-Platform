@@ -34,7 +34,7 @@ export default function FleetAnalytics() {
                 : 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
             }`}
           >
-            Daily
+            Today
           </button>
           <button
             type="button"

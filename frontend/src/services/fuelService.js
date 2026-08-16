@@ -1,21 +1,26 @@
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-
 import useAuthStore from '../store/authStore'
+
+
+
+
+const API_BASE_URL = import.meta.env.VITE_API_URL
 
 
 
 async function getAuthHeaders() {
 
-    const token = useAuthStore.getState().token
+  const token = useAuthStore.getState().token
 
-    return {
 
-        'Content-Type': 'application/json',
+  return {
 
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+    'Content-Type': 'application/json',
 
-    }
+
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+
+  }
 
 }
 
@@ -23,32 +28,25 @@ async function getAuthHeaders() {
 
 export async function getVehicleFuelStats(vehicleId, days = 30) {
 
-    const headers = await getAuthHeaders()
-
-    const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}?days=${days}`, { headers })
-
-    if (!res.ok) throw new Error('Failed to fetch vehicle fuel stats')
-
-        const data = await res.json()
-
-        return data.data
-
-    }
-
-    
 
 
-    export async function getFleetFuelSummary(period = 'week') {
+  const headers = await getAuthHeaders()
 
-        const headers = await getAuthHeaders()
+  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}?days=${days}`, { headers })
 
-        const res = await fetch(`${API_BASE_URL}/api/fuel/fleet?period=${period}`, { headers })
+  if(!res.ok){
 
-        if (!res.ok) throw new Error('Failed to fetch fleet fuel summary')
 
-            const data = await res.json()
+    throw new Error('Failed to fetch vehicle fuel stats')
 
-            return data.data
+
+  }
+
+  const data = await res.json()
+
+
+  return data.data
+
 }
 
 
@@ -56,41 +54,85 @@ export async function getVehicleFuelStats(vehicleId, days = 30) {
 
 
 
+export async function getFleetFuelSummary(period = 'week') {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/fleet?period=${period}`, { headers })
+
+  if(!res.ok){
+
+
+    throw new Error('Failed to fetch fleet fuel summary')
+
+  }
+
+  const data = await res.json()
+
+
+  return data.data
+
+}
+
+
+
 export async function getFuelDashboard() {
 
-    const headers = await getAuthHeaders()
+  const headers = await getAuthHeaders()
 
-    const res = await fetch(`${API_BASE_URL}/api/fuel/dashboard`, { headers })
+  const res = await fetch(`${API_BASE_URL}/api/fuel/dashboard`, { headers })
 
-    if (!res.ok) throw new Error('Failed to fetch fuel dashboard')
+  if(!res.ok){
 
-        const data = await res.json()
 
-        return data.data
+    throw new Error('Failed to fetch fuel dashboard')
 
-    }
+  }
+
+
+  const data = await res.json()
+
+  return data.data
+
+
+
+}
+
+
+
+export async function calculateTripFuel(tripId) {
+
+
+  const headers = await getAuthHeaders()
+  
+  
+  const res = await fetch(`${API_BASE_URL}/api/fuel/calculate/trip/${tripId}`, {
+
+    method: 'POST',
+
+    headers
+
+
+  })
+
+
+  if(!res.ok){
+
+
 
     
+    throw new Error('Failed to calculate trip fuel')
 
 
-    export async function calculateTripFuel(tripId) {
-
-        const headers = await getAuthHeaders()
-
-
-        const res = await fetch(`${API_BASE_URL}/api/fuel/calculate/trip/${tripId}`, {
-
-            method: 'POST',
-
-            headers
-    })
+  }
 
 
 
-    if (!res.ok) throw new Error('Failed to calculate trip fuel')
+  const data = await res.json()
 
-        const data = await res.json()
 
-        return data.data
+  return data.data
 
-    }
+
+
+}

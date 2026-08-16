@@ -135,7 +135,9 @@ function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1200 }) {
   
     )
   
-    if (ref.current) observer.observe(ref.current)
+    if (ref.current) {
+      observer.observe(ref.current)
+    }
   
       return () => observer.disconnect()
   
@@ -1944,7 +1946,7 @@ const activeDays = WEEKDAY_ORDER.filter(d => weekdayMap[d])
 
 const bestDay = activeDays.length
 
-? activeDays.reduce((a, b) => (weekdayMap[a].sum / weekdayMap[a].count) > (weekdayMap[b].sum / weekdayMap[b].count) ? a : b)
+? activeDays.reduce((a, b) => (weekdayMap[a].sum / weekdayMap[a].count) > (weekdayMap[b].sum / weekdayMap[b].count) ? a : b, activeDays[0])
 
 : null
 

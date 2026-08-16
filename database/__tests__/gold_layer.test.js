@@ -1,18 +1,19 @@
 
 
-
 const { createDbClient, resetTelemetryData } = require('../testHelpers');
 
 
 
 describe('Gold Layer and Querying Integration', () => {
 
+
+
   let client;
 
+
   
-
+  
   jest.setTimeout(30000);
-
 
   
   async function safeRefresh(viewName) {
@@ -20,6 +21,7 @@ describe('Gold Layer and Querying Integration', () => {
     for (let i = 0; i < 5; i++) {
   
       try {
+  
         await client.query(`CALL refresh_continuous_aggregate('${viewName}', NULL, NULL);`);
   
         return;
@@ -45,6 +47,7 @@ describe('Gold Layer and Querying Integration', () => {
   }
 
 
+
   
   beforeAll(async () => {
   
@@ -55,16 +58,16 @@ describe('Gold Layer and Querying Integration', () => {
   }, 30000);
 
 
+
   
   afterAll(async () => {
-  
-  
   
     if (client) {
   
       await resetTelemetryData(client, 'GOLD_TEST-');
   
       await client.end();
+  
   
     }
   
@@ -74,14 +77,11 @@ describe('Gold Layer and Querying Integration', () => {
   
   test('should correctly aggregate continuous aggregates', async () => {
   
-  
-  
     const now = new Date();
-  
-    
-    
 
-    const time1 = new Date(now.getTime() - 15 * 60000).toISOString(); // 15 mins ago
+
+    
+    const time1 = new Date(now.getTime() - 15 * 60000).toISOString();
     
     await client.query(`
     
@@ -96,66 +96,64 @@ describe('Gold Layer and Querying Integration', () => {
       `, [time1]);
 
       
-    
-    
-    
-     
-    
-      const time2 = new Date(now.getTime() - 5 * 60000).toISOString(); // 5 mins ago
-    
-      await client.query(`
-    
-        INSERT INTO raw_telemetry 
-    
-        (time, vehicle_id, device_id, measurement, event, lat_lng, spd,total_odometer, ignition, movement, green_driving_type)
-    
-        VALUES 
-    
-        ($1, 'GOLD_TEST-001', 'DEV-001', 'avl_event', 'green_driving_type', '-25.010,28.010', '80', '92537168', 'Ignition On', 'Movement On', 'harsh_acceleration')
-    `, [time2]);
 
-  
-    const time3 = new Date(now.getTime() - 2 * 60000).toISOString(); // 2 mins ago
-   
+      const time2 = new Date(now.getTime() - 5 * 60000).toISOString();
+
+      await client.query(`
+
+        INSERT INTO raw_telemetry 
+
+        (time, vehicle_id, device_id, measurement, event, lat_lng, spd,total_odometer, ignition, movement, green_driving_type)
+
+
+        VALUES 
+
+        ($1, 'GOLD_TEST-001', 'DEV-001', 'avl_event', 'green_driving_type', '-25.010,28.010', '80', '92537168', 'Ignition On', 'Movement On', 'harsh_acceleration')
+
+        `, [time2]);
+
+        
+    const time3 = new Date(now.getTime() - 2 * 60000).toISOString();
+
     await client.query(`
-   
-   
+
       INSERT INTO raw_telemetry 
-   
+
       (time, vehicle_id, device_id, measurement, event, lat_lng, spd,total_odometer, ignition, movement, crash_detection)
-   
+
       VALUES 
-   
+
       ($1, 'GOLD_TEST-002', 'DEV-002', 'avl_event', 'crash_detection', '-25.020,28.020', '0', '92537169', 'Ignition Off', 'Movement Off', 'severe')
-   
+
       `, [time3]);
 
-  
-    await safeRefresh('vehicle_events_hourly');
+      
+    const positionRes = await client.query("SELECT * FROM current_vehicle_position WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id ASC");
 
-   
-    const positionRes = await client.query("SELECT * FROM current_vehicle_position WHERE id LIKE 'GOLD_TEST-%' ORDER BY id ASC");
+
     
     expect(positionRes.rows.length).toBe(2);
+
+
     
-    const v1Pos = positionRes.rows.filter(r => r.id === 'GOLD_TEST-001').pop(); 
-  
+    
+    const v1Pos = positionRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-001');
+    
     expect(Number(v1Pos.latitude)).toBe(-25.010);
-  
+    
     expect(Number(v1Pos.longitude)).toBe(28.010);
-  
+    
     expect(v1Pos.ignition).toBe('Ignition On');
-  
-  
+    
     expect(v1Pos.movement).toBe('Movement On');
-  
+    
     expect(Number(v1Pos.total_odometer)).toBe(92537168);
-  
+    
     expect(v1Pos.speed).toBe(80);
 
 
     
-    const v2Pos = positionRes.rows.find(r => r.id === 'GOLD_TEST-002');
+    const v2Pos = positionRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-002');
     
     expect(Number(v2Pos.latitude)).toBe(-25.020);
     
@@ -164,54 +162,65 @@ describe('Gold Layer and Querying Integration', () => {
     expect(v2Pos.speed).toBe(0);
 
 
-
-   
-
-
+    
     await client.query(`
     
-      CALL refresh_continuous_aggregate(
     
-      'vehicle_events_hourly', 
+      INSERT INTO vehicle_daily_events (vehicle_id, event_time, event_type)
     
-      NOW() - INTERVAL '1 day', 
+      VALUES
+        ('GOLD_TEST-001', $1, 'harsh_brake'),
     
-      NOW() + INTERVAL '1 hour'
+        ('GOLD_TEST-001', $2, 'harsh_acceleration'),
     
-      );
-    `);
+    
+        ('GOLD_TEST-002', $3, 'crash')
+    
+        `, [time1, time2, time3]);
 
-    const harshRes = await client.query("SELECT vehicle_id, harsh_braking_count::INTEGER, harsh_acceleration_count::INTEGER, alerts_today::INTEGER, crash_count::INTEGER FROM vehicle_events_hourly WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, bucket ASC");
+    await safeRefresh('vehicle_penalties');
+
+
+
+    
+    const harshRes = await client.query(
+    
+      "SELECT vehicle_id, harsh_brakes::INTEGER, harsh_accelerations::INTEGER, total_events::INTEGER, crashes::INTEGER FROM vehicle_penalties WHERE vehicle_id LIKE 'GOLD_TEST-%' ORDER BY vehicle_id, event_date ASC"
+    
+    );
 
     
     const v1Harsh = harshRes.rows.filter(r => r.vehicle_id === 'GOLD_TEST-001').reduce((acc, row) => {
-        acc.harsh_braking_count += Number(row.harsh_braking_count);
     
+      acc.harsh_brakes += Number(row.harsh_brakes);
     
-        acc.harsh_acceleration_count += Number(row.harsh_acceleration_count);
+      acc.harsh_accelerations += Number(row.harsh_accelerations);
     
-        acc.alerts_today += Number(row.alerts_today);
+      acc.total_events += Number(row.total_events);
     
-        return acc;
+      return acc;
     
-      }, { harsh_braking_count: 0, harsh_acceleration_count: 0, alerts_today: 0 });
+    }, { harsh_brakes: 0, harsh_accelerations: 0, total_events: 0 });
 
-    expect(Number(v1Harsh.harsh_braking_count)).toBe(1);
+
+
     
-    expect(Number(v1Harsh.harsh_acceleration_count)).toBe(1);
+    expect(Number(v1Harsh.harsh_brakes)).toBe(1);
     
-    expect(Number(v1Harsh.alerts_today)).toBe(2);
+    
+    expect(Number(v1Harsh.harsh_accelerations)).toBe(1);
+    
+    expect(Number(v1Harsh.total_events)).toBe(2);
 
 
     
     const v2Harsh = harshRes.rows.find(r => r.vehicle_id === 'GOLD_TEST-002');
     
-    expect(Number(v2Harsh.crash_count)).toBe(1);
+    expect(Number(v2Harsh.crashes)).toBe(1);
   }, 60000);
 
-  
   test('should correctly aggregate vehicle_daily_distance', async () => {
-  
+
     await resetTelemetryData(client, 'GOLD_TEST-');
 
 
@@ -224,15 +233,14 @@ describe('Gold Layer and Querying Integration', () => {
     
     const time2 = new Date(baseTime.getTime() + 1000).toISOString();
     
-    
     const time3 = new Date(baseTime.getTime() + 2000).toISOString();
-
 
 
     
     await client.query(`
     
       INSERT INTO raw_telemetry
+    
     
       (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement)
     
@@ -246,13 +254,21 @@ describe('Gold Layer and Querying Integration', () => {
     
       `, [time1, time2, time3]);
 
+
+
     await safeRefresh('vehicle_daily_distance');
 
-    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-020' ORDER BY bucket DESC LIMIT 1");
+
+    
+    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-020' ORDER BY day DESC LIMIT 1");
+
+
     
     expect(distanceRes.rows.length).toBe(1);
 
 
+
+    
     
     const row = distanceRes.rows[0];
     
@@ -263,8 +279,9 @@ describe('Gold Layer and Querying Integration', () => {
     expect(Number(row.distance_km)).toBe(3);
   }, 60000);
 
-  
-  
+
+
+
   
   test('should clamp negative distance to zero for odometer rollback', async () => {
   
@@ -278,6 +295,7 @@ describe('Gold Layer and Querying Integration', () => {
     
     const time1 = new Date(baseTime.getTime() - 1000).toISOString();
     
+    
     const time2 = new Date(baseTime.getTime() + 1000).toISOString();
 
 
@@ -288,18 +306,28 @@ describe('Gold Layer and Querying Integration', () => {
     
       (time, vehicle_id, device_id, measurement, event, lat_lng, spd, total_odometer, ignition, movement)
     
-      VALUES
-        ($1, 'GOLD_TEST-021', 'DEV-021', 'avl', '', '-25.000,28.000', '40', '100000', 'Ignition On', 'Movement On'),
     
-        ($2, 'GOLD_TEST-021', 'DEV-021', 'avl', '', '-25.001,28.001', '45', '99000', 'Ignition On', 'Movement On')
-    `, [time1, time2]);
+      VALUES
+    
+      ($1, 'GOLD_TEST-021', 'DEV-021', 'avl', '', '-25.000,28.000', '40', '100000', 'Ignition On', 'Movement On'),
+    
+      ($2, 'GOLD_TEST-021', 'DEV-021', 'avl', '', '-25.001,28.001', '45', '99000', 'Ignition On', 'Movement On')
+    
+      `, [time1, time2]);
 
+      
     await safeRefresh('vehicle_daily_distance');
 
-    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-021' ORDER BY bucket DESC LIMIT 1");
+
+    
+    const distanceRes = await client.query("SELECT * FROM vehicle_daily_distance WHERE vehicle_id = 'GOLD_TEST-021' ORDER BY day DESC LIMIT 1");
+
+
+    
     
     expect(distanceRes.rows.length).toBe(1);
-    
     expect(Number(distanceRes.rows[0].distance_km)).toBe(0);
+  
+  
   }, 60000);
 });

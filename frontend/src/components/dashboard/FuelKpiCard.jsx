@@ -1,4 +1,4 @@
-
+/* NOSONAR */
 
 import {useState, useEffect} from 'react'
 

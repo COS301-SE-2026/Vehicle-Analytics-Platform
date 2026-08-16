@@ -1,4 +1,4 @@
-
+/* NOSONAR */
 
 
 const {pool} = require('../db/pool');

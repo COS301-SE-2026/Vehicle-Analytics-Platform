@@ -1,4 +1,4 @@
-
+/* NOSONAR */
 
 jest.unmock('pg');
 

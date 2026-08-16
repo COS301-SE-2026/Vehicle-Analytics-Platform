@@ -81,6 +81,7 @@ async function authenticate(req, res, next) {
     catch (err) {
   
 
+ console.error('Auth error (token verify):', err?.message || err);
       
       return error(res, 'Invalid or expired token', 401);
     }

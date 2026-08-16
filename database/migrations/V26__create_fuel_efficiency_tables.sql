@@ -439,7 +439,21 @@ EXECUTE FUNCTION calculate_trip_fuel_efficiency();
 
 
 
-GRANT SELECT ON trip_fuel_efficiency TO fleet_admin;
 
-GRANT SELECT ON fleet_daily_fuel_summary TO fleet_admin;
+DO $$
+
+BEGIN
+
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'fleet_admin') THEN
+
+    GRANT SELECT ON trip_fuel_efficiency TO fleet_admin;
+
+    GRANT SELECT ON fleet_daily_fuel_summary TO fleet_admin;
+
+  END IF;
+
+END
+
+$$;
+
 

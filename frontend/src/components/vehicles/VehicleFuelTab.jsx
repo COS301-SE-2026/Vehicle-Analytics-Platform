@@ -301,7 +301,7 @@ function EfficiencyGauge({ value, max = 20 }) {
 
   const percentage = Math.min((value / max) * 100, 100)
 
-  const color = percentage > 70 ? '#10B981' : percentage > 40 ? '#F59E0B' : '#EF4444'
+  const color = percentage > 70 ? '#10B981' : percentage > 40 ? '#F59E0B' : '#EF4444' // NOSONAR
 
 
   

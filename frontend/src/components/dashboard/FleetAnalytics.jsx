@@ -58,7 +58,12 @@ export default function FleetAnalytics() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
-              <FleetSafetyScoreTrend data={data.safetyTrend} />
+              
+              {/* Dynamic title based on range */}
+              <FleetSafetyScoreTrend 
+                data={data.safetyTrend} 
+                title={range === 'day' ? 'Fleet Safety Score (Today - Hourly)' : 'Fleet Safety Score Trend'}
+              />
             </div>
             <div className="space-y-4">
               <FleetEventBreakdown events={data.eventBreakdown} />

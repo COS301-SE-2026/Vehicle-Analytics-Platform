@@ -41,5 +41,42 @@ function validateRuleFields({ name, fleet_group_id, condition_type, condition_pa
         return errors;
     }
 
+    if(condition_type === 'speed_threshold'){
+        const { max_speed_kmh } = condition_params;
+
+        if(max_speed_kmh === undefined || max_speed_kmh === null){
+            error.push('max_speed_kmh is required');
+        } else if(typeof max_speed_kmh !== 'number' || max_speed_kmh <= 0){
+            errors.push('max_speed_kmh must be a positive number');
+        }
+    }
+
+    if(condition_type === 'time_based_restriction'){
+        const {start_time, end_time, restricted_days } = condition_params;
+
+        if(!start_time || !isValidTimeString(start_time)){
+            errors.push('start_time is required and must be in HH:MM format');
+        }
+
+        if(!end_time || !isValidTimeString(end_time)){
+            errors.push('end_time is required and must be in HH:MM format');
+        }
+
+        if(start_time && end_time && isValidTimeString(start_time) && isValidTimeString(end_time) && start_time === end_time){
+            errors.push('end_time must be different from start_time');
+        }
+
+        if(restricted_days !== undefined){
+            if( !Array.isArray(restricted_days) || restricted_days.length === 0 ){
+                error.push('restricted_days must be a non-empty array is provided');
+            } else {
+                const invalidDays = restricted_days.filter(d => !VALID_DAYS.includes(d));
+
+                if(invalidDays.length > 0){
+                    errors.push(`restricted_days contains invalid values: ${invalidDays.join(', ')}`);
+                }
+            }
+        }
+    }
     
 }

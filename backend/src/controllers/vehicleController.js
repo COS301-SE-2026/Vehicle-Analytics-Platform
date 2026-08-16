@@ -33,9 +33,10 @@ async function getLiveLocations(req, res) {
       -- this is a direct join rather than a SUM-grouped subquery.
       LEFT JOIN vehicle_daily_distance daily
              ON daily.vehicle_id = v.vehicle_id
-            AND daily.day = data_today()
+            AND daily.day = CURRENT_DATE
+      WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
       ORDER BY v.vehicle_id
-    `);
+    `, [req.fleetGroupIds]);
  
     return success(res, {
       timestamp: new Date().toISOString(),
@@ -79,8 +80,9 @@ async function getVehicleById(req, res) {
       FROM vehicles v
       LEFT JOIN current_vehicle_position cvp ON cvp.vehicle_id = v.vehicle_id
       LEFT JOIN vehicle_location_cache vlc   ON vlc.vehicle_id = v.vehicle_id
-      WHERE v.vehicle_id = $1
-    `, [vehicleId]);
+      WHERE v.vehicle_id = $1 AND ($2::bigint[] IS NULL OR v.fleet_group_id = ANY($2::bigint[]))
+    
+    `, [vehicleId, req.fleetGroupIds]);
  
     if (vehicleResult.rows.length === 0) {
       return error(res, 'Vehicle not found', 404);
@@ -150,9 +152,24 @@ async function getVehiclePositionBuffer(req, res) {
       `SELECT * FROM get_position_buffer($1::interval, $2::int)`,
       ['30 seconds', 60]
     );
+
+    const scopedRows = req.fleetGroupIds === null
+      ? result.rows
+      : await (async () => {
+        if (req.fleetGroupIds.length === 0){
+          return [];
+        }
+
+        const allowed = await pool.query(`
+          SELECT vehicle_id FROM vehicles WHERE fleet_group_id = ANY($1::bigint[])
+          `, [req.fleetGroupIds]
+        );
+        const allowedIds = new Set(allowed.rows.map(r => r.vehicle_id));
+        return result.rows.filter(r => allowedIds.has(r.vehicle_id));
+      }) ();
  
     const grouped = {};
-    for (const row of result.rows) {
+    for (const row of scopedRows) {
       if (!grouped[row.vehicle_id]) grouped[row.vehicle_id] = [];
       grouped[row.vehicle_id].push(row);
     }
@@ -289,12 +306,12 @@ async function getVehiclesList(req, res) {
 
     ) ve ON v.vehicle_id = ve.vehicle_id
 
-    WHERE 1=1
+    WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
     `;
 
 
-    const params = [];
-    let paramCount = 1;
+    const params = [req.fleetGroupIds];
+    let paramCount = 2;
 
 
 
@@ -377,9 +394,10 @@ async function getVehiclesList(req, res) {
         COALESCE(
           (SELECT ROUND(AVG(CAST(safety_score AS numeric)), 1)
 
-           FROM driver_daily_safety_scores
-
-           WHERE score_date = CURRENT_DATE),
+          FROM driver_daily_safety_scores dss
+          JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
+          WHERE dss.score_date = CURRENT_DATE
+            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))),
 
           0
 
@@ -436,10 +454,10 @@ async function getVehiclesList(req, res) {
             AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
 
         ) ve ON v.vehicle_id = ve.vehicle_id
-
+      WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
       ) stats
 
-    `);
+    `, [req.fleetGroupIds]);
 
 
 
@@ -454,11 +472,11 @@ async function getVehiclesList(req, res) {
       FROM vehicles v
 
       LEFT JOIN driver_daily_safety_scores s ON v.vehicle_id = s.vehicle_id AND s.score_date = CURRENT_DATE
-
+      WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
       ORDER BY s.safety_score ASC NULLS LAST
 
       LIMIT 1
-    `);
+    `, [req.fleetGroupIds]);
 
 
 

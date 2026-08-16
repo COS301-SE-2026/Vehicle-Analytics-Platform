@@ -13,15 +13,16 @@ const {
 } = require('../controllers/vehiclesController');
 
 const { authenticate, requireRole } = require('../middleware/auth');
+const { requireFleetGroupAccess} = require('../middleware/fleetGroupAccess');
 const router = express.Router();
 
 const ALL_ROLES = ['admin', 'fleet_manager', 'viewer'];
-router.get('/', authenticate, requireRole(ALL_ROLES), getVehiclesList);
-router.get('/locations', authenticate, requireRole(ALL_ROLES), getLiveLocations);
-router.get('/buffer', authenticate, requireRole(ALL_ROLES), getVehiclePositionBuffer);
+router.get('/', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehiclesList);
+router.get('/locations', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getLiveLocations);
+router.get('/buffer', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehiclePositionBuffer);
 router.get('/:vehicleId/trips', authenticate, requireRole(ALL_ROLES), getVehicleTrips);
 router.get('/:vehicleId/safety-trend', authenticate, requireRole(ALL_ROLES), getVehicleSafetyTrend);
 
-router.get('/:vehicleId', authenticate, requireRole(ALL_ROLES), getVehicleById);
+router.get('/:vehicleId', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehicleById);
 
 module.exports = router;

@@ -20,18 +20,29 @@ function getTimestampColor(seconds) {
   return 'text-fleet-alert'
 }
 
-function formatLastUpdated(timestamp) {
-  if (!timestamp) return 'Unknown'
-  const diff = Math.floor((Date.now() - new Date(timestamp)) / 1000)
-  if (diff < 60) return `${diff} seconds ago`
-  const mins = Math.floor(diff / 60)
-  const secs = diff % 60
-  return `${mins} min ${secs} sec ago`
-}
-
 function getSecondsDiff(timestamp) {
   if (!timestamp) return 999
-  return Math.floor((Date.now() - new Date(timestamp)) / 1000)
+  const parsed = new Date(timestamp)
+  if (Number.isNaN(parsed.getTime())) return 999
+  return Math.floor((Date.now() - parsed.getTime()) / 1000)
+}
+
+function formatLastUpdated(timestamp) {
+  if (!timestamp) return 'Unknown'
+  const parsed = new Date(timestamp)
+  if (Number.isNaN(parsed.getTime())) return 'Unknown'
+
+  const diffMs = Math.max(0, Date.now() - parsed.getTime())
+  const minutes = Math.floor(diffMs / 60000)
+
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+
+  const days = Math.floor(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
 export default function MostActiveVehiclesTable({ vehicles = [] }) {
@@ -81,8 +92,7 @@ export default function MostActiveVehiclesTable({ vehicles = [] }) {
                   </td>
                 </tr>
               )
-            })
-}
+            })}
             {vehicles.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-fleet-secondary text-sm">

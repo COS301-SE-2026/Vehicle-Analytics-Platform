@@ -1058,7 +1058,7 @@ function GlobePlaceholder({ totalDistance, onInfoClick }) {
 
 <motion.div
 
-key={d.trip_id || `trip-${i}`}
+key={trip.trip_id || `trip-${i}`}
 
 className="absolute rounded-full border-2"
 
@@ -1444,7 +1444,7 @@ function RoadDominanceRose({ data, totalDistance }) {
   
   <circle
   
-  key={d.trip_id || `trip-${i}`}
+  key={trip.trip_id || `trip-${i}`}
   
   cx={cx}
   
@@ -2442,7 +2442,7 @@ return (
 
   <motion.tr
 
-  key={d.trip_id || `trip-${i}`}
+  key={trip.trip_id || `trip-${i}`}
 
   initial={{ opacity: 0 }}
 

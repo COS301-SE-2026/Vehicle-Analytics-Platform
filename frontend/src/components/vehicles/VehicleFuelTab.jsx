@@ -200,7 +200,7 @@ function MiniSparkline({ data, color = '#1a1a2e' }) {
 
   const areaPoints = `0,${h} ${points} ${w},${h}`
 
-  const lastY = h - ((data[data.length - 1] - min) / range) * h
+  const lastY = h - ((data.at(-1) - min) / range) * h
 
 
   
@@ -1058,7 +1058,7 @@ function GlobePlaceholder({ totalDistance, onInfoClick }) {
 
 <motion.div
 
-key={i}
+key={trip.trip_id || `trip-${i}`}
 
 className="absolute rounded-full border-2"
 
@@ -1444,7 +1444,7 @@ function RoadDominanceRose({ data, totalDistance }) {
   
   <circle
   
-  key={i}
+  key={trip.trip_id || `trip-${i}`}
   
   cx={cx}
   
@@ -1521,7 +1521,7 @@ function RoadDominanceRose({ data, totalDistance }) {
   
                   <text x={labelPos.x} y={labelPos.y} textAnchor={anchor} dominantBaseline="middle" fontSize="9" fill={color} opacity="0.9">
   
-                    {d.name.replace(/_/g, ' ')}
+                    {d.name.replaceAll(/_/g, ' ')}
   
   
   
@@ -2442,7 +2442,7 @@ return (
 
   <motion.tr
 
-  key={i}
+  key={trip.trip_id || `trip-${i}`}
 
   initial={{ opacity: 0 }}
 

@@ -6,7 +6,7 @@ describe('Custom alerts schema test', () => {
     const TEST_PREFIX = 'CA_TEST-';
 
     const cleanup = async () => {
-        await client.query(`DLETE FROM triggered_alerts WHERE vehicle_id LIKE '${TEST_PREFIX}%'`);
+        await client.query(`DELETE FROM triggered_alerts WHERE vehicle_id LIKE '${TEST_PREFIX}%'`);
 
         await client.query(`DELETE FROM custom_alert_rules WHERE name LIKE '${TEST_PREFIX}%'`);
 
@@ -30,10 +30,10 @@ describe('Custom alerts schema test', () => {
         await cleanup();
 
         const userResult = await client.query(`
-            INSERT INTO users (email, role)
-            VAULES ($1, 'fleet_manager')
+            INSERT INTO users (cognito_sub, name, email, role)
+            VALUES ($1, $2, $3, 'fleet_manager')
             RETURNING id
-            `, [`${TEST_PREFIX}manager@example.com`]);
+            `, [`${TEST_PREFIX}cognito-sub-1024`, `${TEST_PREFIX}Manager`, `${TEST_PREFIX}manager@example.com`]);
             manager_id = userResult.rows[0].id;
 
         const groupResult = await client.query(`
@@ -63,7 +63,7 @@ describe('Custom alerts schema test', () => {
     }, 30000);
 
     test('should create a custom alert rule with valid condition_type and status',async () => {
-        const result = await client.query(`INSERT INTO custom_alert_rules (manage_id, fleet_group, name, condition_type, condition_params)
+        const result = await client.query(`INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
                                             VALUES ($1, $2, $3, 'speed_threshold', $4)
                                             RETURNING id, status`,
                                         [manager_id, fleet_group_id, `${TEST_PREFIX}Speed Rule`, JSON.stringify({ max_speed_km: 120})]);
@@ -104,13 +104,14 @@ describe('Custom alerts schema test', () => {
     test('should create a triggered_alert linked to a rule and cascade delete when the rule is deleted', async () => {
         const ruleResult = await client.query(`
             INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
-            VALUES ($1, $2, $3, 'speed_threshold', $4)`,
+            VALUES ($1, $2, $3, 'speed_threshold', $4)
+            RETURNING id`,
         [manager_id, fleet_group_id, `${TEST_PREFIX}Cascade Rule`, JSON.stringify({ max_speed_km: 100})]);
 
         const rule_id = ruleResult.rows[0].id;
 
         const alertResult = await client.query(`
-            INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
+            INSERT INTO triggered_alerts (rule_id, vehicle_id, fleet_group_id, condition_type, breach_value, threshold_value)
             VALUES ($1, $2, $3, 'speed_threshold', '135', '100')
             RETURNING id`,
         [rule_id, vehicle_id, fleet_group_id]);
@@ -123,7 +124,7 @@ describe('Custom alerts schema test', () => {
 
         expect(alertRes.rows[0].acknowledged_at).toBeNull();
 
-        expect(alertRes.rows[0].reolved_at).toBeNull();
+        expect(alertRes.rows[0].resolved_at).toBeNull();
 
         await client.query(`DELETE FROM custom_alert_rules WHERE id = $1`, [rule_id]);
 
@@ -144,7 +145,7 @@ describe('Custom alerts schema test', () => {
         await expect(client.query(`
             INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
             VALUES ($1, 'DOES_NOT_EXIST-999, $2, 'speed_threshold', '135', '100')`,
-        [rule_id, vehicle_id, fleet_group_id])).rejects.toBeNull();
+        [rule_id, fleet_group_id])).rejects.toThrow();
     });
 
     test('should allow acknowledging a triggered_alert independently of resolving it', async () => {
@@ -157,7 +158,7 @@ describe('Custom alerts schema test', () => {
         const rule_id = ruleResult.rows[0].id;
 
         const alertResult = await client.query(`
-            INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
+            INSERT INTO triggered_alerts (rule_id, vehicle_id, fleet_group_id, condition_type, breach_value, threshold_value)
             VALUES ($1, $2, $3, 'speed_threshold', '135', '100')
             RETURNING id`,
         [rule_id, vehicle_id, fleet_group_id]);
@@ -168,11 +169,11 @@ describe('Custom alerts schema test', () => {
             UPDATE triggered_alerts SET acknowledged_at = NOW() WHERE id = $1
         `, [alert_id]);
 
-        const alertRes = await client.query(`acknowledged_at, resolved_at FROM triggered_alerts WHERE id = $1`, [alert_id]);
+        const alertRes = await client.query(`SELECT acknowledged_at, resolved_at FROM triggered_alerts WHERE id = $1`, [alert_id]);
 
-        expect(alertRes.rows[0].acknowledged_at).toBeNull();
+        expect(alertRes.rows[0].acknowledged_at).not.toBeNull();
 
-        expect(alertRes.rows[0].reolved_at).toBeNull();
+        expect(alertRes.rows[0].resolved_at).toBeNull();
     });
 
        

@@ -1,6 +1,6 @@
 // the trip history to be tests
 const { Pool } = require('pg');
-const { getDbConfig } = require('./testDbConfig');
+const { getDbConfig } = require('../testDbConfig');
 
 const pool = new Pool(getDbConfig());
 let client;

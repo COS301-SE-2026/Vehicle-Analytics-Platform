@@ -10,7 +10,7 @@ const CONDITION_TYPES = [
     'trip_duration_exceeded',
 ];
 
-const KNOWN_EVENTS_TYPES = ['harsh_braking', 'harsh_acceleration', 'harsh_cornering'];
+const KNOWN_EVENT_TYPES = ['harsh_braking', 'harsh_acceleration', 'harsh_cornering'];
 
 const VALID_DAYS = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'];
 
@@ -78,5 +78,98 @@ function validateRuleFields({ name, fleet_group_id, condition_type, condition_pa
             }
         }
     }
+
+    if(condition_type === 'repeated_unsafe_events'){
+        const { event_types, count, window_minutes } = condition_params;
+
+        if(!Array.isArray(event_types) || event_types.length === 0){
+            errors.push('event_types must be a non-empty array');
+        } else {
+            const invalidTypes = event_types.filter(t => !KNOWN_EVENT_TYPES.includes(t));
+
+            if(invalidTypes.length > 0){
+                errors.push(`event_types contains invalid values: ${invalidTypes.join(', ')}`);
+
+            }
+        }
+
+        if(count === undefined || count === null){
+            errors.push('count is required');
+        } else if (!Number.isInteger(count) || count <=0 ) {
+            errors.push('count must be a positive integer');
+        }
+
+        if(window_minutes === undefined || window_minutes === null){
+            errors.push('window_minutes is required ');
+        } else if( typeof window_minutes !== 'number' || window_minutes <= 0) {
+            errors.push('window_minutes must be a positive number');
+        }
+    }
+
+    if(condition_type === 'safety_score_drop'){
+        const { min_score } = condition_params;
+
+        if(min_score === undefined || min_score === null){
+            errors.push('min_score is required');
+        } else if (typeof min_score !== 'number' || min_score < 0 || min_score > 100){
+            errors.push('min_score must be a number between 0 and 100');
+        }
+    }
+
+    if(condition_type === 'trip_duration_exceeded'){
+        const { max_trip_minutes, max_daily_minutes } = condition_params;
+
+        if(max_trip_minutes === undefined && max_daily_minutes === undefined){
+            errors.push('at least one of max_trip_minutes or max_daily_minutes is required');
+        }
+        
+        if(max_trip_minutes !== undefined && (typeof max_trip_minutes !== 'number' || max_trip_minutes <= 0)){
+            errors.push('max_trip_minutes must be a positive number');
+        }
+
+        if(max_daily_minutes !== undefined && (typeof max_daily_minutes !== 'number' || max_daily_minutes <= 0)){
+            errors.push('max_daily_minutes must be a positive number');
+        }
+    }
+
+    return errors;
     
 }
+
+async function createRule(req, res){
+    const managerId = req.user.id;
+
+    const { name, fleet_group_id, condition_type, condition_params } = req.body;
+
+    const validateErrors = validateRuleFields({ name, fleet_group_id, condition_type, condition_params});
+
+    if(validateErrors.length > 0){
+        return error(res, validateErrors.join('; '), 400);
+    }
+
+    try{
+        const assignmentResult = await pool.query(
+            `SELECT 1 FROM fleet_manager_assignments WHERE fleet_manager_id = $1 and fleet_group_id = $2`,
+            [managerId, fleet_group_id]
+        );
+
+        if(assignmentResult.rows.length === 0){
+            return error(res, 'Ypu are not assigned to this fleet group', 403);
+        }
+
+        const result = await pool.query(
+            `INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
+            VALUES ($1,$2, $3, $4, $5)
+            RETURNING *`,
+            [managerId, fleet_group_id, name, condition_type, condition_params]
+        );
+
+        return success(res, result.rows[0], 201); 
+    } catch (err) {
+        console.error('Create custom alert rule error:', err);
+        
+        return error(res, 'Failed to create custom alert rule: ' + err.message, 500);
+    }
+}
+
+module.exports = {createRule};

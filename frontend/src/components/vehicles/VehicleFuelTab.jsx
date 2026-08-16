@@ -301,7 +301,19 @@ function EfficiencyGauge({ value, max = 20 }) {
 
   const percentage = Math.min((value / max) * 100, 100)
 
-  const color = percentage > 70 ? '#10B981' : percentage > 40 ? '#F59E0B' : '#EF4444' // NOSONAR
+
+  let color = '#EF4444'
+
+  if (percentage > 70) {
+
+    color = '#10B981'
+
+  } else if (percentage > 40) {
+
+    color = '#F59E0B'
+
+  }
+
 
 
   
@@ -655,7 +667,7 @@ function BestWorstTrips({ trips }) {
 
   const best = sorted[0]
 
-  const worst = sorted[sorted.length - 1]
+  const worst = sorted.at(-1)
 
   const bestEff = Number.parseFloat(best.fuel_efficiency_km_per_liter) || 0
 
@@ -1944,11 +1956,25 @@ const radarData = WEEKDAY_ORDER.map(day => ({
 
 const activeDays = WEEKDAY_ORDER.filter(d => weekdayMap[d])
 
-const bestDay = activeDays.length
 
-? activeDays.reduce((a, b) => (weekdayMap[a].sum / weekdayMap[a].count) > (weekdayMap[b].sum / weekdayMap[b].count) ? a : b, activeDays[0])
+let bestDay = null
 
-: null
+if (activeDays.length > 0) {
+  
+  
+  bestDay = activeDays.reduce((best, current) => {
+
+
+    const bestAverage = weekdayMap[best].sum / weekdayMap[best].count
+
+    const currentAverage = weekdayMap[current].sum / weekdayMap[current].count
+
+    return currentAverage > bestAverage ? current : best
+
+  }, activeDays[0])
+
+}
+
 
 
 

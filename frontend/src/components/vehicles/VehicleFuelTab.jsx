@@ -1,21 +1,14 @@
 
 
-
 import { useState, useEffect, useRef } from 'react'
-
-
 import { motion } from 'framer-motion'
 
+
 import { getVehicleFuelStats } from '../../services/fuelService'
-
-
 
 import {
 
   ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-
-
-
 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar as RadarSeries
 
@@ -26,6 +19,7 @@ import {
   Fuel, TrendingUp, Download, Award, Calendar, Leaf, Gauge, Coins,
 
   TrendingDown, X, Info, Zap, Radar as RadarIcon, HelpCircle
+
 
 } from 'lucide-react'
 
@@ -48,6 +42,8 @@ const containerVariants = {
 
 
 const itemVariants = {
+
+
 
   hidden: { opacity: 0, y: 20 },
 
@@ -170,10 +166,7 @@ function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1200 }) {
 
       }
 
-
     }, 16)
-
-
 
     return () => clearInterval(timer)
 
@@ -183,6 +176,8 @@ function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1200 }) {
   
   return <span ref={ref}>{prefix}{count}{suffix}</span>
 }
+
+
 
 
 
@@ -220,15 +215,15 @@ function MiniSparkline({ data, color = '#1a1a2e' }) {
     </svg>
   
 )
-
 }
+
+
 
 
 
 function StatCard({ label, value, suffix = '', icon: Icon, trend = null, delay = 0, onClick = null, spark = null, sparkColor = '#1a1a2e' }) {
 
   return (
-
 
     <motion.div
 
@@ -248,13 +243,11 @@ function StatCard({ label, value, suffix = '', icon: Icon, trend = null, delay =
 
         <div>
 
-
           <p className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.08em]">{label}</p>
 
           <p className="text-2xl font-bold text-gray-900 mt-1.5 tracking-tight">
 
             <AnimatedCounter value={value} suffix={suffix} />
-
 
           </p>
 
@@ -284,13 +277,11 @@ function StatCard({ label, value, suffix = '', icon: Icon, trend = null, delay =
 
       {onClick && (
 
-
 <div className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
 
           <Info className="w-3.5 h-3.5 text-gray-400" />
 
         </div>
-
 
 )}
 
@@ -299,7 +290,6 @@ function StatCard({ label, value, suffix = '', icon: Icon, trend = null, delay =
 )
 
 }
-
 
 
 
@@ -316,14 +306,13 @@ function EfficiencyGauge({ value, max = 20 }) {
   return (
   
     <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
   
-    initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
   
-    animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
   
-    transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
-  
-    className="bg-white rounded-2xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100/80"
+      className="bg-white rounded-2xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100/80"
   
   >
   
@@ -381,15 +370,15 @@ function EfficiencyGauge({ value, max = 20 }) {
   
         <span className="text-[10px] text-gray-400">Good</span>
   
-  
         <span className="text-[10px] text-gray-400">Excellent</span>
   
       </div>
   
     </motion.div>
-  
-)
+  )
 }
+
+
 
 
 
@@ -423,7 +412,6 @@ function EmissionsCard({ fuelUsed }) {
   
       <div className="relative z-10">
   
-  
         <div className="flex items-center justify-between">
   
           <div className="flex items-center gap-2.5">
@@ -436,15 +424,14 @@ function EmissionsCard({ fuelUsed }) {
   
             <span className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.1em]">Carbon Impact</span>
   
+  
           </div>
   
         </div>
   
         <p className="text-3xl font-bold text-gray-900 tracking-tight mt-3">
   
-  
           {totalCO2.toFixed(1)}
-  
   
           <span className="text-sm font-normal text-gray-400 ml-1.5">kg CO2</span>
   
@@ -455,18 +442,18 @@ function EmissionsCard({ fuelUsed }) {
         <div className="mt-3.5 flex items-center gap-2">
   
           <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-  
             Offsets ~{Math.round(totalCO2 * 0.5)} trees/year
   
           </span>
   
         </div>
-  
       </div>
   
     </motion.div>
-  )
+  
+)
 }
+
 
 
 
@@ -527,130 +514,132 @@ function SavingsCard({ currentEfficiency, targetEfficiency = 12, distance = 1000
       </motion.div>
   
 )
-  }
 
-
-
-
-  
-  if (currentEfficiency >= targetEfficiency) {
-  
-    return (
-  
-      <motion.div
-  
-      initial={{ opacity: 0, y: 20 }}
-  
-      animate={{ opacity: 1, y: 0 }}
-  
-      transition={{ delay: 0.35 }}
-  
-      className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-2xl p-6 border border-emerald-200/40"
-  
-  >
-  
-        <div className="flex items-start justify-between">
-  
-          <div>
-  
-            <p className="text-[10px] font-medium text-emerald-600/70 uppercase tracking-[0.1em]">Potential Savings</p>
-  
-            <p className="text-2xl font-bold text-emerald-600 mt-1">
-  
-              0.0 <span className="text-sm font-normal text-emerald-500">litres</span>
-  
-            </p>
-  
-            <p className="text-sm text-emerald-600 mt-0.5">Already at or above target!</p>
-  
-          </div>
-  
-          <div className="p-3 rounded-xl bg-emerald-100/50">
-  
-            <Award className="w-5 h-5 text-emerald-600" />
-  
-          </div>
-  
-        </div>
-  
-      </motion.div>
-  
-)
-  }
-
-
-
-
-  
-  return (
-  
-    <motion.div
-  
-    initial={{ opacity: 0, y: 20 }}
-  
-    animate={{ opacity: 1, y: 0 }}
-  
-    transition={{ delay: 0.35 }}
-  
-    className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-2xl p-6 border border-emerald-200/40"
-  
-  >
-  
-      <div className="flex items-start justify-between">
-  
-        <div>
-  
-          <p className="text-[10px] font-medium text-emerald-600/70 uppercase tracking-[0.1em]">Potential Savings</p>
-  
-          <p className="text-2xl font-bold text-emerald-600 mt-1">
-  
-            {savings.toFixed(1)} <span className="text-sm font-normal text-emerald-500">litres</span>
-  
-          </p>
-  
-          <p className="text-sm text-gray-500 mt-0.5">Improve to {targetEfficiency} km/L</p>
-  
-        </div>
-  
-        <div className="p-3 rounded-xl bg-emerald-100/50">
-  
-          <Coins className="w-5 h-5 text-emerald-600" />
-  
-        </div>
-  
-      </div>
-  
-      <div className="mt-3">
-  
-        <div className="flex items-center gap-3">
-  
-          <div className="flex-1 h-1.5 bg-emerald-200 rounded-full overflow-hidden">
-  
-            <motion.div
-  
-  initial={{ width: 0 }}
-  
-  animate={{ width: `${savingsPercent}%` }}
-  
-  transition={{ delay: 0.6, duration: 1 }}
-  
-  className="h-full bg-emerald-500 rounded-full"
-  
-  />
-  
-          </div>
-  
-          <span className="text-xs font-medium text-emerald-600">{savingsPercent}%</span>
-  
-        </div>
-  
-      </div>
-  
-    </motion.div>
-  
-)
 }
 
+
+
+
+
+if (currentEfficiency >= targetEfficiency) {
+
+
+  return (
+
+    <motion.div
+
+    initial={{ opacity: 0, y: 20 }}
+
+    animate={{ opacity: 1, y: 0 }}
+
+    transition={{ delay: 0.35 }}
+
+    className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-2xl p-6 border border-emerald-200/40"
+
+>
+
+        <div className="flex items-start justify-between">
+
+          <div>
+
+            <p className="text-[10px] font-medium text-emerald-600/70 uppercase tracking-[0.1em]">Potential Savings</p>
+
+            <p className="text-2xl font-bold text-emerald-600 mt-1">
+
+              0.0 <span className="text-sm font-normal text-emerald-500">litres</span>
+
+            </p>
+
+            <p className="text-sm text-emerald-600 mt-0.5">Already at or above target!</p>
+
+          </div>
+
+          <div className="p-3 rounded-xl bg-emerald-100/50">
+
+            <Award className="w-5 h-5 text-emerald-600" />
+
+          </div>
+
+        </div>
+
+      </motion.div>
+
+)
+
+}
+
+
+
+
+
+return (
+
+  <motion.div
+
+  initial={{ opacity: 0, y: 20 }}
+
+  animate={{ opacity: 1, y: 0 }}
+
+  transition={{ delay: 0.35 }}
+
+  className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-2xl p-6 border border-emerald-200/40"
+
+>
+
+      <div className="flex items-start justify-between">
+
+        <div>
+
+          <p className="text-[10px] font-medium text-emerald-600/70 uppercase tracking-[0.1em]">Potential Savings</p>
+
+          <p className="text-2xl font-bold text-emerald-600 mt-1">
+
+            {savings.toFixed(1)} <span className="text-sm font-normal text-emerald-500">litres</span>
+
+          </p>
+
+          <p className="text-sm text-gray-500 mt-0.5">Improve to {targetEfficiency} km/L</p>
+
+        </div>
+
+        <div className="p-3 rounded-xl bg-emerald-100/50">
+
+          <Coins className="w-5 h-5 text-emerald-600" />
+
+        </div>
+
+      </div>
+
+      <div className="mt-3">
+
+        <div className="flex items-center gap-3">
+
+
+          <div className="flex-1 h-1.5 bg-emerald-200 rounded-full overflow-hidden">
+
+
+            <motion.div
+              initial={{ width: 0 }}
+
+              animate={{ width: `${savingsPercent}%` }}
+
+              transition={{ delay: 0.6, duration: 1 }}
+
+              className="h-full bg-emerald-500 rounded-full"
+
+/>
+
+          </div>
+
+          <span className="text-xs font-medium text-emerald-600">{savingsPercent}%</span>
+
+        </div>
+
+      </div>
+
+    </motion.div>
+  )
+}
 
 
 
@@ -660,15 +649,15 @@ function BestWorstTrips({ trips }) {
 
   if (!trips || trips.length < 2) return null
 
-  const sorted = [...trips].sort((a, b) => parseFloat(b.fuel_efficiency_km_per_liter) - parseFloat(a.fuel_efficiency_km_per_liter))
+  const sorted = [...trips].sort((a, b) => Number.parseFloat(b.fuel_efficiency_km_per_liter) - Number.parseFloat(a.fuel_efficiency_km_per_liter))
 
   const best = sorted[0]
 
   const worst = sorted[sorted.length - 1]
 
-  const bestEff = parseFloat(best.fuel_efficiency_km_per_liter) || 0
+  const bestEff = Number.parseFloat(best.fuel_efficiency_km_per_liter) || 0
 
-  const worstEff = parseFloat(worst.fuel_efficiency_km_per_liter) || 0
+  const worstEff = Number.parseFloat(worst.fuel_efficiency_km_per_liter) || 0
 
   if (bestEff === 0 && worstEff === 0) return null
 
@@ -729,8 +718,10 @@ function BestWorstTrips({ trips }) {
       </div>
   
     </motion.div>
-  )
+  
+)
 }
+
 
 
 
@@ -755,13 +746,14 @@ function SafetyEfficiencyComparison({ safetyScore, efficiency, vehicleId }) {
 
   
   const getSafetyRating = (score) => {
-  
+
     if (score >= 80) return { label: 'Good', color: 'text-emerald-600', bg: 'bg-emerald-50' }
-  
+
     if (score >= 50) return { label: 'Fair', color: 'text-amber-600', bg: 'bg-amber-50' }
-  
+
+
     return { label: 'Poor', color: 'text-rose-600', bg: 'bg-rose-50' }
-  
+
   }
 
 
@@ -769,6 +761,7 @@ function SafetyEfficiencyComparison({ safetyScore, efficiency, vehicleId }) {
   const effRating = getEfficiencyRating(efficiency)
   
   const safeRating = getSafetyRating(safetyScore)
+
 
 
   
@@ -782,14 +775,15 @@ function SafetyEfficiencyComparison({ safetyScore, efficiency, vehicleId }) {
   
     transition={{ delay: 0.45 }}
   
+  
     className="bg-white rounded-2xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100/80"
   
   >
   
       <div className="flex items-center gap-2.5 mb-3">
   
-  
         <div className="p-1.5 rounded-lg bg-gray-100">
+  
           <TrendingUp className="w-3.5 h-3.5 text-gray-600" />
   
         </div>
@@ -824,9 +818,12 @@ function SafetyEfficiencyComparison({ safetyScore, efficiency, vehicleId }) {
   
       </div>
   
+  
       <div className="mt-3 text-center">
   
         <p className="text-xs text-gray-400">
+  
+  
   
           {efficiency > 12 && safetyScore >= 80 ? 'Both efficiency and safety are excellent' :
   
@@ -841,9 +838,9 @@ function SafetyEfficiencyComparison({ safetyScore, efficiency, vehicleId }) {
       </div>
   
     </motion.div>
-  )
+  
+)
 }
-
 
 
 
@@ -871,7 +868,9 @@ function WeeklyEfficiencyRadar({ radarData, bestDay }) {
   
       <div className="flex items-center justify-between mb-1">
   
+  
         <div className="flex items-center gap-2.5">
+  
   
           <div className="p-2 rounded-lg bg-gray-50">
   
@@ -920,8 +919,8 @@ function WeeklyEfficiencyRadar({ radarData, bestDay }) {
   strokeWidth={1.5}
   
   strokeDasharray="4 3"
-          />
   
+  />
   
           <RadarSeries
   
@@ -930,13 +929,14 @@ function WeeklyEfficiencyRadar({ radarData, bestDay }) {
   dataKey="efficiency"
   
   stroke="#10B981"
-            fill="#10B981"
   
-            fillOpacity={0.35}
+  fill="#10B981"
   
-            strokeWidth={2.5}
+  fillOpacity={0.35}
   
-            animationDuration={900}
+  strokeWidth={2.5}
+  
+  animationDuration={900}
   
   />
   
@@ -964,15 +964,13 @@ function WeeklyEfficiencyRadar({ radarData, bestDay }) {
   
           <span className="w-2 h-2 rounded-full bg-gray-300 border border-dashed border-gray-400" />Vehicle avg
   
+  
         </span>
   
       </div>
-  
     </motion.div>
-  
-)
+  )
 }
-
 
 
 
@@ -994,27 +992,29 @@ function GlobePlaceholder({ totalDistance, onInfoClick }) {
 
     onClick={onInfoClick}
 
+
 >
 
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-emerald-100/30 via-transparent to-transparent pointer-events-none" />
 
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-emerald-100/30 via-transparent to-transparent pointer-events-none" />
 
 
       <div className="relative w-48 h-48">
 
         <motion.div
+          className="absolute inset-0 rounded-full border-2 border-gray-200"
 
-className="absolute inset-0 rounded-full border-2 border-gray-200"
+          animate={{ rotate: 360 }}
 
-animate={{ rotate: 360 }}
 
-transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
 
 >
 
-          <div className="absolute inset-0 rounded-full border border-gray-100" />
 
+          <div className="absolute inset-0 rounded-full border border-gray-100" />
           <div className="absolute inset-0 flex items-center justify-center">
+
 
             <div className="w-3/4 h-px bg-gray-200" />
 
@@ -1034,7 +1034,6 @@ transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
 
           <div className="absolute inset-0 flex items-center justify-center">
 
-
             <div className="w-px h-3/4 bg-gray-200" />
 
           </div>
@@ -1053,12 +1052,9 @@ transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
 
         </motion.div>
 
-
-
         {['#34d399', '#a78bfa', '#38bdf8', '#fbbf24', '#f472b6'].map((color, i) => (
 
 <motion.div
-
 
 key={i}
 
@@ -1080,6 +1076,7 @@ style={{
 
 }}
 
+
 animate={{
 
   scale: [1, 1.3, 1],
@@ -1087,24 +1084,22 @@ animate={{
   opacity: [0.3, 0, 0.3],
 
 }}
+            transition={{
+              duration: 3,
 
-transition={{
 
-  duration: 3,
+              repeat: Infinity,
 
-  repeat: Infinity,
 
-  delay: i * 0.5,
+              delay: i * 0.5,
 
-  ease: 'easeInOut',
+              ease: 'easeInOut',
 
-}}
+            }}
 
-/>
+            />
 
 ))}
-
-
 
         <div className="absolute inset-0 flex items-center justify-center">
 
@@ -1113,8 +1108,6 @@ transition={{
         </div>
 
       </div>
-
-
 
       <div className="absolute bottom-8 text-center">
 
@@ -1149,9 +1142,7 @@ transition={{ duration: 2, repeat: Infinity }}
 
 
 
-
 function FuelInfoModal({ isOpen, onClose, avgEfficiency }) {
-
 
   if (!isOpen) return null
 
@@ -1199,6 +1190,8 @@ function FuelInfoModal({ isOpen, onClose, avgEfficiency }) {
   
           <button
   
+  type="button"
+  
   onClick={onClose}
   
   className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
@@ -1210,132 +1203,115 @@ function FuelInfoModal({ isOpen, onClose, avgEfficiency }) {
           </button>
   
         </div>
-
-
-
+  
         <div className="space-y-4">
-
-          {/* Road Type Fuel Rates */}
-
+  
           <div className="bg-gray-50 rounded-xl p-4">
-
+  
             <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em] mb-3">Road Type Fuel Rates</p>
-
+  
             <div className="grid grid-cols-2 gap-2">
-
+  
               {Object.entries(ROAD_FUEL_RATES).map(([road, rate]) => (
-
-<div key={road} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-100">
-
+  
+  
+  <div key={road} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-100">
+  
                   <span className="text-sm text-gray-600 capitalize">{road.replace('_', ' ')}</span>
-
+  
                   <span className="text-sm font-medium text-gray-900">{rate.toFixed(1)} L/100km</span>
-
+  
                 </div>
-
-))}
-
+  
+  ))}
+  
             </div>
-
+  
           </div>
-
-
-
-          {/* How It's Calculated */}
-
+  
           <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200/50">
-
+  
             <p className="text-xs font-medium text-emerald-600 uppercase tracking-[0.08em]">How It's Calculated</p>
-
-
+  
+  
             <p className="text-sm text-gray-700 mt-1 font-medium">
-
+  
               Fuel consumed = (Distance / 100) × Fuel Rate × Speed Factor
-
+  
             </p>
-
+  
             <p className="text-xs text-gray-500 mt-1">
-
+  
               Speed factor adjusts for optimal efficiency at 55-65 km/h
-
+  
             </p>
-
+  
           </div>
-
-
-
-          {/* What is Fuel Efficiency */}
-
+  
           <div className="bg-gray-50 rounded-xl p-4">
-
+  
             <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em]">What is Fuel Efficiency?</p>
-
+  
             <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-
-
+  
               Fuel efficiency measures how far a vehicle can travel on a given amount of fuel.
+  
               Higher km/L means better efficiency, lower costs, and reduced emissions.
-
+  
             </p>
-
+  
           </div>
-
-
-
-          {/* Why it matters - NO EMOJIS */}
-
+  
           <div className="bg-gray-50 rounded-xl p-4">
-
+  
             <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em]">Why It Matters</p>
-
+  
             <div className="grid grid-cols-3 gap-3 mt-2">
-
+  
               <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
-
+  
                 <p className="text-xs font-semibold text-gray-700">Lower Costs</p>
-
+  
               </div>
-
+  
               <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
-
+  
                 <p className="text-xs font-semibold text-gray-700">Lower Emissions</p>
-
+  
               </div>
-
-
+  
               <div className="bg-white rounded-lg p-3 text-center border border-gray-100">
+  
                 <p className="text-xs font-semibold text-gray-700">Better Performance</p>
-
+  
               </div>
-
+  
             </div>
-
+  
           </div>
-
-
+  
         </div>
-
-
-
+  
         <button
-
-onClick={onClose}
-
-className="w-full mt-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors text-sm font-medium"
-
->
-
+  
+  type="button"
+  
+  onClick={onClose}
+  
+  className="w-full mt-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors text-sm font-medium"
+  
+  >
+  
           Got it
-
+  
         </button>
-
+  
       </motion.div>
-
+  
     </div>
-
+  
 )
 }
-
 
 
 
@@ -1368,9 +1344,9 @@ function RoadDominanceRose({ data, totalDistance }) {
   
   totalDistance={totalDistance}
   
-  onInfoClick={() => setShowInfoModal(true)}
   
-  />
+  onInfoClick={() => setShowInfoModal(true)}
+        />
   
         <FuelInfoModal
   
@@ -1385,174 +1361,174 @@ function RoadDominanceRose({ data, totalDistance }) {
       </>
   
 )
-
-}
-
+  }
 
 
 
-const avgEfficiency = data.reduce((sum, d) => sum + d.value, 0) / data.length / 10 || 0
+
+  const avgEfficiency = data.reduce((sum, d) => sum + d.value, 0) / data.length / 10 || 0
 
 
 
-const maxValue = Math.max(...data.map(d => d.value)) || 1
-
-const total = data.reduce((s, d) => s + d.value, 0) || 1
-
-const n = data.length
-
-const angleStep = 360 / n
-
-const gap = n > 6 ? 3 : 5
-
-
-
-const toXY = (r, angleDeg) => {
-
-  const rad = (angleDeg - 90) * Math.PI / 180
-
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
-
-}
+  
+  const maxValue = Math.max(...data.map(d => d.value)) || 1
+  
+  const total = data.reduce((s, d) => s + d.value, 0) || 1
+  
+  const n = data.length
+  
+  const angleStep = 360 / n
+  
+  const gap = n > 6 ? 3 : 5
 
 
+  
+  const toXY = (r, angleDeg) => {
+  
+    const rad = (angleDeg - 90) * Math.PI / 180
+  
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+  
+  }
 
-return (
-
-<>
-
+  
+  return (
+  
+  <>
+  
       <motion.div
-
-initial={{ opacity: 0, y: 20 }}
-
-animate={{ opacity: 1, y: 0 }}
-
-transition={{ delay: 0.46 }}
-
-className="relative overflow-hidden bg-gradient-to-br from-[#0b0f1a] to-[#141a2b] rounded-2xl p-6 border border-white/5 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
-
->
-
+  
+  initial={{ opacity: 0, y: 20 }}
+  
+  animate={{ opacity: 1, y: 0 }}
+  
+  transition={{ delay: 0.46 }}
+  
+  className="relative overflow-hidden bg-gradient-to-br from-[#0b0f1a] to-[#141a2b] rounded-2xl p-6 border border-white/5 shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
+  
+  >
+  
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(52,211,153,0.08),transparent_60%)]" />
-
+  
         <div className="relative z-10 flex items-center justify-between mb-1">
-
+  
           <div className="flex items-center gap-2.5">
-
+  
+  
             <span className="relative flex h-2 w-2">
-
+  
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-
+  
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-
+  
             </span>
-
+  
+  
             <span className="text-sm font-medium text-gray-100">Road Dominance</span>
-
+  
           </div>
-
+  
           <span className="text-[10px] text-gray-500 uppercase tracking-[0.08em]">{totalDistance} km total</span>
-
+  
         </div>
-
+  
         <p className="relative z-10 text-[11px] text-gray-500 mb-2">Distance share by road type</p>
-
-
-
+  
         <div className="relative z-10 flex items-center justify-center">
-
+  
           <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: 340 }}>
-
+  
             {[0.34, 0.67, 1].map((f, i) => (
-
-<circle
-
-key={i}
-
-cx={cx}
-
-cy={cy}
-
-r={minR + (maxR - minR) * f}
-
-fill="none"
-
-stroke="rgba(255,255,255,0.06)"
-
-strokeDasharray="3 4"
-
-/>
-
-))}
-
+  
+  <circle
+  
+  key={i}
+  
+  cx={cx}
+  
+  cy={cy}
+  
+  r={minR + (maxR - minR) * f}
+  
+  fill="none"
+  
+  stroke="rgba(255,255,255,0.06)"
+  
+  strokeDasharray="3 4"
+  
+  />
+  
+  ))}
+  
             {data.map((d, i) => {
-
-const rOuter = minR + (d.value / maxValue) * (maxR - minR)
-
-const start = i * angleStep + gap / 2
-
-const end = (i + 1) * angleStep - gap / 2
-
-const p1 = toXY(rOuter, start)
-
-const p2 = toXY(rOuter, end)
-
-const large = end - start > 180 ? 1 : 0
-
-const path = `M ${cx},${cy} L ${p1.x.toFixed(2)},${p1.y.toFixed(2)} A ${rOuter.toFixed(2)} ${rOuter.toFixed(2)} 0 ${large} 1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)} Z`
-
-const color = ROSE_COLORS[i % ROSE_COLORS.length]
-
-const mid = start + (end - start) / 2
-
-const labelPos = toXY(rOuter + 16, mid)
-
-const cosVal = Math.cos((mid - 90) * Math.PI / 180)
-
-const anchor = cosVal > 0.25 ? 'start' : cosVal < -0.25 ? 'end' : 'middle'
-
-const pct = (d.value / total) * 100
-
-
-
-return (
-
-<g key={d.name}>
-
+  
+  const rOuter = minR + (d.value / maxValue) * (maxR - minR)
+  
+  const start = i * angleStep + gap / 2
+  
+  const end = (i + 1) * angleStep - gap / 2
+  
+  const p1 = toXY(rOuter, start)
+  
+  const p2 = toXY(rOuter, end)
+  
+  const large = end - start > 180 ? 1 : 0
+  
+  const path = `M ${cx},${cy} L ${p1.x.toFixed(2)},${p1.y.toFixed(2)} A ${rOuter.toFixed(2)} ${rOuter.toFixed(2)} 0 ${large} 1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)} Z`
+  
+  const color = ROSE_COLORS[i % ROSE_COLORS.length]
+  
+  const mid = start + (end - start) / 2
+  
+  
+  const labelPos = toXY(rOuter + 16, mid)
+  
+  const cosVal = Math.cos((mid - 90) * Math.PI / 180)
+  
+  const anchor = cosVal > 0.25 ? 'start' : cosVal < -0.25 ? 'end' : 'middle'
+  
+  const pct = (d.value / total) * 100
+  
+  return (
+  
+  <g key={d.name}>
+  
                   <motion.path
-
-d={path}
-
-fill={color}
-
-fillOpacity={0.5}
-
-stroke={color}
-
-strokeWidth={1.5}
-
-initial={{ scale: 0, opacity: 0 }}
-
-animate={{ scale: 1, opacity: 1 }}
-
-whileHover={{ fillOpacity: 0.8 }}
-
-transition={{ delay: 0.5 + i * 0.08, type: 'spring', stiffness: 140, damping: 16 }}
-
-style={{ transformOrigin: `${cx}px ${cy}px`, filter: `drop-shadow(0 0 6px ${color}66)` }}
-
-
-/>
+  
+  d={path}
+  
+  fill={color}
+  
+  fillOpacity={0.5}
+  
+  stroke={color}
+  
+  strokeWidth={1.5}
+  
+  initial={{ scale: 0, opacity: 0 }}
+  
+  animate={{ scale: 1, opacity: 1 }}
+  
+  whileHover={{ fillOpacity: 0.8 }}
+  
+  transition={{ delay: 0.5 + i * 0.08, type: 'spring', stiffness: 140, damping: 16 }}
+  
+  style={{ transformOrigin: `${cx}px ${cy}px`, filter: `drop-shadow(0 0 6px ${color}66)` }}
+  
+  />
+  
                   <text x={labelPos.x} y={labelPos.y} textAnchor={anchor} dominantBaseline="middle" fontSize="9" fill={color} opacity="0.9">
-
+  
                     {d.name.replace(/_/g, ' ')}
-
+  
+  
+  
+  
                     <tspan x={labelPos.x} dy="12" fontSize="11" fontWeight="700" fill="#fff">{pct.toFixed(1)}%</tspan>
-
                   </text>
-
+  
                 </g>
-
+  
 )
 
 })}
@@ -1563,9 +1539,9 @@ style={{ transformOrigin: `${cx}px ${cy}px`, filter: `drop-shadow(0 0 6px ${colo
 
         </div>
 
-
-
         <button
+
+type="button"
 
 onClick={() => setShowInfoModal(true)}
 
@@ -1575,11 +1551,9 @@ className="absolute bottom-4 right-4 z-20 p-2 rounded-full bg-white/5 hover:bg-w
 
           <HelpCircle className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
 
+
         </button>
-
       </motion.div>
-
-
 
       <FuelInfoModal
 
@@ -1592,8 +1566,7 @@ avgEfficiency={avgEfficiency}
 />
 
     </>
-
-)
+  )
 }
 
 
@@ -1605,69 +1578,63 @@ function EfficiencyBreakdownModal({ isOpen, onClose, roadData, avgEfficiency }) 
 
   if (!isOpen) return null
 
-
-  
   const sortedRoads = roadData ? [...roadData].sort((a, b) => b.value - a.value) : []
 
-
-  
   return (
-  
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-  
+
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+
       <motion.div
-  
-  
-  initial={{ opacity: 0, scale: 0.9 }}
-  
-  animate={{ opacity: 1, scale: 1 }}
-  
-  exit={{ opacity: 0, scale: 0.9 }}
-  
-  className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl"
-  
-  >
-  
+
+initial={{ opacity: 0, scale: 0.9 }}
+
+animate={{ opacity: 1, scale: 1 }}
+
+exit={{ opacity: 0, scale: 0.9 }}
+
+className="bg-white rounded-3xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-8 shadow-2xl"
+
+>
+
         <div className="flex items-center justify-between mb-6">
-  
+
           <div className="flex items-center gap-3">
-  
+
             <div className="p-2.5 rounded-xl bg-gray-900">
-  
+
               <Zap className="w-5 h-5 text-white" />
-  
+
             </div>
-  
+
             <div>
-  
+
               <h2 className="text-xl font-bold text-gray-900">Efficiency Breakdown</h2>
-  
+
               <p className="text-sm text-gray-400">Average: {avgEfficiency.toFixed(1)} km/L</p>
-  
+
             </div>
-  
+
           </div>
-  
+
           <button
-  
-  onClick={onClose}
-  
-  className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
-  
-  >
-  
+
+type="button"
+
+onClick={onClose}
+
+className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+
+>
+
             <X className="w-5 h-5 text-gray-500" />
-  
+
           </button>
-  
+
         </div>
-
-
 
         <div className="space-y-4">
 
           <div className="bg-gray-50 rounded-xl p-4">
-
 
             <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em] mb-3">Road Type Fuel Rates</p>
 
@@ -1689,13 +1656,12 @@ function EfficiencyBreakdownModal({ isOpen, onClose, roadData, avgEfficiency }) 
 
           </div>
 
-
-
           {sortedRoads.length > 0 && (
 
 <div className="bg-gray-50 rounded-xl p-4">
 
               <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em] mb-3">Your Distance by Road Type</p>
+
 
               <div className="space-y-2">
 
@@ -1729,8 +1695,6 @@ style={{ width: `${Math.min((item.value / sortedRoads[0].value) * 100, 100)}%` }
 
 )}
 
-
-
           <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200/50">
 
             <p className="text-xs font-medium text-emerald-600 uppercase tracking-[0.08em]">How It's Calculated</p>
@@ -1739,12 +1703,12 @@ style={{ width: `${Math.min((item.value / sortedRoads[0].value) * 100, 100)}%` }
 
               Fuel consumed = (Distance / 100) × Fuel Rate × Speed Factor
 
-            </p>
 
+            </p>
             <p className="text-xs text-gray-400 mt-0.5">Speed factor adjusts for optimal efficiency at 55-65 km/h</p>
 
-          </div>
 
+          </div>
         </div>
 
       </motion.div>
@@ -1762,6 +1726,7 @@ style={{ width: `${Math.min((item.value / sortedRoads[0].value) * 100, 100)}%` }
 export default function VehicleFuelTab({ vehicleId }) {
 
   const [data, setData] = useState(null)
+
 
   const [loading, setLoading] = useState(true)
 
@@ -1802,7 +1767,6 @@ export default function VehicleFuelTab({ vehicleId }) {
 
   
   
-  
   const handleExport = () => {
   
     if (!data) return
@@ -1811,16 +1775,16 @@ export default function VehicleFuelTab({ vehicleId }) {
   
     const rows = data.trips.map(t => [
   
-  
       new Date(t.trip_date).toLocaleDateString(),
   
-      parseFloat(t.total_distance_km).toFixed(1),
+      Number.parseFloat(t.total_distance_km).toFixed(1),
   
-      parseFloat(t.estimated_fuel_consumed_liters).toFixed(1),
+      Number.parseFloat(t.estimated_fuel_consumed_liters).toFixed(1),
   
-      parseFloat(t.fuel_efficiency_km_per_liter).toFixed(1)
+      Number.parseFloat(t.fuel_efficiency_km_per_liter).toFixed(1)
   
     ])
+  
   
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
   
@@ -1832,8 +1796,8 @@ export default function VehicleFuelTab({ vehicleId }) {
   
     a.href = url
   
-  
     a.download = `fuel-efficiency-${vehicleId}.csv`
+  
     a.click()
   
     URL.revokeObjectURL(url)
@@ -1841,8 +1805,6 @@ export default function VehicleFuelTab({ vehicleId }) {
   }
 
 
-  
-  
   
   if (loading) {
   
@@ -1857,8 +1819,6 @@ export default function VehicleFuelTab({ vehicleId }) {
 )
 
 }
-
-
 
 
 
@@ -1880,8 +1840,8 @@ if (!data || data.trips.length === 0) {
 
 const roadData = data.summary.road_breakdown ?
 
-
 Object.entries(data.summary.road_breakdown).map(([road, dist]) => ({
+
 
   name: road,
 
@@ -1897,18 +1857,16 @@ const tripChartData = chronoTrips.map(trip => ({
 
   date: new Date(trip.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' }),
 
-  efficiency: parseFloat(trip.fuel_efficiency_km_per_liter) || 0,
+  efficiency: Number.parseFloat(trip.fuel_efficiency_km_per_liter) || 0,
 
-  fuel: parseFloat(trip.estimated_fuel_consumed_liters) || 0,
+  fuel: Number.parseFloat(trip.estimated_fuel_consumed_liters) || 0,
 
-  distance: parseFloat(trip.total_distance_km) || 0
+  distance: Number.parseFloat(trip.total_distance_km) || 0
 
 }))
 
 
-
 tripChartData.forEach((d, i, arr) => {
-
 
   const start = Math.max(0, i - 2)
 
@@ -1920,35 +1878,34 @@ tripChartData.forEach((d, i, arr) => {
 
 
 
-
 const totalDistance = Math.round(data.summary.total_distance)
+
 
 const totalFuel = Math.round(data.summary.total_fuel)
 
 
 
-const maxEff = data.trips.length > 0 ? Math.max(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0
+const maxEff = data.trips.length > 0 ? Math.max(...data.trips.map(t => Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0
 
-const minEff = data.trips.length > 0 ? Math.min(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0
+const minEff = data.trips.length > 0 ? Math.min(...data.trips.map(t => Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0
 
 
 
 const recentChrono = [...data.trips].slice(0, 8).reverse()
 
-const effSpark = recentChrono.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)
+const effSpark = recentChrono.map(t => Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0)
 
-const fuelSpark = recentChrono.map(t => parseFloat(t.estimated_fuel_consumed_liters) || 0)
+const fuelSpark = recentChrono.map(t => Number.parseFloat(t.estimated_fuel_consumed_liters) || 0)
 
 let running = 0
 
 const distanceSpark = recentChrono.map(t => {
 
-  running += parseFloat(t.total_distance_km) || 0
+  running += Number.parseFloat(t.total_distance_km) || 0
 
   return running
 
 })
-
 
 
 
@@ -1963,7 +1920,7 @@ data.trips.forEach(t => {
 
   const key = WEEKDAY_ORDER[dayIdx]
 
-  const eff = parseFloat(t.fuel_efficiency_km_per_liter) || 0
+  const eff = Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0
 
   if (!weekdayMap[key]) weekdayMap[key] = { sum: 0, count: 0 }
 
@@ -1971,53 +1928,55 @@ data.trips.forEach(t => {
 
   weekdayMap[key].count += 1
 
-
 })
-  const radarData = WEEKDAY_ORDER.map(day => ({
 
-    day,
+const radarData = WEEKDAY_ORDER.map(day => ({
 
-    efficiency: weekdayMap[day] ? +(weekdayMap[day].sum / weekdayMap[day].count).toFixed(1) : 0,
+  day,
 
-    benchmark: +data.summary.avg_efficiency.toFixed(1)
+  efficiency: weekdayMap[day] ? +(weekdayMap[day].sum / weekdayMap[day].count).toFixed(1) : 0,
 
-  }))
+  benchmark: +data.summary.avg_efficiency.toFixed(1)
 
-  const activeDays = WEEKDAY_ORDER.filter(d => weekdayMap[d])
+}))
 
-  const bestDay = activeDays.length
+const activeDays = WEEKDAY_ORDER.filter(d => weekdayMap[d])
 
-  ? activeDays.reduce((a, b) => (weekdayMap[a].sum / weekdayMap[a].count) > (weekdayMap[b].sum / weekdayMap[b].count) ? a : b)
+const bestDay = activeDays.length
 
-  : null
+? activeDays.reduce((a, b) => (weekdayMap[a].sum / weekdayMap[a].count) > (weekdayMap[b].sum / weekdayMap[b].count) ? a : b)
+
+: null
 
 
-  
-  return (
-  
-    <motion.div
-  
-    variants={containerVariants}
-  
-    initial="hidden"
-  
-    animate="visible"
-  
-    className="space-y-5"
-  
-  >
-  
+
+return (
+
+  <motion.div
+
+  variants={containerVariants}
+
+  initial="hidden"
+
+  animate="visible"
+
+  className="space-y-5"
+
+
+>
+
       <EfficiencyBreakdownModal
-  
-  isOpen={showBreakdownModal}
-  
-  onClose={() => setShowBreakdownModal(false)}
-  
-  roadData={roadData}
-  
-  avgEfficiency={data.summary.avg_efficiency}
-  
-  />
+
+
+isOpen={showBreakdownModal}
+        onClose={() => setShowBreakdownModal(false)}
+
+        roadData={roadData}
+
+        avgEfficiency={data.summary.avg_efficiency}
+
+/>
+
 
 
 
@@ -2029,10 +1988,11 @@ data.trips.forEach(t => {
 
             <Fuel className="w-5 h-5 text-white" />
 
+
           </div>
 
-
           <div>
+
             <h3 className="text-lg font-bold text-gray-900 tracking-tight">Fuel Efficiency</h3>
 
             <p className="text-sm text-gray-400">Vehicle {vehicleId} · {data.summary.trip_count} trips · {days} days</p>
@@ -2060,7 +2020,10 @@ data.trips.forEach(t => {
 
           <motion.button
 
+type="button"
+
 whileHover={{ scale: 1.02 }}
+
 
 whileTap={{ scale: 0.98 }}
 
@@ -2078,13 +2041,13 @@ className="flex items-center gap-2 text-sm px-4 py-2.5 border border-gray-200 ro
 
         </div>
 
+
       </motion.div>
-
-
 
       <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
         <StatCard
+
 
 label="Avg Efficiency"
 
@@ -2112,13 +2075,13 @@ value={totalDistance}
 
 suffix=" km"
 
-
 icon={Calendar}
-          delay={0.15}
 
-          spark={distanceSpark}
+delay={0.15}
 
-          sparkColor="#1a1a2e"
+spark={distanceSpark}
+
+sparkColor="#1a1a2e"
 
 />
 
@@ -2132,23 +2095,23 @@ suffix=" L"
 
 icon={Fuel}
 
+
 delay={0.2}
+          spark={fuelSpark}
 
-spark={fuelSpark}
-
-sparkColor="#F59E0B"
+          sparkColor="#F59E0B"
 
 />
+
 
         <StatCard label="Trips" value={data.summary.trip_count} icon={Award} delay={0.25} />
 
       </motion.div>
 
-
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         <EfficiencyGauge value={data.summary.avg_efficiency} />
+
 
         <EmissionsCard fuelUsed={totalFuel} />
 
@@ -2156,19 +2119,14 @@ sparkColor="#F59E0B"
 
       </div>
 
-
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         <WeeklyEfficiencyRadar radarData={radarData} bestDay={bestDay} />
 
         <RoadDominanceRose data={roadData} totalDistance={totalDistance} />
 
+
       </div>
-
-
-
-
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         <motion.div
@@ -2176,7 +2134,6 @@ sparkColor="#F59E0B"
 initial={{ opacity: 0, y: 20 }}
 
 animate={{ opacity: 1, y: 0 }}
-
 
 transition={{ delay: 0.4 }}
 
@@ -2188,8 +2145,8 @@ className="bg-white rounded-2xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border 
 
           <div className="grid grid-cols-3 gap-2 text-center">
 
-            <div>
 
+            <div>
               <p className="text-lg font-bold text-gray-900">{totalDistance}</p>
 
               <p className="text-[10px] text-gray-400">km</p>
@@ -2214,9 +2171,8 @@ className="bg-white rounded-2xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border 
 
           </div>
 
-
-
         </motion.div>
+
         <div className="md:col-span-2">
 
           <BestWorstTrips trips={data.trips} />
@@ -2225,13 +2181,12 @@ className="bg-white rounded-2xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border 
 
       </motion.div>
 
-
-
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         <div className="md:col-span-2">
 
           <SafetyEfficiencyComparison 
+
 
 safetyScore={data.summary.avg_safety_score} 
 
@@ -2245,8 +2200,6 @@ vehicleId={vehicleId}
 
       </motion.div>
 
-
-
       <motion.div variants={itemVariants} className="flex items-center gap-3">
 
         <span className="text-xs text-gray-400">Show:</span>
@@ -2255,7 +2208,7 @@ vehicleId={vehicleId}
 
 value={days}
 
-onChange={(e) => setDays(parseInt(e.target.value))}
+onChange={(e) => setDays(Number.parseInt(e.target.value))}
 
 className="text-sm border border-gray-200 rounded-xl px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/20 transition-all"
 
@@ -2273,8 +2226,6 @@ className="text-sm border border-gray-200 rounded-xl px-4 py-2 bg-white focus:ou
 
       </motion.div>
 
-
-
       <motion.div
 
 initial={{ opacity: 0, y: 20 }}
@@ -2285,8 +2236,8 @@ transition={{ delay: 0.6 }}
 
 className="bg-white rounded-2xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100/80"
 
-
 >
+
         <div className="flex items-center justify-between mb-3.5">
 
           <div className="flex items-center gap-2.5">
@@ -2319,12 +2270,11 @@ className="bg-white rounded-2xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border 
 
           <ComposedChart data={tripChartData}>
 
-
             <defs>
+
               <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
 
                 <stop offset="5%" stopColor="#1a1a2e" stopOpacity={0.12} />
-
 
                 <stop offset="95%" stopColor="#1a1a2e" stopOpacity={0} />
 
@@ -2335,6 +2285,7 @@ className="bg-white rounded-2xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border 
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9CA3AF' }} />
 
             <YAxis domain={[0, 'auto']} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+
 
             <Tooltip
 
@@ -2348,24 +2299,23 @@ formatter={(value, name) => [`${value} km/L`, name === 'movingAvg' ? '3-trip avg
 
 type="monotone"
 
-
 dataKey="efficiency"
-              stroke="#1a1a2e"
 
-              strokeWidth={2.5}
+stroke="#1a1a2e"
 
+strokeWidth={2.5}
 
-              fill="url(#trendGradient)"
+fill="url(#trendGradient)"
 
-              style={{ filter: 'drop-shadow(0 0 5px rgba(16,185,129,0.35))' }}
+style={{ filter: 'drop-shadow(0 0 5px rgba(16,185,129,0.35))' }}
 
-              dot={(props) => {
+dot={(props) => {
 
-                const { cx, cy, index } = props
+  const { cx, cy, index } = props
 
-                if (index !== tripChartData.length - 1) return <g key={`dot-${index}`} />
+  if (index !== tripChartData.length - 1) return <g key={`dot-${index}`} />
 
-                return (
+  return (
 
 <g key={`dot-${index}`}>
 
@@ -2373,21 +2323,19 @@ dataKey="efficiency"
 
                     <circle cx={cx} cy={cy} r={4} fill="#10B981" opacity="0.5">
 
-
                       <animate attributeName="r" values="4;10;4" dur="2s" repeatCount="indefinite" />
-
 
                       <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
 
                     </circle>
 
-
                   </g>
-                )
 
-              }}
+)
 
-              activeDot={{ r: 5 }}
+}}
+
+activeDot={{ r: 5 }}
 
 />
 
@@ -2399,21 +2347,19 @@ dataKey="movingAvg"
 
 stroke="#9CA3AF"
 
-
 strokeWidth={1.5}
-              strokeDasharray="4 4"
 
+
+strokeDasharray="4 4"
               dot={false}
 
 />
 
-
           </ComposedChart>
+
         </ResponsiveContainer>
 
       </motion.div>
-
-
 
       <motion.div
 
@@ -2427,18 +2373,14 @@ className="bg-white rounded-2xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] border bord
 
 >
 
-
         <div className="p-5 border-b border-gray-50 flex items-center justify-between">
-
-
 
           <span className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em]">Recent Trips</span>
 
           <span className="text-[10px] text-gray-400">
 
-
-
             <span className="inline-block w-3 h-3 rounded-full bg-emerald-100 border border-emerald-300 mr-1 align-middle"></span>
+
             Best
 
             <span className="mx-2">|</span>
@@ -2467,48 +2409,52 @@ className="bg-white rounded-2xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] border bord
 
                 <th className="text-right py-3 px-5 text-[10px] font-medium text-gray-400 uppercase tracking-[0.08em]">Efficiency</th>
 
-              </tr>
 
+              </tr>
             </thead>
 
             <tbody>
 
               {data.trips.slice(0, 10).map((trip, i) => {
 
-const eff = parseFloat(trip.fuel_efficiency_km_per_liter) || 0
+const eff = Number.parseFloat(trip.fuel_efficiency_km_per_liter) || 0
 
 const isBest = eff === maxEff && maxEff > 0
 
+
 const isLowest = eff === minEff && minEff > 0 && eff !== maxEff
 
-const color = eff > 12 ? 'bg-emerald-50 text-emerald-600' : eff > 8 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
+let color = 'bg-rose-50 text-rose-600'
+
+if (eff > 12) color = 'bg-emerald-50 text-emerald-600'
+
+else if (eff > 8) color = 'bg-amber-50 text-amber-600'
+
+let highlightClass = ''
+
+if (isBest) highlightClass = 'bg-emerald-100/50 border-l-4 border-emerald-500'
+
+else if (isLowest) highlightClass = 'bg-rose-100/50 border-l-4 border-rose-500'
+
+return (
+
+  <motion.tr
+
+  key={i}
+
+  initial={{ opacity: 0 }}
+
+  animate={{ opacity: 1 }}
 
 
-const highlightClass = isBest ? 'bg-emerald-100/50 border-l-4 border-emerald-500' :
-                                       isLowest ? 'bg-rose-100/50 border-l-4 border-rose-500' :
+  transition={{ delay: 0.05 * i }}
 
-                                       ''
-
-                                       return (
-                  <motion.tr
-
-
-                  key={i}
-                    initial={{ opacity: 0 }}
-
-                    animate={{ opacity: 1 }}
-
-                    transition={{ delay: 0.05 * i }}
-
-                    className={`border-b border-gray-50/50 hover:bg-gray-50/30 transition-colors ${highlightClass}`}
-
-
-
+  className={`border-b border-gray-50/50 hover:bg-gray-50/30 transition-colors ${highlightClass}`}
 
 
 >
-
                     <td className="py-3 px-5 text-gray-700 text-sm">
+
 
                       {new Date(trip.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
 
@@ -2516,18 +2462,18 @@ const highlightClass = isBest ? 'bg-emerald-100/50 border-l-4 border-emerald-500
 
                     <td className="text-right py-3 px-5 text-gray-700 text-sm">
 
-                      {parseFloat(trip.total_distance_km).toFixed(1)} km
+                      {Number.parseFloat(trip.total_distance_km).toFixed(1)} km
 
                     </td>
 
                     <td className="text-right py-3 px-5 text-gray-700 text-sm">
 
-                      {parseFloat(trip.estimated_fuel_consumed_liters).toFixed(1)} L
+
+                      {Number.parseFloat(trip.estimated_fuel_consumed_liters).toFixed(1)} L
 
                     </td>
 
                     <td className="text-right py-3 px-5">
-
 
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
 
@@ -2560,3 +2506,6 @@ const highlightClass = isBest ? 'bg-emerald-100/50 border-l-4 border-emerald-500
 )
 
 }
+
+
+  

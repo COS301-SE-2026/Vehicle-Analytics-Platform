@@ -12,6 +12,8 @@ const CONDITION_TYPES = [
 
 const KNOWN_EVENT_TYPES = new Set(['harsh_braking', 'harsh_acceleration', 'harsh_cornering']);
 
+const VALID_DAYS = new Set(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+
 function isValidTimeString(value) {
     return typeof value === 'string' && /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
 }
@@ -331,4 +333,58 @@ async function updateRule(req, res){
     }
 }
 
-module.exports = {createRule, listRules, getRule, updateRule };
+async function setRuleStatus(req, res){
+    const managerId = req.user.id;
+
+    const{ id } = req.params;
+    const{ status } = req.body;
+
+    if(!['active', 'inactive'].includes(status)){
+        return error(res, "Status must be 'active' or 'inactive'", 400);
+    }
+
+    try{
+        const result = await pool.query(
+            `UPDATE custom_alert_rules
+            SET status = $1, updated_at = NOW()
+            WHERE id = $2 AND manager_id = $3
+            RETURNING *`,
+            [status, id, managerId]
+        );
+
+        if(result.rows.length === 0){
+            return error(res, 'Rule not found', 404);
+        }
+
+        return success(res, result.rows[0], 200);
+    } catch (err) {
+        console.error('Set Custom alert rule status error:', err);
+        return error(res, 'Failed to update rule status: ' + err.message, 500);
+    }
+}
+
+async function deleteRule(req, res){
+    const managerId = req.user.id;
+
+    const { id } = req.params;
+
+    try{
+        const result = await pool.query(
+            `DELETE FROM custom_alert_rules 
+            WHERE id = $1 AND manager_id = $2 
+            RETURNUNG id`,
+            [id, managerId]
+        );
+
+        if(result.rows.length === 0){
+            return error(res, 'Rule not found', 404);
+        }
+
+        return success(res, { id }, 200);
+    } catch (err) {
+        console.error('Delete custom alert rule error:', err);
+        return error(res, 'Failed to delete custom alert rule: ' + err.message, 500);
+    }
+}
+
+module.exports = {createRule, listRules, getRule, updateRule, setRuleStatus, deleteRule };

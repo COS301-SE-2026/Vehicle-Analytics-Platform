@@ -177,8 +177,40 @@ describe('Custom Alert Rules Controller', () => {
         .set('Authorization', 'Bearer test-token');
  
       expect(response.status).toBe(200);
-      
+
       expect(response.body.data).toEqual([]);
+    });
+  });
+
+  describe('GET /rules/:id', () => {
+
+    test('should return a single rule', async () => {
+
+      mockQuery.mockResolvedValue({
+        rows: [{ id: 1, ...validRulePayload, status: 'active' }],
+        rowCount: 1,
+      });
+ 
+      const response = await request(app)
+        .get(`${BASE}/rules/1`)
+        .set('Authorization', 'Bearer test-token');
+ 
+      expect(response.status).toBe(200);
+
+      expect(response.body.data.id).toBe(1);
+    });
+ 
+    test('should return 404 when the rule does not exist or belongs to another manager', async () => {
+
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+ 
+      const response = await request(app)
+        .get(`${BASE}/rules/999`)
+        .set('Authorization', 'Bearer test-token');
+ 
+      expect(response.status).toBe(404);
+      
+      expect(response.body.success).toBe(false);
     });
   });
 });

@@ -160,7 +160,7 @@ export function ExistingZones({
                         </Badge>
                         {zone.hotspot_kind && (
                             <Badge className="uppercase text-xs font-bold rounded-md bg-fleet-secondary/10 text-fleet-secondary">
-                                {String(zone.hotspot_kind).replace(/_/g, " ")}
+                                {String(zone.hotspot_kind).replaceAll("_", " ")}
                             </Badge>
                         )}
                     </div>

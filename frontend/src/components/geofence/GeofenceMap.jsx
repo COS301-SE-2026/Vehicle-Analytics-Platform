@@ -11,13 +11,11 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = [28.2293, -25.75456];
 const ZONES_SOURCE_ID = "existing-geofences";
 
-
 export const LAYER_FILTERS = {
   all: null,
   zones: ["==", ["get", "source"], "user"],
   hazards: ["in", ["get", "source"], ["literal", ["auto_hotspot", "security_marker"]]],
 };
-
 
 const SOURCE_COLOUR = [
   "match", ["get", "source"],
@@ -51,7 +49,6 @@ export default function GeofenceMap({
   const zoneData = useRef({ type: "FeatureCollection", features: [] });
   const [center, setCenter] = useState(null);
   const [locationStatus, setLocationStatus] = useState("locating");
-  
 
   function animateMarker(entry, endLng, endLat, duration = 900) {
     if (!entry?.marker) return;
@@ -163,10 +160,13 @@ export default function GeofenceMap({
 
     map.current.addControl(draw.current, "top-left");
 
+    // Scoped container variable avoids SonarQube `this` rule flags
+    let controlContainer = null;
+
     const liveMapControl = {
       onAdd() {
-        this.container = document.createElement("div");
-        this.container.className = "mapboxgl-ctrl mapboxgl-ctrl-group";
+        controlContainer = document.createElement("div");
+        controlContainer.className = "mapboxgl-ctrl mapboxgl-ctrl-group";
 
         const button = document.createElement("button");
         button.type = "button";
@@ -195,12 +195,12 @@ export default function GeofenceMap({
           window.location.assign(`/map?${params.toString()}`);
         };
 
-        this.container.appendChild(button);
-        return this.container;
+        controlContainer.appendChild(button);
+        return controlContainer;
       },
       onRemove() {
-        this.container?.remove();
-        this.container = null;
+        controlContainer?.remove();
+        controlContainer = null;
       },
     };
     map.current.addControl(liveMapControl, "top-left");
@@ -224,7 +224,7 @@ export default function GeofenceMap({
       map.current?.remove();
       map.current = null;
     };
-  }, [center]);
+  }, [center, onZoneDrawn]);
 
   useEffect(() => {
     if (!map.current || !onZoneSelected) return;
@@ -295,8 +295,7 @@ export default function GeofenceMap({
     else map.current.once("load", loadZones);
 
     return () => { cancelled = true; };
-  }, [center, refreshToken]);
-
+  }, [center, refreshToken, onZonesLoaded]);
 
   useEffect(() => {
     if (!map.current || !selectedZone?.id) return;

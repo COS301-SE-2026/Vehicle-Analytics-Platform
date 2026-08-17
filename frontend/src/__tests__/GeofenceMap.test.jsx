@@ -1,12 +1,8 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
-import GeofenceMap, { LAYER_FILTERS } from "../GeofenceMap";
+import GeofenceMap, { LAYER_FILTERS } from "../components/geofence/GeofenceMap";
 import { getGeofencesGeoJSON } from "@/services/geofenceServices";
 import { getVehicleLocations } from "@/services/vehicleService";
 
-// --- mapbox-gl and mapbox-gl-draw are WebGL/DOM libraries with no jsdom
-// equivalent, so every instance method used by the component is stubbed.
-// Each mock Map keeps its own fired-callback registry so `.on('load', cb)`
-// can be triggered manually from a test via `fireMapLoad()`.
 jest.mock("mapbox-gl", () => {
   const instances = [];
 

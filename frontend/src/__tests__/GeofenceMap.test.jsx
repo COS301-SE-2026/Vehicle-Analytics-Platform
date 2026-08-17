@@ -1,144 +1,324 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import GeofenceMap, { LAYER_FILTERS } from "./GeofenceMap";
-import mapboxgl from "mapbox-gl";
+import { render, screen, waitFor, act } from "@testing-library/react";
+import GeofenceMap, { LAYER_FILTERS } from "../GeofenceMap";
 import { getGeofencesGeoJSON } from "@/services/geofenceServices";
 import { getVehicleLocations } from "@/services/vehicleService";
 
-// --- Mocks ---
-vi.mock("@/services/geofenceServices", () => ({
-  getGeofencesGeoJSON: vi.fn().mockResolvedValue({
-    type: "FeatureCollection",
-    features: [],
-  }),
-}));
+// --- mapbox-gl and mapbox-gl-draw are WebGL/DOM libraries with no jsdom
+// equivalent, so every instance method used by the component is stubbed.
+// Each mock Map keeps its own fired-callback registry so `.on('load', cb)`
+// can be triggered manually from a test via `fireMapLoad()`.
+jest.mock("mapbox-gl", () => {
+  const instances = [];
 
-vi.mock("@/services/vehicleService", () => ({
-  getVehicleLocations: vi.fn().mockResolvedValue({ vehicles: [] }),
-}));
+  class MockMap {
+    constructor(opts) {
+      this.opts = opts;
+      this._handlers = {};
+      this._layers = new Set();
+      this._sources = {};
+      instances.push(this);
+    }
+    on(event, layerOrHandler, maybeHandler) {
+      const handler = maybeHandler ?? layerOrHandler;
+      const key = maybeHandler ? `${event}:${layerOrHandler}` : event;
+      this._handlers[key] = this._handlers[key] || [];
+      this._handlers[key].push(handler);
+    }
+    once(event, handler) {
+      this.on(event, handler);
+    }
+    off() {}
+    addControl = jest.fn();
+    addSource = jest.fn((id, source) => {
+      this._sources[id] = { ...source, setData: jest.fn() };
+    });
+    getSource = jest.fn((id) => this._sources[id]);
+    addLayer = jest.fn((layer) => this._layers.add(layer.id));
+    getLayer = jest.fn((id) => this._layers.has(id));
+    setFilter = jest.fn();
+    isStyleLoaded = jest.fn(() => false);
+    getCanvas = jest.fn(() => ({ style: {} }));
+    fitBounds = jest.fn();
+    getCenter = jest.fn(() => ({ lat: -25.75456, lng: 28.2293 }));
+    getZoom = jest.fn(() => 12);
+    remove = jest.fn();
+    // Test helper, not part of the real mapboxgl API.
+    __fireLoad() {
+      (this._handlers.load || []).forEach((cb) => cb());
+    }
+  }
 
-vi.mock("mapbox-gl", () => {
-  const mockMap = {
-    addControl: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    once: vi.fn(),
-    remove: vi.fn(),
-    addSource: vi.fn(),
-    addLayer: vi.fn(),
-    getLayer: vi.fn().mockReturnValue(true),
-    getSource: vi.fn().mockReturnValue({ setData: vi.fn() }),
-    isStyleLoaded: vi.fn().mockReturnValue(true),
-    getCanvas: vi.fn().mockReturnValue({ style: {} }),
-  };
+  class MockMarker {
+    constructor() {
+      this._lngLat = { lng: 0, lat: 0 };
+    }
+    setLngLat(pos) {
+      this._lngLat = { lng: pos[0], lat: pos[1] };
+      return this;
+    }
+    getLngLat() {
+      return this._lngLat;
+    }
+    setPopup() {
+      return this;
+    }
+    addTo() {
+      return this;
+    }
+    getElement() {
+      return { style: {} };
+    }
+    remove = jest.fn();
+  }
+
+  class MockPopup {
+    setHTML() {
+      return this;
+    }
+  }
+
+  class MockLngLatBounds {
+    constructor() {
+      this._empty = true;
+    }
+    extend() {
+      this._empty = false;
+    }
+    isEmpty() {
+      return this._empty;
+    }
+  }
 
   return {
+    __esModule: true,
     default: {
       accessToken: "",
-      Map: vi.fn(() => mockMap),
-      NavigationControl: vi.fn(),
-      Marker: vi.fn(() => ({
-        setLngLat: vi.fn().mockReturnThis(),
-        setPopup: vi.fn().mockReturnThis(),
-        addTo: vi.fn().mockReturnThis(),
-        remove: vi.fn(),
-        getElement: vi.fn().mockReturnValue(document.createElement("div")),
-      })),
-      Popup: vi.fn(() => ({
-        setHTML: vi.fn().mockReturnThis(),
-      })),
-      LngLatBounds: vi.fn(() => ({
-        extend: vi.fn(),
-        isEmpty: vi.fn().mockReturnValue(false),
-      })),
+      Map: MockMap,
+      NavigationControl: jest.fn(),
+      Marker: MockMarker,
+      Popup: MockPopup,
+      LngLatBounds: MockLngLatBounds,
+      __instances: instances,
     },
   };
 });
 
-vi.mock("@mapbox/mapbox-gl-draw", () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      getAll: vi.fn().mockReturnValue({ features: [] }),
-    })),
-  };
+jest.mock("@mapbox/mapbox-gl-draw", () => {
+  return jest.fn().mockImplementation(() => ({
+    getAll: jest.fn(() => ({ features: [] })),
+  }));
 });
 
-describe("GeofenceMap Component", () => {
-  const mockGeolocation = {
-    getCurrentPosition: vi.fn(),
+jest.mock("@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css", () => ({}), {
+  virtual: true,
+});
+
+jest.mock("@/services/geofenceServices", () => ({
+  getGeofencesGeoJSON: jest.fn(),
+}));
+
+jest.mock("@/services/vehicleService", () => ({
+  getVehicleLocations: jest.fn(),
+}));
+
+function mockGeolocationSuccess(coords = { longitude: 10, latitude: 20 }) {
+  global.navigator.geolocation = {
+    getCurrentPosition: jest.fn((onSuccess) =>
+      onSuccess({ coords })
+    ),
   };
+}
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-    // Setup navigator.geolocation mock
-    Object.defineProperty(global.navigator, "geolocation", {
-      value: mockGeolocation,
-      writable: true,
-      configurable: true,
-    });
-  });
+function mockGeolocationError() {
+  global.navigator.geolocation = {
+    getCurrentPosition: jest.fn((_onSuccess, onError) =>
+      onError({ message: "denied" })
+    ),
+  };
+}
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+function mockGeolocationUnsupported() {
+  delete global.navigator.geolocation;
+}
 
-  it("exports correct layer filter definitions", () => {
+function latestMapInstance() {
+  // eslint-disable-next-line global-require
+  const mapboxgl = require("mapbox-gl").default;
+  return mapboxgl.__instances[mapboxgl.__instances.length - 1];
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  getGeofencesGeoJSON.mockResolvedValue({ type: "FeatureCollection", features: [] });
+  getVehicleLocations.mockResolvedValue({ vehicles: [] });
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+describe("LAYER_FILTERS", () => {
+  it("has no filter for 'all'", () => {
     expect(LAYER_FILTERS.all).toBeNull();
+  });
+
+  it("filters zones to source === 'user'", () => {
     expect(LAYER_FILTERS.zones).toEqual(["==", ["get", "source"], "user"]);
-    expect(LAYER_FILTERS.hazards[0]).toBe("in");
   });
 
-  it("displays loading spinner initially while obtaining geolocation", () => {
+  it("filters hazards to auto_hotspot and security_marker", () => {
+    expect(LAYER_FILTERS.hazards).toEqual([
+      "in",
+      ["get", "source"],
+      ["literal", ["auto_hotspot", "security_marker"]],
+    ]);
+  });
+});
+
+describe("GeofenceMap: geolocation resolution", () => {
+  it("shows the locating overlay before a position resolves", () => {
+    global.navigator.geolocation = { getCurrentPosition: jest.fn() };
     render(<GeofenceMap />);
-    expect(screen.getByText("Locating you...")).toBeInTheDocument();
+    expect(screen.getByText(/locating you/i)).toBeInTheDocument();
   });
 
-  it("initializes map when geolocation succeeds", async () => {
-    mockGeolocation.getCurrentPosition.mockImplementationOnce((success) =>
-      success({ coords: { longitude: 28.0, latitude: -26.0 } })
-    );
-
-    render(<GeofenceMap />);
-
-    await waitFor(() => {
-      expect(mapboxgl.Map).toHaveBeenCalledWith(
-        expect.objectContaining({
-          center: [28.0, -26.0],
-          zoom: 12,
-        })
-      );
-    });
-
-    expect(screen.queryByText("Locating you...")).not.toBeInTheDocument();
-  });
-
-  it("falls back to default coordinates when geolocation fails", async () => {
-    mockGeolocation.getCurrentPosition.mockImplementationOnce((_, error) =>
-      error({ message: "User denied Geolocation" })
-    );
-
+  it("centers the map on the browser's reported position", async () => {
+    mockGeolocationSuccess({ longitude: 11.11, latitude: 22.22 });
     render(<GeofenceMap />);
 
     await waitFor(() => {
-      expect(mapboxgl.Map).toHaveBeenCalledWith(
-        expect.objectContaining({
-          center: [28.2293, -25.75456],
-        })
-      );
+      expect(latestMapInstance().opts.center).toEqual([11.11, 22.22]);
     });
   });
 
-  it("fetches geofences and vehicle locations on mount", async () => {
-    mockGeolocation.getCurrentPosition.mockImplementationOnce((success) =>
-      success({ coords: { longitude: 28.0, latitude: -26.0 } })
-    );
-
-    render(<GeofenceMap showVehicles={true} />);
+  it("falls back to DEFAULT_CENTER when geolocation is unsupported", async () => {
+    mockGeolocationUnsupported();
+    render(<GeofenceMap />);
 
     await waitFor(() => {
-      expect(getGeofencesGeoJSON).toHaveBeenCalledTimes(1);
-      expect(getVehicleLocations).toHaveBeenCalled();
+      expect(latestMapInstance().opts.center).toEqual([28.2293, -25.75456]);
     });
+  });
+
+  it("falls back to DEFAULT_CENTER when the user denies the permission", async () => {
+    mockGeolocationError();
+    render(<GeofenceMap />);
+
+    await waitFor(() => {
+      expect(latestMapInstance().opts.center).toEqual([28.2293, -25.75456]);
+    });
+  });
+});
+
+describe("GeofenceMap: map initialisation", () => {
+  beforeEach(() => mockGeolocationSuccess());
+
+  it("adds navigation and draw controls exactly once", async () => {
+    render(<GeofenceMap />);
+    await waitFor(() => expect(latestMapInstance()).toBeDefined());
+
+    const mapInstance = latestMapInstance();
+    // NavigationControl + MapboxDraw + the custom "Full Map" button.
+    expect(mapInstance.addControl).toHaveBeenCalledTimes(3);
+  });
+
+  it("registers the three geofence layers once the style loads", async () => {
+    render(<GeofenceMap />);
+    await waitFor(() => expect(latestMapInstance()).toBeDefined());
+
+    const mapInstance = latestMapInstance();
+    act(() => mapInstance.__fireLoad());
+
+    expect(mapInstance.addSource).toHaveBeenCalledWith(
+      "existing-geofences",
+      expect.objectContaining({ type: "geojson" })
+    );
+    expect(mapInstance.addLayer).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("GeofenceMap: zone loading", () => {
+  beforeEach(() => mockGeolocationSuccess());
+
+  it("fetches geofences and calls onZonesLoaded once the source is populated", async () => {
+    const featureCollection = {
+      type: "FeatureCollection",
+      features: [{ type: "Feature", properties: { id: 1 }, geometry: null }],
+    };
+    getGeofencesGeoJSON.mockResolvedValue(featureCollection);
+    const onZonesLoaded = jest.fn();
+
+    render(<GeofenceMap onZonesLoaded={onZonesLoaded} />);
+    await waitFor(() => expect(latestMapInstance()).toBeDefined());
+
+    const mapInstance = latestMapInstance();
+    mapInstance.isStyleLoaded.mockReturnValue(true);
+    act(() => mapInstance.__fireLoad());
+
+    await waitFor(() => expect(getGeofencesGeoJSON).toHaveBeenCalled());
+    await waitFor(() => expect(onZonesLoaded).toHaveBeenCalled());
+  });
+
+  it("logs and does not throw when the geofence fetch fails", async () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    getGeofencesGeoJSON.mockRejectedValue(new Error("network down"));
+
+    render(<GeofenceMap />);
+    await waitFor(() => expect(latestMapInstance()).toBeDefined());
+
+    const mapInstance = latestMapInstance();
+    mapInstance.isStyleLoaded.mockReturnValue(true);
+    act(() => mapInstance.__fireLoad());
+
+    await waitFor(() =>
+      expect(consoleError).toHaveBeenCalledWith(
+        "Failed to load existing zones:",
+        expect.any(Error)
+      )
+    );
+    consoleError.mockRestore();
+  });
+});
+
+describe("GeofenceMap: vehicle polling", () => {
+  beforeEach(() => {
+    mockGeolocationSuccess();
+    jest.useFakeTimers({ legacyFakeTimers: false });
+  });
+
+  it("fetches vehicle locations on mount when showVehicles is true", async () => {
+    getVehicleLocations.mockResolvedValue({
+      vehicles: [{ id: "v1", lat: -25.7, lng: 28.2, status: "active" }],
+    });
+
+    render(<GeofenceMap showVehicles />);
+
+    await waitFor(() => expect(getVehicleLocations).toHaveBeenCalled());
+  });
+
+  it("does not fetch vehicle locations when showVehicles is false", async () => {
+    render(<GeofenceMap showVehicles={false} />);
+    await waitFor(() => expect(latestMapInstance()).toBeDefined());
+
+    expect(getVehicleLocations).not.toHaveBeenCalled();
+  });
+
+  it("polls on the configured interval and stops on unmount", async () => {
+    getVehicleLocations.mockResolvedValue({ vehicles: [] });
+    const { unmount } = render(<GeofenceMap showVehicles />);
+
+    await waitFor(() => expect(getVehicleLocations).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(getVehicleLocations).toHaveBeenCalledTimes(2);
+
+    unmount();
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    // No further calls after unmount -- the interval was cleared.
+    expect(getVehicleLocations).toHaveBeenCalledTimes(2);
   });
 });

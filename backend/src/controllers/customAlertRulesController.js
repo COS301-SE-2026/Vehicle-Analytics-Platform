@@ -263,4 +263,72 @@ async function listRules(req, res){
     }
 }
 
-module.exports = {createRule, listRules };
+async function getRule(req, res){
+    const managerId = req.user.id;
+
+    const { id } = req.params;
+
+    try{
+        const result = await pool.query(
+            `SELECT r.*, g.name AS fleet_group_name
+            FROM custom_alert_rules r
+            JOIN fleet_groups g ON g.id = r.fleet_group_id
+            WHERE r.id = $1 AND r.manager_id = $2`,
+            [id, managerId]
+        );
+
+        if(result.rows.length === 0){
+            return error(res, 'Rule not found', 404);
+        }
+
+        return success(res, result.rows[0], 200)
+    } catch (err) {
+        console.error('Get custom alert rule error:', err);
+        return error(res, 'Failed to fetch custom alert rule:' + err.message, 500);
+    }
+}
+
+async function updateRule(req, res){
+    const managerId = req.user.id;
+
+    const { id } = req.params;
+    const { name, fleet_group_id, condition_type, condition_params } = req.body;
+
+    const validationErrors = validateRuleFields({name, fleet_group_id, condition_type, condition_params });
+
+    if(validationErrors.length > 0){
+        return error(res, validationErrors.join('; '), 400);
+    }
+
+    try{
+        const assignmentResult = await pool.query(
+            `SELECT  1 FROM fleet_manager_assignments 
+            WHERE fleet_manager_id = $1
+            AND fleet_group_id = $2`,
+            [managerId, fleet_group_id]
+        );
+
+        if(assignmentResult.rows.length === 0){
+            return error(res, 'You are not assigned to this fleet group', 404);
+        }
+
+        const result = await pool.query(
+            `UPDATE custom_alert_rules
+            SET fleet_group_id = $1, name = $2, condition_type = $3, condition_params = $4, updated_at = NOW()
+            WHERE id = $5 AND manager_id = $6
+            RETURNING *`,
+            [fleet_group_id, name, condition_type, JSON.stringify(condition_params), id, managerId]
+        );
+
+        if(result.rows.length === 0){
+            return error(res, 'Rule not found', 404);
+        }
+
+        return success(res, result.rows[0], 200)
+    } catch (err) {
+        console.error('Update custom alert rule error:', err);
+        return error(res, 'Failed to update custom alert rule:' + err.message, 500);
+    }
+}
+
+module.exports = {createRule, listRules, getRule, updateRule };

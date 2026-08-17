@@ -209,8 +209,62 @@ describe('Custom Alert Rules Controller', () => {
         .set('Authorization', 'Bearer test-token');
  
       expect(response.status).toBe(404);
-      
+
       expect(response.body.success).toBe(false);
+    });
+  });
+
+   describe('PUT /rules/:id', () => {
+
+    test('should update a rule', async () => {
+
+      mockQuery.mockImplementation((sql) => {
+
+        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+
+        if (q.includes('fleet_manager_assignments')) {
+          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
+        }
+
+        if (q.includes('update custom_alert_rules')) {
+          return Promise.resolve({
+            rows: [{ id: 1, ...validRulePayload, name: 'Updated Rule', status: 'active' }],
+            rowCount: 1,
+          });
+        }
+
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      });
+ 
+      const response = await request(app)
+        .put(`${BASE}/rules/1`)
+        .set('Authorization', 'Bearer test-token')
+        .send({ ...validRulePayload, name: 'Updated Rule' });
+ 
+      expect(response.status).toBe(200);
+
+      expect(response.body.data.name).toBe('Updated Rule');
+    });
+ 
+    test('should return 404 when updating a rule that does not belong to the manager', async () => {
+
+      mockQuery.mockImplementation((sql) => {
+
+        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+
+        if (q.includes('fleet_manager_assignments')) {
+          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
+        }
+        
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      });
+ 
+      const response = await request(app)
+        .put(`${BASE}/rules/999`)
+        .set('Authorization', 'Bearer test-token')
+        .send(validRulePayload);
+ 
+      expect(response.status).toBe(404);
     });
   });
 });

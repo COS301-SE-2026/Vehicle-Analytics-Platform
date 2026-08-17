@@ -145,5 +145,41 @@ describe('Custom Alert Rules Controller', () => {
       expect(response.body.success).toBe(false);
     });
   });
+
+  describe('GET /rules', () => {
+
+    test('should return the manager\'s rules', async () => {
+
+      mockQuery.mockResolvedValue({
+        rows: [{ id: 1, ...validRulePayload, status: 'active', fleet_group_name: 'North Fleet' }],
+        rowCount: 1,
+      });
+ 
+      const response = await request(app)
+        .get(`${BASE}/rules`)
+        .set('Authorization', 'Bearer test-token');
+ 
+      expect(response.status).toBe(200);
+
+      expect(response.body.success).toBe(true);
+
+      expect(response.body.data).toHaveLength(1);
+
+      expect(response.body.data[0].fleet_group_name).toBe('North Fleet');
+    });
+ 
+    test('should return an empty array when the manager has no rules', async () => {
+
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+ 
+      const response = await request(app)
+        .get(`${BASE}/rules`)
+        .set('Authorization', 'Bearer test-token');
+ 
+      expect(response.status).toBe(200);
+      
+      expect(response.body.data).toEqual([]);
+    });
+  });
 });
  

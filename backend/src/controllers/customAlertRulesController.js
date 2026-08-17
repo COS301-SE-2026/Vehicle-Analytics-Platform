@@ -243,4 +243,24 @@ async function createRule(req, res){
     }
 }
 
-module.exports = {createRule};
+async function listRules(req, res){
+    const managerId = req.user.id;
+
+    try {
+        const result = await pool.query(
+            `SELECT r.*, g.name AS fleet_group_name
+            FROM custom_alert_rules r
+            JOIN fleet_groups g ON g.id = r.fleet_group_id
+            WHERE r.manager_id = $1
+            ORDER BY r.created_at DEC`,
+            [managerId]
+        );
+
+        return success(res, result.rows, 200);
+    } catch (err) {
+        console.error('List custom alert rules error:', err);
+        return error(res, 'Failed to fetch custom alert rules: ' + err.message, 500); 
+    }
+}
+
+module.exports = {createRule, listRules };

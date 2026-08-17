@@ -2,13 +2,13 @@ const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
 
 
-const CONDITION_TYPES = [
+const CONDITION_TYPES = new Set([
     'speed_threshold',
     'time_based_restriction',
     'repeated_unsafe_events',
     'safety_score_drop',
     'trip_duration_exceeded',
-];
+]);
 
 const KNOWN_EVENT_TYPES = new Set(['harsh_braking', 'harsh_acceleration', 'harsh_cornering']);
 

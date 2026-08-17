@@ -1,0 +1,149 @@
+jest.mock('../src/middleware/auth', () => ({
+    authenticate: (req, res, next) => {
+        req.user = { id: 1, role: 'fleet_manager', sub: 'test-sub' };
+        next();
+    },
+    requireRole: (roles) => (req, res, next) => {
+        if(!req.user){
+            return res.status(401).json({ error: 'Unathorized'});
+        }
+
+        if(!roles.includes(req.user.role)){
+            return res.status(403).json({ error: 'Insufficient permissions'});
+        }
+        next();
+    },
+}));
+
+jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
+    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
+        send:  jest.fn().mockResolvedValue({
+            AuthenticationResult: {
+                AccessToken: 'mock-sccess-token',
+                IdToken: 'mock-id-token',
+                RefreshToken: 'mock-refresh-token',
+                ExpiresIn: 3600,
+            },
+            UserSub: 'mock-user-sub',
+        }),
+    })),
+    SignUpCommand: jest.fn(),
+    InitiateAuthCommand: jest.fn(),
+    GlobalSignOutCommand: jest.fn(),
+    AdminDisableUserCommand: jest.fn(),
+    AdminUpdateUserAttributesCommand: jest.fn(),
+}));
+
+const { mockPool, mockQuery, setupMockData } = require('./setup/mockDb');
+ 
+jest.mock('../src/db/pool', () => ({ pool: mockPool }));
+ 
+const request = require('supertest');
+
+const app = require('../src/app');
+ 
+
+const BASE = '/api/custom-alerts';
+ 
+const validRulePayload = {
+  name: 'Speeding Rule',
+  fleet_group_id: 1,
+  condition_type: 'speed_threshold',
+  condition_params: { max_speed_kmh: 120 },
+};
+ 
+describe('Custom Alert Rules Controller', () => {
+  beforeEach(() => {
+    setupMockData();
+  });
+ 
+  describe('POST /rules', () => {
+    test('should create a rule when manager is assigned to the fleet group', async () => {
+      mockQuery.mockImplementation((sql) => {
+
+        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+
+        if (q.includes('fleet_manager_assignments')) {
+          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
+        }
+
+        if (q.includes('insert into custom_alert_rules')) {
+          return Promise.resolve({
+            rows: [{ id: 1, ...validRulePayload, status: 'active' }],
+            rowCount: 1,
+          });
+        }
+
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      });
+ 
+      const response = await request(app)
+        .post(`${BASE}/rules`)
+        .set('Authorization', 'Bearer test-token')
+        .send(validRulePayload);
+ 
+      expect(response.status).toBe(201);
+
+      expect(response.body.success).toBe(true);
+
+      expect(response.body.data.name).toBe('Speeding Rule');
+    });
+ 
+    test('should reject with 400 when condition_params is invalid', async () => {
+
+      const response = await request(app)
+        .post(`${BASE}/rules`)
+        .set('Authorization', 'Bearer test-token')
+        .send({ ...validRulePayload, condition_params: { max_speed_kmh: -5 } });
+ 
+      expect(response.status).toBe(400);
+
+      expect(response.body.success).toBe(false);
+    });
+ 
+    test('should reject with 403 when manager is not assigned to the fleet group', async () => {
+
+      mockQuery.mockImplementation((sql) => {
+
+        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+        
+        if (q.includes('fleet_manager_assignments')) {
+          return Promise.resolve({ rows: [], rowCount: 0 });
+        }
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      });
+ 
+      const response = await request(app)
+        .post(`${BASE}/rules`)
+        .set('Authorization', 'Bearer test-token')
+        .send(validRulePayload);
+ 
+      expect(response.status).toBe(403);
+
+      expect(response.body.success).toBe(false);
+    });
+ 
+    test('should handle database error', async () => {
+      mockQuery.mockImplementation((sql) => {
+
+        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+
+        if (q.includes('fleet_manager_assignments')) {
+          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
+        }
+
+        return Promise.reject(new Error('Database error'));
+      });
+ 
+      const response = await request(app)
+        .post(`${BASE}/rules`)
+        .set('Authorization', 'Bearer test-token')
+        .send(validRulePayload);
+ 
+      expect(response.status).toBe(500);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+});
+ 

@@ -28,6 +28,8 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
 const geofenceRoutes = require('./routes/geofence');
 
+const customAlerts = require('./routes/customAlerts');
+
 
 
 const app = express();
@@ -118,6 +120,8 @@ app.use('/api/trips', tripRoutes);
 app.use('/api/fleet', fleetAnalyticsRoutes);
 
 app.use('/api/geofences', geofenceRoutes);
+
+app.use('/api/custom-alerts', customAlerts);
 
 
 

@@ -33,7 +33,7 @@ async function getLiveLocations(req, res) {
       -- this is a direct join rather than a SUM-grouped subquery.
       LEFT JOIN vehicle_daily_distance daily
              ON daily.vehicle_id = v.vehicle_id
-            AND daily.day = CURRENT_DATE
+            AND daily.day = data_today()
       WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
       ORDER BY v.vehicle_id
     `, [req.fleetGroupIds]);

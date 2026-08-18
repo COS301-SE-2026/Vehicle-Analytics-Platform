@@ -2,11 +2,11 @@
 
 const jwt = require('jsonwebtoken');
 
-function signTestToken({ id = 'itest-user', sub = 'itest-sub', email = 'itest@example.com', role = 'admin' } = {}) {
+function signTestToken({ id = 'itest-user', sub = 'itest-sub', email = 'itest@example.com', role = 'fleet_manager' } = {}) {
   return jwt.sign({ id, sub, email, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 }
 
-function authHeader(role = 'admin', overrides = {}) {
+function authHeader(role = 'fleet_manager', overrides = {}) {
   return { Authorization: `Bearer ${signTestToken({ role, ...overrides })}` };
 }
 const asAdmin = () => authHeader('admin');

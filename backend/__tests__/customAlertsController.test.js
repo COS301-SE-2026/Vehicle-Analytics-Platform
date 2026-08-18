@@ -288,13 +288,40 @@ describe('Custom Alert Rules Controller', () => {
     });
  
     test('should reject an invalid status value', async () => {
-      
+
       const response = await request(app)
         .patch(`${BASE}/rules/1/status`)
         .set('Authorization', 'Bearer test-token')
         .send({ status: 'paused' });
  
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('DELETE /rules/:id', () => {
+
+    test('should delete a rule', async () => {
+
+      mockQuery.mockResolvedValue({ rows: [{ id: 1 }], rowCount: 1 });
+ 
+      const response = await request(app)
+        .delete(`${BASE}/rules/1`)
+        .set('Authorization', 'Bearer test-token');
+ 
+      expect(response.status).toBe(200);
+
+      expect(response.body.data.id).toBe('1');
+    });
+ 
+    test('should return 404 when deleting a rule that does not exist', async () => {
+      
+      mockQuery.mockResolvedValue({ rows: [], rowCount: 0 });
+ 
+      const response = await request(app)
+        .delete(`${BASE}/rules/999`)
+        .set('Authorization', 'Bearer test-token');
+ 
+      expect(response.status).toBe(404);
     });
   });
 });

@@ -255,7 +255,7 @@ describe('Custom Alert Rules Controller', () => {
         if (q.includes('fleet_manager_assignments')) {
           return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
         }
-        
+
         return Promise.resolve({ rows: [], rowCount: 0 });
       });
  
@@ -265,6 +265,36 @@ describe('Custom Alert Rules Controller', () => {
         .send(validRulePayload);
  
       expect(response.status).toBe(404);
+    });
+  });
+
+  describe('PATCH /rules/:id/status', () => {
+
+    test('should activate/deactivate a rule', async () => {
+
+      mockQuery.mockResolvedValue({
+        rows: [{ id: 1, ...validRulePayload, status: 'inactive' }],
+        rowCount: 1,
+      });
+ 
+      const response = await request(app)
+        .patch(`${BASE}/rules/1/status`)
+        .set('Authorization', 'Bearer test-token')
+        .send({ status: 'inactive' });
+ 
+      expect(response.status).toBe(200);
+
+      expect(response.body.data.status).toBe('inactive');
+    });
+ 
+    test('should reject an invalid status value', async () => {
+      
+      const response = await request(app)
+        .patch(`${BASE}/rules/1/status`)
+        .set('Authorization', 'Bearer test-token')
+        .send({ status: 'paused' });
+ 
+      expect(response.status).toBe(400);
     });
   });
 });

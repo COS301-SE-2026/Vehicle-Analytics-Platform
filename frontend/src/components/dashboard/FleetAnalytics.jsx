@@ -15,7 +15,10 @@ export default function FleetAnalytics() {
     setLoading(true)
     getFleetAnalytics(range)
       .then((res) => { if (!cancelled) setData(res) })
-      .catch(() => { if (!cancelled) setData(null) })
+      .catch((err) => { 
+        console.error('Fleet analytics failed:', err)
+        if (!cancelled) setData(null) 
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [range])

@@ -31,6 +31,8 @@ const geofenceRoutes = require('./routes/geofence');
 const customAlerts = require('./routes/customAlerts');
 
 
+//I added this for demo 3
+const fuelRoutes = require('./routes/fuel');
 
 const app = express();
 
@@ -124,6 +126,8 @@ app.use('/api/geofences', geofenceRoutes);
 app.use('/api/custom-alerts', customAlerts);
 
 
+//I added this for demo 3
+app.use('/api/fuel', fuelRoutes);
 
 
 
@@ -176,6 +180,5 @@ app.use((err, req, res, next) => {
 
 
 module.exports = app;
-
 
 

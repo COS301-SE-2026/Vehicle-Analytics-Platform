@@ -4,6 +4,7 @@ const{
     listFleetGroups,
     assignFleetManager,
     removeFleetManagerAssignment,
+    bulkAssignVehiclesToGroup,
 } = require('../controllers/fleetGroupsController');
 
 const {
@@ -16,5 +17,6 @@ const router = express.Router();
 router.get('/', authenticate, requireRole(['admin']), listFleetGroups);
 router.post('/:id/assignments', authenticate, requireRole(['admin']), assignFleetManager);
 router.delete('/:id/assignments/:managerId', authenticate, requireRole(['admin']), removeFleetManagerAssignment);
+router.patch('/:id/vehicles', authenticate, requireRole(['admin']), bulkAssignVehiclesToGroup);
 
 module.exports = router;

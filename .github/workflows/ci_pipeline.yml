@@ -10,11 +10,24 @@ on:
 jobs:
   backend_tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     continue-on-error: false
-    defaults:
-      run:
-        working-directory: ./backend
+
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg16
+        env:
+          POSTGRES_DB: fleet_analytics_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d fleet_analytics_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,16 +37,78 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ./backend/package-lock.json
 
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            PGPASSWORD=testpassword pg_isready -h localhost -U admin -d fleet_analytics_test -q && exit 0
+            echo "waiting for postgres ($i/30)"
+            sleep 2
+          done
+          echo "Postgres never became ready"; exit 1
+
+      - name: Bootstrap stub OSM tables
+        working-directory: ./database
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: fleet_analytics_test
+          PGUSER: admin
+          PGPASSWORD: testpassword
+        run: psql -v ON_ERROR_STOP=1 -f __tests__/bootstrap.sql
+
+      - name: Run database migrations
+        working-directory: ./database
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGDATABASE: fleet_analytics_test
+          PGUSER: admin
+          PGPASSWORD: testpassword
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(migrations/V*.sql)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No migrations found -- wrong working directory?"; exit 1
+          fi
+          while IFS= read -r file; do
+            echo "::group::$file"
+            psql -v ON_ERROR_STOP=1 -f "$file"
+            echo "::endgroup::"
+          done < <(printf '%s\n' "${files[@]}" | sort -V)
+
       - name: Install dependencies
+        working-directory: ./backend
         run: npm ci
 
+      - name: Create .env.test
+        working-directory: ./backend
+        run: |
+          cat > .env.test << EOF
+          NODE_ENV=test
+          DB_HOST=localhost
+          DB_PORT=5432
+          DB_NAME=fleet_analytics_test
+          DB_USER=admin
+          DB_PASSWORD=testpassword
+          JWT_SECRET=test_secret_key
+          EOF
+
       - name: Lint
+        working-directory: ./backend
         run: npm run lint || true
 
       - name: Run tests with coverage
+        working-directory: ./backend
         run: npm test -- --coverage --coverageDirectory=coverage --passWithNoTests --forceExit
 
       - name: Show generated coverage files
+        working-directory: ./backend
         run: |
           echo 'Coverage directory listing:'
           ls -la coverage || true
@@ -91,113 +166,103 @@ jobs:
           fail_ci_if_error: false
 
   database_tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: false
-    services:
-      postgres:
-        image: timescale/timescaledb-ha:pg16
-        env:
-          POSTGRES_DB: fleet_analytics_test
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: testpassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    defaults:
-      run:
-        working-directory: ./database
-    steps:
-      - uses: actions/checkout@v4
+      runs-on: ubuntu-latest
+      timeout-minutes: 15
+  
+      services:
+        postgres:
+          image: timescale/timescaledb-ha:pg16
+          env:
+            POSTGRES_DB: fleet_analytics_test
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: testpassword
+          ports:
+            - 5432:5432
+          options: >-
+            --health-cmd "pg_isready -U admin -d fleet_analytics_test"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 10
+  
+      env:
+        PGHOST: localhost
+        PGPORT: 5432
+        PGDATABASE: fleet_analytics_test
+        PGUSER: admin
+        PGPASSWORD: testpassword
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: fleet_analytics_test
+        DB_USER: admin
+        DB_PASSWORD: testpassword
+  
+      defaults:
+        run:
+          working-directory: ./database
+  
+      steps:
+        - uses: actions/checkout@v4
+  
+        - uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+            cache: 'npm'
+            cache-dependency-path: ./database/package-lock.json
+  
+        - name: Install psql client
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+  
+        - name: Wait for Postgres
+          run: |
+            for i in $(seq 1 30); do
+              pg_isready -q && exit 0
+              echo "waiting for postgres ($i/30)"
+              sleep 2
+            done
+            echo "Postgres never became ready"; exit 1
+  
+        - name: Install dependencies
+          run: npm ci
+  
+        - name: Bootstrap stub OSM tables
+          run: psql -v ON_ERROR_STOP=1 -f __tests__/bootstrap.sql
+  
+        - name: Run database migrations
+          run: |
+            set -euo pipefail
+            shopt -s nullglob
+            files=(migrations/V*.sql)
+            if [ ${#files[@]} -eq 0 ]; then
+              echo "No migrations found -- wrong working directory?"; exit 1
+            fi
+            while IFS= read -r file; do
+              echo "::group::$file"
+              psql -v ON_ERROR_STOP=1 -f "$file"
+              echo "::endgroup::"
+            done < <(printf '%s\n' "${files[@]}" | sort -V)
+  
+        - name: Verify schema applied
+          run: |
+            psql -v ON_ERROR_STOP=1 -t -A -c "
+              SELECT CASE WHEN
+                to_regclass('public.clean_telemetry') IS NOT NULL
+                AND EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'safe_lat')
+                AND EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'get_vehicle_status')
+                AND EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'get_trip_history_with_events')
+              THEN 'ok' ELSE 'MISSING' END;" | grep -qx ok
+  
+        - name: Run database tests
+          run: npx --no-install jest --ci --runInBand --coverage --coverageDirectory=coverage
+  
+        - name: Upload coverage to Codecov
+          if: always()
+          uses: codecov/codecov-action@v5
+          with:
+            token: ${{ secrets.CODECOV_TOKEN }}
+            flags: database
+            directory: ./database/coverage
+            fail_ci_if_error: false
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: ./database/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run Database Migrations
-        run: |
-          sudo apt-get install postgresql-client -y
-          for file in $(ls migrations/*.sql | sort -V); do
-            echo "Running migration: $file"
-            PGPASSWORD=testpassword psql -h localhost -U admin -d fleet_analytics_test -f "$file"
-          done
-
-      - name: Run migration tests (with coverage)
-        run: npx jest --coverage --coverageDirectory=coverage --runInBand --passWithNoTests --forceExit
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: fleet_analytics_test
-          DB_USER: admin
-          DB_PASSWORD: testpassword
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: database
-          directory: ./database/coverage
-          fail_ci_if_error: false
-
-  deploy_frontend:
-    needs:
-      - backend_tests
-      - frontend_tests
-      - database_tests
-      
-    runs-on: ubuntu-latest
-
-    if: github.event_name == 'push'
-
-    permissions:
-      id-token: write
-      contents: read
-    
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: ./frontend/package-lock.json
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
-        with:
-          role-to-assume: arn:aws:iam::273949555549:role/github-actions-vehicle-analytics
-          aws-region: af-south-1
-
-      - name: Install dependencies
-        working-directory: ./frontend
-        run: npm ci --ignore-scripts
-
-      
-      - name: Create .env
-        working-directory: ./frontend
-        run: |
-          echo "VITE_API_URL=${{ vars.VITE_API_URL }}" > .env
-          echo "VITE_MAPBOX_TOKEN=${{ vars.VITE_MAPBOX_TOKEN }}" >> .env
-        
-      - name: Build frontend
-        working-directory: ./frontend
-        run: npm run build
-
-      - name: Upload to S3
-        run: |
-          aws s3 sync frontend/dist s3://kmj2 --delete
-
-      - name: Invalidate CloudFront
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id E1PH3LDZUZ8DLL \
-            --paths "/*" 
+  

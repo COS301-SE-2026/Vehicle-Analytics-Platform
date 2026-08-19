@@ -30,6 +30,8 @@ const geofenceRoutes = require('./routes/geofence');
 
 const fleetGroupsRoutes = require('./routes/fleetGroups');
 
+const notificationsRoutes = require('./routes/notifications');
+
 
 //I added this for demo 3
 const fuelRoutes = require('./routes/fuel');
@@ -125,7 +127,10 @@ app.use('/api/geofences', geofenceRoutes);
 
 //I added this for demo 3
 app.use('/api/fuel', fuelRoutes);
+
 app.use('/api/fleet-groups', fleetGroupsRoutes);
+
+app.use('/api/notifications', notificationsRoutes)
 
 
 

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicleService'
 import LiveFleetMapPlaceholder from '@/components/dashboard/LiveFleetMapPlaceholder'
-import FleetMap from '../../components/map/FleetMap'
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
@@ -38,13 +37,13 @@ export default function LiveMap() {
 
 
   useEffect(() => {
-    fetchVehiclePositionBuffer();
+    void Promise.resolve().then(fetchVehiclePositionBuffer);
     const interval = setInterval(fetchVehiclePositionBuffer, 10000);
     return () => clearInterval(interval)
   },[]);
 
   useEffect(() => {
-    fetchLocations();
+    void Promise.resolve().then(fetchLocations);
     const interval = setInterval(fetchLocations, 1000);
     return () => clearInterval(interval)
   }, [])

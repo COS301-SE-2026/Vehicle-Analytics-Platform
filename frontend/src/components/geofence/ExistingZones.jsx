@@ -44,7 +44,7 @@ export function ExistingZones({ refreshToken, onZonesChanged }){
     }, []);
 
     useEffect(() => {
-        loadZones();
+        void Promise.resolve().then(loadZones);
     }, [loadZones, refreshToken]);
 
     function handleConfirmDelete(zone) {

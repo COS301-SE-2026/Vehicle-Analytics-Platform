@@ -23,10 +23,12 @@ export function CategoryList({ categories, externalArticle, onArticleShown }) {
 
     useEffect(() => {
       if(externalArticle) {
-        setActiveArticle(externalArticle);
-        onArticleShown?.();
+        queueMicrotask(() => {
+          setActiveArticle(externalArticle);
+          onArticleShown?.();
+        });
       }
-    }, [externalArticle]);
+    }, [externalArticle, onArticleShown]);
 
     if(activeArticle) {
         const category = categories.find((c) => c.id === activeArticle.categoryId);

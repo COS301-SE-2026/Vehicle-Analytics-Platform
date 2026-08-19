@@ -21,8 +21,10 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
 
     useEffect(() => {
         if(!navigator.geolocation) {
-            setLocationStatus("unsupported");
-            setCenter(DEFAULT_CENTER);
+            queueMicrotask(() => { 
+                setLocationStatus("unsupported");
+                setCenter(DEFAULT_CENTER);
+            });
             return;
         }
 
@@ -106,7 +108,7 @@ export default function GeofenceMap({ onZoneDrawn, refreshToken }) {
             map.current = null;
         };
 
-    }, [center ]);
+    }, [center, onZoneDrawn ]);
 
     // Load / refresh existing zones. Separate from map init so a
     // refreshToken bump doesn't tear down and rebuild the whole map --

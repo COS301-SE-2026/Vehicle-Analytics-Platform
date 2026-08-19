@@ -53,7 +53,7 @@ export default function RecentVehicleEvents({ limit = 10 }) {
   }, [limit])
 
   useEffect(() => {
-    loadEvents()
+    void Promise.resolve().then(loadEvents)
   }, [loadEvents])
 
   return (

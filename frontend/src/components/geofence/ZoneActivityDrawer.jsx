@@ -29,20 +29,16 @@ const activityIconStyles = {
 export function ZoneActivityDrawer({ open, onOpenChange }) {
     const [ currentPage, setCurrentPage ] = useState(1);
     const [ events, setEvents ] = useState([]);
-    const [ isLoading, setIsLoading ] = useState(true);
     const totalPages = 3;
 
     useEffect(() => {
         if (!open) return;
 
-        setIsLoading(true);
-        getGeofenceEvents().then((result) => {
+        void Promise.resolve().then(() => getGeofenceEvents()).then((result) => {
             setEvents(result.events);
-            setIsLoading(false);
         })
         .catch((err) => {
             console.error("Failed to fetch activity:", err);
-            setIsLoading(false);
         });
     }, [open]);
 

@@ -56,3 +56,15 @@ function formatDayMonth(wall) {
 }
 
 // range
+function buildRange(fromWallDate, toWallDate, label) {
+  const lastDayWall = new Date(toWallDate.getTime() - MS_PER_DAY);
+  const days = Math.round((toWallDate.getTime() - fromWallDate.getTime()) / MS_PER_DAY);
+ 
+  return {
+    from: fromWall(fromWallDate),
+    to: fromWall(toWallDate), 
+    fromDate: toDateString(fromWallDate),
+    toDate: toDateString(lastDayWall), 
+    days, label,
+  };
+}

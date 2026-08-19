@@ -1,7 +1,7 @@
-import React from 'react'
+//import React from 'react'
 import { render, screen, act, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { MemoryRouter } from 'react-router-dom'
+
 
 jest.mock('@/components/map/FleetMap', () => ({
   __esModule: true,
@@ -65,11 +65,7 @@ const makeResponse = (vehicles = VEHICLES) => ({
 const renderLiveMap = async () => {
   let utils
   await act(async () => {
-    utils = render(
-      <MemoryRouter>
-        <LiveMap />
-      </MemoryRouter>
-    )
+    utils = render(<LiveMap />)
   })
   return utils
 }
@@ -96,11 +92,7 @@ describe('LiveMap', () => {
       vehicleService.getVehiclePositionBuffer.mockImplementationOnce(() => new Promise(() => {}))
 
       await act(async () => {
-        render(
-          <MemoryRouter>
-            <LiveMap />
-          </MemoryRouter>
-        )
+        render(<LiveMap />)
       })
       expect(document.querySelector('.animate-spin')).toBeInTheDocument()
     })
@@ -120,7 +112,34 @@ describe('LiveMap', () => {
     })
   })
 
+  // ── Data fetching ─────────────────────────────────────────────────────────
 
+  describe('data fetching', () => {
+    it('calls getVehicleLocations once on mount', async () => {
+      await renderLiveMap()
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
+    })
+
+    it('polls getVehicleLocations every second', async () => {
+      await renderLiveMap()
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
+
+      await act(async () => { jest.advanceTimersByTime(1_000) })
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(2)
+
+      await act(async () => { jest.advanceTimersByTime(1_000) })
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(3)
+    })
+
+    it('stops polling after the component unmounts', async () => {
+      const { unmount } = await renderLiveMap()
+      unmount()
+
+      await act(async () => { jest.advanceTimersByTime(30_000) })
+      // Only the initial call; no further polls after unmount
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
+    })
+  })
 
   // ── Stat counts ───────────────────────────────────────────────────────────
 
@@ -164,5 +183,157 @@ describe('LiveMap', () => {
     })
   })
 
+  // ── Polling updates ───────────────────────────────────────────────────────
 
+  describe('polling updates', () => {
+    it('updates counts when vehicle statuses change on the next poll', async () => {
+      // Vehicle 1004 changes from offline → active
+      const updatedVehicles = VEHICLES.map(v =>
+        v.id === '1004' ? { ...v, status: 'active' } : v
+      )
+
+      vehicleService.getVehicleLocations
+        .mockResolvedValueOnce(makeResponse())
+        .mockResolvedValueOnce(makeResponse(updatedVehicles))
+
+      await renderLiveMap()
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+        expect(screen.getByTestId('stat-offline')).toHaveTextContent('1')
+      })
+
+      await act(async () => { jest.advanceTimersByTime(1_000) })
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('5')
+        expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+      })
+    })
+
+    it('retains previous data when a mid-poll request fails', async () => {
+      vehicleService.getVehicleLocations
+        .mockResolvedValueOnce(makeResponse())
+        .mockRejectedValueOnce(new Error('Network error'))
+
+      await renderLiveMap()
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+      })
+
+      // Poll fails — UI must stay with last good data
+      await act(async () => { jest.advanceTimersByTime(1_000) })
+      await waitFor(() => {
+        expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
+        expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+      })
+    })
+  })
+
+  // ── Edge cases & error handling ───────────────────────────────────────────
+
+  describe('error handling', () => {
+    it('does not crash when the initial API call fails', async () => {
+      vehicleService.getVehicleLocations.mockRejectedValue(new Error('Network error'))
+      await expect(
+        act(async () => { render(<LiveMap />) })
+      ).resolves.not.toThrow()
+    })
+
+    it('renders without the placeholder when initial fetch fails', async () => {
+      vehicleService.getVehicleLocations.mockRejectedValue(new Error('Network error'))
+      await act(async () => { render(<LiveMap />) })
+      expect(screen.queryByTestId('live-fleet-placeholder')).not.toBeInTheDocument()
+    })
+
+    it('handles an empty vehicle list gracefully', async () => {
+      vehicleService.getVehicleLocations.mockResolvedValue(makeResponse([]))
+      await renderLiveMap()
+      expect(screen.getByTestId('vehicle-count')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-active')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-idle')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+    })
+
+    it('handles vehicles with unknown statuses without crashing', async () => {
+      const weirdVehicles = [
+        ...VEHICLES,
+        { id: '9999', lat: -28.0, lng: 28.0, speed: 0, status: 'maintenance' },
+      ]
+      vehicleService.getVehicleLocations.mockResolvedValue(makeResponse(weirdVehicles))
+      await expect(renderLiveMap()).resolves.not.toThrow()
+      expect(screen.getByTestId('vehicle-count')).toHaveTextContent(String(weirdVehicles.length))
+    })
+
+    it('continues polling after a failed request', async () => {
+      vehicleService.getVehicleLocations
+        .mockResolvedValueOnce(makeResponse())
+        .mockRejectedValueOnce(new Error('Transient error'))
+        .mockResolvedValueOnce(makeResponse())
+
+      await renderLiveMap()
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(1)
+
+      await act(async () => { jest.advanceTimersByTime(1_000) }) // fails
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(2)
+
+      await act(async () => { jest.advanceTimersByTime(1_000) }) // recovers
+      expect(vehicleService.getVehicleLocations).toHaveBeenCalledTimes(3)
+    })
+  })
+
+  describe('null locations guard', () => {
+    it('renders an empty container when fetch resolves with null', async () => {
+      vehicleService.getVehicleLocations.mockResolvedValue(null)
+
+      let container
+      await act(async () => {
+        ;({ container } = render(<LiveMap />))
+      })
+
+      // loading cleared → locations is null → early return null
+      expect(container.firstChild).toBeNull()
+      expect(screen.queryByTestId('live-fleet-placeholder')).not.toBeInTheDocument()
+      expect(document.querySelector('.animate-spin')).not.toBeInTheDocument()
+    })
+
+    it('stays empty after a poll also returns null', async () => {
+      vehicleService.getVehicleLocations.mockResolvedValue(null)
+
+      let container
+      await act(async () => {
+        ;({ container } = render(<LiveMap />))
+      })
+
+      await act(async () => { jest.advanceTimersByTime(1_000) })
+
+      expect(container.firstChild).toBeNull()
+    })
+
+    it('renders with zero counts when locations has no vehicles property', async () => {
+    vehicleService.getVehicleLocations.mockResolvedValue({ timestamp: new Date().toISOString() })
+    await renderLiveMap()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+      expect(screen.getByTestId('stat-active')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-idle')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+      expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
+      expect(screen.getByTestId('vehicle-count')).toHaveTextContent('0')
+    })
+  })
+
+  it('renders with zero counts when locations.vehicles is null', async () => {
+    vehicleService.getVehicleLocations.mockResolvedValue({ 
+      timestamp: new Date().toISOString(), 
+      vehicles: null 
+    })
+    await renderLiveMap()
+
+    expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
+    expect(screen.getByTestId('stat-active')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-idle')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-offline')).toHaveTextContent('0')
+    expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
+  })
+})
 })

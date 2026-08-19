@@ -366,6 +366,13 @@ describe("SidebarProvider controlled mode", () => {
     expect(onOpenChange).toHaveBeenCalled()
   })
 
+  test("accepts a function value via setOpen (function-as-value branch)", () => {
+    // Expose setOpen through context, then call it with a function
+    let ctx
+    const Capture = () => { ctx = useSidebar(); return null }
+    render(<SidebarProvider><Capture /></SidebarProvider>)
+    expect(() => ctx.setOpen((prev) => !prev)).not.toThrow()
+  })
 })
 
 describe("SidebarProvider mobile toggle", () => {

@@ -214,7 +214,12 @@ async function getGeofenceEvents(req, res) {
     }
 }
 
-
+// Was: query cluster_points, then loop result.rows and hand-build
+// {type:'Feature', geometry:{...}, properties:{...}} for each one.
+// get_frequent_stops_geojson (V13) does exactly that assembly in Postgres.
+// The response envelope below is kept identical to the old shape
+// (total_clusters / clusters: Feature[]) so geofenceServices.js and
+// everything downstream of it needs zero changes.
 async function discoverFrequentStops(req, res) {
     const { vehicle_id, days = 7, min_points = 3, radius_km = 0.5 } = req.query;
     try {
@@ -302,43 +307,6 @@ async function createGeofenceFromCluster(req, res) {
     }
 }
 
-async function deleteGeofenceEvents(req, res) {
-    const { geofence_id, event_type, before } = req.query;
- 
-    try {
-        const conditions = [];
-        const params = [];
- 
-        if (geofence_id) {
-            params.push(geofence_id);
-            conditions.push(`geofence_id = $${params.length}`);
-        }
-        if (event_type) {
-            params.push(event_type);
-            conditions.push(`event_type = $${params.length}`);
-        }
-        if (before) {
-            params.push(before);
-            conditions.push(`event_time < $${params.length}`);
-        }
- 
-        const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
- 
-        const result = await pool.query(
-            `DELETE FROM geofence_events ${where}`,
-            params
-        );
- 
-        return success(res, {
-            deleted: result.rowCount,
-            scope: conditions.length ? { geofence_id, event_type, before } : 'all',
-        }, 200);
-    } catch (err) {
-        console.error('Delete geofence events error:', err);
-        return error(res, 'Failed to delete geofence alerts', 500);
-    }
-}
-
 module.exports = {
     createGeofence,
     getGeofences,
@@ -349,6 +317,5 @@ module.exports = {
     getGeofenceEvents,
     discoverFrequentStops,
     discoverFrequentEvents,
-    createGeofenceFromCluster,
-    deleteGeofenceEvents
+    createGeofenceFromCluster
 };

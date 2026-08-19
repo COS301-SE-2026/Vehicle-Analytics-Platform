@@ -518,8 +518,42 @@ async function getVehiclesList(req, res) {
 }
 
 
+async function assignVehicleToFleetGroup(req, res) {
 
-module.exports = {getLiveLocations, getVehicleById, getVehiclePositionBuffer, getVehiclesList};
+  const {vehicleId} = req.params;
+  const {fleetGroupId} = req.body;
+
+  if (fleetGroupId === undefined) {
+    return error(res, 'FleetGroupId is required or pass null to unassign', 400);
+  }
+
+  try {
+    const vehicleResult = await pool.query('SELECT vehicle_id FROM vehicles WHERE vehicle_id = $1', [vehicleId]);
+
+    if(vehicleResult.rows.length === 0) {
+      return error(res, 'Vehicle not found', 404);
+    }
+
+    if(fleetGroupId !== null) {
+      const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1', [fleetGroupId]);
+
+      if(groupResult.rows.length === 0) {
+        return error(res, 'Fleet group not found', 404);
+      }
+    }
+
+
+    await pool.query('UPDATE vehicles SET fleet_group_id = $1 WHERE vehicle_id = $2', [fleetGroupId, vehicleId]);
+
+    return success(res, {message: 'Vehicle group updated successfully', vehicle_id: vehicleId, fleet_group_id: fleetGroupId}, 200);
+  }catch (err) {
+    console.error('Assign vehicle to fleet group error:', err);
+    return error(res, 'Failed to update vehicle fleet group: ' + err.message, 500);
+  }
+}
+
+
+module.exports = {getLiveLocations, getVehicleById, getVehiclePositionBuffer, getVehiclesList, assignVehicleToFleetGroup};
 
 
 

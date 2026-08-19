@@ -9,7 +9,7 @@ jest.mock('@/services/geofenceServices', () => ({
 import { getGeofenceEvents } from '@/services/geofenceServices';
 
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, className, variant, type }) => (
+  Button: ({ children, onClick, className, type }) => (
     <button type={type || 'button'} onClick={onClick} className={className}>{children}</button>
   ),
 }));

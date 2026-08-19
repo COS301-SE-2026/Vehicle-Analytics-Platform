@@ -12,8 +12,7 @@ export default function FleetAnalytics() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    getFleetAnalytics(range)
+    void Promise.resolve().then(() => getFleetAnalytics(range))
       .then((res) => { if (!cancelled) setData(res) })
       .catch((err) => { 
         console.error('Fleet analytics failed:', err)

@@ -33,7 +33,7 @@ export default function FleetActivityChart({
   }, [range])
 
   useEffect(() => {
-    loadActivity()
+    void Promise.resolve().then(loadActivity)
   }, [loadActivity])
 
   const hasData = !isLoading && !loadError && data.length > 0

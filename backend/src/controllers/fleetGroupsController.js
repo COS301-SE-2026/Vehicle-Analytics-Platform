@@ -143,5 +143,42 @@ async function removeFleetManagerAssignment(req, res) {
     }
 }
 
+async function bulkAssignVehiclesToGroup(req, res) {
+    const {id: fleetGroupId} = req.params;
+    const {vehicleIds} = req.body;
 
-module.exports = {listFleetGroups, assignFleetManager, removeFleetManagerAssignment};
+
+    if(!Array.isArray(vehicleIds) || vehicleIds.length === 0) {
+        return error(res, 'vehicleIds must be a non empty array', 400);
+    }
+
+    try {
+        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1', [fleetGroupId]);
+
+        if(groupResult.rows.length === 0){
+            return error(res, 'Fleet group not found', 404);
+        }
+
+        const updateResult = await pool.query(`
+            UPDATE vehicles SET fleet_group_id = $1
+            WHERE vehicle_id = ANY($2::text[])
+            RETURNING vehicle_id
+            `, [fleetGroupId, vehicleIds]
+        );
+
+        const updatedIds = updateResult.rows.map((row) => row.vehicle_id);
+        const notFoundIds = vehicleIds.filter((id) => !updatedIds.includes(id));
+
+        return success(res, {
+            message: `${updatedIds.length} vehicle(s) assigned successfully`,
+            updated: updatedIds,
+            not_found: notFoundIds,
+        }, 200);
+    }catch(err) {
+        console.error('Bulk assign vehicles error:', err);
+        return error(res, 'Failed to bulk assign vehicles: ' + err.message, 500);
+    }
+}
+
+
+module.exports = {listFleetGroups, assignFleetManager, removeFleetManagerAssignment, bulkAssignVehiclesToGroup};

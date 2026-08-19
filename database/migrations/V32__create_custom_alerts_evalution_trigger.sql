@@ -1,6 +1,6 @@
 -- Migration: V32__create_custom_alert_evaluation_trigger.sql
 
-CREATE OR REPLACE FUNCTION evaluate_custom_alert_rukes_batch()
+CREATE OR REPLACE FUNCTION evaluate_custom_alert_rules_batch()
 RETURNS TRIGGER 
 LANGUAGE plpgsql
 AS $$ 
@@ -17,30 +17,49 @@ THEN
         SELECT DISTINCT ON (vehicle_id) vehicle_id, time, speed, latitude, longitude
         FROM new_ct_rows
         ORDER BY vehicle_id, time DESC
-    )
-
-    speed_threshold: latest point's speed exceeds the configured max
+    ),
 
     speed_breaches AS (
-        SELECT 
+         SELECT 
             r.id AS rule_id, lp.vehicle_id, r.fleet_group_id, r.condition_type,
             lp.speed AS breach_value,
             (r.condition_params->>'max_speed_kmh')::NUMERIC AS threshold_value,
-            lp.latitude, lp.longitube, lp.time
-            
+            lp.latitude, lp.longitude, lp.time
+
         FROM latest_points lp
         JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
         JOIN custom_alert_rules r
-        ON r.fleet_group_id = v.fleet_group_id
-        AND r.status = 'active'
-        AND r.condition_type = 'time_based_restriction'
+
+            ON r.fleet_group_id = v.fleet_group_id
+            AND r.status = 'active'
+             AND r.condition_type = 'time_based_restriction'
+        WHERE lp.speed > (r.condition_params->>'max_speed_kmh')::NUMERIC
+    ),
+    
+
+    time_breaches AS (
+        SELECT 
+            r.id AS rule_id, lp.vehicle_id, r.fleet_group_id, r.condition_type,
+            lp.speed AS breach_value,
+            NULL::NUMERIC AS threshold_value,
+            lp.latitude, lp.longitude, lp.time
+
+        FROM latest_points lp
+        JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
+        JOIN custom_alert_rules r
+
+            ON r.fleet_group_id = v.fleet_group_id
+            AND r.status = 'active'
+             AND r.condition_type = 'speed_limit'
         WHERE (
             CASE
               
                 WHEN (r.condition_params->>'start_time')::TIME > (r.condition_params->>'end_time')::TIME THEN
                     lp.time::TIME >= (r.condition_params->>'start_time')::TIME
                     OR lp.time::TIME < (r.condition_params->>'end_time')::TIME
+
                 ELSE
+
                     lp.time::TIME >= (r.condition_params->>'start_time')::TIME
                     AND lp.time::TIME < (r.condition_params->>'end_time')::TIME
             END
@@ -58,7 +77,7 @@ THEN
 
         SELECT * FROM time_breaches
     ),
- 
+
 
     deduped_breaches AS (
         SELECT ab.*

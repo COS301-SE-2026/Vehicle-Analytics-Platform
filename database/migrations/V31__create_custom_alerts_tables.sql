@@ -1,4 +1,4 @@
--- Migration V30__create_custom_alerts_table.sql
+-- Migration V31__create_custom_alerts_table.sql
 -- Custom Alerts feature
 
 CREATE TABLE IF NOT EXISTS custom_alert_rules (

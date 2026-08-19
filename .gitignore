@@ -15,3 +15,5 @@ npm-debug.log*
 .env.local
 
 **/node_modules.env.test
+docker-compose.override.yml
+.docker-empty-initdb/

@@ -35,6 +35,7 @@ BEGIN
         SELECT
             r.id AS rule_id, lu.vehicle_id, r.fleet_group_id, r.condition_type,
             lu.latitude, lu.longitude, lu.time,
+            jsonb_build_object('name', r.name, 'condition_params', r.condition_params) AS rule_snapshot,
 
             (
                 SELECT COUNT(*)

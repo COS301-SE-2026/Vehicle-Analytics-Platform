@@ -29,6 +29,7 @@ BEGIN
         r.id, NEW.vehicle_id, r.fleet_group_id,
         'safety_score_drop', NEW.safety_score::TEXT,
         (r.condition_params->>'min_score'),NOW(),
+        jsonb_build_object('name', r.name, 'condition_params', r.condition_params)
 
     FROM custom_alert_rules r
     WHERE r.fleet_group_id = NEW.fleet_group_id
@@ -43,7 +44,7 @@ BEGIN
             WHERE ta.rule_id = r.id
 
                 AND ta.vehicle_id = NEW.vehicle_id
-                AND ta.created_at > (NOW() - (COALESCE(r.debounce_minutes, 5) || ' minutes')::INTERVAL)
+                AND ta.created_at > (NOW() - (debounce_minutes || ' minutes')::INTERVAL)
         );
 
         RETURN NEW;

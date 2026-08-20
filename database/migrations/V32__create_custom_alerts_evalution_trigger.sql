@@ -25,7 +25,8 @@ THEN
             r.id AS rule_id, lp.vehicle_id, r.fleet_group_id, r.condition_type,
             lp.speed AS breach_value,
             (r.condition_params->>'max_speed_kmh') AS threshold_value,
-            lp.latitude, lp.longitude, lp.time
+            lp.latitude, lp.longitude, lp.time,
+            jsonb_build_object('name', r.name, 'condition_params', r.condition_params) AS rule_snapshot
 
         FROM latest_points lp
         JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
@@ -77,37 +78,6 @@ THEN
         WHERE harsh_braking OR harsh_acceleration OR harsh_cornering
     ),
 
-    repeated_unsafe_breaches AS (
-
-        SELECT 
-            r.id AS rule_id, ue.vehicle_id, r.fleet_group_id, r.condition_type,
-            cnt.event_count::TEXT AS breach_value,
-            (r.condition_params->>'event_count') AS threshold_value,
-            ue.latitude, ue.longitude, ue.time
-        
-        FROM unsafe_events_new ue
-        JOIN vehicle v ON v.vehicle_id = ue.vehicle_id
-        JOIN custom_alert_rules r
-            ON r.fleet_group_id = v.fleet_group_id
-
-            AND r.status = 'active'
-            AND r.condition_type = 'repeated_unsafe_events'
-
-        CROSS JOIN LATERAL (
-
-            SELECT COUNT(*) AS event_count
-            FROM clean_telemetry ct
-
-            WHERE ct.vehicle_id = ue.vehicle_id
-
-              AND ct.time > ue.time - ((r.condition_params->>'window_minutes')::INT || ' minutes')::INTERVAL
-              AND ct.time <= ue.time
-              AND (ct.harsh_braking OR ct.harsh_acceleration OR ct.harsh_cornering)
-
-        ) cnt
-        WHERE cnt.event_count >= (r.condition_params->>'event_count')::INT        
-    );
-
  
     all_breaches AS (
 
@@ -116,8 +86,6 @@ THEN
 
         SELECT * FROM time_breaches
         UNION ALL
-
-        SELECT * FROM repeated_unsafe_breaches
     ),
 
 
@@ -138,13 +106,13 @@ THEN
     INSERT INTO triggered_alerts (
         rule_id, vehicle_id, fleet_group_id, condition_type,
 
-        breach_value, threshold_value, latitude, longitude, created_at
+        breach_value, threshold_value, latitude, longitude, created_at, rule_snapshot
     )
 
     SELECT
         rule_id, vehicle_id, fleet_group_id, condition_type,
 
-        breach_value, threshold_value, latitude, longitude, time
+        breach_value, threshold_value, latitude, longitude, time, rule_snapshot
 
     FROM deduped_breaches;
  

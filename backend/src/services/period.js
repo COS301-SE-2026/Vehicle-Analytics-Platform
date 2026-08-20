@@ -239,3 +239,46 @@ function trendCoverage(period, weeks) {
     lastDate: last.toDate,
   };
 }
+
+//data clock
+
+let dataNowFnPresent = null; // i havent probed this yet
+async function getDataClock(db) {
+  if (!db || typeof db.query !== 'function') {
+    throw new Error('getDataClock requires a pg client or pool');
+  }
+ 
+  if (dataNowFnPresent === null) {
+    const probe = await db.query("SELECT to_regproc('data_now') IS NOT NULL AS present",);
+    dataNowFnPresent = Boolean(probe.rows[0] && probe.rows[0].present);
+  }
+ 
+  if (dataNowFnPresent) {
+    const result = await db.query('SELECT data_now() AS data_now');
+    const value = result.rows[0] && result.rows[0].data_now;
+    if (value) return new Date(value);
+  }
+ 
+  const fallback = await db.query(
+    'SELECT MAX(last_update) AS data_now FROM current_vehicle_position',
+  );
+  const value = fallback.rows[0] && fallback.rows[0].data_now;
+ 
+  // note to self: an empty fleet with have no data clock, so report as empty instead of failure
+  return value ? new Date(value) : new Date();
+}
+ 
+
+function _resetDataClockProbe() {
+  dataNowFnPresent = null;
+}
+
+module.exports = {
+  resolvePeriod,
+  weeksInPeriod,
+  trendCoverage,
+  getDataClock,
+  PERIOD_TYPES,
+  REPORT_TZ_OFFSET_HOURS,
+  _resetDataClockProbe,
+};

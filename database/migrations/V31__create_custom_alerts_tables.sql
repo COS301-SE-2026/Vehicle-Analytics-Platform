@@ -39,10 +39,16 @@ CREATE TABLE IF NOT EXISTS triggered_alerts (
     threshold_value TEXT,
     latitude NUMERIC,
     longitude NUMERIC,
+    rule_snapshot JSONB,                          
+    status TEXT NOT NULL DEFAULT 'new'             
+        CHECK (status IN ('new', 'acknowledged', 'resolved')),
     acknowledged_at TIMESTAMPTZ,
     resolved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_triggered_alerts_status
+    ON triggered_alerts (status);
 
 CREATE INDEX IF NOT EXISTS idx_triggered_alerts_rule 
     ON triggered_alerts (rule_id);

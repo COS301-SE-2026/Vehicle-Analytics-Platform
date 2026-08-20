@@ -15,7 +15,6 @@ THEN
 
     WITH latest_points AS (
         SELECT DISTINCT ON (vehicle_id) vehicle_id, time, speed, latitude, longitude
-        harsh_acceleration, harsh_cornering
         FROM new_ct_rows
         ORDER BY vehicle_id, time DESC
     ),
@@ -44,7 +43,8 @@ THEN
             r.id AS rule_id, lp.vehicle_id, r.fleet_group_id, r.condition_type,
             lp.time::TIME::TEXT AS breach_value,
             (r.condition_params->>'start_time') || '-' || (r.condition_params->>'end_time') AS threshold_value,
-            lp.latitude, lp.longitude, lp.time
+            lp.latitude, lp.longitude, lp.time,
+            jsonb_build_object( 'name', r.name,'condition_params', r.condition_params) AS rule_snapshot
 
         FROM latest_points lp
         JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
@@ -72,20 +72,12 @@ THEN
         )
     ),
 
-    unsafe_events_new AS (
-        SELECT vehicle_id, time, latitude, longitude
-        FROM new_ct_rows
-        WHERE harsh_braking OR harsh_acceleration OR harsh_cornering
-    ),
-
- 
     all_breaches AS (
 
         SELECT * FROM speed_breaches
         UNION ALL
 
         SELECT * FROM time_breaches
-        UNION ALL
     ),
 
 

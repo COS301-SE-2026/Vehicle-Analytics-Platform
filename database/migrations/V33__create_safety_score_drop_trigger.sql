@@ -4,7 +4,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE 
     debounce_minutes INT := 5;
-    v_fleet_group_id BIGINT
+    v_fleet_group_id BIGINT;
 
 BEGIN
 
@@ -13,7 +13,8 @@ BEGIN
     END IF;
 
     SELECT fleet_group_id INTO v_fleet_group_id
-    FROM vehicles WHERE vehicle_id = NEW.vehicle_id
+    FROM vehicles 
+    WHERE vehicle_id = NEW.vehicle_id;
 
     IF v_fleet_group_id IS NULL THEN
         RETURN NEW;
@@ -28,11 +29,11 @@ BEGIN
     SELECT 
         r.id, NEW.vehicle_id, r.fleet_group_id,
         'safety_score_drop', NEW.safety_score::TEXT,
-        (r.condition_params->>'min_score'),NOW(),
+        r.condition_params->>'min_score',NOW(),
         jsonb_build_object('name', r.name, 'condition_params', r.condition_params)
 
     FROM custom_alert_rules r
-    WHERE r.fleet_group_id = NEW.fleet_group_id
+    WHERE r.fleet_group_id = v_fleet_group_id
 
         AND r.status = 'active'
         AND r.condition_type = 'safety_score_drop'
@@ -51,6 +52,8 @@ BEGIN
 END;
 $$;
 
+
+DROP TRIGGER IF EXISTS safety_score_drop_trigger ON driver_daily_safety_scores;
 
 CREATE TRIGGER safety_score_drop_trigger
 

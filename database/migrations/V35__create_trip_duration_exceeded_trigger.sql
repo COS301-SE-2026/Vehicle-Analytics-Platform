@@ -111,6 +111,8 @@ END;
 $$;
  
  
+DROP TRIGGER IF EXISTS trip_duration_alert_trigger ON trips;
+
 CREATE TRIGGER trip_duration_alert_trigger
 
 AFTER UPDATE OF status ON trips

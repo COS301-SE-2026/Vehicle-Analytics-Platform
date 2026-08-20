@@ -7,7 +7,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    debounce_minutes := 5;
+    debounce_minutes INT := 5;
 
 BEGIN
     IF NOT EXISTS(
@@ -63,7 +63,7 @@ BEGIN
     ),
  
     deduped_breaches AS(
-        SELECT cb.*
+        SELECT 1
         FROM candidate_breaches cb
 
         WHERE cb.event_count >= cb.required_count
@@ -79,18 +79,20 @@ BEGIN
  
     INSERT INTO triggered_alerts(
         rule_id, vehicle_id, fleet_group_id, condition_type,
-        breach_value, threshold_value, latitude, longitude, created_at
+        breach_value, threshold_value, latitude, longitude, created_at, rule_snapshot
     )
 
     SELECT
         rule_id, vehicle_id, fleet_group_id, condition_type,
-        event_count::TEXT, required_count::TEXT, latitude, longitude, time
+        event_count::TEXT, required_count::TEXT, latitude, longitude, time, rule_snapshot
 
     FROM deduped_breaches;
  
     RETURN NULL;
 END;
 $$;
+
+DROP TRIGGER IF EXISTS repeated_unsafe_events_trigger ON vehicle_events;
  
 CREATE TRIGGER repeated_unsafe_events_trigger
 

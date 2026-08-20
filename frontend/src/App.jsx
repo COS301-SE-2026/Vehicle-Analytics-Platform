@@ -14,6 +14,8 @@ import useAuthStore from './store/authStore'
 import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 import VehiclesList from './pages/vehicles/VehiclesList'
 import VehicleProfile from './pages/vehicles/VehicleProfile'
+import CustomAlerts from './pages/alerts/CustomAlerts'
+import CustomAlertDetail from './pages/alerts/CustomAlertDetail';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
@@ -109,6 +111,25 @@ function App() {
               </ProtectedRoute>
           }
           />
+
+          <Route
+            path="/custom-alerts"
+            element={
+            <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
+              <CustomAlerts />
+            </ProtectedRoute>
+            }
+          />
+
+        <Route
+          path="/custom-alerts/:id"
+          element={
+            <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
+              <CustomAlertDetail />
+            </ProtectedRoute>
+          }
+        />
+
         </Route>
 
         {/* Default redirect - TEMP for testing */}

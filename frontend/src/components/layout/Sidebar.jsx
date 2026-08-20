@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck } from 'lucide-react'
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, BellRing } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
@@ -15,7 +15,8 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
   { icon: Map, label: 'Live Map', path: '/map' },
   { icon: Globe, label: 'Geofence', path: '/geofence'},
-  { icon: Truck, label: 'Vehicles', path: '/vehicles'}
+  { icon: Truck, label: 'Vehicles', path: '/vehicles'},
+  { icon: BellRing, label: 'Custom Alerts', path: '/custom-alerts'}
 ]
 
 export default function Sidebar({ role, collapsed, onToggle }) {

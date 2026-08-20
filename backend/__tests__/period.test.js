@@ -1,0 +1,225 @@
+'use strict';
+
+const { execFileSync } = require('node:child_process');
+const path = require('node:path');
+
+const { setupReportingMockData } = require('./setup/mockReportingDb');
+
+const {
+  resolvePeriod,
+  weeksInPeriod,
+  trendCoverage,
+  getDataClock,
+  PERIOD_TYPES,
+  REPORT_TZ_OFFSET_HOURS,
+  _resetDataClockProbe,
+} = require('../src/services/periods');
+
+// SAST wall-clock time expressed as the UTC instant it maps to.
+function sast(iso) {
+  return new Date(`${iso}+02:00`);
+}
+
+describe('periods : module contract', () => {
+  test('exposes the four supported period types', () => {
+    expect(PERIOD_TYPES).toEqual(['weekly', 'monthly', 'current', 'custom']);
+  });
+
+  test('reporting timezone is SAST (UTC+2)', () => {
+    expect(REPORT_TZ_OFFSET_HOURS).toBe(2);
+  });
+
+  test('rejects an unknown period type', () => {
+    expect(() => resolvePeriod({ periodType: 'daily', anchor: new Date() }))
+      .toThrow(/Unknown periodType 'daily'/);
+  });
+
+  test('rejects a missing or invalid anchor', () => {
+    expect(() => resolvePeriod({ periodType: 'weekly' })).toThrow(/valid Date anchor/);
+    expect(() => resolvePeriod({ periodType: 'weekly', anchor: new Date('nonsense') })).toThrow(/valid Date anchor/);
+    expect(() => resolvePeriod({ periodType: 'weekly', anchor: '2026-08-19' })).toThrow(/valid Date anchor/);
+  });
+});
+
+describe('weekly : normal case', () => {
+  // Wednesday 19 August 2026, 06:13 SAST.
+  const anchor = sast('2026-08-19T06:13:00');
+  const period = resolvePeriod({ periodType: 'weekly', anchor });
+
+  test('returns the previous COMPLETE week, not the week in progress', () => {
+    expect(period.fromDate).toBe('2026-08-10'); // Monday
+    expect(period.toDate).toBe('2026-08-16');   // note to self : this date should be inclusive 
+    // basically the end date is inclusive
+    expect(period.days).toBe(7);
+  });
+
+  test('boundaries are the correct UTC instants for SAST midnight', () => {
+    expect(period.from.toISOString()).toBe('2026-08-09T22:00:00.000Z');
+    expect(period.to.toISOString()).toBe('2026-08-16T22:00:00.000Z');
+  });
+
+  test('the interval is half-open: end instant belongs to the next period', () => {
+    const next = resolvePeriod({ periodType: 'weekly', anchor: sast('2026-08-26T06:13:00') });
+    expect(next.from.getTime()).toBe(period.to.getTime());
+  });
+
+  test('label is human readable', () => {
+    expect(period.label).toBe('10-16 Aug 2026');
+  });
+
+
+
+  test('previous comparable period is the week before, same length', () => {
+    expect(period.previous.fromDate).toBe('2026-08-03');
+    expect(period.previous.toDate).toBe('2026-08-09');
+    expect(period.previous.days).toBe(7);
+    expect(period.previous.to.getTime()).toBe(period.from.getTime());
+  });
+});
+
+describe('weekly : Monday/Sunday boundary behaviour', () => {
+  test('anchor at Monday 00:00 SAST resolves to the week that just ended', () => {
+    const period = resolvePeriod({ periodType: 'weekly', anchor: sast('2026-08-17T00:00:00') });
+    expect(period.fromDate).toBe('2026-08-10');
+    expect(period.toDate).toBe('2026-08-16');
+  });
+
+  test('anchor one millisecond before Monday resolves to the week before that', () => {
+    const justBefore = new Date(sast('2026-08-17T00:00:00').getTime() - 1);
+    const period = resolvePeriod({ periodType: 'weekly', anchor: justBefore });
+    expect(period.fromDate).toBe('2026-08-03');
+    expect(period.toDate).toBe('2026-08-09');
+  });
+
+  test('anchor late on Sunday still resolves to the week before the one ending', () => {
+    const period = resolvePeriod({ periodType: 'weekly', anchor: sast('2026-08-16T23:59:59') });
+    expect(period.fromDate).toBe('2026-08-03');
+    expect(period.toDate).toBe('2026-08-09');
+  });
+
+  test('every day of a given week produces the identical reporting period', () => {
+    const days = [
+      '2026-08-17T00:00:00', '2026-08-18T12:00:00', '2026-08-19T06:13:00',
+      '2026-08-20T23:59:59', '2026-08-21T09:00:00', '2026-08-22T18:30:00',
+      '2026-08-23T23:59:59',
+    ];
+    const results = days.map((d) => resolvePeriod({ periodType: 'weekly', anchor: sast(d) }));
+    results.forEach((r) => {
+      expect(r.fromDate).toBe('2026-08-10');
+      expect(r.toDate).toBe('2026-08-16');
+    });
+  });
+
+  test('week always starts Monday and ends Sunday across a full year of anchors', () => {
+    for (let week = 0; week < 52; week += 1) {
+      const anchor = new Date(sast('2026-01-07T12:00:00').getTime() + week * 7 * 86400000);
+      const period = resolvePeriod({ periodType: 'weekly', anchor });
+      // Re-derive weekday in SAST wall-clock space.
+      const startWall = new Date(period.from.getTime() + REPORT_TZ_OFFSET_HOURS * 3600000);
+      const endWall = new Date(period.to.getTime() + REPORT_TZ_OFFSET_HOURS * 3600000 - 86400000);
+      expect(startWall.getUTCDay()).toBe(1); // Monday
+      expect(endWall.getUTCDay()).toBe(0);   // Sunday
+      expect(period.days).toBe(7);
+    }
+  });
+});
+
+describe('weekly : year boundary', () => {
+  test('a week spanning December into January is handled as one week', () => {
+    // Monday 5 Jan 2026; previous complete week is 29 Dec 2025 - 4 Jan 2026.
+    const period = resolvePeriod({ periodType: 'weekly', anchor: sast('2026-01-07T10:00:00') });
+    expect(period.fromDate).toBe('2025-12-29');
+    expect(period.toDate).toBe('2026-01-04');
+    expect(period.days).toBe(7);
+    expect(period.label).toBe('29 Dec - 4 Jan 2026');
+  });
+
+  test('previous comparable period also crosses the year correctly', () => {
+    const period = resolvePeriod({ periodType: 'weekly', anchor: sast('2026-01-07T10:00:00') });
+    expect(period.previous.fromDate).toBe('2025-12-22');
+    expect(period.previous.toDate).toBe('2025-12-28');
+  });
+});
+
+describe('monthly : normal case', () => {
+  const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-08-19T06:13:00') });
+
+  test('returns the previous COMPLETE calendar month', () => {
+    expect(period.fromDate).toBe('2026-07-01');
+    expect(period.toDate).toBe('2026-07-31');
+    expect(period.days).toBe(31);
+    expect(period.label).toBe('July 2026');
+  });
+
+  test('boundaries are SAST midnights', () => {
+    expect(period.from.toISOString()).toBe('2026-06-30T22:00:00.000Z');
+    expect(period.to.toISOString()).toBe('2026-07-31T22:00:00.000Z');
+  });
+
+  test('previous comparable period is the month before, with its own length', () => {
+    expect(period.previous.fromDate).toBe('2026-06-01');
+    expect(period.previous.toDate).toBe('2026-06-30');
+    expect(period.previous.days).toBe(30);
+  });
+});
+
+describe('monthly : month-length and boundary behaviour', () => {
+  test('anchor on the 1st at 00:00 resolves to the month that just ended', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-08-01T00:00:00') });
+    expect(period.fromDate).toBe('2026-07-01');
+    expect(period.toDate).toBe('2026-07-31');
+  });
+
+  test('anchor one millisecond before the 1st resolves to the month before that', () => {
+    const justBefore = new Date(sast('2026-08-01T00:00:00').getTime() - 1);
+    const period = resolvePeriod({ periodType: 'monthly', anchor: justBefore });
+    expect(period.fromDate).toBe('2026-06-01');
+    expect(period.toDate).toBe('2026-06-30');
+  });
+
+  test('30-day month', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-05-15T12:00:00') });
+    expect(period.fromDate).toBe('2026-04-01');
+    expect(period.toDate).toBe('2026-04-30');
+    expect(period.days).toBe(30);
+  });
+
+  test('leap-year February has 29 days', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2024-03-10T12:00:00') });
+    expect(period.fromDate).toBe('2024-02-01');
+    expect(period.toDate).toBe('2024-02-29');
+    expect(period.days).toBe(29);
+    expect(period.label).toBe('February 2024');
+  });
+
+  test('non-leap February has 28 days', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-03-10T12:00:00') });
+    expect(period.fromDate).toBe('2026-02-01');
+    expect(period.toDate).toBe('2026-02-28');
+    expect(period.days).toBe(28);
+  });
+
+  test('century non-leap year (2100) has 28 days', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2100-03-10T12:00:00') });
+    expect(period.toDate).toBe('2100-02-28');
+    expect(period.days).toBe(28);
+  });
+
+  test('January anchor rolls back into the previous year', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-01-15T12:00:00') });
+    expect(period.fromDate).toBe('2025-12-01');
+    expect(period.toDate).toBe('2025-12-31');
+    expect(period.label).toBe('December 2025');
+    expect(period.previous.fromDate).toBe('2025-11-01');
+    expect(period.previous.toDate).toBe('2025-11-30');
+  });
+
+  test('every month of 2026 is contiguous with the next', () => {
+    for (let month = 1; month <= 12; month += 1) {
+      const mm = String(month).padStart(2, '0');
+      const period = resolvePeriod({ periodType: 'monthly', anchor: sast(`2026-${mm}-15T12:00:00`) });
+      expect(period.previous.to.getTime()).toBe(period.from.getTime());
+    }
+  });
+});
+

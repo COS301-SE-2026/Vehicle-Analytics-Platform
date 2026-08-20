@@ -68,3 +68,69 @@ function buildRange(fromWallDate, toWallDate, label) {
     days, label,
   };
 }
+
+function weekLabel(startWall, endExclusiveWall) {
+  const lastDay = new Date(endExclusiveWall.getTime() - MS_PER_DAY);
+  const sameMonth = startWall.getUTCMonth() === lastDay.getUTCMonth();
+  const year = lastDay.getUTCFullYear();
+ 
+  if (sameMonth) {
+    return `${startWall.getUTCDate()} - ${lastDay.getUTCDate()} `
+      + `${MONTH_NAMES[lastDay.getUTCMonth()].slice(0, 3)} ${year}`;
+  }
+  return `${formatDayMonth(startWall)} - ${formatDayMonth(lastDay)} ${year}`;
+}
+ 
+function monthLabel(startWall) {
+  return `${MONTH_NAMES[startWall.getUTCMonth()]} ${startWall.getUTCFullYear()}`;
+}
+
+
+// period resolution 
+const PERIOD_TYPES = ['weekly', 'monthly', 'current', 'custom'];
+function resolvePeriod({ periodType, anchor, from, to, currentDays = 7 } = {}) {
+  if (!PERIOD_TYPES.includes(periodType)) {
+    throw new Error(
+      `Unknown periodType '${periodType}'. Expected one of: ${PERIOD_TYPES.join(', ')}`,
+    );
+  }
+  if (!(anchor instanceof Date) || Number.isNaN(anchor.getTime())) {
+    throw new Error('resolvePeriod requires a valid Date anchor');
+  }
+ 
+  switch (periodType) {
+    case 'weekly':   return resolveWeekly(anchor);
+    case 'monthly':  return resolveMonthly(anchor);
+    case 'current':  return resolveCurrent(anchor, currentDays);
+    case 'custom':   return resolveCustom(from, to);
+    default:         throw new Error(`Unhandled periodType '${periodType}'`);
+  }
+}
+
+
+function resolveWeekly(anchor) {
+  const thisWeekStart = startOfWeekWall(toWall(anchor));
+  const start = addDaysWall(thisWeekStart, -7);
+  const end = thisWeekStart;
+ 
+  const prevStart = addDaysWall(start, -7);
+ 
+  return {
+    type: 'weekly', ...buildRange(start, end, weekLabel(start, end)),
+    previous: buildRange(prevStart, start, weekLabel(prevStart, start)),
+  };
+}
+
+
+function resolveMonthly(anchor) {
+  const thisMonthStart = startOfMonthWall(toWall(anchor));
+  const start = addMonthsWall(thisMonthStart, -1);
+  const end = thisMonthStart;
+ 
+  const prevStart = addMonthsWall(start, -1);
+ 
+  return {
+    type: 'monthly', ...buildRange(start, end, monthLabel(start)),
+    previous: buildRange(prevStart, start, monthLabel(prevStart)),
+  };
+}

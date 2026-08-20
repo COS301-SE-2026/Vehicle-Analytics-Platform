@@ -134,3 +134,108 @@ function resolveMonthly(anchor) {
     previous: buildRange(prevStart, start, monthLabel(prevStart)),
   };
 }
+
+function resolveCurrent(anchor, currentDays){ 
+  if (!Number.isInteger(currentDays) || currentDays < 1){
+    throw new Error('currentDays must be a positive integer');
+  }
+
+
+  const end = addDaysWall(startOfDayWall(toWall(anchor)), 1);
+  const start = addDaysWall(end, -currentDays);
+  const prevStart = addDaysWall(start, -currentDays);
+  const label = `Last ${currentDays} days to ${formatDayMonth(new Date(end.getTime() - MS_PER_DAY))}`;
+  const prevLabel = `Previous ${currentDays} days`;
+ 
+  return {
+    type: 'current', ...buildRange(start, end, label), previous: buildRange(prevStart, start, prevLabel),
+  };
+
+}
+
+function resolveCustom(from, to) {
+  const fromDate = from instanceof Date ? from : new Date(from);
+  const toDate = to instanceof Date ? to : new Date(to);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    throw new Error("Custom period requires valid 'from' and 'to' dates");
+  }
+
+  if (toDate.getTime() <= fromDate.getTime()) {
+    throw new Error("Custom period 'to' must be after 'from'");
+  }
+ 
+  const startWall = startOfDayWall(toWall(fromDate));
+  const endWall = startOfDayWall(toWall(toDate));
+  if (endWall.getTime() <= startWall.getTime()) {
+    throw new Error('Custom period must span at least one full day');
+  }
+ 
+  const label = `${formatDayMonth(startWall)} - ` + 
+  `${formatDayMonth(new Date(endWall.getTime() - MS_PER_DAY))} ` + 
+  `${new Date(endWall.getTime() - MS_PER_DAY).getUTCFullYear()}`;
+
+  return {
+    type: 'custom', ...buildRange(startWall, endWall, label),
+    previous: null,
+  };
+}
+
+//breakwdown for trend analyis
+function weeksInPeriod(period) {
+  if (!period || !(period.from instanceof Date) || !(period.to instanceof Date)) {
+    throw new Error('weeksInPeriod requires a resolved period with Date bounds');
+  }
+  
+  const startWall = toWall(period.from);
+  const endWall = toWall(period.to);
+  let cursor = startOfWeekWall(startWall); // the first monday on/before start period
+  if (cursor.getTime() < startWall.getTime()) {
+    cursor = addDaysWall(cursor, 7);
+  }
+ 
+  const weeks = [];
+  let index = 1;
+  while (cursor.getTime() < endWall.getTime()) {
+    const weekEnd = addDaysWall(cursor, 7);
+    weeks.push({
+      index, ...buildRange(cursor, weekEnd, `Week ${index}`),
+      dateLabel: weekLabel(cursor, weekEnd),
+    });
+    cursor = weekEnd;
+    index += 1;
+  }
+ 
+  return weeks;
+}
+ 
+function trendCoverage(period, weeks) {
+  if (!weeks.length) {
+    return {
+      covered: false,
+      totalDays: period.days,
+      coveredDays: 0,
+      leadInDays: period.days,
+      spillDays: 0,
+    };
+  }
+ 
+  const first = weeks[0];
+  const last = weeks[weeks.length - 1];
+ 
+  // Days of the period before the first bucket starts.
+  const leadInDays = Math.round((first.from.getTime() - period.from.getTime()) / MS_PER_DAY);
+  // Days the final bucket extends beyond the period.
+  const spillDays = Math.max( 
+    0, Math.round((last.to.getTime() - period.to.getTime()) / MS_PER_DAY),
+  );
+ 
+  return {
+    covered: true,
+    totalDays: period.days,
+    coveredDays: period.days - leadInDays,
+    leadInDays,
+    spillDays,
+    firstDate: first.fromDate,
+    lastDate: last.toDate,
+  };
+}

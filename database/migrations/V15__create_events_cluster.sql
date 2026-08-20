@@ -7,9 +7,9 @@ CREATE OR REPLACE FUNCTION cluster_events(
     p_event_category TEXT default NULL,
     p_event_detail TEXT default NULL,
     p_vehicle_id TEXT default NULL,
-    p_days INTEGER default 7,
+    p_days INTEGER default 30,
     radius_km DOUBLE PRECISION default 0.25,
-    min_points INTEGER default 3
+    min_points INTEGER default 10
 )
 RETURNS TABLE(
     cluster_id INTEGER,

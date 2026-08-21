@@ -111,3 +111,116 @@ async function getAllVehicles(db){
   );
   return result.rows.map((row) => row.vehicle_id);
 }
+
+async function countUnassignedVehicles(db){
+    const result = await db.query(
+        'SELECT COUNT(*)::int AS count FROM vehicles WHERE fleet_group_id IS NULL', 
+    );
+
+    return result.rows[0] ? result.rows[0].count : 0;
+}
+
+// scope resolution
+async function resolveScope(db, user, request = {} ){
+    if(!db || typeof db.query !== 'function'){
+        throw new Error('resolveScope requires a pg client or pool');
+    }
+    
+    const groups = await getAccessibleGroups(db, user);
+    const accessibleGroupIds = groups.map((g) => g.id);
+    const unassignedVehicleCount = await countUnassignedVehicles(db);
+    
+    
+    switch (scopeType) {
+        case 'fleet':
+            return resolveFleetScope(db, role, groups, accessibleGroupIds, unassignedVehicleCount);
+        case 'group':
+            return resolveGroupScope(db, role, groups, scopeId, unassignedVehicleCount);
+        case 'vehicle':
+            return resolveVehicleScope(db, role, accessibleGroupIds, scopeId, unassignedVehicleCount);
+        default:
+            throw new ScopeError('Invalid scopeType', 400);
+  }
+}
+
+
+async function resolveFleetScope(db, role, groups, accessibleGroupIds, unassignedVehicleCount){
+  const vehicleIds = role === 'admin' ? await getAllVehicles(db) : await getVehiclesInGroups(db, accessibleGroupIds);
+ 
+  return {
+    scopeType: 'fleet',
+    scopeId: null,
+    label: role === 'admin' ? 'Entire fleet' : 'Assigned fleet',
+    groupIds: accessibleGroupIds,
+    vehicleIds,
+    vehicleCount: vehicleIds.length,
+    unassignedVehicleCount,
+    role,
+  };
+
+} 
+
+async function resolveGroupScope(db, role, groups, scopeId, unassignedVehicleCount){
+  const requestedId = toGroupId(scopeId);
+  if (requestedId === null) {
+    throw new ScopeError('A numeric scopeId is required for scopeType "group"', 400);
+  }
+ 
+
+
+  const group = groups.find((g) => g.id === requestedId);
+  if (!group) {
+    throw new ScopeError(NOT_AUTHORISED, 403);
+  }
+ 
+
+  const vehicleIds = await getVehiclesInGroups(db, [group.id]);
+  return {
+    scopeType: 'group',
+    scopeId: String(group.id),
+    label: group.name,
+    groupIds: [group.id],
+    vehicleIds,
+    vehicleCount: vehicleIds.length,
+    unassignedVehicleCount,
+    role,
+  };
+
+}
+
+async function resolveVehicleScope(db, role, accessibleGroupIds, scopeId, unassignedVehicleCount){
+  if (typeof scopeId !== 'string' || !scopeId.trim()) {
+    throw new ScopeError('A vehicle_id is required for scopeType "vehicle"', 400);
+  }
+ 
+  const result = await db.query(
+    'SELECT vehicle_id, fleet_group_id FROM vehicles WHERE vehicle_id = $1',
+    [scopeId.trim()],
+  );
+ 
+  if (!result.rows.length) {
+    throw new ScopeError(NOT_AUTHORISED, 403);
+  }
+
+
+ 
+  const vehicle = result.rows[0];
+  const vehicleGroupId = toGroupId(vehicle.fleet_group_id);
+  if (role !== 'admin') {
+    if (vehicleGroupId === null || !accessibleGroupIds.includes(vehicleGroupId)) {
+      throw new ScopeError(NOT_AUTHORISED, 403);
+    }
+  }
+
+ 
+  return {
+    scopeType: 'vehicle', scopeId: vehicle.vehicle_id,
+    label: vehicle.vehicle_id,
+    groupIds: vehicleGroupId === null ? [] : [vehicleGroupId],
+    vehicleIds: [vehicle.vehicle_id],
+    vehicleCount: 1,
+    unassignedVehicleCount,
+    role,
+  };
+  
+}

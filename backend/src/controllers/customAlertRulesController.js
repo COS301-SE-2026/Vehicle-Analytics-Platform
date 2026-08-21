@@ -22,11 +22,11 @@ function validateTopLevelFields({ name, fleet_group_id}) {
     const errors = [];
 
     if(!name || typeof name !== 'string' || name.trim().length === 0){
-        error.push('name is required');
+        errors.push('name is required');
     }
 
     if(!fleet_group_id){
-        errors.push('fleet_group_id is require')
+        errors.push('fleet_group_id is required')
     }
 
     return errors;
@@ -72,7 +72,7 @@ function validateRestrictedDays(restricted_days){
     }
 
     if( !Array.isArray(restricted_days) || restricted_days.length === 0 ){
-        error.push('restricted_days must be a non-empty array is provided');
+        errors.push('restricted_days must be a non-empty array when provided');
 
         return errors;
     }
@@ -254,7 +254,7 @@ async function listRules(req, res){
             FROM custom_alert_rules r
             JOIN fleet_groups g ON g.id = r.fleet_group_id
             WHERE r.manager_id = $1
-            ORDER BY r.created_at DEC`,
+            ORDER BY r.created_at DESC`,
             [managerId]
         );
 
@@ -311,7 +311,7 @@ async function updateRule(req, res){
         );
 
         if(assignmentResult.rows.length === 0){
-            return error(res, 'You are not assigned to this fleet group', 404);
+            return error(res, 'You are not assigned to this fleet group', 403);
         }
 
         const result = await pool.query(
@@ -319,7 +319,7 @@ async function updateRule(req, res){
             SET fleet_group_id = $1, name = $2, condition_type = $3, condition_params = $4, updated_at = NOW()
             WHERE id = $5 AND manager_id = $6
             RETURNING *`,
-            [fleet_group_id, name, condition_type, JSON.stringify(condition_params), id, managerId]
+            [fleet_group_id, name, condition_type, condition_params, id, managerId]
         );
 
         if(result.rows.length === 0){
@@ -372,7 +372,7 @@ async function deleteRule(req, res){
         const result = await pool.query(
             `DELETE FROM custom_alert_rules 
             WHERE id = $1 AND manager_id = $2 
-            RETURNUNG id`,
+            RETURNING id`,
             [id, managerId]
         );
 

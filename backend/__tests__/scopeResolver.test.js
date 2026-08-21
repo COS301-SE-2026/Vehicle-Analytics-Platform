@@ -123,3 +123,169 @@ describe('caller authentication and role', () => {
         }
     });
 });
+
+describe('getAccessibleGroups', () => {
+    test('admin sees every group, ordered by name', async () => {
+        const db = makeDb();
+        const groups = await getAccessibleGroups(db, ADMIN);
+        expect(groups).toEqual([
+            { id: 1, name: 'Delivery Vehicles' },
+            { id: 2, name: 'Long Distance' },
+            { id: 3, name: 'Regional' },
+        ]);
+    });
+
+    test('a manager sees only their assigned groups', async () => {
+        const db = makeDb();
+        expect(await getAccessibleGroups(db, MANAGER_A))
+            .toEqual([{ id: 1, name: 'Delivery Vehicles' }, { id: 2, name: 'Long Distance' }]);
+        expect(await getAccessibleGroups(db, MANAGER_B))
+            .toEqual([{ id: 3, name: 'Regional' }]);
+    });
+
+    test("filters by the manager's own user id in SQL, not afterwards", async () => {
+        const db = makeDb();
+        await getAccessibleGroups(db, MANAGER_A);
+        const assignmentQuery = db.calls.find((c) => c.sql.includes('fleet_manager_assignments'));
+        expect(assignmentQuery.params).toEqual([10]);
+        expect(assignmentQuery.sql).toMatch(/a\.fleet_manager_id = \$1/);
+    });
+
+    test('group ids returned by pg as int8 strings are normalised to numbers', async () => {
+        const db = makeDb();
+        const groups = await getAccessibleGroups(db, MANAGER_A);
+        groups.forEach((g) => expect(typeof g.id).toBe('number'));
+    });
+
+    test('a manager with no assignments gets an empty list, not an error', async () => {
+        const db = makeDb();
+        const groups = await getAccessibleGroups(db, { id: 99, role: 'fleet_manager' });
+        expect(groups).toEqual([]);
+    });
+});
+
+describe('fleet scope', () => {
+    test('a manager receives only vehicles from their assigned groups', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'fleet' });
+
+        expect(scope.vehicleIds).toEqual(['VH-001', 'VH-002', 'VH-003']);
+        expect(scope.groupIds).toEqual([1, 2]);
+        expect(scope.vehicleCount).toBe(3);
+        expect(scope.label).toBe('Assigned fleet');
+        expect(scope.scopeId).toBeNull();
+    });
+
+    test("a manager's fleet excludes other managers' vehicles", async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'fleet' });
+        expect(scope.vehicleIds).not.toContain('VH-004');
+    });
+
+    test("a manager's fleet excludes ungrouped vehicles", async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'fleet' });
+        expect(scope.vehicleIds).not.toContain('VH-005');
+        expect(scope.vehicleIds).not.toContain('VH-006');
+    });
+
+    test('admin fleet scope includes ungrouped vehicles', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, ADMIN, { scopeType: 'fleet' });
+        expect(scope.vehicleIds).toHaveLength(6);
+        expect(scope.vehicleIds).toContain('VH-005');
+        expect(scope.label).toBe('Entire fleet');
+    });
+
+    test('ungrouped vehicles are reported as metadata so they are not invisible', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'fleet' });
+        expect(scope.unassignedVehicleCount).toBe(2);
+    });
+
+    test('a manager with no assignments resolves to an empty scope, not a 403', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, { id: 99, role: 'fleet_manager' }, { scopeType: 'fleet' });
+        expect(scope.vehicleIds).toEqual([]);
+        expect(scope.groupIds).toEqual([]);
+        expect(scope.vehicleCount).toBe(0);
+    });
+
+    test('an unconfigured deployment (vehicles, no groups) resolves empty for a manager', async () => {
+        const db = makeDb({
+            groups: [],
+            assignments: [],
+            vehicles: [{ vehicle_id: 'VH-001', fleet_group_id: null }],
+        });
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'fleet' });
+        expect(scope.vehicleIds).toEqual([]);
+        expect(scope.unassignedVehicleCount).toBe(1);
+    });
+});
+
+describe('group scope', () => {
+    test('a manager may report on a group they are assigned to', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 1 });
+
+        expect(scope.vehicleIds).toEqual(['VH-001', 'VH-002']);
+        expect(scope.groupIds).toEqual([1]);
+        expect(scope.label).toBe('Delivery Vehicles');
+        expect(scope.scopeId).toBe('1');
+    });
+
+    test('a manager may NOT report on another manager\'s group', async () => {
+        const db = makeDb();
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 3 }), 403,
+        );
+    });
+
+    test('admin may report on any group', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, ADMIN, { scopeType: 'group', scopeId: 3 });
+        expect(scope.vehicleIds).toEqual(['VH-004']);
+    });
+
+    test('a nonexistent group is refused with the same message as an unauthorised one', async () => {
+        const db = makeDb();
+        let unauthorisedMessage;
+        let missingMessage;
+
+        await resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 3 }).catch((e) => { unauthorisedMessage = e.message; });
+        await resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 9999 }).catch((e) => { missingMessage = e.message; });
+        expect(unauthorisedMessage).toBe(missingMessage);
+    });
+
+    test('accepts a numeric string scopeId as sent over HTTP', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: '1' });
+        expect(scope.groupIds).toEqual([1]);
+    });
+
+    test('rejects a missing or non-numeric scopeId with 400', async () => {
+        const db = makeDb();
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'group' }), 400, /numeric scopeId/,
+        );
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 'abc' }), 400, /numeric scopeId/,
+        );
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 1.5 }), 400, /numeric scopeId/,
+        );
+    });
+
+    test('an authorised but empty group resolves with no vehicles', async () => {
+        const db = makeDb({
+            groups: [{ id: 7, name: 'New Group' }],
+            assignments: [{ fleet_manager_id: 10, fleet_group_id: 7 }],
+            vehicles: [],
+        });
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 7 });
+        expect(scope.vehicleIds).toEqual([]);
+        expect(scope.label).toBe('New Group');
+    });
+});
+
+

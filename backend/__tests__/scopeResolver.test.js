@@ -289,3 +289,98 @@ describe('group scope', () => {
 });
 
 
+describe('vehicle scope', () => {
+    test('a manager may report on a vehicle in their group', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 'VH-001' });
+
+        expect(scope.vehicleIds).toEqual(['VH-001']);
+        expect(scope.groupIds).toEqual([1]);
+        expect(scope.label).toBe('VH-001');
+        expect(scope.vehicleCount).toBe(1);
+    });
+
+    test("a manager may NOT report on a vehicle in another manager's group", async () => {
+        const db = makeDb();
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 'VH-004' }), 403,
+        );
+    });
+
+    test('a manager may NOT report on an ungrouped vehicle', async () => {
+        const db = makeDb();
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 'VH-005' }), 403,
+        );
+    });
+
+    test('admin may report on an ungrouped vehicle', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, ADMIN, { scopeType: 'vehicle', scopeId: 'VH-005' });
+        expect(scope.vehicleIds).toEqual(['VH-005']);
+        expect(scope.groupIds).toEqual([]);
+    });
+
+    test('a nonexistent vehicle is refused identically to an unauthorised one', async () => {
+        const db = makeDb();
+        let unauthorised;
+        let missing;
+        await resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 'VH-004' })
+            .catch((e) => { unauthorised = e.message; });
+        await resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 'NOPE' })
+            .catch((e) => { missing = e.message; });
+        expect(unauthorised).toBe(missing);
+    });
+
+    test('vehicle_id is treated as TEXT, and trimmed', async () => {
+        const db = makeDb();
+        const scope = await resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: '  VH-001  ' });
+        expect(scope.vehicleIds).toEqual(['VH-001']);
+    });
+
+    test('rejects a missing, blank or non-string vehicle id with 400', async () => {
+        const db = makeDb();
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'vehicle' }), 400, /vehicle_id is required/,
+        );
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: '   ' }), 400,
+        );
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 42 }), 400,
+        );
+    });
+
+    test('the vehicle lookup is parameterised', async () => {
+        const db = makeDb();
+        await resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 'VH-001' });
+        const lookup = db.calls.find((c) => c.sql.includes('WHERE vehicle_id = $1'));
+        expect(lookup.params).toEqual(['VH-001']);
+    });
+});
+
+describe('invalid scope requests', () => {
+    test('rejects an unknown scope type with 400', async () => {
+        const db = makeDb();
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'driver', scopeId: 'D-1' }), 400, /Invalid scopeType/,
+        );
+        await expectScopeError(
+            resolveScope(db, MANAGER_A, { scopeType: 'everything' }), 400, /Invalid scopeType/,
+        );
+        await expectScopeError(resolveScope(db, MANAGER_A, {}), 400, /Invalid scopeType/);
+    });
+
+    test('an unauthenticated caller is rejected before any query runs', async () => {
+        const db = makeDb();
+        await resolveScope(db, null, { scopeType: 'fleet' }).catch(() => {});
+        expect(db.query).not.toHaveBeenCalled();
+    });
+
+    test('a viewer is rejected before any query runs', async () => {
+        const db = makeDb();
+        await resolveScope(db, VIEWER, { scopeType: 'fleet' }).catch(() => {});
+        expect(db.query).not.toHaveBeenCalled();
+    });
+});
+

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import TriggeredAlertsTab from '@/components/alerts/TriggeredAlertsTab';
-import AlertRulesTab from '@/components/alerts/AlertRulesTab';
+import TriggeredAlertsTab from '@/components/alerts/AlertRulesTab';
+import AlertRulesTab from '@/components/alerts/TriggeredAlertsTab';
 
 const TABS = [
     { id: 'rules', label: 'Alert Rules'},

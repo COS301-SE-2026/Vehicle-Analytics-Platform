@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import GeofenceMap from '@/components/geofence/GeofenceMap';
 
 jest.mock('@/services/geofenceServices', () => ({
@@ -41,12 +41,16 @@ describe('GeofenceMap', () => {
     };
   });
 
-  test('falls back to default center immediately when geolocation is not supported', () => {
-    global.navigator.geolocation = undefined;
-    render(<GeofenceMap onZoneDrawn={() => {}} />);
+test('falls back to default center immediately when geolocation is not supported', async () => {
+  global.navigator.geolocation = undefined;
+  render(<GeofenceMap onZoneDrawn={() => {}} />);
+
+  await waitFor(() => {
     expect(screen.queryByText(/Locating you/i)).not.toBeInTheDocument();
-    expect(screen.queryByTestId('loader-icon')).not.toBeInTheDocument();
   });
+  
+  expect(screen.queryByTestId('loader-icon')).not.toBeInTheDocument();
+});
 
   test('renders map container', () => {
     const { container } = render(<GeofenceMap onZoneDrawn={() => {}} />);

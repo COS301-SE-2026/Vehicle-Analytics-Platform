@@ -384,3 +384,166 @@ describe('invalid scope requests', () => {
     });
 });
 
+
+
+describe('assertCanReadReport', () => {
+    test('admin may read any report', async () => {
+        const db = makeDb();
+        await expect(assertCanReadReport(db, ADMIN, [3])).resolves.toBeUndefined();
+        await expect(assertCanReadReport(db, ADMIN, [])).resolves.toBeUndefined();
+    });
+
+
+    test('a manager may read a report covering one of their groups', async () => {
+        const db = makeDb();
+        await expect(assertCanReadReport(db, MANAGER_A, [1])).resolves.toBeUndefined();
+        await expect(assertCanReadReport(db, MANAGER_A, [1, 2])).resolves.toBeUndefined();
+    });
+
+
+
+    test("a manager may NOT read a report covering only another manager's group", async () => {
+        const db = makeDb();
+        await expectScopeError(assertCanReadReport(db, MANAGER_A, [3]), 403);
+    });
+
+
+
+    test('access is re-evaluated against CURRENT assignments, not the report', async () => {
+        const db = makeDb();
+        await expectScopeError(assertCanReadReport(db, MANAGER_A, [3]), 403);
+    });
+
+    
+    test('a report with no groups is unreadable by a manager', async () => {
+        const db = makeDb();
+        await expectScopeError(assertCanReadReport(db, MANAGER_A, []), 403);
+        await expectScopeError(assertCanReadReport(db, MANAGER_A, null), 403);
+    });
+
+
+    test('group ids stored as strings still match', async () => {
+        const db = makeDb();
+        await expect(assertCanReadReport(db, MANAGER_A, ['1'])).resolves.toBeUndefined();
+    });
+
+
+
+    test('a viewer is refused with 403', async () => {
+        const db = makeDb();
+        await expectScopeError(assertCanReadReport(db, VIEWER, [1]), 403);
+    });
+});
+
+
+
+describe('listAvailableScopes', () => {
+    test('a manager sees only their groups and vehicles', async () => {
+        const db = makeDb();
+        const scopes = await listAvailableScopes(db, MANAGER_A);
+
+        expect(scopes.groups.map((g) => g.name))
+            .toEqual(['Delivery Vehicles', 'Long Distance']);
+        expect(scopes.vehicles.map((v) => v.vehicleId))
+            .toEqual(['VH-001', 'VH-002', 'VH-003']);
+    });
+
+
+    test('vehicles are annotated with their group name for the selector', async () => {
+        const db = makeDb();
+        const scopes = await listAvailableScopes(db, MANAGER_A);
+        expect(scopes.vehicles[0]).toEqual({
+            vehicleId: 'VH-001', groupId: 1, groupName: 'Delivery Vehicles',
+        });
+    });
+
+
+    test('admin sees everything, with ungrouped vehicles marked', async () => {
+        const db = makeDb();
+        const scopes = await listAvailableScopes(db, ADMIN);
+
+        expect(scopes.groups).toHaveLength(3);
+        expect(scopes.vehicles).toHaveLength(6);
+        const ungrouped = scopes.vehicles.find((v) => v.vehicleId === 'VH-005');
+        expect(ungrouped).toEqual({ vehicleId: 'VH-005', groupId: null, groupName: null });
+    });
+
+    test('reports the ungrouped vehicle count', async () => {
+        const db = makeDb();
+        const scopes = await listAvailableScopes(db, MANAGER_A);
+        expect(scopes.unassignedVehicleCount).toBe(2);
+    });
+
+
+
+    test('a viewer is refused', async () => {
+        const db = makeDb();
+        await expectScopeError(listAvailableScopes(db, VIEWER), 403);
+    });
+
+    test('offers exactly what resolveScope will accept', async () => {
+        const db = makeDb();
+        const scopes = await listAvailableScopes(db, MANAGER_A);
+
+        for (const group of scopes.groups) {
+            const resolved = await resolveScope(db, MANAGER_A, {
+                scopeType: 'group', scopeId: group.id,
+            });
+            expect(resolved.groupIds).toEqual([group.id]);
+        }
+        for (const vehicle of scopes.vehicles) {
+            const resolved = await resolveScope(db, MANAGER_A, {
+                scopeType: 'vehicle', scopeId: vehicle.vehicleId,
+            });
+            expect(resolved.vehicleIds).toEqual([vehicle.vehicleId]);
+        }
+    });
+});
+
+
+
+describe('cross-manager isolation', () => {
+    test('two managers resolve disjoint fleets from identical requests', async () => {
+        const db = makeDb();
+        const a = await resolveScope(db, MANAGER_A, { scopeType: 'fleet' });
+        const b = await resolveScope(db, MANAGER_B, { scopeType: 'fleet' });
+
+        const overlap = a.vehicleIds.filter((v) => b.vehicleIds.includes(v));
+        expect(overlap).toEqual([]);
+    });
+
+    test('no vehicle outside a manager\'s groups can be reached by any scope type', async () => {
+        const db = makeDb();
+        const forbidden = ['VH-004', 'VH-005', 'VH-006'];
+
+        const fleet = await resolveScope(db, MANAGER_A, { scopeType: 'fleet' });
+        forbidden.forEach((v) => expect(fleet.vehicleIds).not.toContain(v));
+
+        for (const groupId of [1, 2]) {
+            const scope = await resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: groupId });
+            forbidden.forEach((v) => expect(scope.vehicleIds).not.toContain(v));
+        }
+
+        for (const vehicleId of forbidden) {
+            await expectScopeError(
+                resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: vehicleId }), 403,
+            );
+        }
+    });
+
+
+    
+    test('every successful scope returns a concrete vehicle id array', async () => {
+        const db = makeDb();
+        const scopes = [
+            await resolveScope(db, MANAGER_A, { scopeType: 'fleet' }),
+            await resolveScope(db, MANAGER_A, { scopeType: 'group', scopeId: 1 }),
+            await resolveScope(db, MANAGER_A, { scopeType: 'vehicle', scopeId: 'VH-001' }),
+        ];
+        scopes.forEach((s) => {
+            expect(Array.isArray(s.vehicleIds)).toBe(true);
+            expect(s.vehicleCount).toBe(s.vehicleIds.length);
+            expect(Array.isArray(s.groupIds)).toBe(true);
+        });
+    });
+});

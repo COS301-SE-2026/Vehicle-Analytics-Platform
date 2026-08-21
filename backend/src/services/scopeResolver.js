@@ -222,5 +222,69 @@ async function resolveVehicleScope(db, role, accessibleGroupIds, scopeId, unassi
     unassignedVehicleCount,
     role,
   };
-  
+
 }
+
+//retrieval authorization 
+async function assertCanReadReport(db, user, reportGroupIds){
+  const role = assertReportingUser(user);
+  if (role === 'admin') return;
+ 
+  const groups = await getAccessibleGroups(db, user);
+  const accessible = new Set(groups.map((g) => g.id));
+ 
+  const requested = (reportGroupIds || []).map(toGroupId).filter((id) => id !== null);
+ 
+  if (!requested.length || !requested.some((id) => accessible.has(id))) {
+    throw new ScopeError(NOT_AUTHORISED, 403);
+  }
+}
+ 
+//scope discovery
+async function listAvailableScopes(db, user){
+  const role = assertReportingUser(user);
+  const groups = await getAccessibleGroups(db, user);
+  const groupIds = groups.map((g) => g.id);
+ 
+  const result = role === 'admin'
+    ? await db.query(
+        `SELECT vehicle_id, fleet_group_id
+        FROM vehicles
+        ORDER BY vehicle_id`,
+    )
+    : await db.query(
+        `SELECT vehicle_id, fleet_group_id
+        FROM vehicles
+        WHERE fleet_group_id = ANY($1::bigint[])
+        ORDER BY vehicle_id`,
+        [groupIds],
+    );
+ 
+  const groupNameById = new Map(groups.map((g) => [g.id, g.name]));
+ 
+  const vehicles = result.rows.map((row) => {
+    const groupId = toGroupId(row.fleet_group_id);
+    return {
+      vehicleId: row.vehicle_id,
+      groupId,
+      groupName: groupId === null ? null : (groupNameById.get(groupId) || null),
+    };
+  });
+ 
+  return {
+    role,
+    groups,
+    vehicles,
+    unassignedVehicleCount: await countUnassignedVehicles(db),
+  };
+}
+ 
+module.exports = {
+  resolveScope,
+  getAccessibleGroups,
+  assertCanReadReport,
+  listAvailableScopes,
+  ScopeError,
+  SCOPE_TYPES,
+  REPORTING_ROLES,
+};

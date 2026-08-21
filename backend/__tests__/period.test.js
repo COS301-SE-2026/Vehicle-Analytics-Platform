@@ -223,3 +223,319 @@ describe('monthly : month-length and boundary behaviour', () => {
   });
 });
 
+describe('current / on-demand period', () => {
+  const anchor = sast('2026-08-19T06:13:00');
+
+  test('defaults to a rolling 7 days that includes the anchor day', () => {
+    const period = resolvePeriod({ periodType: 'current', anchor });
+    expect(period.fromDate).toBe('2026-08-13');
+    expect(period.toDate).toBe('2026-08-19');
+    expect(period.days).toBe(7);
+  });
+
+  test('ends at the SAST day boundary after the anchor, not at the anchor instant', () => {
+    const period = resolvePeriod({ periodType: 'current', anchor });
+    expect(period.to.toISOString()).toBe('2026-08-19T22:00:00.000Z');
+  });
+
+  test('honours a custom window size', () => {
+    const period = resolvePeriod({ periodType: 'current', anchor, currentDays: 30 });
+    expect(period.days).toBe(30);
+    expect(period.fromDate).toBe('2026-07-21');
+    expect(period.toDate).toBe('2026-08-19');
+  });
+
+  test('previous comparable period is an equal-length window immediately before', () => {
+    const period = resolvePeriod({ periodType: 'current', anchor });
+    expect(period.previous.days).toBe(period.days);
+    expect(period.previous.toDate).toBe('2026-08-12');
+    expect(period.previous.to.getTime()).toBe(period.from.getTime());
+  });
+
+  test('rejects a non-positive or non-integer window', () => {
+    expect(() => resolvePeriod({ periodType: 'current', anchor, currentDays: 0 })).toThrow(/positive integer/);
+    expect(() => resolvePeriod({ periodType: 'current', anchor, currentDays: -3 })).toThrow(/positive integer/);
+    expect(() => resolvePeriod({ periodType: 'current', anchor, currentDays: 2.5 })).toThrow(/positive integer/);
+  });
+});
+
+describe('custom period', () => {
+  test('resolves an explicit range with an exclusive end', () => {
+    const period = resolvePeriod({
+      periodType: 'custom',
+      anchor: sast('2026-08-19T06:13:00'),
+      from: sast('2026-08-01T00:00:00'),
+      to: sast('2026-08-08T00:00:00'),
+    });
+    expect(period.fromDate).toBe('2026-08-01');
+    expect(period.toDate).toBe('2026-08-07');
+    expect(period.days).toBe(7);
+  });
+
+  test('accepts ISO strings as well as Date objects', () => {
+    const period = resolvePeriod({
+      periodType: 'custom',
+      anchor: sast('2026-08-19T06:13:00'),
+      from: '2026-08-01T00:00:00+02:00',
+      to: '2026-08-08T00:00:00+02:00',
+    });
+    expect(period.fromDate).toBe('2026-08-01');
+    expect(period.toDate).toBe('2026-08-07');
+  });
+
+  test('has no previous comparable period', () => {
+    const period = resolvePeriod({
+      periodType: 'custom',
+      anchor: sast('2026-08-19T06:13:00'),
+      from: sast('2026-08-01T00:00:00'),
+      to: sast('2026-08-08T00:00:00'),
+    });
+    expect(period.previous).toBeNull();
+  });
+
+  test('rejects an inverted, zero-length or invalid range', () => {
+    const anchor = sast('2026-08-19T06:13:00');
+    expect(() => resolvePeriod({
+      periodType: 'custom', anchor, from: sast('2026-08-08T00:00:00'), to: sast('2026-08-01T00:00:00'),
+    })).toThrow(/must be after/);
+    expect(() => resolvePeriod({
+      periodType: 'custom', anchor, from: sast('2026-08-01T00:00:00'), to: sast('2026-08-01T00:00:00'),
+    })).toThrow(/must be after/);
+    expect(() => resolvePeriod({
+      periodType: 'custom', anchor, from: 'not-a-date', to: sast('2026-08-08T00:00:00'),
+    })).toThrow(/valid 'from' and 'to'/);
+  });
+
+  test('rejects a sub-day range that would collapse to zero days', () => {
+    const anchor = sast('2026-08-19T06:13:00');
+    expect(() => resolvePeriod({
+      periodType: 'custom', anchor, from: sast('2026-08-01T09:00:00'), to: sast('2026-08-01T17:00:00'),
+    })).toThrow(/at least one full day/);
+  });
+});
+
+describe('weeksInPeriod : monthly trend breakdown', () => {
+  test('August 2026 yields five complete 7-day weeks', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-09-10T12:00:00') });
+    const weeks = weeksInPeriod(period);
+
+    // Monday 31 Aug falls inside the month, so it opens a fifth bucket thats running into thatof sepember
+    expect(weeks).toHaveLength(5);
+    expect(weeks.map((w) => w.label))
+      .toEqual(['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5']);
+    expect(weeks.map((w) => w.fromDate))
+      .toEqual(['2026-08-03', '2026-08-10', '2026-08-17', '2026-08-24', '2026-08-31']);
+    expect(weeks[4].dateLabel).toBe('31 Aug - 6 Sep 2026');
+    weeks.forEach((w) => expect(w.days).toBe(7));
+  });
+
+  test('weeks are contiguous and half-open', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-09-10T12:00:00') });
+    const weeks = weeksInPeriod(period);
+    for (let i = 1; i < weeks.length; i += 1) {
+      expect(weeks[i].from.getTime()).toBe(weeks[i - 1].to.getTime());
+    }
+  });
+
+  test('every week starts on a Monday inside the month', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-09-10T12:00:00') });
+    const weeks = weeksInPeriod(period);
+    weeks.forEach((w) => {
+      expect(w.from.getTime()).toBeGreaterThanOrEqual(period.from.getTime());
+      expect(w.from.getTime()).toBeLessThan(period.to.getTime());
+    });
+  });
+
+  test('a month starting on a Monday is covered from day one', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-07-10T12:00:00') });
+    const weeks = weeksInPeriod(period);
+    expect(weeks).toHaveLength(5);
+    expect(weeks[0].fromDate).toBe('2026-06-01');
+    expect(weeks[4].fromDate).toBe('2026-06-29');
+  });
+
+  test('February 2026 (28 days, starts Sunday) keeps four equal weeks', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-03-10T12:00:00') });
+    const weeks = weeksInPeriod(period);
+    expect(weeks).toHaveLength(4);
+    expect(weeks[0].fromDate).toBe('2026-02-02');
+    expect(weeks[3].fromDate).toBe('2026-02-23');
+    expect(weeks[3].toDate).toBe('2026-03-01');
+    weeks.forEach((w) => expect(w.days).toBe(7));
+  });
+
+  test('every month of 2026 yields four or five equal-length weeks', () => {
+    for (let month = 1; month <= 12; month += 1) {
+      const mm = String(month).padStart(2, '0');
+      const period = resolvePeriod({ periodType: 'monthly', anchor: sast(`2026-${mm}-15T12:00:00`) });
+      const weeks = weeksInPeriod(period);
+      expect(weeks.length).toBeGreaterThanOrEqual(4);
+      expect(weeks.length).toBeLessThanOrEqual(5);
+      weeks.forEach((w) => expect(w.days).toBe(7));
+    }
+  });
+
+  test('rejects an object that is not a resolved period', () => {
+    expect(() => weeksInPeriod(null)).toThrow(/resolved period/);
+    expect(() => weeksInPeriod({ from: '2026-08-01', to: '2026-09-01' })).toThrow(/resolved period/);
+  });
+});
+
+
+
+describe('trendCoverage', () => {
+  test('reports which days the weekly trend actually covers', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-09-10T12:00:00') });
+    const coverage = trendCoverage(period, weeksInPeriod(period));
+    expect(coverage.covered).toBe(true);
+    expect(coverage.totalDays).toBe(31);
+    expect(coverage.leadInDays).toBe(2);
+    expect(coverage.coveredDays).toBe(29);
+    expect(coverage.spillDays).toBe(6);
+    expect(coverage.firstDate).toBe('2026-08-03');
+    expect(coverage.lastDate).toBe('2026-09-06');
+  });
+
+
+
+  test('discloses spill for a month whose last week crosses the boundary', () => {
+    const period = resolvePeriod({ periodType: 'monthly', anchor: sast('2026-03-10T12:00:00') });
+    const coverage = trendCoverage(period, weeksInPeriod(period));
+    expect(coverage.totalDays).toBe(28);
+    expect(coverage.leadInDays).toBe(1);
+    expect(coverage.coveredDays).toBe(27);
+    expect(coverage.spillDays).toBe(1);
+  });
+
+
+
+  test('handles a period with no complete weeks', () => {
+    const period = resolvePeriod({
+      periodType: 'custom',
+      anchor: sast('2026-08-19T06:13:00'),
+      from: sast('2026-08-01T00:00:00'),
+      to: sast('2026-08-03T00:00:00'),
+    });
+    const coverage = trendCoverage(period, weeksInPeriod(period));
+    expect(coverage.covered).toBe(false);
+    expect(coverage.leadInDays).toBe(2);
+    expect(coverage.coveredDays).toBe(0);
+  });
+});
+
+
+
+describe('determinism and timezone independence', () => {
+  test('identical anchor produces identical output on repeated calls', () => {
+    const anchor = sast('2026-08-19T06:13:00');
+    const a = resolvePeriod({ periodType: 'weekly', anchor });
+    const b = resolvePeriod({ periodType: 'weekly', anchor });
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+
+  test('output does not depend on the host timezone', () => {
+    const modulePath = path.resolve(__dirname, '../src/services/periods.js');
+    const script = `
+      const { resolvePeriod, weeksInPeriod } = require(${JSON.stringify(modulePath)});
+      const anchor = new Date('2026-08-19T06:13:00+02:00');
+      const out = { weekly: resolvePeriod({ periodType: 'weekly', anchor }),
+        monthly: resolvePeriod({ periodType: 'monthly', anchor }),
+        current: resolvePeriod({ periodType: 'current', anchor }),
+        weeks: weeksInPeriod(resolvePeriod({ periodType: 'monthly', anchor })),
+      };
+      process.stdout.write(JSON.stringify(out));
+    `;
+
+    const zones = ['UTC', 'Africa/Johannesburg', 'Pacific/Kiritimati', 'America/Los_Angeles'];
+    const outputs = zones.map((tz) => execFileSync(
+      process.execPath, ['-e', script],
+      { env: { ...process.env, TZ: tz }, encoding: 'utf8' },
+    ));
+
+    outputs.forEach((out) => expect(out).toBe(outputs[0]));
+
+    const parsed = JSON.parse(outputs[0]);
+    expect(parsed.weekly.fromDate).toBe('2026-08-10');
+    expect(parsed.weekly.toDate).toBe('2026-08-16');
+  });
+});
+
+
+describe('getDataClock', () => {
+  beforeEach(() => _resetDataClockProbe());
+
+  test('uses data_now() when the function exists, so reports match the dashboard', async () => {
+    const { pool } = setupReportingMockData({
+      clock: { dataNowFnPresent: true, dataNow: '2026-08-22T06:13:00.000Z' },
+    });
+    const clock = await getDataClock(pool);
+    expect(clock.toISOString()).toBe('2026-08-22T06:13:00.000Z');
+  });
+
+
+  test('falls back to newest telemetry when data_now() is absent', async () => {
+    const { pool, calls } = setupReportingMockData({
+      clock: { dataNowFnPresent: false, latestTelemetry: '2026-08-22T04:00:00.000Z' },
+    });
+    const clock = await getDataClock(pool);
+
+    expect(clock.toISOString()).toBe('2026-08-22T04:00:00.000Z');
+    expect(calls.some((c) => c.sql.includes('data_now() AS data_now'))).toBe(false);
+  });
+
+
+
+  test('falls back when data_now() exists but returns NULL on an empty database', async () => {
+    const { pool } = setupReportingMockData({
+      clock: {
+        dataNowFnPresent: true,
+        dataNow: null,
+        latestTelemetry: '2026-08-22T04:00:00.000Z',
+      },
+    });
+    const clock = await getDataClock(pool);
+    expect(clock.toISOString()).toBe('2026-08-22T04:00:00.000Z');
+  });
+
+  
+
+  test('returns wall clock when there is no telemetry at all', async () => {
+    const { pool } = setupReportingMockData({
+      clock: { dataNowFnPresent: false, latestTelemetry: null },
+    });
+    const before = Date.now();
+    const clock = await getDataClock(pool);
+    expect(clock.getTime()).toBeGreaterThanOrEqual(before);
+  });
+
+
+
+  test('probes for data_now() only once per process', async () => {
+    const { pool, calls } = setupReportingMockData({ 
+        clock: { dataNowFnPresent: true, dataNow: '2026-08-22T06:13:00.000Z' },
+    });
+    await getDataClock(pool);
+    await getDataClock(pool);
+    expect(calls.filter((c) => c.sql.includes('to_regproc'))).toHaveLength(1);
+  });
+
+  test('rejects a client that cannot query', async () => {
+    await expect(getDataClock(null)).rejects.toThrow(/pg client or pool/);
+    await expect(getDataClock({})).rejects.toThrow(/pg client or pool/);
+  });
+});
+
+describe('integration of clock and period resolution', () => {
+  test('a data clock ahead of wall time still yields a complete past week', async () => {
+    const { pool } = setupReportingMockData({ 
+        clock: { dataNowFnPresent: false, latestTelemetry: '2026-08-22T04:13:00.000Z' }, 
+    });
+    _resetDataClockProbe();
+
+    const anchor = await getDataClock(pool);
+    const period = resolvePeriod({ periodType: 'weekly', anchor });
+    expect(period.fromDate).toBe('2026-08-10');
+    expect(period.toDate).toBe('2026-08-16');
+    expect(period.to.getTime()).toBeLessThan(anchor.getTime());
+  });
+});

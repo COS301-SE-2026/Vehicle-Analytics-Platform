@@ -49,3 +49,53 @@ describe('distanceAnalytics - argument validation', () => {
     });
 });
 
+describe('distanceAnalytics - query construction', () => {
+    test('filters by vehicle ids, period bounds and the reporting timezone', async () => {
+        const { pool, calls } = makeDb();
+        await getDistanceAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+
+        const query = calls.find((c) => c.sql.includes('FROM trips'));
+        expect(query.params[0]).toEqual(['VH-001', 'VH-002']);
+        expect(query.params[1]).toBe(PERIOD.from);
+        expect(query.params[2]).toBe(PERIOD.to);
+        expect(query.params[3]).toBe(REPORT_TIMEZONE);
+    });
+
+    test('uses a half-open interval so a boundary trip is counted once', async () => {
+        const { pool, calls } = makeDb();
+        await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+
+        const { sql } = calls.find((c) => c.sql.includes('FROM trips'));
+        expect(sql).toMatch(/start_time >= \$2/);
+        expect(sql).toMatch(/start_time < \$3/);
+        expect(sql).not.toMatch(/start_time <= \$3/);
+    });
+
+    test('counts only completed trips', async () => {
+        const { pool, calls } = makeDb();
+        await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+
+        const { sql } = calls.find((c) => c.sql.includes('FROM trips'));
+        expect(sql).toMatch(/status = 'completed'/);
+    });
+
+    test('resolves active days in SAST, not the database session timezone', async () => {
+        const { pool, calls } = makeDb();
+        await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+
+        const { sql } = calls.find((c) => c.sql.includes('FROM trips'));
+        expect(sql).toMatch(/start_time AT TIME ZONE \$4/);
+        expect(sql).not.toMatch(/start_time::date/);
+        expect(REPORT_TIMEZONE).toBe('Africa/Johannesburg');
+    });
+
+    test('is fully parameterised - no interpolated values', async () => {
+        const { pool, calls } = makeDb();
+        await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+
+        const { sql } = calls.find((c) => c.sql.includes('FROM trips'));
+        expect(sql).not.toMatch(/INTERVAL '\$\{/);
+        expect(sql).not.toMatch(/'\s*\+/);
+    });
+});
+

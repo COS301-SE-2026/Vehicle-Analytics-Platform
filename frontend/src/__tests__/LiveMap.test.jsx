@@ -134,7 +134,6 @@ describe('LiveMap', () => {
       await renderLiveMap()
       expect(vehicleService.getVehiclePositionBuffer).toHaveBeenCalledTimes(1)
 
-      // Not yet due: the buffer interval is longer than the locations one.
       await advancePoll(LOCATIONS_POLL_MS)
       expect(vehicleService.getVehiclePositionBuffer).toHaveBeenCalledTimes(1)
 
@@ -143,9 +142,6 @@ describe('LiveMap', () => {
     })
 
     it('does not start a new request while one is still in flight', async () => {
-      // A request that never settles. The next poll must not be scheduled,
-      // so no amount of advancing the clock produces a second call. This is
-      // the guard that stopped requests stacking when /buffer was timing out.
       vehicleService.getVehiclePositionBuffer.mockImplementation(() => new Promise(() => {}))
 
       await act(async () => { render(<LiveMap />) })
@@ -214,7 +210,6 @@ describe('LiveMap', () => {
 
       expect(screen.getByTestId('vehicle-count')).toHaveTextContent(String(weirdVehicles.length))
       expect(screen.getByTestId('stat-total')).toHaveTextContent(String(weirdVehicles.length))
-      // 'maintenance' matches none of the three status filters.
       expect(screen.getByTestId('stat-active')).toHaveTextContent('4')
       expect(screen.getByTestId('stat-idle')).toHaveTextContent('1')
       expect(screen.getByTestId('stat-offline')).toHaveTextContent('1')

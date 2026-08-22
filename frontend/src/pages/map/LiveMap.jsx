@@ -38,6 +38,7 @@ export default function LiveMap() {
   const [locations, setLocations] = useState(null)
   const [loading, setLoading] = useState(true)
   const [initialView] = useState(() => readInitialViewFromQuery())
+  // Guards against overlapping requests.
   const bufferInFlight = useRef(false)
   const locationsInFlight = useRef(false)
   const cancelled = useRef(false)
@@ -94,7 +95,6 @@ export default function LiveMap() {
   }, [])
   useEffect(() => {
     let timer = null
-
     async function poll() {
       await fetchVehiclePositionBuffer()
       if (cancelled.current) return
@@ -107,13 +107,11 @@ export default function LiveMap() {
 
   useEffect(() => {
     let timer = null
-
     async function poll() {
       await fetchLocations()
       if (cancelled.current) return
       timer = setTimeout(poll, LOCATIONS_POLL_MS)
     }
-
     poll()
     return () => { if (timer) clearTimeout(timer) }
   }, [fetchLocations])

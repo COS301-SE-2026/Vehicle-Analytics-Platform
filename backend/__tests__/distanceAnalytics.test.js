@@ -99,3 +99,64 @@ describe('distanceAnalytics - query construction', () => {
     });
 });
 
+
+
+describe('distanceAnalytics - per-vehicle metrics', () => {
+    let result;
+
+    beforeEach(async () => {
+        const { pool } = makeDb();
+        result = await getDistanceAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+    });
+
+    test('coerces pg numeric and bigint strings into numbers', () => {
+        const vh1 = result.vehicles[0];
+        expect(typeof vh1.distanceKm).toBe('number');
+        expect(typeof vh1.tripCount).toBe('number');
+        expect(vh1.distanceKm).toBe(600);
+        expect(vh1.tripCount).toBe(10);
+    });
+
+    test('average trip distance is distance over trip count', () => {
+        expect(result.vehicles[0].avgTripDistanceKm).toBe(60);
+        expect(result.vehicles[1].avgTripDistanceKm).toBe(30);
+    });
+
+    test('moving speed excludes idle time', () => {
+        expect(result.vehicles[0].avgMovingSpeedKmh).toBe(60);
+        expect(result.vehicles[1].avgMovingSpeedKmh).toBe(60);
+    });
+
+    test('journey speed includes idle time, and is therefore lower', () => {
+        expect(result.vehicles[0].avgJourneySpeedKmh).toBe(50);
+        expect(result.vehicles[1].avgJourneySpeedKmh).toBe(40);
+
+        result.vehicles.forEach((v) => {
+            expect(v.avgJourneySpeedKmh).toBeLessThan(v.avgMovingSpeedKmh);
+        });
+    });
+
+
+    test('idle time is elapsed minus moving time', () => {
+        expect(result.vehicles[0].idleSeconds).toBe(7200);
+        expect(result.vehicles[1].idleSeconds).toBe(3600);
+    });
+
+    test('idle ratio is idle over elapsed', () => {
+        expect(result.vehicles[0].idleRatio).toBeCloseTo(0.1667, 4);
+        expect(result.vehicles[1].idleRatio).toBeCloseTo(0.3333, 4);
+    });
+
+    test('utilisation is active days over period days', () => {
+        expect(PERIOD.days).toBe(7);
+        expect(result.vehicles[0].utilisationPct).toBeCloseTo(71.43, 2);
+        expect(result.vehicles[1].utilisationPct).toBeCloseTo(28.57, 2);
+    });
+
+    test('vehicles are keyed by vehicle_id', () => {
+        expect(result.vehicles.map((v) => v.vehicleId)).toEqual(['VH-001', 'VH-002']);
+    });
+});
+
+
+

@@ -199,3 +199,33 @@ describe('distanceAnalytics - fleet summary', () => {
     });
 });
 
+
+describe('distanceAnalytics - silent vehicles', () => {
+    test('a vehicle in scope with no trips counts as inactive', async () => {
+        const { pool } = makeDb();
+        const result = await getDistanceAnalytics(pool, ['VH-001', 'VH-002', 'VH-003'], PERIOD);
+
+
+        expect(result.summary.vehiclesInScope).toBe(3);
+        expect(result.summary.activeVehicles).toBe(2);
+        expect(result.summary.inactiveVehicles).toBe(1);
+    });
+
+
+    test('a silent vehicle is not listed with zeroed metrics', async () => {
+        const { pool } = makeDb();
+        const result = await getDistanceAnalytics(pool, ['VH-001', 'VH-002', 'VH-003'], PERIOD);
+
+        expect(result.vehicles.map((v) => v.vehicleId)).not.toContain('VH-003');
+    });
+
+
+
+    test('silent vehicles reduce fleet utilisation', async () => {
+        const { pool } = makeDb();
+        const result = await getDistanceAnalytics(pool, ['VH-001', 'VH-002', 'VH-003'], PERIOD);
+        expect(result.summary.utilisationPct).toBeCloseTo(33.33, 2);
+    });
+});
+
+

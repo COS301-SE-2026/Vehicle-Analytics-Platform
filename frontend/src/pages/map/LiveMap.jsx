@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicleService'
 import LiveFleetMapPlaceholder from '@/components/dashboard/LiveFleetMapPlaceholder'
-import { useSearchParams } from 'react-router-dom';
+import FleetMap from '../../components/map/FleetMap'
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 const DEFAULT_CENTER = [28.2293, -25.75456];
@@ -30,8 +30,10 @@ function readInitialViewFromQuery() {
   };
 }
 
+// POLLING RATES
+//
+// Buffer every 10s against a 30s window: 3x overlap
 export default function LiveMap() {
-  const [searchParams] = useSearchParams();
   const [buffer, setBuffer] = useState(EMPTY_FC)
   const [locations, setLocations] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -135,10 +137,8 @@ export default function LiveMap() {
         idle={idle}
         offline={offline}
         total={total}
-        vehicles={safeVehicles}
+        vehicles={locations?.vehicles}
         buffer={buffer}
-        initialView={initialView}
-        onGeofenceClick={handleGeofenceClick}
       />
     </div>
   )

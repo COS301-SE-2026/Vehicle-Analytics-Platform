@@ -92,8 +92,70 @@ describe('LiveFleetMapPlaceholder – FleetMap integration', () => {
   })
 })
 
+describe('LiveFleetMapPlaceholder – VehiclePanel active vehicle', () => {
+  it('opens VehiclePanel when a vehicle is clicked', () => {
+    render(<LiveFleetMapPlaceholder {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
+    expect(screen.getByText('Current Speed')).toBeInTheDocument()
+    expect(screen.getByText('VH-0099')).toBeInTheDocument()
+  })
+
+  it('displays lat/lng as location when both are provided', () => {
+    render(<LiveFleetMapPlaceholder {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
+    expect(screen.getByText('-25.7461, 28.1881')).toBeInTheDocument()
+  })
 
 
+  it('closes VehiclePanel when close button is clicked', () => {
+    render(<LiveFleetMapPlaceholder {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
+    expect(screen.getByText('Current Speed')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('x-icon').closest('button'))
+    expect(screen.queryByText('Current Speed')).not.toBeInTheDocument()
+  })
+})
+
+describe('LiveFleetMapPlaceholder – VehiclePanel idle vehicle', () => {
+  it('shows IDLE status for idle vehicle', () => {
+    mockVehiclePayload = { id: 'VH-0031', status: 'idle', speed: 0, lat: -26.1, lng: 28.0 }
+    render(<LiveFleetMapPlaceholder {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
+    expect(screen.getByText('IDLE')).toBeInTheDocument()
+  })
+
+})
+
+
+// ── Branch: status UNKNOWN ────────────────────────────────────────────────────
+
+describe('LiveFleetMapPlaceholder – status UNKNOWN branch', () => {
+  it('shows UNKNOWN when vehicle status is undefined', () => {
+    mockVehiclePayload = {
+      id: 'VH-0014',
+      status: undefined,
+      speed: 0,
+      lat: -25.0,
+      lng: 28.0,
+    }
+    render(<LiveFleetMapPlaceholder {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
+    expect(screen.getByText('UNKNOWN')).toBeInTheDocument()
+  })
+
+  it('shows OFFLINE status uppercased for offline vehicle', () => {
+    mockVehiclePayload = {
+      id: 'VH-0015',
+      status: 'offline',
+      speed: 0,
+      lat: -25.0,
+      lng: 28.0,
+    }
+    render(<LiveFleetMapPlaceholder {...defaultProps} />)
+    fireEvent.click(screen.getByTestId('mock-vehicle-btn'))
+    expect(screen.getByText('OFFLINE')).toBeInTheDocument()
+  })
+})
 
 // ── VehiclePanel returns null when vehicle is null ────────────────────────────
 

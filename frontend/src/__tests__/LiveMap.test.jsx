@@ -375,4 +375,4 @@ describe('LiveMap', () => {
       expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
     })
   })
-})
+})//v2

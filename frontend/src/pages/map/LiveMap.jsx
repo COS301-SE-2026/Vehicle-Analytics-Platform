@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicleService'
 import LiveFleetMapPlaceholder from '@/components/dashboard/LiveFleetMapPlaceholder'
@@ -7,6 +7,9 @@ import { useSearchParams } from 'react-router-dom';
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 const DEFAULT_CENTER = [28.2293, -25.75456];
 const DEFAULT_ZOOM = 12;
+
+const BUFFER_POLL_MS = 10000
+const LOCATIONS_POLL_MS = 2000
 
 function readInitialViewFromQuery() {
   const params = new URLSearchParams(window.location.search)
@@ -31,10 +34,12 @@ export default function LiveMap() {
   const [searchParams] = useSearchParams();
   const [buffer, setBuffer] = useState(EMPTY_FC)
   const [locations, setLocations] = useState(null)
-  
   const [loading, setLoading] = useState(true)
-  
   const [initialView] = useState(() => readInitialViewFromQuery())
+  // Guards against overlapping requests.
+  const bufferInFlight = useRef(false)
+  const locationsInFlight = useRef(false)
+  const cancelled = useRef(false)
 
   // Clean URL params on mount
   useEffect(() => {
@@ -55,38 +60,59 @@ export default function LiveMap() {
     window.location.assign(`/geofence?zoneId=${encodeURIComponent(String(zoneId))}`)
   }
 
-  async function fetchVehiclePositionBuffer(){
-    try{
-      const data = await getVehiclePositionBuffer();
-      setBuffer(data);
-    }catch(err){
-      console.error(err);
+  const fetchVehiclePositionBuffer = useCallback(async () => {
+    if (bufferInFlight.current) return
+    bufferInFlight.current = true
+    try {
+      const data = await getVehiclePositionBuffer()
+      if (!cancelled.current) setBuffer(data)
+    } catch (err) {
+      console.error('LiveMap buffer fetch failed:', err)
+    } finally {
+      bufferInFlight.current = false
     }
-  }
+  }, [])
 
-  async function fetchLocations() {
+  const fetchLocations = useCallback(async () => {
+    if (locationsInFlight.current) return
+    locationsInFlight.current = true
     try {
       const l = await getVehicleLocations()
-      setLocations(l)
+      if (!cancelled.current) setLocations(l)
     } catch (e) {
       console.warn('LiveMap fetch failed:', e)
     } finally {
-      // Data is loaded
-      setLoading(false)
+      locationsInFlight.current = false
+      if (!cancelled.current) setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchVehiclePositionBuffer();
-    const interval = setInterval(fetchVehiclePositionBuffer, 10000);
-    return () => clearInterval(interval)
-  },[]);
-
-  useEffect(() => {
-    fetchLocations();
-    const interval = setInterval(fetchLocations, 2000);
-    return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    cancelled.current = false
+    return () => { cancelled.current = true }
+  }, [])
+  useEffect(() => {
+    let timer = null
+    async function poll() {
+      await fetchVehiclePositionBuffer()
+      if (cancelled.current) return
+      timer = setTimeout(poll, BUFFER_POLL_MS)
+    }
+
+    poll()
+    return () => { if (timer) clearTimeout(timer) }
+  }, [fetchVehiclePositionBuffer])
+
+  useEffect(() => {
+    let timer = null
+    async function poll() {
+      await fetchLocations()
+      if (cancelled.current) return
+      timer = setTimeout(poll, LOCATIONS_POLL_MS)
+    }
+    poll()
+    return () => { if (timer) clearTimeout(timer) }
+  }, [fetchLocations])
 
   const safeVehicles = locations?.vehicles || []
   const active  = safeVehicles.filter(v => v.status === 'active').length
@@ -96,7 +122,6 @@ export default function LiveMap() {
 
   return (
     <div className="relative w-full h-[calc(100vh-6rem)] min-h-[600px]">
-      
       {loading && (
         <div className="absolute top-4 right-4 z-50 bg-white p-2 rounded-full shadow-md">
           <RefreshCw className="w-5 h-5 text-gray-500 animate-spin" />

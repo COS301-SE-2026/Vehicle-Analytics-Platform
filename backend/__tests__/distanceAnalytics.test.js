@@ -228,4 +228,147 @@ describe('distanceAnalytics - silent vehicles', () => {
     });
 });
 
+describe('distanceAnalytics - empty and degenerate data', () => {
+    test('an empty scope returns a zeroed result without querying', async () => {
+        const { pool, calls } = makeDb();
+        const result = await getDistanceAnalytics(pool, [], PERIOD);
 
+        expect(calls).toHaveLength(0);
+        expect(result.vehicles).toEqual([]);
+        expect(result.summary.totalDistanceKm).toBe(0);
+        expect(result.summary.activeVehicles).toBe(0);
+        expect(result.summary.vehiclesInScope).toBe(0);
+    });
+
+    test('a scope where no vehicle moved returns zeros, not nulls', async () => {
+        const { pool } = makeDb({ tripAggregates: [] });
+        const result = await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+
+        expect(result.summary.totalDistanceKm).toBe(0);
+        expect(result.summary.tripCount).toBe(0);
+        expect(result.summary.inactiveVehicles).toBe(1);
+    });
+
+    test('ratios are null rather than zero when the denominator is zero', async () => {
+        const { pool } = makeDb({ tripAggregates: [] });
+        const { summary } = await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+        expect(summary.avgMovingSpeedKmh).toBeNull();
+        expect(summary.avgJourneySpeedKmh).toBeNull();
+        expect(summary.avgTripDistanceKm).toBeNull();
+        expect(summary.idleRatio).toBeNull();
+        expect(summary.maxSpeedKmh).toBeNull();
+    });
+
+    test('a trip with no non-zero speed sample does not divide by zero', async () => {
+        const { pool } = makeDb({
+            tripAggregates: [{
+                vehicle_id: 'VH-001',
+                trip_count: '1',
+                distance_km: '0',
+                duration_seconds: '600',
+                moving_seconds: '0',
+                max_speed_kmh: '0',
+                days_active: '1',
+            }],
+        });
+        const result = await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+
+
+
+        expect(result.vehicles[0].avgMovingSpeedKmh).toBeNull();
+        expect(result.vehicles[0].idleSeconds).toBe(600);
+        expect(result.vehicles[0].idleRatio).toBe(1);
+
+    });
+
+    test('an odometer-derived distance of zero is handled without NaN', async () => {
+        const { pool } = makeDb({
+            tripAggregates: [{
+                vehicle_id: 'VH-001',
+                trip_count: '3',
+                distance_km: '0',
+                duration_seconds: '3600',
+                moving_seconds: '0',
+                max_speed_kmh: null,
+                days_active: '1',
+            }],
+        });
+        const { summary, vehicles } = await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+        expect(summary.totalDistanceKm).toBe(0);
+        expect(vehicles[0].avgTripDistanceKm).toBe(0);
+        expect(vehicles[0].maxSpeedKmh).toBeNull();
+        expect(Number.isNaN(summary.totalDistanceKm)).toBe(false);
+
+    });
+
+    test('derived moving time exceeding elapsed time floors idle at zero', () => {
+        const vehicle = _deriveVehicle({
+            vehicle_id: 'VH-001',
+            trip_count: '1',
+            distance_km: '1.0',
+            duration_seconds: '50',
+            moving_seconds: '60',
+            max_speed_kmh: '72',
+            days_active: '1',
+        }, 7);
+
+        expect(vehicle.idleSeconds).toBe(0);
+        expect(vehicle.idleRatio).toBe(0);
+
+    });
+});
+
+describe('distanceAnalytics - period sensitivity', () => {
+    test('utilisation scales with the length of the period', async () => {
+        const monthly = resolvePeriod({
+            periodType: 'monthly',
+            anchor: new Date('2026-08-19T06:13:00+02:00'),
+        });
+        expect(monthly.days).toBe(31);
+
+        const { pool } = makeDb();
+        const result = await getDistanceAnalytics(pool, ['VH-001'], monthly);
+
+        expect(result.vehicles[0].utilisationPct).toBeCloseTo(16.13, 2);
+    });
+
+    test('the same scope over the previous period queries different bounds', async () => {
+        const { pool, calls } = makeDb();
+        await getDistanceAnalytics(pool, ['VH-001'], PERIOD);
+        await getDistanceAnalytics(pool, ['VH-001'], PERIOD.previous);
+
+        const queries = calls.filter((c) => c.sql.includes('FROM trips'));
+        expect(queries).toHaveLength(2);
+        expect(queries[0].params[1].getTime()).toBe(PERIOD.from.getTime());
+        expect(queries[1].params[1].getTime()).toBe(PERIOD.previous.from.getTime());
+        expect(queries[1].params[2].getTime()).toBe(PERIOD.from.getTime());
+    });
+});
+
+describe('distanceAnalytics - summary arithmetic in isolation', () => {
+    test('summarise handles an empty vehicle list', () => {
+        const summary = _summarise([], 0, 7);
+        expect(summary.totalDistanceKm).toBe(0);
+        expect(summary.activeVehicles).toBe(0);
+        expect(summary.utilisationPct).toBeNull();
+    });
+
+    test('utilisation is null when the period has no days', () => {
+        const vehicle = _deriveVehicle({
+            vehicle_id: 'VH-001',
+            trip_count: '1',
+            distance_km: '10',
+            duration_seconds: '600',
+            moving_seconds: '600',
+            max_speed_kmh: '60',
+            days_active: '1',
+        }, 0);
+        expect(vehicle.utilisationPct).toBeNull();
+    });
+
+    test('inactiveVehicles never goes negative', () => {
+        const derived = DEFAULT_TRIP_AGGREGATES.map((r) => _deriveVehicle(r, 7));
+        const summary = _summarise(derived, 1, 7);
+        expect(summary.inactiveVehicles).toBe(0);
+    });
+});

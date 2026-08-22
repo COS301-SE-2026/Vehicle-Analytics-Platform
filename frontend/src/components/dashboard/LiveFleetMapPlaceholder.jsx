@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Truck, X, MapPin, Clock, Waypoints } from 'lucide-react'
 import FleetMap from '../map/FleetMap'
 import PropTypes from 'prop-types'
@@ -26,10 +26,16 @@ function VehiclePanel({ vehicle, onClose }) {
     ? 'bg-green-100 text-green-700'
     : 'bg-amber-100 text-amber-700'
 
+  // Prefers the reverse-geocoded name (vehicle_location_cache, via
+  // getVehicleLocations) over raw coordinates.
   const location = v.displayName || v.city
     || (v.lat && v.lng ? `${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}` : 'Unknown')
 
   const lastUpdate = (() => {
+    // Was v.last_update (snake_case) -- getVehicleLocations in
+    // vehicleService.jsx maps this field to lastUpdate (camelCase), so
+    // this always read undefined and fell straight to 'Unknown' below
+    // regardless of whether the vehicle had actually reported recently.
     if (!v.lastUpdate) return 'Unknown'
     const value = v.lastUpdate
     if (value instanceof Date) {
@@ -90,21 +96,8 @@ function VehiclePanel({ vehicle, onClose }) {
   )
 }
 
-export default function FleetMapPlaceholder({
-  active, idle, offline, total, vehicles, buffer,
-  initialView = null,
-  onGeofenceClick,
-}) {
-  // Store the ID, not the vehicle object.
-  const [selectedVehicleId, setSelectedVehicleId] = useState(null)
-
-  const selectedVehicle = useMemo(() => {
-    if (selectedVehicleId === null || selectedVehicleId === undefined) return null
-    // String comparison: vehicle_id is TEXT in the database
-    return (vehicles ?? []).find(
-      (v) => String(v.id) === String(selectedVehicleId)
-    ) ?? null
-  }, [selectedVehicleId, vehicles])
+export default function FleetMapPlaceholder({ active, idle, offline, total, vehicles, buffer }) {
+  const [selectedVehicle, setSelectedVehicle] = useState(null)
 
   return (
     <div className="flex h-screen bg-white overflow-hidden">
@@ -140,17 +133,15 @@ export default function FleetMapPlaceholder({
         <FleetMap
           vehicles={vehicles}
           buffer={buffer}
-          initialView={initialView}
-          onGeofenceClick={onGeofenceClick}
-          onVehicleClick={(v) => setSelectedVehicleId(v?.id ?? null)}
+          onVehicleClick={setSelectedVehicle}
           minimal={false}
         />
       </div>
 
-      {selectedVehicleId !== null && selectedVehicle && (
+      {selectedVehicle && (
         <VehiclePanel
           vehicle={selectedVehicle}
-          onClose={() => setSelectedVehicleId(null)}
+          onClose={() => setSelectedVehicle(null)}
         />
       )}
     </div>
@@ -164,11 +155,6 @@ FleetMapPlaceholder.propTypes = {
   total:    PropTypes.number,
   vehicles: PropTypes.array,
   buffer:   PropTypes.object,
-  initialView: PropTypes.shape({
-    center: PropTypes.arrayOf(PropTypes.number),
-    zoom: PropTypes.number,
-  }),
-  onGeofenceClick: PropTypes.func,
 }
 
 VehiclePanel.propTypes = {

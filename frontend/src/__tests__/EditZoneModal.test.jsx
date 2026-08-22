@@ -110,7 +110,7 @@ jest.mock('@/schemas/zoneSchema', () => {
 describe('EditZoneModal', () => {
   test('does not render when closed', () => {
     render(
-      <EditZoneModal open={false} onOpenChange={() => {}} zone={mockZone} onConfirm={() => {}} />
+      <EditZoneModal open={false} onOpenChange={() => {}} zone={mockZone} onSave={() => {}} />
     );
     expect(screen.getByTestId('alert-dialog')).toHaveAttribute('data-open', 'false');
     expect(screen.queryByText('Edit Zone')).not.toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('EditZoneModal', () => {
 
   test('renders when open with zone data', () => {
     render(
-      <EditZoneModal open={true} onOpenChange={() => {}} zone={mockZone} onConfirm={() => {}} />
+      <EditZoneModal open={true} onOpenChange={() => {}} zone={mockZone} onSave={() => {}} />
     );
     expect(screen.getByTestId('alert-dialog')).toHaveAttribute('data-open', 'true');
     expect(screen.getByText('Edit Zone')).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe('EditZoneModal', () => {
 
   test('renders with default values when zone is undefined', () => {
     render(
-      <EditZoneModal open={true} onOpenChange={() => {}} zone={undefined} onConfirm={() => {}} />
+      <EditZoneModal open={true} onOpenChange={() => {}} zone={undefined} onSave={() => {}} />
     );
     expect(screen.getByText('Edit Zone')).toBeInTheDocument();
     expect(screen.getByTestId('edit-input')).toHaveValue('');
@@ -138,31 +138,31 @@ describe('EditZoneModal', () => {
   test('shows validation errors when submitted empty', async () => {
     const user = userEvent.setup();
     render(
-      <EditZoneModal open={true} onOpenChange={() => {}} zone={mockZone} onConfirm={() => {}} />
+      <EditZoneModal open={true} onOpenChange={() => {}} zone={mockZone} onSave={() => {}} />
     );
     await user.clear(screen.getByTestId('edit-input'));
     await user.click(screen.getByRole('button', { name: /save changes/i }));
     expect(await screen.findByText('Zone name is required')).toBeInTheDocument();
   });
 
-  test('calls onConfirm with updated zone data and closes modal', async () => {
+  test('calls onSave with updated zone data and closes modal', async () => {
     const user = userEvent.setup();
-    const handleConfirm = jest.fn();
+    const handleSave = jest.fn();
     const handleOpenChange = jest.fn();
     render(
       <EditZoneModal 
         open={true} 
         onOpenChange={handleOpenChange} 
         zone={mockZone} 
-        onConfirm={handleConfirm} 
+        onSave={handleSave} 
       />
     );
     await user.clear(screen.getByTestId('edit-input'));
     await user.type(screen.getByTestId('edit-input'), 'Updated Depot');
     await user.click(screen.getByTestId('toggle-exit'));
     await user.click(screen.getByRole('button', { name: /save changes/i }));
-    expect(handleConfirm).toHaveBeenCalledTimes(1);
-    expect(handleConfirm).toHaveBeenCalledWith(
+    expect(handleSave).toHaveBeenCalledTimes(1);
+    expect(handleSave).toHaveBeenCalledWith(
       expect.objectContaining({ 
         id: 1, 
         name: 'Updated Depot', 
@@ -180,7 +180,7 @@ describe('EditZoneModal', () => {
         open={true} 
         onOpenChange={handleOpenChange} 
         zone={mockZone} 
-        onConfirm={() => {}} 
+        onSave={() => {}} 
       />
     );
     await user.click(screen.getByRole('button', { name: /cancel/i }));
@@ -189,7 +189,7 @@ describe('EditZoneModal', () => {
 
   test('displays pencil icon', () => {
     render(
-      <EditZoneModal open={true} onOpenChange={() => {}} zone={mockZone} onConfirm={() => {}} />
+      <EditZoneModal open={true} onOpenChange={() => {}} zone={mockZone} onSave={() => {}} />
     );
     expect(screen.getByTestId('pencil-icon')).toBeInTheDocument();
   });
@@ -197,7 +197,7 @@ describe('EditZoneModal', () => {
   test('toggle groups show correct active state based on zone data', () => {
     const zoneWithBoth = { id: 2, name: 'Durban Port', triggerType: 'both' };
     render(
-      <EditZoneModal open={true} onOpenChange={() => {}} zone={zoneWithBoth} onConfirm={() => {}} />
+      <EditZoneModal open={true} onOpenChange={() => {}} zone={zoneWithBoth} onSave={() => {}} />
     );
     expect(screen.getByTestId('toggle-both')).toHaveAttribute('data-state', 'on');
     expect(screen.getByTestId('toggle-entry')).toHaveAttribute('data-state', 'off');

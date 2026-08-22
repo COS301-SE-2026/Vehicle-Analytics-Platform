@@ -6,9 +6,6 @@ import { getGeofencesGeoJSON } from '@/services/geofenceServices'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
-const DEFAULT_CENTER = [28.2293, -25.75456];
-const DEFAULT_ZOOM = 12;
-
 const STATUS_COLORS = {
   active: '#2d6a4f',
   idle: '#f59e0b',
@@ -19,15 +16,9 @@ const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 const GEOFENCE_SOURCE_ID = 'fleetmap-geofences'
 const TRAIL_SOURCE_ID = 'fleetmap-trails'
 
-const SOURCE_COLOR = [
-  'match', ['get', 'source'],
-  'user', '#3b82f6',
-  'auto_hotspot', '#f59e0b',
-  'security_marker', '#ef4444',
-  '#9ca3af',
-]
 
 const PLAYBACK = {
+
   minSegmentMs: 250,
   maxSegmentMs: 12000,
   firstSegmentMs: 1200,
@@ -37,13 +28,16 @@ const PLAYBACK = {
 
 function enqueuePoints(entry, coordinates, times) {
   if (!coordinates?.length || !times?.length) return;
+
   for (let i = 0; i < coordinates.length; i++) {
     const t = new Date(times[i]).getTime();
     if (Number.isNaN(t)) continue;
     if (entry.lastEnqueuedT !== null && t <= entry.lastEnqueuedT) continue;
+
     entry.queue.push({ lng: coordinates[i][0], lat: coordinates[i][1], t });
     entry.lastEnqueuedT = t;
   }
+
   if (entry.queue.length > PLAYBACK.maxQueue) {
     entry.queue.splice(0, entry.queue.length - PLAYBACK.maxQueue);
   }
@@ -51,102 +45,87 @@ function enqueuePoints(entry, coordinates, times) {
 
 function ensureAnimating(entry) {
   if (entry.raf) return;
+
   let from = null;
   let to = null;
   let startedAt = 0;
   let duration = 0;
+
   function step(ts) {
     if (!to) {
       if (entry.queue.length === 0) {
-        entry.raf = null;   
+        entry.raf = null;   // idle until more data arrives
         return;
       }
       const cur = entry.marker.getLngLat();
       from = { lng: cur.lng, lat: cur.lat };
       to = entry.queue.shift();
+
       const gap = entry.lastPlayedT !== null
         ? to.t - entry.lastPlayedT
         : PLAYBACK.firstSegmentMs;
+
       duration = Math.min(Math.max(gap, PLAYBACK.minSegmentMs), PLAYBACK.maxSegmentMs);
       if (entry.queue.length > PLAYBACK.catchUpAt) {
         duration = Math.max(PLAYBACK.minSegmentMs, duration / 2);
       }
       startedAt = ts;
     }
+
     const p = Math.min((ts - startedAt) / duration, 1);
     entry.marker.setLngLat([
       from.lng + (to.lng - from.lng) * p,
       from.lat + (to.lat - from.lat) * p,
     ]);
+
     if (p >= 1) {
       entry.lastPlayedT = to.t;
-      to = null;          
+      to = null;          // next segment picked up on the following frame
     }
+
     entry.raf = requestAnimationFrame(step);
   }
+
   entry.raf = requestAnimationFrame(step);
 }
 
-export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleClick, minimal = false, initialView = null, onGeofenceClick }) {
+export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleClick, minimal = false }) {
   const mapContainer = useRef(null)
   const map = useRef(null)
   const markers = useRef({})
   const lastTrailStamp = useRef(null)
 
-  // 1. Keep map layout synced with container changes
-  useEffect(() => {
-    if (!mapContainer.current) return;
-    const observer = new ResizeObserver(() => {
-      if (map.current) map.current.resize();
-    });
-    observer.observe(mapContainer.current);
-    return () => observer.disconnect();
-  }, []);
-
-  // 2. Map Initialization
   useEffect(() => {
     if (map.current) return
 
-    // Safely extract and validate the center
-    let startCenter = DEFAULT_CENTER;
-    if (initialView?.center?.length === 2) {
-      const [lng, lat] = initialView.center;
-      // Only use the initial view if it's NOT [0, 0] and NOT NaN
-      if (lng !== 0 && lat !== 0 && !Number.isNaN(lng) && !Number.isNaN(lat)) {
-        startCenter = [lng, lat];
-      }
-    }
-
-    const startZoom = initialView?.zoom || DEFAULT_ZOOM;
-
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: startCenter,
-      zoom: startZoom,
-    });
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [28.0473, -26.2041],
+      zoom: minimal ? 9 : 10,
+    })
 
-    map.current.addControl(
-      new mapboxgl.NavigationControl({ showCompass: false }),
-      "top-right"
-    );
+    if (!minimal) {
+      map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
+    }
 
     map.current.on('load', () => {
-      map.current.resize();
-
       map.current.addSource(GEOFENCE_SOURCE_ID, { type: 'geojson', data: EMPTY_FC });
       map.current.addLayer({
         id: `${GEOFENCE_SOURCE_ID}-fill`, type: 'fill', source: GEOFENCE_SOURCE_ID,
-        paint: { 'fill-color': SOURCE_COLOR, 'fill-opacity': 0.15 },
+        paint: { 'fill-color': '#3b82f6', 'fill-opacity': 0.10 },
       });
       map.current.addLayer({
         id: `${GEOFENCE_SOURCE_ID}-outline`, type: 'line', source: GEOFENCE_SOURCE_ID,
-        paint: { 'line-color': SOURCE_COLOR, 'line-width': 2 },
+        paint: { 'line-color': '#3b82f6', 'line-width': 1.5 },
       });
+
       getGeofencesGeoJSON()
         .then((fc) => map.current?.getSource(GEOFENCE_SOURCE_ID)?.setData(fc))
         .catch((err) => console.error('FleetMap: failed to load geofences', err));
-        
+
+      // lineMetrics enables ['line-progress'], which is what makes the
+      // gradient fade along the line's length rather than across the map.
       map.current.addSource(TRAIL_SOURCE_ID, {
         type: 'geojson', lineMetrics: true, data: EMPTY_FC,
       });
@@ -163,51 +142,30 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
         },
       });
     });
-  }, [])
-
-  useEffect(() => {
-    if (!map.current || !onGeofenceClick) return
-    function handleGeofenceClick(e) {
-      const feature = e.features?.[0]
-      if (!feature) return
-      onGeofenceClick(feature.properties || {})
-    }
-    function showPointer() { map.current.getCanvas().style.cursor = 'pointer' }
-    function hidePointer() { map.current.getCanvas().style.cursor = '' }
-    const layer = `${GEOFENCE_SOURCE_ID}-fill`
-    function bind() {
-      map.current.on('click', layer, handleGeofenceClick)
-      map.current.on('mouseenter', layer, showPointer)
-      map.current.on('mouseleave', layer, hidePointer)
-    }
-    if (map.current.getLayer(layer)) bind()
-    else map.current.once('load', bind)
-    return () => {
-      if (!map.current) return
-      map.current.off('click', layer, handleGeofenceClick)
-      map.current.off('mouseenter', layer, showPointer)
-      map.current.off('mouseleave', layer, hidePointer)
-    }
-  }, [onGeofenceClick])
+  }, [minimal])
 
   useEffect(() => {
     if (!map.current) return;
+
     function apply() {
       const stamp = buffer?.timestamp ?? null;
       if (stamp && stamp === lastTrailStamp.current) return;
       lastTrailStamp.current = stamp;
       map.current?.getSource(TRAIL_SOURCE_ID)?.setData(buffer ?? EMPTY_FC);
     }
+
     if (map.current.isStyleLoaded()) apply();
     else map.current.once('load', apply);
   }, [buffer])
 
   useEffect(() => {
     if (!map.current) return;
+
     for (const feature of buffer?.features ?? []) {
       const id = feature.properties?.vehicleId;
       const entry = markers.current[id];
-      if (!entry) continue;   
+      if (!entry) continue;   // marker not created yet; next vehicles tick
+
       enqueuePoints(entry, feature.geometry?.coordinates, feature.properties?.times);
       ensureAnimating(entry);
     }
@@ -215,55 +173,55 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
 
   useEffect(() => {
     if (!map.current) return
+
     const seen = new Set()
-    
+
     vehicles.forEach(vehicle => {
       seen.add(vehicle.id);
       const existing = markers.current[vehicle.id];
-      let el;
 
       if (existing) {
         existing.vehicle = vehicle;
-        el = existing.marker.getElement();
-        el.style.backgroundColor = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
-      } else {
-        if (!Number.isFinite(vehicle.lng) || !Number.isFinite(vehicle.lat)) return;
-        el = document.createElement('div')
-        el.className = 'vehicle-marker'
-        Object.assign(el.style, {
-          width: '32px', height: '32px', borderRadius: '50%',
-          backgroundColor: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
-          border: '2px solid white', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.4)', transition: 'box-shadow 0.2s',
-        })
-        el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
-        el.addEventListener('mouseenter', () => { el.style.boxShadow = '0 0 0 4px rgba(255,255,255,0.3)' })
-        el.addEventListener('mouseleave', () => { el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)' })
-        
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([vehicle.lng, vehicle.lat])
-          .addTo(map.current)
-          
-        markers.current[vehicle.id] = {
-          marker,
-          vehicle,
-          queue: [],
-          lastEnqueuedT: null,   
-          lastPlayedT: null,     
-          raf: null,
-        };
+        existing.marker.getElement().style.backgroundColor =
+          STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
+        return;
       }
 
-      // Re-apply click binding on every sync
+      if (!Number.isFinite(vehicle.lng) || !Number.isFinite(vehicle.lat)) return;
+
+      const el = document.createElement('div')
+      el.className = 'vehicle-marker'
+      Object.assign(el.style, {
+        width: '32px', height: '32px', borderRadius: '50%',
+        backgroundColor: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
+        border: '2px solid white', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.4)', transition: 'box-shadow 0.2s',
+      })
+      el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
+
+      el.addEventListener('mouseenter', () => { el.style.boxShadow = '0 0 0 4px rgba(255,255,255,0.3)' })
+      el.addEventListener('mouseleave', () => { el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)' })
+
       if (!minimal && onVehicleClick) {
         el.onclick = (e) => {
           e.preventDefault(); e.stopPropagation();
           onVehicleClick(markers.current[vehicle.id]?.vehicle);
         }
-      } else {
-        el.onclick = null;
       }
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([vehicle.lng, vehicle.lat])
+        .addTo(map.current)
+
+      markers.current[vehicle.id] = {
+        marker,
+        vehicle,
+        queue: [],
+        lastEnqueuedT: null,   // newest point accepted into the queue
+        lastPlayedT: null,     // newest point actually animated to
+        raf: null,
+      };
     })
 
     Object.entries(markers.current).forEach(([id, entry]) => {
@@ -287,11 +245,14 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     if(!map.current || !minimal || vehicles.length !== 1){
       return
     }
+
     const {lat , lng} = vehicles[0]
     if(!Number.isFinite(lat) || !Number.isFinite(lng)){
       return
     }
+
     const recenter = () => map.current.easeTo({center: [lng, lat], zoom: 15, duration: 800})
+
     if(map.current.isStyleLoaded()){
       recenter()
     }else{
@@ -299,12 +260,7 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     }
   }, [minimal, vehicles[0]?.lat, vehicles[0]?.lng])
 
-  return (
-    <div 
-      ref={mapContainer} 
-      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} 
-    />
-  )
+  return <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 }
 
 FleetMap.propTypes = {
@@ -312,9 +268,4 @@ FleetMap.propTypes = {
   buffer: PropTypes.object,
   onVehicleClick: PropTypes.func,
   minimal: PropTypes.bool,
-  initialView: PropTypes.shape({
-    center: PropTypes.arrayOf(PropTypes.number),
-    zoom: PropTypes.number,
-  }),
-  onGeofenceClick: PropTypes.func,
 }

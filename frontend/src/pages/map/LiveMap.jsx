@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicleService'
 import LiveFleetMapPlaceholder from '@/components/dashboard/LiveFleetMapPlaceholder'
-import { useSearchParams } from 'react-router-dom';
+import FleetMap from '../../components/map/FleetMap'
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 const DEFAULT_CENTER = [28.2293, -25.75456];
@@ -30,8 +30,10 @@ function readInitialViewFromQuery() {
   };
 }
 
+// POLLING RATES
+//
+// Buffer every 10s against a 30s window: 3x overlap
 export default function LiveMap() {
-  const [searchParams] = useSearchParams();
   const [buffer, setBuffer] = useState(EMPTY_FC)
   const [locations, setLocations] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -87,6 +89,7 @@ export default function LiveMap() {
     }
   }, [])
 
+
   useEffect(() => {
     cancelled.current = false
     return () => { cancelled.current = true }
@@ -114,11 +117,6 @@ export default function LiveMap() {
     return () => { if (timer) clearTimeout(timer) }
   }, [fetchLocations])
 
-  const safeVehicles = locations?.vehicles || []
-  const active  = safeVehicles.filter(v => v.status === 'active').length
-  const idle    = safeVehicles.filter(v => v.status === 'idle').length
-  const offline = safeVehicles.filter(v => v.status === 'offline').length
-  const total   = safeVehicles.length
 
   return (
     <div className="relative w-full h-[calc(100vh-6rem)] min-h-[600px]">
@@ -128,15 +126,20 @@ export default function LiveMap() {
         </div>
       )}
 
+  const active    = locations?.vehicles?.filter(v => v.status === 'active').length ?? 0
+  const idle      = locations?.vehicles?.filter(v => v.status === 'idle').length ?? 0
+  const offline   = locations?.vehicles?.filter(v => v.status === 'offline').length ?? 0
+  const total     = locations?.vehicles?.length ?? 0
+
+  return (
+    <div className="space-y-4">
       <LiveFleetMapPlaceholder
         active={active}
         idle={idle}
         offline={offline}
         total={total}
-        vehicles={safeVehicles}
+        vehicles={locations?.vehicles}
         buffer={buffer}
-        initialView={initialView}
-        onGeofenceClick={handleGeofenceClick}
       />
     </div>
   )

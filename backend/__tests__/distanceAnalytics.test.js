@@ -159,4 +159,43 @@ describe('distanceAnalytics - per-vehicle metrics', () => {
 });
 
 
+describe('distanceAnalytics - fleet summary', () => {
+    test('totals are sums across vehicles', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getDistanceAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+
+        expect(summary.totalDistanceKm).toBe(720);
+        expect(summary.totalDurationSeconds).toBe(54000);
+        expect(summary.totalMovingSeconds).toBe(43200);
+        expect(summary.totalIdleSeconds).toBe(10800);
+        expect(summary.tripCount).toBe(14);
+    });
+
+    test('fleet speeds are ratio-of-sums, not the mean of per-vehicle averages', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getDistanceAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+
+        expect(summary.avgJourneySpeedKmh).toBe(48);
+        expect(summary.avgJourneySpeedKmh).not.toBe(45);
+        expect(summary.avgMovingSpeedKmh).toBe(60);
+    });
+
+    test('average trip distance is total distance over total trips', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getDistanceAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+        expect(summary.avgTripDistanceKm).toBeCloseTo(51.43, 2);
+    });
+
+    test('fleet max speed is the highest of any vehicle', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getDistanceAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+        expect(summary.maxSpeedKmh).toBe(118);
+    });
+
+    test('fleet utilisation is vehicle-days active over available vehicle-days', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getDistanceAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+        expect(summary.utilisationPct).toBe(50);
+    });
+});
 

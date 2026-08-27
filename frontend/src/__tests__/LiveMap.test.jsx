@@ -1,4 +1,5 @@
 import { render, screen, act, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import '@testing-library/jest-dom'
 
 jest.mock('@/components/map/FleetMap', () => ({
@@ -60,15 +61,15 @@ const makeResponse = (vehicles = VEHICLES) => ({
 })
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
+const renderInRouter = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>)
 
 const renderLiveMap = async () => {
   let utils
   await act(async () => {
-    utils = render(<LiveMap />)
+    utils = renderInRouter(<LiveMap />)
   })
   return utils
 }
-
 const advancePoll = async (ms) => {
   await act(async () => {})
   await act(async () => { jest.advanceTimersByTime(ms) })
@@ -93,7 +94,7 @@ describe('LiveMap', () => {
       vehicleService.getVehicleLocations.mockImplementationOnce(() => new Promise(() => {}))
       vehicleService.getVehiclePositionBuffer.mockImplementationOnce(() => new Promise(() => {}))
 
-      await act(async () => { render(<LiveMap />) })
+      await act(async () => { renderInRouter(<LiveMap />) })
       expect(document.querySelector('.animate-spin')).toBeInTheDocument()
     })
 
@@ -134,6 +135,7 @@ describe('LiveMap', () => {
       await renderLiveMap()
       expect(vehicleService.getVehiclePositionBuffer).toHaveBeenCalledTimes(1)
 
+      // Not yet due: the buffer interval is longer than the locations one.
       await advancePoll(LOCATIONS_POLL_MS)
       expect(vehicleService.getVehiclePositionBuffer).toHaveBeenCalledTimes(1)
 
@@ -142,9 +144,12 @@ describe('LiveMap', () => {
     })
 
     it('does not start a new request while one is still in flight', async () => {
+      // A request that never settles. The next poll must not be scheduled,
+      // so no amount of advancing the clock produces a second call. This is
+      // the guard that stopped requests stacking when /buffer was timing out.
       vehicleService.getVehiclePositionBuffer.mockImplementation(() => new Promise(() => {}))
 
-      await act(async () => { render(<LiveMap />) })
+      await act(async () => { renderInRouter(<LiveMap />) })
       expect(vehicleService.getVehiclePositionBuffer).toHaveBeenCalledTimes(1)
 
       await act(async () => { jest.advanceTimersByTime(BUFFER_POLL_MS * 5) })
@@ -275,14 +280,12 @@ describe('LiveMap', () => {
   describe('error handling', () => {
     it('does not crash when the initial API call fails', async () => {
       vehicleService.getVehicleLocations.mockRejectedValue(new Error('Network error'))
-      await expect(
-        act(async () => { render(<LiveMap />) })
-      ).resolves.not.toThrow()
+      await act(async () => { renderInRouter(<LiveMap />) })
     })
 
     it('still renders the placeholder with zero counts when the initial fetch fails', async () => {
       vehicleService.getVehicleLocations.mockRejectedValue(new Error('Network error'))
-      await act(async () => { render(<LiveMap />) })
+      await act(async () => { renderInRouter(<LiveMap />) })
 
       expect(screen.getByTestId('live-fleet-placeholder')).toBeInTheDocument()
       expect(screen.getByTestId('vehicle-count')).toHaveTextContent('0')
@@ -291,7 +294,7 @@ describe('LiveMap', () => {
 
     it('clears the loading spinner even when the initial fetch fails', async () => {
       vehicleService.getVehicleLocations.mockRejectedValue(new Error('Network error'))
-      await act(async () => { render(<LiveMap />) })
+      await act(async () => { renderInRouter(<LiveMap />) })
 
       await waitFor(() => {
         expect(document.querySelector('.animate-spin')).not.toBeInTheDocument()
@@ -375,4 +378,4 @@ describe('LiveMap', () => {
       expect(screen.getByTestId('stat-total')).toHaveTextContent('0')
     })
   })
-})//v2
+})

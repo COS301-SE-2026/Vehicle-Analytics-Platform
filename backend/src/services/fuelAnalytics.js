@@ -34,3 +34,34 @@ WHERE f.vehicle_id = ANY($1::text[])
 GROUP BY rb.key
 ORDER BY distance_km DESC
 `;
+
+
+function toNumber(value, fallback = 0) {
+    if (value === null || value === undefined) return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+    
+}
+
+function round(value, dp = 2){
+    if (value === null || value === undefined || !Number.isFinite(value)) return null;
+    const factor = 10 ** dp;
+    return Math.round(value * factor) / factor;
+}
+
+function safeRatio(numerator, denominator){
+    if (!denominator) return null;
+    return numerator / denominator;
+}
+
+function percent(numerator, denominator, dp = 2){
+    const ratio = safeRatio(numerator, denominator);
+    return ratio === null ? null : round(ratio * 100, dp);
+}
+
+function efficiency(distanceKm, fuelLiters){
+    return {
+        avgEfficiencyKmPerL: round(safeRatio(distanceKm, fuelLiters)),
+        avgConsumptionLPer100Km: round(safeRatio(fuelLiters * 100, distanceKm)),
+    };
+}

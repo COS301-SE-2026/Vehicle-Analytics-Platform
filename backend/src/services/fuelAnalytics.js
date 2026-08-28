@@ -115,5 +115,50 @@ function summarise(vehicles, vehiclesInScope, roadClassDistanceKm) {
 
 function emptyResult(){
     return { summary: summarise([], 0, {}),  vehicles: [] };
-    
+
 }
+
+async function getFuelAnalytics(db, vehicleIds, period){
+    if (!db || typeof db.query !== 'function'){
+        throw new Error('getFuelAnalytics requires a pg client or pool');
+    }
+    if (!Array.isArray(vehicleIds)){
+        throw new Error('getFuelAnalytics requires a vehicleIds array from scopeResolver');
+    }
+    if (!period || !(period.from instanceof Date) || !(period.to instanceof Date)){
+        throw new Error('getFuelAnalytics requires a resolved period with Date bounds');
+    }
+
+    if (!vehicleIds.length) return emptyResult();
+    
+    const params = [vehicleIds, period.from, period.to, REPORT_TIMEZONE];
+    const [perVehicle, roadClasses] = await Promise.all([
+        db.query(PER_VEHICLE_SQL, params),
+        db.query(ROAD_CLASS_SQL, params.slice(0, 3)),
+    ]);
+
+    const vehicles = perVehicle.rows.map(deriveVehicle);
+    const roadClassDistanceKm = {};
+    roadClasses.rows.forEach((row) => {
+        roadClassDistanceKm[row.road_class] = round(toNumber(row.distance_km));
+    });
+
+    return {
+        summary: summarise(vehicles, vehicleIds.length, roadClassDistanceKm),
+        vehicles,
+    };
+
+
+}
+
+
+
+module.exports = {
+    getFuelAnalytics,
+    REPORT_TIMEZONE,
+    _deriveVehicle: deriveVehicle,
+    _summarise: summarise,
+    _efficiency: efficiency,
+
+};
+

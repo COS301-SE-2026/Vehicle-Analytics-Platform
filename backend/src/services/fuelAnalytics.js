@@ -40,7 +40,7 @@ function toNumber(value, fallback = 0) {
     if (value === null || value === undefined) return fallback;
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
-    
+
 }
 
 function round(value, dp = 2){
@@ -64,4 +64,56 @@ function efficiency(distanceKm, fuelLiters){
         avgEfficiencyKmPerL: round(safeRatio(distanceKm, fuelLiters)),
         avgConsumptionLPer100Km: round(safeRatio(fuelLiters * 100, distanceKm)),
     };
+}
+
+
+
+function deriveVehicle(row){
+    const fuelLiters = toNumber(row.fuel_liters);
+    const fuelModelDistanceKm = toNumber(row.fuel_model_distance_km);
+
+
+
+    return {
+        vehicleId: row.vehicle_id,
+        tripsWithFuelData: toNumber(row.trip_count),
+        daysWithFuelData: toNumber(row.days_with_fuel_data),
+        fuelLiters: round(fuelLiters),
+        fuelModelDistanceKm: round(fuelModelDistanceKm),
+        odometerDistanceKm: round(toNumber(row.odometer_distance_km)),
+        ...efficiency(fuelModelDistanceKm, fuelLiters),
+        estimated: true,
+  };
+
+}
+
+function summarise(vehicles, vehiclesInScope, roadClassDistanceKm) {
+    const totalFuelLiters = vehicles.reduce((s, v) => s + (v.fuelLiters || 0), 0);
+    const totalFuelModelDistanceKm = vehicles.reduce((s, v) => s + (v.fuelModelDistanceKm || 0), 0);
+    const totalOdometerDistanceKm = vehicles.reduce((s, v) => s + (v.odometerDistanceKm || 0), 0);
+
+
+
+
+    return {
+        tripsWithFuelData: vehicles.reduce((s, v) => s + v.tripsWithFuelData, 0),
+        totalFuelLiters: round(totalFuelLiters),
+        totalFuelModelDistanceKm: round(totalFuelModelDistanceKm),
+        totalOdometerDistanceKm: round(totalOdometerDistanceKm),
+        distanceVariancePct: percent(
+        totalFuelModelDistanceKm - totalOdometerDistanceKm, totalOdometerDistanceKm
+    ),
+    ...efficiency(totalFuelModelDistanceKm, totalFuelLiters),
+    vehiclesWithFuelData: vehicles.length,
+    vehiclesInScope,
+    vehiclesWithoutFuelData: Math.max(0, vehiclesInScope - vehicles.length),
+    roadClassDistanceKm,
+    estimated: true,
+  };
+
+}
+
+function emptyResult(){
+    return { summary: summarise([], 0, {}),  vehicles: [] };
+    
 }

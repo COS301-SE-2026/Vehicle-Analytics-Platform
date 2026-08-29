@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table';
 import useAuthStore from '@/store/authStore';
 import { Button } from '../ui/button';
+import CreateAlertRuleModal from './CreateRuleModal';
 
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -28,8 +29,12 @@ const CONDITION_LABELS = {
 
 export default function AlertRulesTab() {
   const [rules, setRules] = useState([]);
+
   const [loading, setloading] = useState(true);
+
   const [error, setError] = useState(null);
+
+  const [modalOpen, setModalOpen] = useState(false);
 
   const fetcRules = useCallback(async () => {
     setloading(true);
@@ -102,7 +107,7 @@ export default function AlertRulesTab() {
   return (
     <div className='bg-fleet-surface border border-fleet-border rounded-lg p-6 space-y-4'>
       <h2 className='text-lg font-display text-fleet-text'>Alerts Rules</h2>
-      <Button className='bg-fleet-blue/90'>
+      <Button className='bg-fleet-blue/90' onClick={() => setModalOpen(true)}>
         Create Alert Rules
       </Button>
 
@@ -121,6 +126,12 @@ export default function AlertRulesTab() {
       </TableHeader>
       <TableBody>{tableContent}</TableBody>
     </Table>
+
+    <CreateAlertRuleModal
+      isOpen={modalOpen}
+      onClose={() => setModalOpen(false)}
+      onCreated={() => fetchRules()}
+    />
 
   </div>
   );

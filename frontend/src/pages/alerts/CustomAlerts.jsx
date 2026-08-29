@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import TriggeredAlertsTab from '@/components/alerts/AlertRulesTab';
-import AlertRulesTab from '@/components/alerts/TriggeredAlertsTab';
+import TriggeredAlertsTab from '@/components/alerts/TriggeredAlertRule';
+import AlertRulesTab from '@/components/alerts/AlertRulesTab';
 
 const TABS = [
     { id: 'rules', label: 'Alert Rules'},
@@ -31,8 +31,9 @@ export default function CustomAlerts() {
                 ))}
             </div>
 
-            {activeTab === 'rules' && <AlertRulesTab />}
-            {activeTab === 'triggered' && <TriggeredAlertsTab/>}
+            {activeTab === 'rules' && <TriggeredAlertsTab/>}
+            {activeTab === 'triggered' &&  <AlertRulesTab />}
+           
         </div>
     );
 }

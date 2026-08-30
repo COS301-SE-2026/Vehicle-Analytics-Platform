@@ -61,24 +61,33 @@ const STATUS_BADGE = {
 
 };
 
-export default function TriggeredAlertsTab(){
-  const navigate = useNavigate();
+const CONDITION_OPTIONS = [
+{ label: 'All Conditions', value: 'all' },
+{ label: 'Speed Threshold', value: 'speed_threshold' },
+{ label: 'Time Based Restriction', value: 'time_based_restriction' },
+{ label: 'Repeated Unsafe Events', value: 'repeated_unsafe_events' },
+{ label: 'Safety Score Drop', value: 'safety_score_drop' },
+{ label: 'Trip Duration Exceeded', value: 'trip_duration_exceeded' },
+]
 
-  const [activeStatus, setActiveStatus] = useState('all');
+  function formatTimeStamp(createdAt) {
+    const date = new Date(createdAt);
 
-  const [conditionType, setConditionType] = useState('all');
+    const now = new Date();
 
-  const [vehicleSearch, setVehicleSearch] = useState('');
+    const yesterday = new Dte(now);
 
-  const [offset, setOffset] = useState(0);
+    yesterday.setDate(now.getDate() - 1);
 
-  const [alerts, setAlerts] = useState ([]);
+    if(date.toDateString() === now.toDateString()) {
+      return data.toLocalTimeString([], {hour: 'numeric', minute: '2-digit'});
+    }
 
-  const [pagination, setPagination] = useState({ total: 0, hasMore: false });
+    if(data.toDateString() === yesterday.toDateString()) 
+      return 'Yesterday';
 
-  const [loading, setLoading] = useState(true);
-
-  const [error, setError] = useState(null);
+    return date.toLocaleDateString([], {month: 'short', day: 'numeric' });
+  }
 
   function formatBreach(alert) {
      const {condition_type, breach_value, threshold_value } = alerts;
@@ -100,24 +109,25 @@ export default function TriggeredAlertsTab(){
      }
   }
 
-  function formatTimeStamp(createdAt) {
-    const date = new Date(createdAt);
+export default function TriggeredAlertsTab(){
+  const navigate = useNavigate();
 
-    const now = new Date();
+  const [activeStatus, setActiveStatus] = useState('all');
 
-    const yesterday = new Dte(now);
+  const [conditionType, setConditionType] = useState('all');
 
-    yesterday.setDate(now.getDate() - 1);
+  const [vehicleSearch, setVehicleSearch] = useState('');
 
-    if(date.toDateString() === now.toDateString()) {
-      return data.toLocalTimeString([], {hour: 'numeric', minute: '2-digit'});
-    }
+  const [offset, setOffset] = useState(0);
 
-    if(data.toDateString() === yesterday.toDateString()) 
-      return 'Yesterday';
+  const [alerts, setAlerts] = useState ([]);
 
-    return date.toLocaleDateString([], {month: 'short', day: 'numeric' });
-  }
+  const [pagination, setPagination] = useState({ total: 0, hasMore: false });
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState(null);
+
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
@@ -228,6 +238,38 @@ export default function TriggeredAlertsTab(){
             ))}
           </TabsList>
         </Tabs>
+
+        <div className='flex flex-wrap items-center gap-3'>
+          <Select value={conditionType} onValueChange={setConditionType}>
+            <SelectTrigger className='w-[180px]'>
+              <SelectValue placeholde='All Condition' />
+            </SelectTrigger>
+            <SelectContent className='bg-fleet-surface border border-fleet-border shadow-md z-50'>
+              {CONDITION_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* TODO: POPULATE from fleet groups endpoint , then pass fleet_group_id as param */}
+          <Select disabled>
+              <SelectTrigger className='w-[160px]'>
+                <SelectValue placeholder='All Fleets' />
+              </SelectTrigger>
+          </Select>
+
+          <div>
+            <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fleet-secondary' />
+              <Input
+                placeholder='Search Vehicle ID...'
+                className='pl-9 w-[220px]'
+                value={vehicleSearch}
+                onChange={(e) => setVehilceSearch(e.target.value)}
+              />
+          </div>
+        </div>
 
         {error && <p className='text-sm text-fleet-alert'>Failed to load alerts: {error}</p>}
         <Table>

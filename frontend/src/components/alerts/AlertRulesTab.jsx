@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -34,7 +35,16 @@ const STATUS_TABS = [
   { label: 'Resolved', value: 'resolved'},
 ];
 
+const CONDITION_LABELS = {
+  speed_threshold: 'Speed Threshold',
+  time_based_restriction: 'Time Based Restriction',
+  repeated_unsafe_events: 'Repeated Unsafe Events',
+  safety_score_drop: 'Safety Score Drop',
+  trip_duration_exceeded: 'Trip Duration Exceeded',
+};
+
 export default function TriggeredAlertsTab(){
+  const navigate = useNavigate();
 
   const [activeStatus, setActiveStatus] = useState('all');
 
@@ -141,10 +151,53 @@ export default function TriggeredAlertsTab(){
 
   const rangeEnd = Math.min(offset + LIMIT, pagination.total);
 
+  let tableContent;
+
+  if(loading) {
+    tableContent = (
+      <TableRow>
+        <TableCell colSpan={7} className='text-center text-fleet-secondary py-8'>
+          Loading alerts...
+        </TableCell>
+      </TableRow>
+    );
+  } else if(alerts.length === 0) {
+    tableContent = (
+      <TableRow>
+        <TableCell colSpan={7} className='text-center text-fleet-secondary py-8'>
+          No cell match theses filters.
+        </TableCell>
+      </TableRow>
+    );
+  } else {
+    tableContent = alerts.map((alert) => {
+      const isSpeedBreach = alert.condition_type === 'speed_threshold';
+
+      return (
+        <TableRow key={alert.id}>
+          <TableCell>{alert.vehicle_id}</TableCell>
+          <TableCell>{alert.rule_name ?? CONDITION_LABELS[alert.condition_type] ?? alert.condition_type}</TableCell>
+          <TableCell className={isSpeedBreach ? 'text-fleet-alert font-medium' : ''} >
+            {formatBreach(alert)}
+          </TableCell>
+          <TableCell>{alert.fleet_group_name ?? alert.fleet_group_id}</TableCell>
+          <TableCell>{formatTimeStamp(alert.created_at)}</TableCell>
+          <TableCell>{alert.status}</TableCell>
+          <TableCell className='text-right'>
+            <Button variant='outline' size='sm' onClick={() => navigate(`/custom-alerts/${alert.id}`)}>
+              Details
+            </Button>
+          </TableCell>
+        </TableRow>
+      );
+    });
+  }
+
   return (
     <div className='space-y-6'>
       <div className='bg-fleet-surface border border-fleet rounded-lg p-6 space-y-4'>
 
+        {error && <p className='text-sm text-fleet-alert'>Failed to load alerts: {error}</p>}
         <Table>
           <TableHeader>
             <TableRow>
@@ -158,7 +211,7 @@ export default function TriggeredAlertsTab(){
             </TableRow>
           </TableHeader>
 
-          <TableBody/>
+          <TableBody>{tableContent}</TableBody>
 
         </Table>
 

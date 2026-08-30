@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -11,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { 
   Select,
@@ -22,7 +22,7 @@ import {
 import useAuthStore from '@/store/authStore';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { data } from 'react-router-dom';
-import { daysToWeeks } from 'date-fns';
+
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -41,6 +41,24 @@ const CONDITION_LABELS = {
   repeated_unsafe_events: 'Repeated Unsafe Events',
   safety_score_drop: 'Safety Score Drop',
   trip_duration_exceeded: 'Trip Duration Exceeded',
+};
+
+const STATUS_BADGE = {
+  new: {
+    label: 'New',
+    className: 'bg-fleet-alert/10 text-fleet-alert hover:bg-fleet-alert/10',
+  },
+
+  acknowledged: {
+    label: "Ack'd",
+    className: 'bg-fleet-idle/10 text-fleet-secondary hover:bg-fleet-idle/10',
+  },
+
+  resolved: {
+    label: 'Resolved',
+    className: 'bg-fleet-green/10 text-fleet-green hover:bg-fleet-green/10',
+  },
+
 };
 
 export default function TriggeredAlertsTab(){
@@ -171,6 +189,8 @@ export default function TriggeredAlertsTab(){
     );
   } else {
     tableContent = alerts.map((alert) => {
+      const badge = STATUS_BADGE[alert.status] ?? { label: alert.status, className: ''};
+
       const isSpeedBreach = alert.condition_type === 'speed_threshold';
 
       return (
@@ -182,7 +202,9 @@ export default function TriggeredAlertsTab(){
           </TableCell>
           <TableCell>{alert.fleet_group_name ?? alert.fleet_group_id}</TableCell>
           <TableCell>{formatTimeStamp(alert.created_at)}</TableCell>
-          <TableCell>{alert.status}</TableCell>
+          <TableCell>
+            <Badge className={badge.className}>{badge.label}</Badge>
+          </TableCell>
           <TableCell className='text-right'>
             <Button variant='outline' size='sm' onClick={() => navigate(`/custom-alerts/${alert.id}`)}>
               Details
@@ -196,6 +218,16 @@ export default function TriggeredAlertsTab(){
   return (
     <div className='space-y-6'>
       <div className='bg-fleet-surface border border-fleet rounded-lg p-6 space-y-4'>
+
+        <Tabs value={activeStatus} onValueChange={setActiveStatus}>
+          <TabsList>
+            {STATUS_TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         {error && <p className='text-sm text-fleet-alert'>Failed to load alerts: {error}</p>}
         <Table>

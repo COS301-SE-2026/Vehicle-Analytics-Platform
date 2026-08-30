@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/select';
 import useAuthStore from '@/store/authStore';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { data } from 'react-router-dom';
+import { daysToWeeks } from 'date-fns';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -49,6 +51,45 @@ export default function TriggeredAlertsTab(){
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState(null);
+
+  function formatBreach(alert) {
+     const {condition_type, breach_value, threshold_value } = alerts;
+
+     switch(condition_type) {
+      case 'speed_threshold':
+        return `${breach_value} km/h vs ${threshold_value} km/h`;
+      case 'time_based_restriction':
+        return `${breach_value} min vs ${threshold_value} min`;
+      case 'repeated_unsafe_events':
+        return `${breach_value} vs ${threshold_value} `;
+       case 'safety_score_drop':
+        return `${breach_value} vs ${threshold_value} `;
+      case 'trip_duration_exceeded':
+        return `${breach_value}% vs ${threshold_value}%`;
+      
+      default:
+        return threshold_value != null ? `${breach_value} vs ${threshold_value}` : `${breach_value}`;
+     }
+  }
+
+  function formatTimeStamp(createdAt) {
+    const date = new Date(createdAt);
+
+    const now = new Date();
+
+    const yesterday = new Dte(now);
+
+    yesterday.setDate(now.getDate() - 1);
+
+    if(date.toDateString() === now.toDateString()) {
+      return data.toLocalTimeString([], {hour: 'numeric', minute: '2-digit'});
+    }
+
+    if(data.toDateString() === yesterday.toDateString()) 
+      return 'Yesterday';
+
+    return date.toLocaleDateString([], {month: 'short', day: 'numeric' });
+  }
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);

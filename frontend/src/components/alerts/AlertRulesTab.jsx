@@ -253,7 +253,7 @@ export default function TriggeredAlertsTab(){
             </SelectContent>
           </Select>
 
-          {/* TODO: POPULATE from fleet groups endpoint , then pass fleet_group_id as param */}
+          {/*TASK:  POPULATE from fleet groups endpoint , then pass fleet_group_id as param */}
           <Select disabled>
               <SelectTrigger className='w-[160px]'>
                 <SelectValue placeholder='All Fleets' />
@@ -288,6 +288,32 @@ export default function TriggeredAlertsTab(){
           <TableBody>{tableContent}</TableBody>
 
         </Table>
+
+        <div className='flex items-center justify-between pt-2'>
+          <p className='text-sm text-fleet-secondary'>
+            Showing {rangeStart}-{rangeEnd} of {pagination.total} alerts
+          </p>
+          <div className='flex-gap-2'>
+            <Button
+              variant='outline'
+              size='icon'
+              disabled={offset === 0}
+              onClick={() => setOffset((o) => Math.max(0, o - LIMIT))}
+            >
+              <ChevronLeft className='h-4 w-4' />
+            </Button>
+
+            <Button
+              variant='outline'
+              size='icon'
+              disabled={!pagination.hasMore}
+              onClick={() => setOffset((o) =>  o + LIMIT)}
+            >
+
+              <ChevronRight className='h-4 w-4'/>
+            </Button>
+          </div>
+        </div>
 
       </div>
     </div>

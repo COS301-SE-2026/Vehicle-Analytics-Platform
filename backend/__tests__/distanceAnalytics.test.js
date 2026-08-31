@@ -10,7 +10,7 @@ const {
     REPORT_TIMEZONE,
     _deriveVehicle,
     _summarise,
-} = require('../src/services/analytics/distanceAnalytics');
+} = require('../src/services/distanceAnalytics');
 
 const { resolvePeriod } = require('../src/services/periods');
 

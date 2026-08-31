@@ -68,3 +68,72 @@ function assignRanks(sorted, precision) {
     }));
 
 }
+
+
+function rankBy(entities, metric, options = {}){
+    if (!Array.isArray(entities)) {
+        throw new Error('rankBy requires an array of entities');
+    }
+
+    if (typeof metric !== 'string' || !metric) {
+        throw new Error('rankBy requires a metric name');
+    }
+
+
+    const {
+        idField = 'vehicleId',
+        limit,
+        minEntities = 1,
+        precision = 2,
+    } = options;
+
+    const { label, unit, higherIsBetter } = definitionFor(metric);
+
+    const order = options.order || bestFirstOrder(higherIsBetter);
+
+    const base = {
+        metric,
+        label,
+        unit,
+        higherIsBetter,
+        order: order || null,
+        status: STATUS.OK,
+        entries: [],
+        unavailable: [],
+        rankedCount: 0,
+        totalCount: entities.length,
+    };
+
+
+    if (!order) {
+        return { ...base, status: STATUS.NOT_RANKABLE };
+    }
+
+    const { rankable, unavailable } = partition(entities, metric, idField);
+
+    if (rankable.length < minEntities) {
+        return {
+            ...base,
+            status: STATUS.INSUFFICIENT_DATA,
+            unavailable,
+            rankedCount: rankable.length,
+        };
+    }
+
+    const sorted = [...rankable].sort((a, b) => {
+        const diff = order === ORDER.DESC ? b.value - a.value : a.value - b.value;
+        if (diff !== 0) return diff;
+        return a.id.localeCompare(b.id);
+    });
+
+    const entries = assignRanks(sorted, precision);
+
+
+    return {
+        ...base,
+        entries: isNumber(limit) ? entries.slice(0, limit) : entries,
+        unavailable,
+        rankedCount: rankable.length,
+    };
+
+}

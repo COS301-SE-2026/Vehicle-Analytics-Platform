@@ -39,3 +39,94 @@ const METRIC_DEFINITIONS = {
 function definitionFor(metric){
     return METRIC_DEFINITIONS[metric] || { label: metric, unit: null, higherIsBetter: null };
 }
+
+function isNumber(value){
+    return typeof value === 'number' && Number.isFinite(value);
+}
+
+function round(value, dp) {
+    if (!isNumber(value)) return null;
+    const factor = 10 ** dp;
+    const sign = value < 0 ? -1 : 1;
+    return (sign * Math.round(Math.abs(value) * factor)) / factor;
+
+}
+
+function directionFor(percentChange, higherIsBetter, threshold){
+    if (percentChange === null) return null;
+
+    if (Math.abs(percentChange) < threshold) return DIRECTION.STABLE;
+
+
+
+    const rising = percentChange > 0;
+    if (higherIsBetter === null) {
+        return rising ? DIRECTION.INCREASED : DIRECTION.DECREASED;
+    }
+
+
+    const better = higherIsBetter ? rising : !rising;
+
+    return better ? DIRECTION.IMPROVED : DIRECTION.DETERIORATED;
+
+}
+
+function compareMetric(metric, current, previous, options = {}){
+    const {
+        baselineSufficient = true,
+        stabilityThresholdPct = STABILITY_THRESHOLD_PCT,
+        precision = 2,
+    } = options;
+
+    const { label, unit, higherIsBetter } = definitionFor(metric);
+
+    const base = {
+        metric,
+        label,
+        unit,
+        higherIsBetter,
+        current: isNumber(current) ? round(current, precision) : null,
+        previous: isNumber(previous) ? round(previous, precision) : null,
+        absoluteChange: null,
+        percentChange: null,
+        direction: DIRECTION.UNAVAILABLE,
+        stabilityThresholdPct,
+    };
+
+    if (!isNumber(current)) return base;
+
+    if (!isNumber(previous)) {
+        return { ...base, direction: DIRECTION.NO_BASELINE };
+    }
+
+    const absoluteChange = round(current - previous, precision);
+
+    if (previous === 0) {
+        return {
+            ...base,
+            absoluteChange,
+            direction: current === 0 ? DIRECTION.STABLE : DIRECTION.NO_BASELINE,
+        };
+    }
+
+    const percentChange = round(((current - previous) / Math.abs(previous)) * 100, 1);
+
+    if (!baselineSufficient) {
+        return {
+            ...base,
+            absoluteChange,
+            percentChange,
+            direction: DIRECTION.INSUFFICIENT_BASELINE,
+
+        };
+
+    }
+
+    return {
+        ...base,
+        absoluteChange,
+        percentChange,
+        direction: directionFor(percentChange, higherIsBetter, stabilityThresholdPct),
+    };
+    
+}

@@ -128,5 +128,56 @@ function compareMetric(metric, current, previous, options = {}){
         percentChange,
         direction: directionFor(percentChange, higherIsBetter, stabilityThresholdPct),
     };
+
+}
+
+function compareSummaries(current, previous, options = {}){
+    if (!current || typeof current !== 'object') {
+        throw new Error('compareSummaries requires a current summary object');
+    }
+
+    const { metrics, ...metricOptions } = options;
+
+
+    const names = metrics || Object.keys(current).filter((key) => {
+        const value = current[key];
+        return value === null || isNumber(value);
+    });
+
+    const baseline = previous && typeof previous === 'object' ? previous : {};
+
+
+    const result = {};
+    names.forEach((name) => {
+        const previousValue = Object.prototype.hasOwnProperty.call(baseline, name)
+            ? baseline[name]
+            : null;
+        result[name] = compareMetric(name, current[name], previousValue, metricOptions);
+    });
+
+    return result;
     
 }
+
+function isBaselineSufficient(previousSummary, options = {}){
+    const { minActiveVehicles = 1, minCoverageRatio = 0.5 } = options;
+
+    if (!previousSummary || typeof previousSummary !== 'object') return false;
+
+    const active = previousSummary.activeVehicles ?? previousSummary.vehiclesWithFuelData;
+    const inScope = previousSummary.vehiclesInScope;
+
+    if (!isNumber(active) || active < minActiveVehicles) return false;
+    if (!isNumber(inScope) || inScope === 0) return false;
+
+    return (active / inScope) >= minCoverageRatio;
+}
+
+module.exports = {
+    compareMetric,
+    compareSummaries,
+    isBaselineSufficient,
+    METRIC_DEFINITIONS,
+    STABILITY_THRESHOLD_PCT,
+    DIRECTION,
+};

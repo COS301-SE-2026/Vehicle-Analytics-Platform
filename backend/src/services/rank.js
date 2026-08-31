@@ -137,3 +137,68 @@ function rankBy(entities, metric, options = {}){
     };
 
 }
+
+
+function topPerformers(entities, metric, options = {}){
+    const { higherIsBetter } = definitionFor(metric);
+    const order = bestFirstOrder(higherIsBetter);
+
+    if (!order) {
+        return rankBy(entities, metric, { ...options, order: null });
+    }
+
+    return rankBy(entities, metric, {
+        limit: DEFAULT_LIMIT,
+        minEntities: MIN_ENTITIES_FOR_RANKING,
+        ...options,
+        order,
+    });
+
+}
+
+function requiresAttention(entities, metric, options = {}){
+    const { higherIsBetter } = definitionFor(metric);
+    const best = bestFirstOrder(higherIsBetter);
+
+    if (!best) {
+        return rankBy(entities, metric, { ...options, order: null });
+    }
+
+    return rankBy(entities, metric, {
+        limit: DEFAULT_LIMIT,
+        minEntities: MIN_ENTITIES_FOR_RANKING,
+        ...options,
+        order: invert(best),
+    });
+}
+
+function mergeEntities(sources, idField = 'vehicleId') {
+    if (!Array.isArray(sources)) {
+        throw new Error('mergeEntities requires an array of entity arrays');
+    }
+
+    const merged = new Map();
+
+    sources.forEach((source) => {
+        if (!Array.isArray(source)) return;
+        source.forEach((entity) => {
+            if (!entity || entity[idField] === undefined || entity[idField] === null) return;
+            const id = String(entity[idField]);
+            merged.set(id, { ...(merged.get(id) || { [idField]: id }), ...entity, [idField]: id });
+        });
+    });
+
+    return [...merged.values()].sort((a, b) => String(a[idField]).localeCompare(String(b[idField])));
+    
+}
+
+module.exports = {
+    rankBy,
+    topPerformers,
+    requiresAttention,
+    mergeEntities,
+    ORDER,
+    STATUS,
+    MIN_ENTITIES_FOR_RANKING,
+    DEFAULT_LIMIT,
+};

@@ -151,3 +151,37 @@ function buildTrend(metric, points, options = {}){
 
 
 }
+
+function buildTrends(metrics, weeks, summaries, options = {}){
+    if (!Array.isArray(metrics)) throw new Error('buildTrends requires a metrics array');
+    if (!Array.isArray(weeks)) throw new Error('buildTrends requires a weeks array');
+    if (!Array.isArray(summaries)) throw new Error('buildTrends requires a summaries array');
+    if (weeks.length !== summaries.length) {
+        throw new Error('buildTrends requires one summary per week');
+    }
+
+
+    const result = {};
+
+    metrics.forEach((metric) => {
+        const points = weeks.map((week, i) => {
+            const summary = summaries[i] || {};
+            const value = Object.prototype.hasOwnProperty.call(summary, metric) ? summary[metric] : null;
+            return { week, value };
+
+        });
+
+        result[metric] = buildTrend(metric, points, options);
+    });
+
+    return result;
+    
+}
+
+module.exports = {
+    buildTrend,
+    buildTrends,
+    TREND,
+    MIN_WEEKS_FOR_TREND,
+    VOLATILITY_THRESHOLD,
+};

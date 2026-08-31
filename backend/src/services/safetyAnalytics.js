@@ -96,3 +96,61 @@ SELECT EXISTS (
         AND time <  $3
   ) AS has_telemetry
 `;
+
+function toNumber(value, fallback = 0){
+    if (value === null || value === undefined) return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function safeRatio(numerator, denominator){
+    if (!denominator) return null;
+    return numerator / denominator;
+}
+
+function round(value, dp = 2){
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+    const factor = 10 ** dp;
+    const sign = value < 0 ? -1 : 1;
+    return (sign * Math.round(Math.abs(value) * factor)) / factor;
+}
+
+function deriveVehicle(row){
+  return {
+    vehicleId: row.vehicle_id,
+    daysWithEvents: toNumber(row.days_with_events),
+    harshBrakes: toNumber(row.harsh_brakes),
+    harshAccelerations: toNumber(row.harsh_accelerations),
+    harshCornering: toNumber(row.harsh_cornering),
+    crashes: toNumber(row.crashes),
+    overspeedEvents: toNumber(row.overspeed_events),
+    idlingEvents: toNumber(row.idling_events),
+    totalEvents: toNumber(row.total_events),
+    safetyScore: row.safety_score === null || row.safety_score === undefined ? null : toNumber(row.safety_score),
+    worstDailyScore: row.worst_daily_score === null || row.worst_daily_score === undefined ? null : toNumber(row.worst_daily_score),
+    classification: row.classification || null,
+  
+  };
+
+}
+
+function emptySummary(vehiclesInScope, hasTelemetry){
+  return {
+    hasTelemetry,
+    safetyScore: hasTelemetry ? 100 : null,
+    classification: null,
+    harshBrakes: 0,
+    harshAccelerations: 0,
+    harshCornering: 0,
+    crashes: 0,
+    overspeedEvents: 0,
+    idlingEvents: 0,
+    totalEvents: 0,
+    eventsPerVehicleDay: null,
+    vehicleDaysWithEvents: 0,
+    vehiclesWithEvents: 0,
+    vehiclesInScope,
+    vehiclesWithoutEvents: vehiclesInScope,
+    };
+
+}

@@ -24,7 +24,7 @@ const BACKEND_PORT = 5000;
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: false, // shares one Postgres database -- see tests/README.md
+  fullyParallel: false, 
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
@@ -48,9 +48,6 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run start --prefix ../backend',
-      // Was /health -- app.js defines the real route as GET /api/health.
-      // The old path 404s, so webServer would wait the full timeout and
-      // never see a 200, even though the backend was actually up.
       url: `http://localhost:${BACKEND_PORT}/api/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
@@ -62,8 +59,6 @@ export default defineConfig({
         DB_NAME: process.env.DB_NAME ?? 'fleet_analytics_e2e',
         DB_USER: process.env.DB_USER ?? 'admin',
         DB_PASSWORD: process.env.DB_PASSWORD ?? 'testpassword',
-        // Needed for the real-login spec's InitiateAuthCommand call.
-        // Not needed by any other spec -- they never touch Cognito.
         COGNITO_CLIENT_ID: process.env.COGNITO_CLIENT_ID ?? '',
         COGNITO_REGION: process.env.COGNITO_REGION ?? 'af-south-1',
       },

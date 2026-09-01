@@ -37,10 +37,6 @@ jobs:
       DB_NAME: fleet_analytics_e2e
       DB_USER: admin
       DB_PASSWORD: testpassword
-      # Real-login spec only. See e2e/PROVISIONING.md for what creates
-      # these. Every other spec uses seedAuthenticated() and never touches
-      # Cognito, so a missing secret here only skips ONE spec (guarded by
-      # test.skip in auth.spec.ts), not the whole suite.
       COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
       COGNITO_REGION: af-south-1
       E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
@@ -74,9 +70,6 @@ jobs:
           done
           echo "Postgres never became ready"; exit 1
 
-      # -------------------------------------------------------------
-      # DATABASE: same bootstrap + migration steps as the other jobs.
-      # -------------------------------------------------------------
       - name: Install database dependencies
         working-directory: ./database
         run: npm ci
@@ -100,10 +93,6 @@ jobs:
             echo "::endgroup::"
           done < <(printf '%s\n' "${files[@]}" | sort -V)
 
-      # -------------------------------------------------------------
-      # APP DEPENDENCIES (backend/frontend are started BY Playwright's
-      # webServer config -- installed here so those commands work)
-      # -------------------------------------------------------------
       - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
@@ -112,9 +101,6 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      # -------------------------------------------------------------
-      # PLAYWRIGHT
-      # -------------------------------------------------------------
       - name: Install e2e dependencies
         working-directory: ./e2e
         run: npm ci
@@ -122,16 +108,6 @@ jobs:
       - name: Install Playwright browsers
         working-directory: ./e2e
         run: npx playwright install --with-deps chromium
-
-      - name: Debug backend startup
-        working-directory: ./backend
-        run: |
-          NODE_ENV=e2e npm run start &
-          sleep 15
-          echo "--- listening ports ---"
-          ss -tlnp || netstat -tlnp
-          echo "--- health on 5000 ---"
-          curl -sv http://localhost:5000/api/health || true
 
       - name: Run Playwright tests
         working-directory: ./e2e

@@ -1,10 +1,3 @@
-// e2e/tests/support/geofence.ts
-//
-// Seeds geofences directly via SQL rather than through the UI's draw tool.
-// Actually drawing a polygon means simulating pixel-precise clicks through
-// Mapbox's projection via MapboxDraw -- a separate, harder effort. This
-// covers list/edit/delete against real data; polygon creation is follow-up.
-
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -15,8 +8,6 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD ?? 'testpassword',
 });
 
-// Small square around Pretoria, in the [lng, lat] order geofenceController's
-// ST_GeomFromGeoJSON expects (RFC 7946 -- NOT lat/lng).
 const DEFAULT_BOUNDARY = {
   type: 'Polygon',
   coordinates: [[
@@ -49,9 +40,6 @@ export async function deleteGeofenceById(id: number) {
   await pool.query('DELETE FROM geofences WHERE id = $1', [id]);
 }
 
-// Cleans up anything this spec file created, by name prefix, so a failed
-// run doesn't leak zones into the next one -- same prefix-scoped pattern
-// the Jest integration tests use for vehicle_id.
 export async function cleanupE2eZones() {
   await pool.query(`DELETE FROM geofences WHERE name LIKE 'E2E Zone %'`);
 }

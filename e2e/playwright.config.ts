@@ -70,6 +70,7 @@ export default defineConfig({
       timeout: 60_000,
       env: {
         VITE_API_URL: `http://localhost:${BACKEND_PORT}`,
+        VITE_MAPBOX_TOKEN: process.env.VITE_MAPBOX_TOKEN ?? '',
       },
     },
   ],

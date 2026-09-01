@@ -18,6 +18,7 @@ jobs:
           POSTGRES_DB: fleet_analytics_e2e
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: testpassword
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         ports:
           - 5432:5432
         options: >-

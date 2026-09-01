@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { getPool } from './auth';
+import { getPool, closeDbPool } from './auth';
 
 const pool = new Pool({
   host: process.env.DB_HOST ?? 'localhost',
@@ -49,6 +49,5 @@ export async function cleanupE2eZones() {
 }
 
 export async function closeGeofencePool() {
-  const pool = getPool();
-  await pool.end();
+  await closeDbPool();
 }

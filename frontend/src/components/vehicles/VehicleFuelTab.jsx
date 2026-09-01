@@ -493,7 +493,6 @@ export default function VehicleFuelTab({ vehicleId }) {
             animate="visible"
             className="space-y-5"
         >
-            {/* Modal */}
             <EfficiencyBreakdownModal
                 isOpen={showBreakdownModal}
                 onClose={() => setShowBreakdownModal(false)}
@@ -567,7 +566,6 @@ export default function VehicleFuelTab({ vehicleId }) {
                 <BestWorstTrips trips={data.trips} />
             </div>
 
-            {/* Road Breakdown - Bar Chart */}
             {roadData.length > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -587,7 +585,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                             const percentage = total > 0 ? (Number.parseFloat(item.value) / total) * 100 : 0;
                             const colors = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
                             return (
-                                <div key={`${item.name}-${idx}`} className="flex items-center gap-3">
+                                <div key={`road-${idx}`} className="flex items-center gap-3">
                                     <span className="text-sm text-gray-600 w-20 capitalize">{item.name}</span>
                                     <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
                                         <div
@@ -610,7 +608,6 @@ export default function VehicleFuelTab({ vehicleId }) {
                 </motion.div>
             )}
 
-            {/* All Trips History */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

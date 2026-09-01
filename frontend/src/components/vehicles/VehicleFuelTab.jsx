@@ -88,7 +88,12 @@ function StatCard({ label, value, suffix = '', icon: Icon, delay = 0, onClick = 
 
 function EfficiencyGauge({ value, max = 20 }) {
     const percentage = Math.min((value / max) * 100, 100);
-    const color = percentage > 70 ? '#10B981' : percentage > 40 ? '#F59E0B' : '#EF4444';
+    let color = '#EF4444';
+    if (percentage > 70) {
+        color = '#10B981';
+    } else if (percentage > 40) {
+        color = '#F59E0B';
+    }
     
     return (
         <motion.div
@@ -245,7 +250,7 @@ function BestWorstTrips({ trips }) {
     if (!trips || trips.length < 2) return null;
     const sorted = [...trips].sort((a, b) => Number.parseFloat(b.fuel_efficiency_km_per_liter) - Number.parseFloat(a.fuel_efficiency_km_per_liter));
     const best = sorted[0];
-    const worst = sorted[sorted.length - 1];
+    const worst = sorted.at(-1);
     const bestEff = Number.parseFloat(best.fuel_efficiency_km_per_liter) || 0;
     const worstEff = Number.parseFloat(worst.fuel_efficiency_km_per_liter) || 0;
     if (bestEff === 0 && worstEff === 0) return null;
@@ -652,7 +657,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                                     
                                     return (
                                         <motion.tr
-                                            key={i}
+                                            key={`trip-${i}`}
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: 0.02 * i }}
@@ -670,8 +675,8 @@ export default function VehicleFuelTab({ vehicleId }) {
                                             <td className="text-right py-3 px-5">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
                                                     {eff.toFixed(1)} km/L
-                                                    {isBest {isBest && ' Best'}{isBest && ' Best'} <span> Best</span>}
-                                                    {isLowest {isLowest && ' Lowest'}{isLowest && ' Lowest'} <span> Lowest</span>}
+                                                    {isBest && <span> Best</span>}
+                                                    {isLowest && <span> Lowest</span>}
                                                 </span>
                                             </td>
                                         </motion.tr>

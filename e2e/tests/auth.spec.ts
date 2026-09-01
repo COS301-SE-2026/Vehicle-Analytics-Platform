@@ -64,7 +64,7 @@ test.describe('Fixture-authenticated access (no login form, no Cognito)', () => 
   // login.
 
   test('a seeded manager session reaches the manager dashboard directly', async ({ page }) => {
-    await seedAuthenticated(page, 'manager');
+    await seedAuthenticated(page, 'fleet_manager');
     await page.goto('/dashboard/manager');
 
     await expect(page).not.toHaveURL(/\/login/);

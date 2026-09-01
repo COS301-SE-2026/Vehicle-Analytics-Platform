@@ -35,7 +35,7 @@ const pool = new Pool({
 // and stay the same across runs so re-seeding is an upsert, not a leak.
 const FIXTURE_SUB = {
   admin: '00000000-0000-4000-8000-000000000001',
-  manager: '00000000-0000-4000-8000-000000000002',
+  fleet_manager: '00000000-0000-4000-8000-000000000002',
   viewer: '00000000-0000-4000-8000-000000000003',
 } as const;
 
@@ -75,7 +75,7 @@ export async function seedRealLoginUser() {
      VALUES ($1, $2, $3, $4, true)
      ON CONFLICT (cognito_sub) DO UPDATE SET is_active = true
      RETURNING id`,
-    [cognitoSub, 'E2E Login Test User', email, 'manager']
+    [cognitoSub, 'E2E Login Test User', email, 'fleet_manager']
   );
 }
 

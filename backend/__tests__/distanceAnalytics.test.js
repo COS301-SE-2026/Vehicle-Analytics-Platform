@@ -12,7 +12,7 @@ const {
     _summarise,
 } = require('../src/services/distanceAnalytics');
 
-const { resolvePeriod } = require('../src/services/periods');
+const { resolvePeriod } = require('../src/services/period');
 
 const PERIOD = resolvePeriod({
     periodType: 'weekly',

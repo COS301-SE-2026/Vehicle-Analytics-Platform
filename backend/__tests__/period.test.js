@@ -13,7 +13,7 @@ const {
   PERIOD_TYPES,
   REPORT_TZ_OFFSET_HOURS,
   _resetDataClockProbe,
-} = require('../src/services/periods');
+} = require('../src/services/period');
 
 // SAST wall-clock time expressed as the UTC instant it maps to.
 function sast(iso) {
@@ -434,7 +434,7 @@ describe('determinism and timezone independence', () => {
   });
 
   test('output does not depend on the host timezone', () => {
-    const modulePath = path.resolve(__dirname, '../src/services/periods.js');
+    const modulePath = path.resolve(__dirname, '../src/services/period.js');
     const script = `
       const { resolvePeriod, weeksInPeriod } = require(${JSON.stringify(modulePath)});
       const anchor = new Date('2026-08-19T06:13:00+02:00');

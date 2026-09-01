@@ -18,7 +18,6 @@ jobs:
           POSTGRES_DB: fleet_analytics_e2e
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: testpassword
-          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
         ports:
           - 5432:5432
         options: >-
@@ -43,6 +42,8 @@ jobs:
       E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
       E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
       E2E_TEST_USER_COGNITO_SUB: ${{ secrets.E2E_TEST_USER_COGNITO_SUB }}
+      VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+
 
     steps:
       - uses: actions/checkout@v4

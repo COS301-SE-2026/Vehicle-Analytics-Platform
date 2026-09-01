@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { X, Gauge, Clock, AlertTriangle, ShieldAlert, Timer } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
+import { useToast } from './ToastProvider';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 const EVENT_TYPES = [
   { value: 'harsh_braking', label: 'Harsh braking' },
   { value: 'harsh_acceleration', label: 'Harsh acceleration' },
@@ -19,13 +22,9 @@ const CONDITIONS = [
 
     description: 'Trigger alerts when vehicles exceed a specific speed limit.',
 
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 12L16 8" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: Gauge,
   },
+
   {
     type: 'time_based_restriction',
 
@@ -33,53 +32,40 @@ const CONDITIONS = [
 
     description: 'Flag vehicle activity during restricted hours or days.',
 
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    icon: Clock,
   },
+
   {
     type: 'repeated_unsafe_events',
 
     title: 'Repeated Unsafe Events',
 
     description: 'Monitor for patterns like harsh braking or rapid acceleration.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <path d="M12 3l10 18H2L12 3z" strokeLinejoin="round" />
-        <path d="M12 10v4" strokeLinecap="round" />
-        <circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none" />
-      </svg>
-    ),
+
+    icon: AlertTriangle,
+
   },
+
   {
     type: 'safety_score_drop',
 
     title: 'Safety Score Drop',
 
     description: "Trigger when a vehicle's safety score falls below a minimum.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" strokeLinejoin="round" />
-      </svg>
-    ),
+
+    icon: ShieldAlert,
   },
+
   {
     type: 'trip_duration_exceeded',
 
     title: 'Trip Duration',
 
     description: 'Flag trips that exceed a standard duration.',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <circle cx="12" cy="13" r="8" />
-        <path d="M12 9v4l2.5 2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M9 2h6M12 2v2" strokeLinecap="round" />
-      </svg>
-    ),
+
+    icon: Timer,
   },
+
 ];
 
 const EMPTY_PARAMS = {
@@ -101,6 +87,8 @@ const inputClasses =
 const labelClasses = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-fleet-secondary';
 
 export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleetGroups = [] }) {
+  const toast = useToast();
+
   const [conditionType, setConditionType] = useState('speed_threshold');
 
   const [name, setName] = useState('');
@@ -116,6 +104,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
   if (!isOpen) return null;
 
   function selectCondition(type){
+
     setConditionType(type);
 
     setParams(EMPTY_PARAMS[type]);
@@ -124,13 +113,17 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
   }
 
   function updateParam(key, value){
+
     setParams((prev) => ({ ...prev, [key]: value }));
+
   }
 
   function toggleFromList(key, value){
+
     setParams((prev) => {
+
       const list = prev[key] || [];
-      
+
       const next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
       return { ...prev, [key]: next };
@@ -138,8 +131,9 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
   }
 
   function buildConditionParams() {
-
+    
     switch (conditionType) {
+
       case 'speed_threshold':
         return { max_speed_kmh: Number(params.max_speed_kmh) };
 
@@ -162,10 +156,13 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
 
       case 'trip_duration_exceeded': {
         const out = {};
+
         if (params.max_trip_minutes !== '') out.max_trip_minutes = Number(params.max_trip_minutes);
+
         if (params.max_daily_minutes !== '') out.max_daily_minutes = Number(params.max_daily_minutes);
         return out;
       }
+
 
       default:
         return {};
@@ -176,11 +173,14 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
     e.preventDefault();
     setError('');
 
-    if (!name.trim()) return setError('name is required');
+    if(!name.trim()) 
+      return setError('name is required');
 
-    if (!fleetGroupId) return setError('fleet_group_id is required');
+    if(!fleetGroupId) 
+      return setError('fleet_group_id is required');
 
     setSubmitting(true);
+
     try {
       const token = useAuthStore.getState().token;
 
@@ -198,14 +198,24 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
       onCreated?.(res.data.data ?? res.data);
 
       handleClose();
+
+      toast.success('Alert Rule Created Successfully.', 'Your new rule is now active.');
+
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      const message = err.response?.data?.message || err.message;
+
+      setError(message);
+
+      toast.error('Failed to Create Rule.', 'Please check your connection and try again.');
+
     } finally {
+
       setSubmitting(false);
     }
   }
 
-  function handleClose() {
+
+  function handleClose(){
     setName('');
 
     setFleetGroupId('');
@@ -215,13 +225,15 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
     setParams(EMPTY_PARAMS.speed_threshold);
 
     setError('');
-    
+
     onClose();
 
   }
 
   return (
+
     <div
+      role="presentation"
       className="fixed inset-0 z-50 flex items-center justify-center bg-fleet-blue/40 p-4"
       onClick={handleClose}
     >
@@ -230,16 +242,20 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between rounded-t-xl border-b border-fleet-border px-6 py-5">
+
           <h2 className="font-display text-xl font-semibold text-fleet-text">
             Create New Custom Alert
           </h2>
+
           <button
+            type="button"
             onClick={handleClose}
             aria-label="Close"
-            className="text-2xl leading-none text-fleet-secondary hover:text-fleet-text"
+            className="text-fleet-secondary hover:text-fleet-text"
           >
-            &times;
+            <X className="h-5 w-5" />
           </button>
+
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
@@ -250,9 +266,11 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
               </span>
               Select Condition
             </div>
+
             <div className="flex flex-col gap-2">
               {CONDITIONS.map((c) => {
                 const active = conditionType === c.type;
+                const Icon = c.icon;
                 return (
                   <button
                     type="button"
@@ -265,15 +283,18 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                         : 'border-fleet-border bg-fleet-surface hover:border-fleet-secondary')
                     }
                   >
-                    <span className="mt-0.5 h-5 w-5 flex-shrink-0 text-fleet-blue">{c.icon}</span>
+                    <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-fleet-blue" strokeWidth={1.6} />
                     <span>
                       <span className="block text-sm font-semibold text-fleet-text">{c.title}</span>
                       <span className="mt-0.5 block text-xs text-fleet-secondary">{c.description}</span>
                     </span>
                   </button>
+
                 );
               })}
+
             </div>
+
           </section>
 
           <section>
@@ -359,6 +380,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                     />
                   </div>
                 </div>
+
                 <div className="mb-4">
                   <label className={labelClasses}>Restricted Days</label>
                   <div className="flex flex-wrap gap-2">
@@ -382,13 +404,17 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                     })}
                   </div>
                 </div>
+
+
               </>
             )}
 
             {conditionType === 'repeated_unsafe_events' && (
               <>
                 <div className="mb-4">
+
                   <label className={labelClasses}>Event Types</label>
+
                   <div className="flex flex-wrap gap-2">
                     {EVENT_TYPES.map((ev) => {
                       const active = params.event_types.includes(ev.value);
@@ -410,6 +436,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                     })}
                   </div>
                 </div>
+
                 <div className="mb-4 grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelClasses} htmlFor="count">Occurrences</label>
@@ -423,6 +450,8 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                       required
                     />
                   </div>
+
+
                   <div>
                     <label className={labelClasses} htmlFor="window">Within (minutes)</label>
                     <input
@@ -438,6 +467,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                 </div>
               </>
             )}
+
 
             {conditionType === 'safety_score_drop' && (
               <div className="mb-4">
@@ -455,6 +485,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
               </div>
             )}
 
+
             {conditionType === 'trip_duration_exceeded' && (
               <div className="mb-4 grid grid-cols-2 gap-3">
                 <div>
@@ -468,6 +499,8 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                     onChange={(e) => updateParam('max_trip_minutes', e.target.value)}
                   />
                 </div>
+
+
                 <div>
                   <label className={labelClasses} htmlFor="max-daily">Max Daily Duration (min)</label>
                   <input
@@ -481,6 +514,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                 </div>
               </div>
             )}
+
           </section>
         </form>
 
@@ -492,6 +526,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
           >
             Cancel
           </button>
+
           <button
             type="submit"
             onClick={handleSubmit}
@@ -500,6 +535,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
           >
             {submitting ? 'Creating…' : 'Create Alert Rule'}
           </button>
+
         </div>
       </div>
     </div>

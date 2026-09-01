@@ -11,9 +11,10 @@ import {
 import useAuthStore from '@/store/authStore';
 import { Button } from '../ui/button';
 import CreateAlertRuleModal from './CreateRuleModal';
+import EditAlertRuleModal from './EditRuleModal';
 
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
 
 const CONDITION_LABELS = {
   speed_threshold: 'Speed Threshold',
@@ -30,14 +31,20 @@ const CONDITION_LABELS = {
 export default function AlertRulesTab() {
   const [rules, setRules] = useState([]);
 
-  const [loading, setloading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState(null);
 
+  const [editingRule, setEditingRule] = useState(null);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const [fleetGroups, setFleetGroups] = useState([]);
+
   const [modalOpen, setModalOpen] = useState(false);
 
-  const fetcRules = useCallback(async () => {
-    setloading(true);
+  const fetchRules = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
       const token = useAuthStore.getState().token;
@@ -54,14 +61,35 @@ export default function AlertRulesTab() {
 
       setError(err.response?.data?.message || err.message)
     } finally {
-      setloading(false);
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
 
-    fetcRules();
-  }, [fetcRules]);
+    fetchRules();
+  }, [fetchRules]);
+
+   useEffect(() => {
+    async function fetchFleetGroups() {
+      try {
+       const token = useAuthStore.getState().token;
+
+       const res = await axios.get(`${API_BASE}/api/fleet-groups`, { //check actual endpoint route
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+
+        });      
+
+        const payload = res.data.data ?? res.data;
+
+        setFleetGroups(payload.data ?? payload ?? []);
+
+      } catch (err) {
+        console.error('Failed to load fleet groups:', err);
+      }
+    }
+    fetchFleetGroups();
+  }, []);
 
   let tableContent;
 
@@ -96,7 +124,11 @@ export default function AlertRulesTab() {
           <TableCell>{rule.fleet_group_name ?? rule.fleet_group_id}</TableCell>
           <TableCell>{rule.is_active ? 'Active': 'Inactive'}</TableCell>
           <TableCell className='text-right'>
-            <Button variant='outline' size='sm' disabled>
+            <Button 
+              variant='outline' 
+              size='sm' 
+              onClick={() => { setEditingRule(rule); setEditModalOpen(true); }}
+            >
               Edit
             </Button>
           </TableCell>
@@ -131,6 +163,15 @@ export default function AlertRulesTab() {
       isOpen={modalOpen}
       onClose={() => setModalOpen(false)}
       onCreated={() => fetchRules()}
+      fleetGroups={fleetGroups}
+    />
+
+    <EditAlertRuleModal
+      isOpen={editModalOpen}
+      rule={editingRule}
+      onClose={() => setEditModalOpen(false)}
+      onUpdated={() => fetchRules()}
+      fleetGroups={fleetGroups}
     />
 
   </div>

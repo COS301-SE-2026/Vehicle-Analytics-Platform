@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { getPool } from './auth';
 
 const pool = new Pool({
   host: process.env.DB_HOST ?? 'localhost',
@@ -26,7 +27,8 @@ export async function seedGeofence(overrides: {
   const name = overrides.name ?? `E2E Zone ${Date.now()}`;
   const triggerType = overrides.triggerType ?? 'both';
 
-  const result = await pool.query(
+  const db = getPool();
+  const result = await db.query(
     `INSERT INTO geofences (name, vehicle_id, boundary, trigger_type, source)
      VALUES ($1, NULL, ST_GeomFromGeoJSON($2)::geometry(Polygon,4326), $3, 'user')
      RETURNING id, name, trigger_type`,
@@ -37,13 +39,16 @@ export async function seedGeofence(overrides: {
 }
 
 export async function deleteGeofenceById(id: number) {
-  await pool.query('DELETE FROM geofences WHERE id = $1', [id]);
+  const db = getPool();
+  await db.query('DELETE FROM geofences WHERE id = $1', [id]);
 }
 
 export async function cleanupE2eZones() {
-  await pool.query(`DELETE FROM geofences WHERE name LIKE 'E2E Zone %'`);
+  const db = getPool();
+  await db.query(`DELETE FROM geofences WHERE name LIKE 'E2E Zone %'`);
 }
 
 export async function closeGeofencePool() {
+  const pool = getPool();
   await pool.end();
 }

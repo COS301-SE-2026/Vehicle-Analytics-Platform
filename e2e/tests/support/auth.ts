@@ -2,13 +2,22 @@ import jwt from 'jsonwebtoken';
 import type { Page } from '@playwright/test';
 import { Pool } from 'pg';
 
-const pool = new Pool({
-  host: process.env.DB_HOST ?? 'localhost',
-  port: Number(process.env.DB_PORT ?? 5432),
-  database: process.env.DB_NAME ?? 'fleet_analytics_e2e',
-  user: process.env.DB_USER ?? 'admin',
-  password: process.env.DB_PASSWORD ?? 'testpassword',
-});
+let pool: Pool | null = null;
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      host: process.env.DB_HOST ?? 'localhost',
+      port: Number(process.env.DB_PORT ?? 5432),
+      database: process.env.DB_NAME ?? 'fleet_analytics_e2e',
+      user: process.env.DB_USER ?? 'admin',
+      password: process.env.DB_PASSWORD ?? 'testpassword',
+    });
+  }
+  return pool;
+}
+
+export { getPool };
 
 const FIXTURE_SUB = {
   admin: '00000000-0000-4000-8000-000000000001',
@@ -21,8 +30,9 @@ export type FixtureRole = keyof typeof FIXTURE_SUB;
 export async function seedFixtureUser(role: FixtureRole) {
   const cognitoSub = FIXTURE_SUB[role];
   const email = `e2e-${role}@fixture.local`;
+  const db = getPool();
 
-  const result = await pool.query(
+  const result = await db.query(
     `INSERT INTO users (cognito_sub, name, email, role, is_active)
      VALUES ($1, $2, $3, $4, true)
      ON CONFLICT (cognito_sub) DO UPDATE SET role = EXCLUDED.role, is_active = true
@@ -47,7 +57,9 @@ export async function seedRealLoginUser() {
     );
   }
 
-  await pool.query(
+  const db = getPool();
+
+  await db.query(
     `INSERT INTO users (cognito_sub, name, email, role, is_active)
      VALUES ($1, $2, $3, $4, true)
      ON CONFLICT (cognito_sub) DO UPDATE SET is_active = true
@@ -81,6 +93,11 @@ export async function seedAuthenticated(page: Page, role: FixtureRole) {
   return fixture;
 }
 
+
+
 export async function closeDbPool() {
-  await pool.end();
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
 }

@@ -582,7 +582,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                             const percentage = total > 0 ? (Number.parseFloat(item.value) / total) * 100 : 0;
                             const colors = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
                             return (
-                                <div key={idx} className="flex items-center gap-3">
+                                <div key={`${item.name}-${idx}`} className="flex items-center gap-3">
                                     <span className="text-sm text-gray-600 w-20 capitalize">{item.name}</span>
                                     <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
                                         <div
@@ -670,8 +670,8 @@ export default function VehicleFuelTab({ vehicleId }) {
                                             <td className="text-right py-3 px-5">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
                                                     {eff.toFixed(1)} km/L
-                                                    {isBest && ' Best'}
-                                                    {isLowest && ' Lowest'}
+                                                    {isBest {isBest && ' Best'}{isBest && ' Best'} <span> Best</span>}
+                                                    {isLowest {isLowest && ' Lowest'}{isLowest && ' Lowest'} <span> Lowest</span>}
                                                 </span>
                                             </td>
                                         </motion.tr>

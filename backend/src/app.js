@@ -29,8 +29,6 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 const geofenceRoutes = require('./routes/geofence');
 
 
-//I added this for demo 3
-const fuelRoutes = require('./routes/fuel');
 
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 
@@ -123,8 +121,7 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 
 app.use('/api/geofences', geofenceRoutes);
 
-//I added this for demo 3
-app.use('/api/fuel', fuelRoutes);
+
 
 app.use('/api/fuel', fuelHistoryRoutes);
 
@@ -179,5 +176,6 @@ app.use((err, req, res, next) => {
 
 
 module.exports = app;
+
 
 

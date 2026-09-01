@@ -1,1 +1,0 @@
-DROP TABLE IF EXISTS fleet_manager_assignments;

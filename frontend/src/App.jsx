@@ -14,6 +14,8 @@ import useAuthStore from './store/authStore'
 import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 import VehiclesList from './pages/vehicles/VehiclesList'
 import VehicleProfile from './pages/vehicles/VehicleProfile'
+import FleetGroupsManagement from './pages/fleetgroups/FleetGroupsManagement'
+import FleetGroupDetail from './pages/fleetgroups/FleetGroupDetail'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
@@ -109,7 +111,24 @@ function App() {
               </ProtectedRoute>
           }
           />
+
+          <Route
+          path="/fleet-groups"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <FleetGroupsManagement/>
+            </ProtectedRoute>
+          }></Route>
+
+          <Route
+          path="/fleet-groups/:id"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <FleetGroupDetail/>
+            </ProtectedRoute>
+          }></Route>
         </Route>
+
 
         {/* Default redirect - TEMP for testing */}
         <Route path="/landing" element={<Landing />} />

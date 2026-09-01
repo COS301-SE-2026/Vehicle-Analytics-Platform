@@ -58,7 +58,7 @@ test.describe('Geofence zones', () => {
     await zoneRow(page, zone.name).click();
 
     await expect(
-      page.getByRole('heading', { name: /zone detail/i })
+      page.getByRole('heading', { name: 'Zone Detail', exact: true })
     ).toBeVisible();
     await expect(page.getByText(zone.name)).toBeVisible();
 

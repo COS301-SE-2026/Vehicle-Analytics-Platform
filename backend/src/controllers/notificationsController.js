@@ -33,7 +33,7 @@ async function getNotifications(req, res) {
 
         return success(res, {
             notifications, 
-            checed_at: new Date(). toISOString(),
+            checked_at: new Date().toISOString(),
         }, 200);
     }catch (err) {
         console.error('Get notifications error:', err);

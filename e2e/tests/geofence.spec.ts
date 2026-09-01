@@ -8,6 +8,13 @@ import {
 
 const GEOFENCE_PATH = '/geofence';
 
+test.beforeEach(async ({ page }) => {
+  page.on('pageerror', (err) => console.log('[pageerror]', err.message));
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') console.log('[console.error]', msg.text());
+  });
+});
+
 async function gotoGeofencePage(page: Page) {
   await page.goto(GEOFENCE_PATH);
   await expect(

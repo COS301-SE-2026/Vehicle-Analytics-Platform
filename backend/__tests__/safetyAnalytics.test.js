@@ -225,3 +225,147 @@ describe('safetyAnalytics - per-vehicle results', () => {
     });
 
 });
+
+describe('safetyAnalytics - scoring', () => {
+    let sql;
+
+    beforeEach(async () => {
+        const { pool, calls } = makeDb();
+        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
+        sql = perVehicleQuery(calls).sql;
+    });
+
+    test('uses the existing 2/2/1/25 weights, floored at zero', () => {
+        expect(sql).toMatch(/GREATEST\(0, 100 - \(d\.harsh_brakes \* 2/);
+        expect(sql).toMatch(/d\.harsh_accelerations \* 2/);
+        expect(sql).toMatch(/d\.harsh_cornering \* 1/);
+        expect(sql).toMatch(/d\.crashes \* 25/);
+    });
+
+    test('excludes overspeed and idling from the score', () => {
+        const scoreExpr = sql.slice(sql.indexOf('GREATEST(0, 100'), sql.indexOf('AS safety_score'));
+        expect(scoreExpr).not.toMatch(/overspeed/);
+        expect(scoreExpr).not.toMatch(/idling/);
+    });
+
+    test('scores per day, then averages across the period', () => {
+        expect(sql).toMatch(/GROUP BY vehicle_id, event_day/);
+        expect(sql).toMatch(/ROUND\(AVG\(safety_score\)\)/);
+    });
+
+    test('classifies via classify_safety_score(), the single existing classifier', () => {
+        expect(sql).toMatch(/classify_safety_score\(/);
+        const src = require('fs').readFileSync(
+            require('path').resolve(__dirname, '../src/services/safetyAnalytics.js'), 'utf8',
+        );
+        expect(src).not.toMatch(/>= 90/);
+        expect(src).not.toMatch(/'Excellent'/);
+    });
+});
+
+describe('safetyAnalytics - fleet summary', () => {
+    test('totals are summed across vehicles', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getSafetyAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+
+        expect(summary.harshBrakes).toBe(14);
+        expect(summary.harshAccelerations).toBe(10);
+        expect(summary.harshCornering).toBe(7);
+        expect(summary.crashes).toBe(1);
+        expect(summary.overspeedEvents).toBe(8);
+        expect(summary.idlingEvents).toBe(10);
+        expect(summary.totalEvents).toBe(50);
+    });
+
+    test('the fleet score comes from the database, averaged over vehicle-days', () => {
+        return makeDb().pool && getSafetyAnalytics(makeDb().pool, ['VH-001', 'VH-002'], PERIOD)
+            .then(({ summary }) => {
+                expect(summary.safetyScore).toBe(70);
+                expect(summary.classification).toBe('Fair');
+                expect(summary.vehicleDaysWithEvents).toBe(7);
+            });
+    });
+
+    test('events per vehicle-day normalises for exposure', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getSafetyAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+        expect(summary.eventsPerVehicleDay).toBeCloseTo(7.14, 2);
+    });
+
+    test('counts vehicles in scope that recorded nothing', async () => {
+        const { pool } = makeDb();
+        const { summary } = await getSafetyAnalytics(pool, ['VH-001', 'VH-002', 'VH-003'], PERIOD);
+
+        expect(summary.vehiclesInScope).toBe(3);
+        expect(summary.vehiclesWithEvents).toBe(2);
+        expect(summary.vehiclesWithoutEvents).toBe(1);
+    });
+});
+
+describe('safetyAnalytics - empty periods and no telemetry', () => {
+    test('an empty scope returns no data without querying', async () => {
+        const { pool, calls } = makeDb();
+        const result = await getSafetyAnalytics(pool, [], PERIOD);
+
+        expect(calls).toHaveLength(0);
+        expect(result.vehicles).toEqual([]);
+        expect(result.summary.hasTelemetry).toBe(false);
+        expect(result.summary.safetyScore).toBeNull();
+    });
+
+    test('no telemetry yields a null score, never a fabricated 100', async () => {
+        const { pool } = makeDb({ safetyAggregates: [], hasTelemetry: false });
+        const { summary } = await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
+
+        expect(summary.hasTelemetry).toBe(false);
+        expect(summary.safetyScore).toBeNull();
+        expect(summary.classification).toBeNull();
+        expect(summary.totalEvents).toBe(0);
+    });
+
+    test('telemetry present with no events is a genuine, earned 100', async () => {
+        const { pool } = makeDb({ safetyAggregates: [], hasTelemetry: true });
+        const { summary } = await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
+
+        expect(summary.hasTelemetry).toBe(true);
+        expect(summary.safetyScore).toBe(100);
+        expect(summary.totalEvents).toBe(0);
+    });
+
+    test('the two empty cases are distinguishable', () => {
+        expect(_emptySummary(5, false).safetyScore).toBeNull();
+        expect(_emptySummary(5, true).safetyScore).toBe(100);
+    });
+
+    test('checks telemetry presence over the same scope and period', async () => {
+        const { pool, calls } = makeDb();
+        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
+
+        const probe = calls.find((c) => c.sql.includes('has_telemetry'));
+        expect(probe.params[0]).toEqual(['VH-001']);
+        expect(probe.params[1].getTime()).toBe(PERIOD.from.getTime());
+        expect(probe.sql).toMatch(/EXISTS/);
+    });
+});
+
+describe('safetyAnalytics - consistency with the other services', () => {
+    test('mirrors the distance and fuel service contract', async () => {
+        const { pool } = makeDb();
+        const result = await getSafetyAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+
+        expect(result).toHaveProperty('summary');
+        expect(Array.isArray(result.vehicles)).toBe(true);
+        expect(result.summary.vehiclesInScope).toBe(2);
+        result.vehicles.forEach((v) => expect(typeof v.vehicleId).toBe('string'));
+    });
+
+    test('introduces no UTC timestamps into its output', async () => {
+        const { pool } = makeDb();
+        const result = await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
+        expect(JSON.stringify(result)).not.toMatch(/\d{2}:\d{2}:\d{2}/);
+    });
+
+    test('the fixture is de-duplicated incident counts, not raw rows', () => {
+        expect(DEFAULT_SAFETY_AGGREGATES).toHaveLength(2);
+    });
+});

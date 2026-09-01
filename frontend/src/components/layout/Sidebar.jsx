@@ -3,6 +3,8 @@ import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck }
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, FileBarChart } from 'lucide-react'
+
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
@@ -15,7 +17,8 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
   { icon: Map, label: 'Live Map', path: '/map' },
   { icon: Globe, label: 'Geofence', path: '/geofence'},
-  { icon: Truck, label: 'Vehicles', path: '/vehicles'}
+  { icon: Truck, label: 'Vehicles', path: '/vehicles'},
+  { icon: FileBarChart, label: 'Reports', path: '/reports'}
 ]
 
 export default function Sidebar({ role, collapsed, onToggle }) {

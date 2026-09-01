@@ -26,7 +26,7 @@ async function requireFleetGroupAccess(req, res, next) {
         return next();
     }
 
-    if(req.user.role !== 'fleet_manager') {
+    if(req.user.role !== 'fleet_manager' && req.user.role != 'manager') {
         //scoped only to this user. idk if viewer will be scoped as well
         //decide
 
@@ -40,7 +40,7 @@ async function requireFleetGroupAccess(req, res, next) {
              FROM fleet_manager_assignments fma
              JOIN users u ON u.id = fma.fleet_manager_id
              WHERE fma.fleet_manager_id = $1
-                AND u.role = 'fleet_manager'
+                AND u.role IN ('fleet_manager', 'manager')
                 AND u.is_active = true
             `, [req.user.id]
         );

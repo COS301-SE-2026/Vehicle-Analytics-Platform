@@ -219,9 +219,25 @@ async function getVehiclePositionBuffer(req, res) {
 
 async function getVehiclesList(req, res) {
 
-  const {status, min_score, max_score, alerts, page = 1, limit = 20} = req.query;
+  const {status, min_score, max_score, alerts, fleet_group_id, page = 1, limit = 20} = req.query;
 
   const offset = (Number.parseInt(page) - 1) * Number.parseInt(limit);
+
+  let scopedGroupIds = req.fleetGroupIds;
+
+  if(fleet_group_id) {
+    const requestedId = Number.parseInt(fleet_group_id, 10);
+
+    if(Number.isNaN(requestedId)){
+      return error(res, 'Invalid fleet_group_id', 400);
+    }
+
+    if(req.fleetGroupIds !== null && !req.fleetGroupIds.includes(String(requestedId))){
+      return error(res, 'You do not have acces to this fleet group', 403);
+    }
+
+    scopedGroupIds = [requestedId];
+  }
 
 
 
@@ -233,6 +249,8 @@ async function getVehiclesList(req, res) {
     SELECT 
 
       v.vehicle_id as id,
+      v.fleet_group_id,
+      fg.name as fleet_group_name,
 
       CASE
 
@@ -276,6 +294,7 @@ async function getVehiclesList(req, res) {
       END as is_speeding
 
     FROM vehicles v
+    LEFT JOIN fleet_groups fg ON fg.id = v.fleet_group_id
     LEFT JOIN current_vehicle_position pos ON v.vehicle_id = pos.vehicle_id
 
     LEFT JOIN driver_daily_safety_scores s ON v.vehicle_id = s.vehicle_id AND s.score_date = CURRENT_DATE
@@ -310,7 +329,7 @@ async function getVehiclesList(req, res) {
     `;
 
 
-    const params = [req.fleetGroupIds];
+    const params = [scopedGroupIds];
     let paramCount = 2;
 
 
@@ -457,7 +476,7 @@ async function getVehiclesList(req, res) {
       WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
       ) stats
 
-    `, [req.fleetGroupIds]);
+    `, [scopedGroupIds]);
 
 
 
@@ -476,7 +495,7 @@ async function getVehiclesList(req, res) {
       ORDER BY s.safety_score ASC NULLS LAST
 
       LIMIT 1
-    `, [req.fleetGroupIds]);
+    `, [scopedGroupIds]);
 
 
 

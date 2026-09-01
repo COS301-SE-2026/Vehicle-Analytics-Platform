@@ -1,4 +1,7 @@
+
+
 const FuelHistoryService = require('../services/fuelHistoryService');
+
 
 
 
@@ -20,6 +23,8 @@ exports.getVehicleFuelHistory = async (req, res) => {
 
     } catch (err) {
 
+        console.error('Error in getVehicleFuelHistory:', err);
+
         res.status(500).json({ success: false, error: err.message });
 
     }
@@ -30,8 +35,8 @@ exports.getVehicleFuelHistory = async (req, res) => {
 
 exports.getFleetFuelHistory = async (req, res) => {
 
-
     try {
+
         const { period = 'week', limit = 10 } = req.query;
 
         const data = await fuelHistoryService.getFleetFuelHistory(period, parseInt(limit));
@@ -39,6 +44,8 @@ exports.getFleetFuelHistory = async (req, res) => {
         res.json({ success: true, data });
 
     } catch (err) {
+
+        console.error('Error in getFleetFuelHistory:', err);
 
         res.status(500).json({ success: false, error: err.message });
 
@@ -60,13 +67,17 @@ exports.getVehicleFuelTrend = async (req, res) => {
 
         res.json({ success: true, data });
 
+
     } catch (err) {
+
+        console.error('Error in getVehicleFuelTrend:', err);
 
         res.status(500).json({ success: false, error: err.message });
 
     }
-
 };
+
+
 
 
 
@@ -86,13 +97,10 @@ exports.calculateDailyHistory = async (req, res) => {
 
     } catch (err) {
 
+        console.error('Error in calculateDailyHistory:', err);
+
         res.status(500).json({ success: false, error: err.message });
 
     }
 
 };
-
-
-
-
-

@@ -32,6 +32,8 @@ const geofenceRoutes = require('./routes/geofence');
 //I added this for demo 3
 const fuelRoutes = require('./routes/fuel');
 
+const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
+
 const app = express();
 
 
@@ -123,6 +125,8 @@ app.use('/api/geofences', geofenceRoutes);
 
 //I added this for demo 3
 app.use('/api/fuel', fuelRoutes);
+
+app.use('/api/fuel', fuelHistoryRoutes);
 
 
 

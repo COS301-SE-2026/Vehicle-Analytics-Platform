@@ -123,6 +123,16 @@ jobs:
         working-directory: ./e2e
         run: npx playwright install --with-deps chromium
 
+      - name: Debug backend startup
+        working-directory: ./backend
+        run: |
+          NODE_ENV=e2e npm run start &
+          sleep 15
+          echo "--- listening ports ---"
+          ss -tlnp || netstat -tlnp
+          echo "--- health on 5000 ---"
+          curl -sv http://localhost:5000/api/health || true
+
       - name: Run Playwright tests
         working-directory: ./e2e
         run: npx playwright test

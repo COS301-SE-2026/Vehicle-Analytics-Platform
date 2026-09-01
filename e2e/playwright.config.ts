@@ -56,6 +56,7 @@ export default defineConfig({
       timeout: 30_000,
       env: {
         NODE_ENV: 'e2e',
+        PORT: String(BACKEND_PORT),   
         DB_HOST: process.env.DB_HOST ?? 'localhost',
         DB_PORT: process.env.DB_PORT ?? '5432',
         DB_NAME: process.env.DB_NAME ?? 'fleet_analytics_e2e',

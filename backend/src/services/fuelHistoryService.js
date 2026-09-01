@@ -13,7 +13,7 @@ class FuelHistoryService {
 
             host: process.env.DB_HOST,
 
-            port: parseInt(process.env.DB_PORT || '6432'),
+            port: Number.parseInt(process.env.DB_PORT || '6432'),
 
             database: process.env.DB_NAME,
 

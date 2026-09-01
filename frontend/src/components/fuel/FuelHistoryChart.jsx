@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getVehicleFuelHistory } from '../../services/fuelService';
-
 const FuelHistoryChart = ({ vehicleId }) => {
     const [history, setHistory] = useState([]);
     const [period, setPeriod] = useState('week');

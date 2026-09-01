@@ -17,7 +17,7 @@ exports.getVehicleFuelHistory = async (req, res) => {
 
         const { period = 'week', limit = 10 } = req.query;
 
-        const data = await fuelHistoryService.getVehicleFuelHistory(vehicleId, period, parseInt(limit));
+        const data = await fuelHistoryService.getVehicleFuelHistory(vehicleId, period, Number.parseInt(limit));
 
         res.json({ success: true, data });
 
@@ -39,7 +39,7 @@ exports.getFleetFuelHistory = async (req, res) => {
 
         const { period = 'week', limit = 10 } = req.query;
 
-        const data = await fuelHistoryService.getFleetFuelHistory(period, parseInt(limit));
+        const data = await fuelHistoryService.getFleetFuelHistory(period, Number.parseInt(limit));
 
         res.json({ success: true, data });
 
@@ -63,7 +63,7 @@ exports.getVehicleFuelTrend = async (req, res) => {
 
         const { days = 30 } = req.query;
 
-        const data = await fuelHistoryService.getVehicleFuelTrend(vehicleId, parseInt(days));
+        const data = await fuelHistoryService.getVehicleFuelTrend(vehicleId, Number.parseInt(days));
 
         res.json({ success: true, data });
 

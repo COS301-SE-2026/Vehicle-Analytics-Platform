@@ -243,11 +243,11 @@ function SavingsCard({ currentEfficiency, targetEfficiency = 12, distance = 1000
 
 function BestWorstTrips({ trips }) {
     if (!trips || trips.length < 2) return null;
-    const sorted = [...trips].sort((a, b) => parseFloat(b.fuel_efficiency_km_per_liter) - parseFloat(a.fuel_efficiency_km_per_liter));
+    const sorted = [...trips].sort((a, b) => Number.parseFloat(b.fuel_efficiency_km_per_liter) - Number.parseFloat(a.fuel_efficiency_km_per_liter));
     const best = sorted[0];
     const worst = sorted[sorted.length - 1];
-    const bestEff = parseFloat(best.fuel_efficiency_km_per_liter) || 0;
-    const worstEff = parseFloat(worst.fuel_efficiency_km_per_liter) || 0;
+    const bestEff = Number.parseFloat(best.fuel_efficiency_km_per_liter) || 0;
+    const worstEff = Number.parseFloat(worst.fuel_efficiency_km_per_liter) || 0;
     if (bestEff === 0 && worstEff === 0) return null;
     
     return (
@@ -390,22 +390,22 @@ export default function VehicleFuelTab({ vehicleId }) {
                 const trips = filtered.map((h, idx) => ({
                     trip_id: idx + 1,
                     trip_date: h.period_start,
-                    total_distance_km: parseFloat(h.total_distance || 0),
-                    estimated_fuel_consumed_liters: parseFloat(h.total_fuel || 0),
-                    fuel_efficiency_km_per_liter: parseFloat(h.avg_efficiency || 0),
+                    total_distance_km: Number.parseFloat(h.total_distance || 0),
+                    estimated_fuel_consumed_liters: Number.parseFloat(h.total_fuel || 0),
+                    fuel_efficiency_km_per_liter: Number.parseFloat(h.avg_efficiency || 0),
                     avg_speed_kmh: 0,
                     road_breakdown: h.road_class_breakdown || { motorway: 0, primary: 0, residential: 0, other: 0 }
                 }));
                 
-                const totalDistance = filtered.reduce((sum, h) => sum + parseFloat(h.total_distance || 0), 0);
-                const totalFuel = filtered.reduce((sum, h) => sum + parseFloat(h.total_fuel || 0), 0);
+                const totalDistance = filtered.reduce((sum, h) => sum + Number.parseFloat(h.total_distance || 0), 0);
+                const totalFuel = filtered.reduce((sum, h) => sum + Number.parseFloat(h.total_fuel || 0), 0);
                 const avgEff = totalDistance > 0 && totalFuel > 0 ? totalDistance / totalFuel : 0;
                 
                 const roadBreakdown = { motorway: 0, primary: 0, residential: 0, other: 0 };
                 trips.forEach(trip => {
                     if (trip.road_breakdown) {
                         Object.keys(roadBreakdown).forEach(key => {
-                            roadBreakdown[key] += parseFloat(trip.road_breakdown[key] || 0);
+                            roadBreakdown[key] += Number.parseFloat(trip.road_breakdown[key] || 0);
                         });
                     }
                 });
@@ -438,9 +438,9 @@ export default function VehicleFuelTab({ vehicleId }) {
         const headers = ['Date', 'Distance (km)', 'Fuel (L)', 'Efficiency (km/L)'];
         const rows = data.trips.map(t => [
             new Date(t.trip_date).toLocaleDateString(),
-            parseFloat(t.total_distance_km).toFixed(1),
-            parseFloat(t.estimated_fuel_consumed_liters).toFixed(1),
-            parseFloat(t.fuel_efficiency_km_per_liter).toFixed(1)
+            Number.parseFloat(t.total_distance_km).toFixed(1),
+            Number.parseFloat(t.estimated_fuel_consumed_liters).toFixed(1),
+            Number.parseFloat(t.fuel_efficiency_km_per_liter).toFixed(1)
         ]);
         const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -471,14 +471,14 @@ export default function VehicleFuelTab({ vehicleId }) {
     const totalDistance = Math.round(data.summary.total_distance);
     const totalFuel = Math.round(data.summary.total_fuel);
 
-    const maxEff = data.trips.length > 0 ? Math.max(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
-    const minEff = data.trips.length > 0 ? Math.min(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
+    const maxEff = data.trips.length > 0 ? Math.max(...data.trips.map(t => Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
+    const minEff = data.trips.length > 0 ? Math.min(...data.trips.map(t => Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
 
     const roadData = Object.entries(data.summary.road_breakdown || {})
         .filter(([_, value]) => value > 0)
         .map(([name, value]) => ({
             name: name.charAt(0).toUpperCase() + name.slice(1),
-            value: parseFloat(value).toFixed(1)
+            value: Number.parseFloat(value).toFixed(1)
         }));
 
     return (
@@ -578,8 +578,8 @@ export default function VehicleFuelTab({ vehicleId }) {
                     </div>
                     <div className="space-y-3">
                         {roadData.map((item, idx) => {
-                            const total = roadData.reduce((sum, r) => sum + parseFloat(r.value), 0);
-                            const percentage = total > 0 ? (parseFloat(item.value) / total) * 100 : 0;
+                            const total = roadData.reduce((sum, r) => sum + Number.parseFloat(r.value), 0);
+                            const percentage = total > 0 ? (Number.parseFloat(item.value) / total) * 100 : 0;
                             const colors = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
                             return (
                                 <div key={idx} className="flex items-center gap-3">
@@ -596,7 +596,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                                         </div>
                                     </div>
                                     <span className="text-sm font-medium text-gray-900 w-16 text-right">
-                                        {parseFloat(item.value).toFixed(1)} km
+                                        {Number.parseFloat(item.value).toFixed(1)} km
                                     </span>
                                 </div>
                             );
@@ -635,7 +635,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                         <tbody>
                             {data.trips && data.trips.length > 0 ? (
                                 data.trips.map((trip, i) => {
-                                    const eff = parseFloat(trip.fuel_efficiency_km_per_liter) || 0;
+                                    const eff = Number.parseFloat(trip.fuel_efficiency_km_per_liter) || 0;
                                     const isBest = eff === maxEff && maxEff > 0 && data.trips.length > 1;
                                     const isLowest = eff === minEff && minEff > 0 && eff !== maxEff && data.trips.length > 1;
                                     
@@ -662,10 +662,10 @@ export default function VehicleFuelTab({ vehicleId }) {
                                                 {trip.trip_date ? new Date(trip.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                             </td>
                                             <td className="text-right py-3 px-5 text-gray-700 text-sm">
-                                                {parseFloat(trip.total_distance_km || 0).toFixed(1)} km
+                                                {Number.parseFloat(trip.total_distance_km || 0).toFixed(1)} km
                                             </td>
                                             <td className="text-right py-3 px-5 text-gray-700 text-sm">
-                                                {parseFloat(trip.estimated_fuel_consumed_liters || 0).toFixed(1)} L
+                                                {Number.parseFloat(trip.estimated_fuel_consumed_liters || 0).toFixed(1)} L
                                             </td>
                                             <td className="text-right py-3 px-5">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>

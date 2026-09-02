@@ -14,4 +14,4 @@ npm-debug.log*
 .env
 .env.local
 
-**/node_modules
+**/node_modulesbackend/.env.test

@@ -90,7 +90,7 @@ jest.mock("@/services/geofenceServices", () => ({
 }));
 
 function latestMapInstance() {
-  // eslint-disable-next-line global-require
+   
   const mapboxgl = require("mapbox-gl").default;
   return mapboxgl.__instances[mapboxgl.__instances.length - 1];
 }

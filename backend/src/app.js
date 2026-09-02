@@ -30,6 +30,8 @@ const geofenceRoutes = require('./routes/geofence');
 
 
 
+const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
+
 const app = express();
 
 
@@ -120,6 +122,8 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 app.use('/api/geofences', geofenceRoutes);
 
 
+
+app.use('/api/fuel', fuelHistoryRoutes);
 
 
 

@@ -1,230 +1,126 @@
 
-import React, { useState, useEffect } from 'react';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React from 'react';
 
-import { getVehicleFuelHistory } from '../../services/fuelService';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 
 
-const FuelHistoryChart = ({ vehicleId }) => {
+export default function FuelHistoryChart({ data }) {
 
-    const [history, setHistory] = useState([]);
+    if (!data || data.length === 0) {
 
-    const [period, setPeriod] = useState('week');
+        return (
 
-    const [loading, setLoading] = useState(true);
+<div className="bg-white rounded-2xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100/80">
 
+        <p className="text-center text-gray-400 py-8">No fuel history data available</p>
 
-    
-    useEffect(() => {
-    
-        fetchHistory();
-    
-    }, [vehicleId, period]);
-
-
-    
-    const fetchHistory = async () => {
-    
-        setLoading(true);
-    
-        try {
-    
-            const data = await getVehicleFuelHistory(vehicleId, period);
-    
-            setHistory(data || []);
-    
-        } catch (error) {
-    
-            console.error('Error fetching fuel history:', error);
-    
-            setHistory([]);
-    
-        }
-    
-        setLoading(false);
-    
-    };
-
-
-    
-    if (loading) {
-    
-        return <div className="text-center py-8 text-gray-500">Loading fuel history...</div>;
-    
-    }
-
-
-    
-    if (!history || history.length === 0) {
-    
-        return <div className="text-center py-8 text-gray-500">No fuel history data available</div>;
-    
-    }
-
-
-    
-    const totalDistance = history.reduce((sum, h) => sum + Number(h.total_distance || 0), 0);
-    
-    const totalFuel = history.reduce((sum, h) => sum + Number(h.total_fuel || 0), 0);
-    
-    const avgEfficiency = totalDistance > 0 && totalFuel > 0 ? totalDistance / totalFuel : 0;
-    
-    const totalTrips = history.reduce((sum, h) => sum + Number(h.trip_count || 0), 0);
-
-
-    
-    return (
-    
-    <div className="space-y-6">
-    
-            <div className="flex justify-between items-center">
-    
-                <h3 className="font-semibold text-gray-800">Fuel Efficiency History</h3>
-    
-                <div className="flex gap-2">
-    
-                    <select
-    
-    value={period}
-    
-    onChange={(e) => setPeriod(e.target.value)}
-    
-    className="border border-gray-300 rounded-lg px-3 py-1 text-sm"
-    
-    >
-    
-                        <option value="day">Daily</option>
-    
-                        <option value="week">Weekly</option>
-    
-                        <option value="month">Monthly</option>
-    
-                    </select>
-    
-                </div>
-    
-            </div>
-
-
-
-            <div className="bg-white rounded-lg shadow-sm p-4">
-
-                <h4 className="text-sm text-gray-500 mb-2">Summary</h4>
-
-                <div className="grid grid-cols-4 gap-4">
-
-                    <div>
-
-                        <p className="text-xs text-gray-400">Avg Efficiency</p>
-
-                        <p className="text-lg font-bold text-purple-600">
-
-                            {avgEfficiency.toFixed(2)} km/L
-
-                        </p>
-
-                    </div>
-
-                    <div>
-
-                        <p className="text-xs text-gray-400">Total Distance</p>
-
-                        <p className="text-lg font-bold text-green-600">
-
-                            {totalDistance.toFixed(1)} km
-
-                        </p>
-
-                    </div>
-
-                    <div>
-
-                        <p className="text-xs text-gray-400">Total Fuel</p>
-
-                        <p className="text-lg font-bold text-yellow-600">
-
-                            {totalFuel.toFixed(1)} L
-
-                        </p>
-
-                    </div>
-
-                    <div>
-
-                        <p className="text-xs text-gray-400">Total Trips</p>
-
-                        <p className="text-lg font-bold text-blue-600">
-
-                            {totalTrips}
-
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-
-            <div className="grid grid-cols-2 gap-4">
-
-                <div className="bg-white rounded-lg shadow-sm p-4">
-
-                    <h4 className="text-sm text-gray-500 mb-2">Total Distance</h4>
-
-                    <ResponsiveContainer width="100%" height={150}>
-
-                        <BarChart data={history}>
-
-                            <XAxis dataKey="period_start" hide />
-
-                            <YAxis />
-
-                            <Tooltip />
-
-                            <Bar dataKey="total_distance" fill="#10B981" name="Distance (km)" />
-
-                        </BarChart>
-
-                    </ResponsiveContainer>
-
-                </div>
-
-                <div className="bg-white rounded-lg shadow-sm p-4">
-
-                    <h4 className="text-sm text-gray-500 mb-2">Total Fuel</h4>
-
-                    <ResponsiveContainer width="100%" height={150}>
-
-                        <BarChart data={history}>
-
-                            <XAxis dataKey="period_start" hide />
-
-                            <YAxis />
-
-                            <Tooltip />
-
-                            <Bar dataKey="total_fuel" fill="#F59E0B" name="Fuel (L)" />
-
-                        </BarChart>
-
-                    </ResponsiveContainer>
-
-                </div>
-
-            </div>
-
-        </div>
+      </div>
 
 );
 
-};
+}
 
 
 
-export default FuelHistoryChart;
+const chartData = data.map((item) => ({
 
+    date: new Date(item.period_start || item.date).toLocaleDateString('en-ZA', { 
+
+        day: 'numeric', 
+
+        month: 'short' 
+
+    }),
+
+    efficiency: Number.parseFloat(item.avg_efficiency || item.efficiency || 0),
+
+    distance: Number.parseFloat(item.total_distance || item.distance || 0)
+
+}));
+
+
+
+return (
+
+<div className="bg-white rounded-2xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100/80">
+
+      <h4 className="text-sm font-medium text-gray-700 mb-4">Fuel Efficiency Trend</h4>
+
+      <div className="h-64">
+
+        <ResponsiveContainer width="100%" height="100%">
+
+          <LineChart data={chartData}>
+
+            <XAxis 
+
+dataKey="date" 
+
+tick={{ fontSize: 11, fill: '#9CA3AF' }}
+
+axisLine={{ stroke: '#E5E7EB' }}
+
+tickLine={false}
+
+/>
+
+            <YAxis 
+
+tick={{ fontSize: 11, fill: '#9CA3AF' }}
+
+axisLine={{ stroke: '#E5E7EB' }}
+
+tickLine={false}
+
+label={{ value: 'km/L', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#9CA3AF' } }}
+
+/>
+
+            <Tooltip 
+
+contentStyle={{ 
+
+    backgroundColor: 'white', 
+
+    border: '1px solid #E5E7EB',
+
+    borderRadius: '12px',
+
+    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+
+}}
+
+formatter={(value) => [`${Number.parseFloat(value).toFixed(1)} km/L`, 'Efficiency']}
+
+/>
+
+            <Line 
+
+type="monotone" 
+
+dataKey="efficiency" 
+
+stroke="#10B981" 
+
+strokeWidth={2.5}
+
+dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+
+activeDot={{ r: 6 }}
+
+/>
+
+          </LineChart>
+
+        </ResponsiveContainer>
+
+      </div>
+
+    </div>
+
+);
+
+}
 

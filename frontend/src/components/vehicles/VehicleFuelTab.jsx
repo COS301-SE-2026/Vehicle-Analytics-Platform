@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 
-import { motion } from 'framer-motion';
 
+import { motion } from 'framer-motion';
 import { getVehicleFuelHistory } from '../../services/fuelService';
 
 import { 
@@ -34,35 +35,20 @@ const containerVariants = {
 const itemVariants = {
 
     hidden: { opacity: 0, y: 20 },
-
     visible: { opacity: 1, y: 0 }
-
 };
-
-
 
 const cardVariants = {
-
     hidden: { opacity: 0, scale: 0.96 },
-
     visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } }
-
 };
 
-
-
 function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1200, decimals = 1 }) {
-
     const [count, setCount] = useState(0);
-
     const [isVisible, setIsVisible] = useState(false);
-
     const ref = useRef(null);
-
-    
     
     useEffect(() => {
-    
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
@@ -121,7 +107,19 @@ function StatCard({ label, value, suffix = '', icon: Icon, delay = 0, onClick = 
 
 function EfficiencyGauge({ value, max = 20 }) {
     const percentage = Math.min((value / max) * 100, 100);
-    const color = percentage > 70 ? '#10B981' : percentage > 40 ? '#F59E0B' : '#EF4444';
+    
+    let color;
+    let colorClass;
+    if (percentage > 70) {
+        color = '#10B981';
+        colorClass = 'text-emerald-500';
+    } else if (percentage > 40) {
+        color = '#F59E0B';
+        colorClass = 'text-amber-500';
+    } else {
+        color = '#EF4444';
+        colorClass = 'text-rose-500';
+    }
     
     return (
         <motion.div
@@ -137,7 +135,7 @@ function EfficiencyGauge({ value, max = 20 }) {
                     </div>
                     <span className="text-sm font-medium text-gray-700">Efficiency Score</span>
                 </div>
-                <span className={`text-lg font-bold ${percentage > 70 ? 'text-emerald-500' : percentage > 40 ? 'text-amber-500' : 'text-rose-500'}`}>
+                <span className={`text-lg font-bold ${colorClass}`}>
                     {value.toFixed(1)}
                 </span>
             </div>
@@ -276,11 +274,11 @@ function SavingsCard({ currentEfficiency, targetEfficiency = 12, distance = 1000
 
 function BestWorstTrips({ trips }) {
     if (!trips || trips.length < 2) return null;
-    const sorted = [...trips].sort((a, b) => parseFloat(b.fuel_efficiency_km_per_liter) - parseFloat(a.fuel_efficiency_km_per_liter));
+    const sorted = [...trips].sort((a, b) => Number.parseFloat(b.fuel_efficiency_km_per_liter) - Number.parseFloat(a.fuel_efficiency_km_per_liter));
     const best = sorted[0];
     const worst = sorted[sorted.length - 1];
-    const bestEff = parseFloat(best.fuel_efficiency_km_per_liter) || 0;
-    const worstEff = parseFloat(worst.fuel_efficiency_km_per_liter) || 0;
+    const bestEff = Number.parseFloat(best.fuel_efficiency_km_per_liter) || 0;
+    const worstEff = Number.parseFloat(worst.fuel_efficiency_km_per_liter) || 0;
     if (bestEff === 0 && worstEff === 0) return null;
     
     return (
@@ -361,8 +359,8 @@ function EfficiencyBreakdownModal({ isOpen, onClose, avgEfficiency }) {
                     <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em] mb-3">Road Type Fuel Rates</p>
                         <div className="grid grid-cols-2 gap-2">
-                            {Object.entries(ROAD_FUEL_RATES).map(([road, rate]) => (
-                                <div key={road} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-100">
+                            {Object.entries(ROAD_FUEL_RATES).map(([road, rate], index) => (
+                                <div key={`${road}-${index}`} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-100">
                                     <span className="text-sm text-gray-600 capitalize">{road.replace('_', ' ')}</span>
                                     <span className="text-sm font-medium text-gray-900">{rate.toFixed(1)} L/100km</span>
                                 </div>
@@ -414,31 +412,25 @@ export default function VehicleFuelTab({ vehicleId }) {
                     return d >= start && d <= end;
                 });
                 
-                if (filtered.length === 0) {
-                    setData(null);
-                    setLoading(false);
-                    return;
-                }
-                
                 const trips = filtered.map((h, idx) => ({
                     trip_id: idx + 1,
                     trip_date: h.period_start,
-                    total_distance_km: parseFloat(h.total_distance || 0),
-                    estimated_fuel_consumed_liters: parseFloat(h.total_fuel || 0),
-                    fuel_efficiency_km_per_liter: parseFloat(h.avg_efficiency || 0),
+                    total_distance_km: Number.parseFloat(h.total_distance || 0),
+                    estimated_fuel_consumed_liters: Number.parseFloat(h.total_fuel || 0),
+                    fuel_efficiency_km_per_liter: Number.parseFloat(h.avg_efficiency || 0),
                     avg_speed_kmh: 0,
                     road_breakdown: h.road_class_breakdown || { motorway: 0, primary: 0, residential: 0, other: 0 }
                 }));
                 
-                const totalDistance = filtered.reduce((sum, h) => sum + parseFloat(h.total_distance || 0), 0);
-                const totalFuel = filtered.reduce((sum, h) => sum + parseFloat(h.total_fuel || 0), 0);
+                const totalDistance = filtered.reduce((sum, h) => sum + Number.parseFloat(h.total_distance || 0), 0);
+                const totalFuel = filtered.reduce((sum, h) => sum + Number.parseFloat(h.total_fuel || 0), 0);
                 const avgEff = totalDistance > 0 && totalFuel > 0 ? totalDistance / totalFuel : 0;
                 
                 const roadBreakdown = { motorway: 0, primary: 0, residential: 0, other: 0 };
                 trips.forEach(trip => {
                     if (trip.road_breakdown) {
                         Object.keys(roadBreakdown).forEach(key => {
-                            roadBreakdown[key] += parseFloat(trip.road_breakdown[key] || 0);
+                            roadBreakdown[key] += Number.parseFloat(trip.road_breakdown[key] || 0);
                         });
                     }
                 });
@@ -471,9 +463,9 @@ export default function VehicleFuelTab({ vehicleId }) {
         const headers = ['Date', 'Distance (km)', 'Fuel (L)', 'Efficiency (km/L)'];
         const rows = data.trips.map(t => [
             new Date(t.trip_date).toLocaleDateString(),
-            parseFloat(t.total_distance_km).toFixed(1),
-            parseFloat(t.estimated_fuel_consumed_liters).toFixed(1),
-            parseFloat(t.fuel_efficiency_km_per_liter).toFixed(1)
+            Number.parseFloat(t.total_distance_km).toFixed(1),
+            Number.parseFloat(t.estimated_fuel_consumed_liters).toFixed(1),
+            Number.parseFloat(t.fuel_efficiency_km_per_liter).toFixed(1)
         ]);
         const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -504,14 +496,14 @@ export default function VehicleFuelTab({ vehicleId }) {
     const totalDistance = Math.round(data.summary.total_distance);
     const totalFuel = Math.round(data.summary.total_fuel);
 
-    const maxEff = data.trips.length > 0 ? Math.max(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
-    const minEff = data.trips.length > 0 ? Math.min(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
+    const maxEff = data.trips.length > 0 ? Math.max(...data.trips.map(t => Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
+    const minEff = data.trips.length > 0 ? Math.min(...data.trips.map(t => Number.parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
 
     const roadData = Object.entries(data.summary.road_breakdown || {})
-        .filter(([_, value]) => value > 0)
+        .filter(([, value]) => value > 0)
         .map(([name, value]) => ({
             name: name.charAt(0).toUpperCase() + name.slice(1),
-            value: parseFloat(value).toFixed(1)
+            value: Number.parseFloat(value).toFixed(1)
         }));
 
     return (
@@ -521,7 +513,6 @@ export default function VehicleFuelTab({ vehicleId }) {
             animate="visible"
             className="space-y-5"
         >
-            {/* Modal */}
             <EfficiencyBreakdownModal
                 isOpen={showBreakdownModal}
                 onClose={() => setShowBreakdownModal(false)}
@@ -595,7 +586,6 @@ export default function VehicleFuelTab({ vehicleId }) {
                 <BestWorstTrips trips={data.trips} />
             </div>
 
-            {/* Road Breakdown - Bar Chart */}
             {roadData.length > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -611,11 +601,11 @@ export default function VehicleFuelTab({ vehicleId }) {
                     </div>
                     <div className="space-y-3">
                         {roadData.map((item, idx) => {
-                            const total = roadData.reduce((sum, r) => sum + parseFloat(r.value), 0);
-                            const percentage = total > 0 ? (parseFloat(item.value) / total) * 100 : 0;
+                            const total = roadData.reduce((sum, r) => sum + Number.parseFloat(r.value), 0);
+                            const percentage = total > 0 ? (Number.parseFloat(item.value) / total) * 100 : 0;
                             const colors = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
                             return (
-                                <div key={idx} className="flex items-center gap-3">
+                                <div key={`road-${idx}`} className="flex items-center gap-3">
                                     <span className="text-sm text-gray-600 w-20 capitalize">{item.name}</span>
                                     <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
                                         <div
@@ -629,7 +619,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                                         </div>
                                     </div>
                                     <span className="text-sm font-medium text-gray-900 w-16 text-right">
-                                        {parseFloat(item.value).toFixed(1)} km
+                                        {Number.parseFloat(item.value).toFixed(1)} km
                                     </span>
                                 </div>
                             );
@@ -638,7 +628,6 @@ export default function VehicleFuelTab({ vehicleId }) {
                 </motion.div>
             )}
 
-            {/* All Trips History */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -668,7 +657,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                         <tbody>
                             {data.trips && data.trips.length > 0 ? (
                                 data.trips.map((trip, i) => {
-                                    const eff = parseFloat(trip.fuel_efficiency_km_per_liter) || 0;
+                                    const eff = Number.parseFloat(trip.fuel_efficiency_km_per_liter) || 0;
                                     const isBest = eff === maxEff && maxEff > 0 && data.trips.length > 1;
                                     const isLowest = eff === minEff && minEff > 0 && eff !== maxEff && data.trips.length > 1;
                                     
@@ -685,7 +674,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                                     
                                     return (
                                         <motion.tr
-                                            key={i}
+                                            key={trip.trip_id || `trip-${i}`}
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: 0.02 * i }}
@@ -695,10 +684,10 @@ export default function VehicleFuelTab({ vehicleId }) {
                                                 {trip.trip_date ? new Date(trip.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                             </td>
                                             <td className="text-right py-3 px-5 text-gray-700 text-sm">
-                                                {parseFloat(trip.total_distance_km || 0).toFixed(1)} km
+                                                {Number.parseFloat(trip.total_distance_km || 0).toFixed(1)} km
                                             </td>
                                             <td className="text-right py-3 px-5 text-gray-700 text-sm">
-                                                {parseFloat(trip.estimated_fuel_consumed_liters || 0).toFixed(1)} L
+                                                {Number.parseFloat(trip.estimated_fuel_consumed_liters || 0).toFixed(1)} L
                                             </td>
                                             <td className="text-right py-3 px-5">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
@@ -722,3 +711,4 @@ export default function VehicleFuelTab({ vehicleId }) {
         </motion.div>
     );
 }
+

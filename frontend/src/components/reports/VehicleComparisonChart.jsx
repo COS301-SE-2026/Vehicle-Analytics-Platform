@@ -72,3 +72,99 @@ function EmptyState() {
         </div>
     )
 }
+
+
+export default function VehicleComparisonChart({ vehicles }) {
+    const [metricKey, setMetricKey] = useState('safetyScore')
+
+    const single = vehicles.length === 1
+    const metric = useMemo(
+        () => METRICS.find((m) => m.key === metricKey) || METRICS[0],
+        [metricKey]
+    )
+
+    const data = useMemo(() => {
+        if (!vehicles.length) return []
+        return single
+            ? EVENT_BREAKDOWN.map((e) => ({
+                label: e.label,
+                value: vehicles[0][e.key] ?? 0,
+            }))
+            : vehicles.map((v) => ({
+                label: v.vehicleId,
+                value: v[metric.key] === null || v[metric.key] === undefined ? null : v[metric.key],
+            }))
+    }, [vehicles, single, metric.key])
+
+    const hasData = useMemo(() => data.some((d) => d.value !== null), [data])
+
+    if (!vehicles.length) return <EmptyState />
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-fleet-secondary">
+                    {single
+                        ? `Event breakdown for ${vehicles[0].vehicleId}`
+                        : `${metric.label} across ${vehicles.length} vehicles`}
+                </p>
+
+                {!single && (
+                    <select
+                        value={metricKey}
+                        onChange={(e) => setMetricKey(e.target.value)}
+                        aria-label="Comparison metric"
+                        data-testid="comparison-metric"
+                        className="border border-fleet-border rounded-lg px-3 py-1.5 text-sm text-fleet-text bg-white"
+                    >
+                        {METRICS.map((m) => (
+                            <option key={m.key} value={m.key}>{m.label}</option>
+                        ))}
+                    </select>
+                )}
+            </div>
+
+            {!hasData ? (
+                <div className="h-[220px] flex items-center justify-center text-fleet-secondary text-sm">
+                    None of the selected vehicles recorded this metric in the reporting period.
+                </div>
+            ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9D8D2" />
+                        <XAxis
+                            dataKey="label"
+                            tick={{ fontSize: 11, fill: '#6B6B63' }}
+                            axisLine={false}
+                            tickLine={false}
+                            interval={0}
+                        />
+                        <YAxis
+                            tick={{ fontSize: 11, fill: '#6B6B63' }}
+                            axisLine={false}
+                            tickLine={false}
+                            domain={single || metric.key !== 'safetyScore' ? [0, 'auto'] : [0, 100]}
+                        />
+                        <Tooltip
+                            cursor={{ fill: '#D9D8D24D' }}
+                            content={<ChartTooltip unit={single ? '' : metric.unit} />}
+                        />
+                        <Bar dataKey="value" fill="#14304F" radius={[4, 4, 0, 0]} maxBarSize={56} />
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
+
+            {!single && metric.higherIsBetter !== null && (
+                <p className="text-xs text-fleet-secondary">
+                    {metric.higherIsBetter
+                        ? 'Higher is better for this metric.'
+                        : 'Lower is better for this metric.'}
+                </p>
+            )}
+        </div>
+    )
+}
+
+VehicleComparisonChart.propTypes = {
+    vehicles: PropTypes.arrayOf(PropTypes.object).isRequired,
+}

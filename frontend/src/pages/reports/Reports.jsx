@@ -1,40 +1,66 @@
-import { useState, useEffect, useCallback } from 'react'
-import { FileBarChart, AlertCircle, Loader2 } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { FileBarChart, AlertCircle, Loader2, Download } from 'lucide-react'
 import SafetySummaryCards from '../../components/reports/SafetySummaryCards'
 import SafetyVehicleTable from '../../components/reports/SafetyVehicleTable'
+import ReportToolbar from '../../components/reports/ReportToolbar'
+import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
 import { getReportScopes, generateReport } from '../../services/reportServices'
 
-const PERIOD_OPTIONS = [
-    {
-		id: 'latest',
-		label: 'Last complete week',
-		periodType: 'weekly',
-		anchor: undefined,
-	},
-	{
-		id: 'week-2026-08-17',
-		label: 'Week of 17-23 Aug 2026',
-		periodType: 'weekly',
-		anchor: '2026-08-26T12:00:00+02:00',
-	},
-	{
-		id: 'week-2026-08-24',
-		label: 'Week of 24-30 Aug 2026',
-		periodType: 'weekly',
-		anchor: '2026-09-02T12:00:00+02:00',
-	},
-	{
-		id: 'month',
-		label: 'Last complete month',
-		periodType: 'monthly',
-		anchor: undefined,
-	},
+
+function toISODate(date){
+	if (!date) return undefined
+	const d = new Date(date)
+	const month = String(d.getMonth() + 1).padStart(2, '0')
+	const day = String(d.getDate()).padStart(2, '0')
+	return `${d.getFullYear()}-${month}-${day}`
+}
+
+const CSV_COLUMNS = [
+	'vehicleId', 'safetyScore', 'classification', 'totalEvents', 'harshBrakes',
+	'harshAccelerations', 'harshCornering', 'crashes', 'overspeedEvents', 'idlingEvents',
+	'distanceKm', 'tripCount', 'utilisationPct', 'fuelLiters', 'avgEfficiencyKmPerL',
 ]
 
-export default function Reports() {
+function downloadCsv(report, entities){
+	const header = CSV_COLUMNS.join(',')
+	const rows = entities.map((entity) => CSV_COLUMNS
+		.map((col) => {
+			const value = entity[col]
+			return value === null || value === undefined ? '' : value
+		})
+		.join(','))
+
+	const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' })
+	const url = URL.createObjectURL(blob)
+	const link = document.createElement('a')
+	link.href = url
+	link.download = `vapor-report-${report.period.fromDate}-to-${report.period.toDate}.csv`
+	link.click()
+	URL.revokeObjectURL(url)
+}
+
+function Panel({ label, action, children }){
+	return (
+		<div className="bg-white rounded-2xl border border-fleet-border shadow-sm">
+			<div className="flex items-center justify-between px-5 py-4 border-b border-fleet-border">
+				<p className="text-xs font-semibold uppercase tracking-widest text-fleet-secondary">
+					{label}
+				</p>
+				{action}
+			</div>
+			<div className="p-5">{children}</div>
+		</div>
+	)
+}
+
+export default function Reports(){
 	const [scopes, setScopes] = useState({ groups: [], vehicles: [], unassignedVehicleCount: 0 })
 	const [scopeValue, setScopeValue] = useState('fleet')
-	const [periodId, setPeriodId] = useState('week-2026-08-17')
+	const [periodType, setPeriodType] = useState('weekly')
+	const [dateRange, setDateRange] = useState({ from: undefined, to: undefined })
+
+	const [compareMode, setCompareMode] = useState(false)
+	const [selectedVehicleIds, setSelectedVehicleIds] = useState([])
 
 	const [report, setReport] = useState(null)
 	const [loading, setLoading] = useState(false)
@@ -44,23 +70,26 @@ export default function Reports() {
 		let cancelled = false
 		getReportScopes()
 			.then((res) => { if (!cancelled) setScopes(res) })
-			.catch(() => { if (!cancelled) setScopes({ groups: [], vehicles: [], unassignedVehicleCount: 0 }) })
+			.catch(() => {
+				if (!cancelled) setScopes({ groups: [], vehicles: [], unassignedVehicleCount: 0 })
+			})
 		return () => { cancelled = true }
 	}, [])
 
 	const handleGenerate = useCallback(async () => {
 		setLoading(true)
 		setError(null)
+		setSelectedVehicleIds([])
 
-		const period = PERIOD_OPTIONS.find((p) => p.id === periodId)
 		const [scopeType, scopeId] = scopeValue.split(':')
 
 		try {
 			const result = await generateReport({
 				scopeType,
 				scopeId: scopeId || undefined,
-				periodType: period.periodType,
-				anchor: period.anchor,
+				periodType,
+				from: periodType === 'custom' ? toISODate(dateRange?.from) : undefined,
+				to: periodType === 'custom' ? toISODate(dateRange?.to) : undefined,
 			})
 			setReport(result)
 		} catch (err) {
@@ -69,96 +98,78 @@ export default function Reports() {
 		} finally {
 			setLoading(false)
 		}
-	}, [periodId, scopeValue])
+	}, [scopeValue, periodType, dateRange])
+
+	const entities = useMemo(
+		() => report?.rankings?.entities || report?.safety?.vehicles || [],
+		[report],
+	)
+
+	const chartVehicles = useMemo(() => {
+		if (!report) return []
+
+		if (report.report.scope.type === 'vehicle') {
+			return entities.filter((e) => e.vehicleId === report.report.scope.id)
+		}
+
+		if (!compareMode) return []
+		return entities.filter((e) => selectedVehicleIds.includes(e.vehicleId))
+	}, [report, entities, compareMode, selectedVehicleIds])
+
+	function toggleVehicle(vehicleId) {
+		setSelectedVehicleIds((prev) => (prev.includes(vehicleId)
+			? prev.filter((id) => id !== vehicleId)
+			: [...prev, vehicleId]))
+	}
 
 	const summary = report?.safety?.summary
 	const noTelemetry = report && report.coverage && !report.coverage.hasTelemetry
+	const scopedToVehicle = report?.report?.scope?.type === 'vehicle'
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-start gap-3">
-				<FileBarChart className="w-7 h-7 text-fleet-blue shrink-0 mt-0.5" />
-				<div>
-					<p className="text-sm text-fleet-secondary mt-1">
-						Analyse fleet performance and driver behaviour over a selected reporting period.
-					</p>
+			<div className="flex flex-wrap items-start justify-between gap-3">
+				<div className="flex items-start gap-3">
+					<FileBarChart className="w-7 h-7 text-fleet-blue shrink-0 mt-0.5" />
+					<div>
+						<h1 className="text-2xl font-bold text-fleet-text">Fleet Reports</h1>
+						<p className="text-sm text-fleet-secondary mt-1">
+							Analyse fleet performance and driving behaviour over a reporting period.
+						</p>
+					</div>
 				</div>
-			</div>
-{/* still to be changed as this is temporary */}
-			<div className="bg-white rounded-2xl border border-fleet-border p-5 shadow-sm">
-				<div className="flex flex-wrap items-end gap-4">
-					<div className="flex flex-col gap-1.5">
-						<label htmlFor="report-scope" className="text-xs font-semibold uppercase tracking-wider text-fleet-secondary">
-							Fleet group
-						</label>
-						<select
-							id="report-scope"
-							value={scopeValue}
-							onChange={(e) => setScopeValue(e.target.value)}
-							className="border border-fleet-border rounded-lg px-3 py-2 text-sm text-fleet-text bg-white min-w-[220px]"
-						>
-							<option value="fleet">Entire fleet</option>
-							{scopes.groups.length > 0 && (
-								<optgroup label="Vehicle groups">
-									{scopes.groups.map((g) => (
-										<option key={g.id} value={`group:${g.id}`}>{g.name}</option>
-									))}
-								</optgroup>
-							)}
-							{scopes.vehicles.length > 0 && (
-								<optgroup label="Vehicles">
-									{scopes.vehicles.map((v) => (
-										<option key={v.vehicleId} value={`vehicle:${v.vehicleId}`}>{v.vehicleId}</option>
-									))}
-								</optgroup>
-							)}
-						</select>
-					</div>
 
-					<div className="flex flex-col gap-1.5">
-						<label htmlFor="report-period" className="text-xs font-semibold uppercase tracking-wider text-fleet-secondary">
-							Reporting period
-						</label>
-						<select
-							id="report-period"
-							value={periodId}
-							onChange={(e) => setPeriodId(e.target.value)}
-							className="border border-fleet-border rounded-lg px-3 py-2 text-sm text-fleet-text bg-white min-w-[220px]"
-						>
-							{PERIOD_OPTIONS.map((p) => (
-								<option key={p.id} value={p.id}>{p.label}</option>
-							))}
-						</select>
-					</div>
-
+				{report && (
 					<button
 						type="button"
-						onClick={handleGenerate}
-						disabled={loading}
-						className="bg-fleet-blue text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-fleet-blue/90 disabled:opacity-60 flex items-center gap-2"
+						onClick={() => downloadCsv(report, entities)}
+						className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2
+							text-sm text-fleet-text bg-white hover:border-fleet-blue"
 					>
-						{loading && <Loader2 className="w-4 h-4 animate-spin" />}
-						{loading ? 'Generating\u2026' : 'Generate Report'}
+						<Download className="w-4 h-4 text-fleet-secondary" />
+						Export CSV
 					</button>
-				</div>
-
-				{scopes.unassignedVehicleCount > 0 && (
-					<p className="mt-3 text-xs text-fleet-secondary">
-						{scopes.unassignedVehicleCount} vehicle(s) are not assigned to any group and fall
-						outside every manager-scoped report.
-					</p>
 				)}
 			</div>
+
+			<ReportToolbar
+				scopes={scopes}
+				scopeValue={scopeValue}
+				onScopeChange={setScopeValue}
+				periodType={periodType}
+				onPeriodTypeChange={setPeriodType}
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+				compareMode={compareMode}
+				onCompareModeChange={setCompareMode}
+				onGenerate={handleGenerate}
+				loading={loading}
+			/>
 
 			{error && (
 				<div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
 					<AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-					<div>
-						<p className="text-sm font-medium text-red-700">{error}</p>
-						<p className="text-xs text-red-600 mt-1">
-							Possible routing issue if it does not pop up.
-						</p>
-					</div>
+					<p className="text-sm font-medium text-red-700">{error}</p>
 				</div>
 			)}
 
@@ -171,12 +182,12 @@ export default function Reports() {
 
 			{!report && !loading && !error && (
 				<p className="text-sm text-fleet-secondary py-10 text-center">
-					Select a scope and reporting period, then generate a report.
+					Choose a timeframe and a scope, then generate an analysis.
 				</p>
 			)}
 
 			{report && (
-				<div className="space-y-6">
+				<div className="space-y-5">
 					<div className="flex flex-wrap items-baseline justify-between gap-2">
 						<div>
 							<h2 className="text-lg font-semibold text-fleet-text">
@@ -190,6 +201,8 @@ export default function Reports() {
 						<p className="text-xs text-fleet-secondary">
 							{report.coverage.vehiclesWithEvents} of {report.coverage.vehiclesInScope} vehicles
 							reported events
+							{' \u00b7 '}
+							{report.coverage.activeVehicles} active
 						</p>
 					</div>
 
@@ -201,23 +214,50 @@ export default function Reports() {
 							</p>
 							<p className="text-sm text-fleet-secondary mt-2 max-w-lg mx-auto">
 								No vehicle data was recorded between {report.period.fromDate} and{' '}
-								{report.period.toDate}, so no safety score can be calculated for this period.
+								{report.period.toDate}, so no safety score can be calculated.
 							</p>
 						</div>
 					) : (
 						<>
-							<section className="space-y-4">
-								<h3 className="text-sm font-semibold text-fleet-text">Safety Analytics</h3>
-								<SafetySummaryCards
-									summary={summary}
-									comparison={report.safety.comparison}
-								/>
-							</section>
+							<SafetySummaryCards summary={summary} comparison={report.safety.comparison} />
 
-							<section className="space-y-3">
-								<h3 className="text-sm font-semibold text-fleet-text">Vehicle Safety Ranking</h3>
+							<Panel
+								label={scopedToVehicle ? 'Vehicle analytics' : 'Vehicle comparison'}
+								action={compareMode && !scopedToVehicle && (
+									<span className="text-xs text-fleet-secondary">
+										{selectedVehicleIds.length} selected
+									</span>
+								)}
+							>
+								{compareMode && !scopedToVehicle && (
+									<div className="flex flex-wrap gap-2 mb-5">
+										{entities.map((entity) => {
+											const active = selectedVehicleIds.includes(entity.vehicleId)
+											return (
+												<button
+													key={entity.vehicleId}
+													type="button"
+													onClick={() => toggleVehicle(entity.vehicleId)}
+													aria-pressed={active}
+													className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
+														active
+															? 'border-fleet-blue text-fleet-blue bg-fleet-blue/5'
+															: 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
+													}`}
+												>
+													{entity.vehicleId}
+												</button>
+											)
+										})}
+									</div>
+								)}
+
+								<VehicleComparisonChart vehicles={chartVehicles} />
+							</Panel>
+
+							<Panel label="Critical safety metrics">
 								<SafetyVehicleTable vehicles={report.safety.vehicles} />
-							</section>
+							</Panel>
 						</>
 					)}
 

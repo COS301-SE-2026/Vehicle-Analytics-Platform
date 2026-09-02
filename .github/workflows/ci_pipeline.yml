@@ -10,24 +10,11 @@ on:
 jobs:
   backend_tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     continue-on-error: false
-
-    services:
-      postgres:
-        image: timescale/timescaledb-ha:pg16
-        env:
-          POSTGRES_DB: fleet_analytics_test
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: testpassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U admin -d fleet_analytics_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - uses: actions/checkout@v4
 
@@ -37,78 +24,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ./backend/package-lock.json
 
-      - name: Install psql client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      - name: Wait for Postgres
-        run: |
-          for i in $(seq 1 30); do
-            PGPASSWORD=testpassword pg_isready -h localhost -U admin -d fleet_analytics_test -q && exit 0
-            echo "waiting for postgres ($i/30)"
-            sleep 2
-          done
-          echo "Postgres never became ready"; exit 1
-
-      - name: Bootstrap stub OSM tables
-        working-directory: ./database
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGDATABASE: fleet_analytics_test
-          PGUSER: admin
-          PGPASSWORD: testpassword
-        run: psql -v ON_ERROR_STOP=1 -f __tests__/bootstrap.sql
-
-      - name: Run database migrations
-        working-directory: ./database
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGDATABASE: fleet_analytics_test
-          PGUSER: admin
-          PGPASSWORD: testpassword
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          files=(migrations/V*.sql)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No migrations found -- wrong working directory?"; exit 1
-          fi
-          while IFS= read -r file; do
-            echo "::group::$file"
-            psql -v ON_ERROR_STOP=1 -f "$file"
-            echo "::endgroup::"
-          done < <(printf '%s\n' "${files[@]}" | sort -V)
-
       - name: Install dependencies
-        working-directory: ./backend
         run: npm ci
 
-      - name: Create .env.test
-        working-directory: ./backend
-        run: |
-          cat > .env.test << EOF
-          NODE_ENV=test
-          DB_HOST=localhost
-          DB_PORT=5432
-          DB_NAME=fleet_analytics_test
-          DB_USER=admin
-          DB_PASSWORD=testpassword
-          JWT_SECRET=test_secret_key
-          EOF
-
       - name: Lint
-        working-directory: ./backend
         run: npm run lint || true
 
       - name: Run tests with coverage
-        working-directory: ./backend
         run: npm test -- --coverage --coverageDirectory=coverage --passWithNoTests --forceExit
 
       - name: Show generated coverage files
-        working-directory: ./backend
         run: |
           echo 'Coverage directory listing:'
           ls -la coverage || true

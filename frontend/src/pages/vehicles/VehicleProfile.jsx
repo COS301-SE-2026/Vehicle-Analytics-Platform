@@ -21,13 +21,11 @@ import TripHistoryList from '@/components/vehicles/TripHistoryList'
 import SafetyScoreTrendChart from '@/components/vehicles/SafetyScoreTrendChart'
 import OverallStatsFooter from '@/components/vehicles/OverallStatsFooter'
 import { getScoreSeverity } from '@/utils/safetyScore'
-import VehicleFuelTab from '@/components/vehicles/VehicleFuelTab'
 
 
 const TABS = [
     {id: 'current', label: 'Current Trip'},
     {id: 'history', label: 'History'},
-    {id: 'fuel', label: 'Fuel Efficiency'},
 ]
 
 export default function VehicleProfile(){
@@ -112,13 +110,18 @@ export default function VehicleProfile(){
                             : '-',
                         distanceKm: Number(t.distance) || 0,
                         safetyScore: t.safety_score ?? 0,
-                        routeLabel: `Trip #${t.id}`,
+                        routeLabel: `Trip #${t.id}`, //No route label yet
                         harshBrakingCount: t.harsh_brakes ?? 0,
                         harshAccelerationCount: t.harsh_accelerations ?? 0,
                         harshCorneringCount: t.harsh_cornering ?? 0,
                     }))
 
                     setTrips(mappedTrips)
+                    // OverallStatsFooter destructures overallRating,
+                    // incidentsPer100Km and activeDays and marks them
+                    // required -- none were being supplied, so the footer
+                    // rendered "undefined / 100km" and "undefined Days".
+                    // Derived here from the trips already fetched.
                     const totalKm = Number(result.stats.total_distance) || 0
                     const totalIncidents = mappedTrips.reduce((sum, t) => sum + (t.harshBrakingCount + t.harshAccelerationCount + t.harshCorneringCount), 0)
                     const activeDays = new Set(mappedTrips.map((t) => new Date(t.date).toDateString())).size
@@ -209,10 +212,6 @@ export default function VehicleProfile(){
                         </TripHistoryList>
                         {overallStats && <OverallStatsFooter stats={overallStats} /> }
                     </div>
-                    )}
-
-                    {activeTab === 'fuel' && (
-                        <VehicleFuelTab vehicleId={id} />
                     )}
             </div>
         )

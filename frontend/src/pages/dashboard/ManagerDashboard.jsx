@@ -7,7 +7,6 @@ import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehicl
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import FleetAnalytics from '../../components/dashboard/FleetAnalytics'
-import FuelKpiCard from '../../components/dashboard/FuelKpiCard'
 
 function formatActivityPoints(points, range) {
   return points.map((point) => {
@@ -114,7 +113,8 @@ export default function ManagerDashboard() {
   return (
     <div className="space-y-4">
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+      {/* Row 1 - KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
         <StatCard
           icon={Truck}
           label="Active Vehicles"
@@ -134,9 +134,9 @@ export default function ManagerDashboard() {
           sub="currently moving"
           valueColor="text-fleet-green"
         />
-        <FuelKpiCard />
       </div>
 
+      {/* Row 2 - Fleet Status + Most Active */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1">
           <FleetStatusCard
@@ -151,8 +151,10 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
+      {/* Row 3 - Recent Vehicle Events */}
       <RecentVehicleEvents events={events} limit={10} />
 
+      {/* Row 4 - Fleet Activity Chart */}
       <div className="flex items-center justify-end gap-2">
         <button
           type="button"

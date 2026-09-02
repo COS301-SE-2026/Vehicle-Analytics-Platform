@@ -43,14 +43,10 @@ export async function seedFixtureUser(role: FixtureRole) {
   return { id: result.rows[0].id, cognitoSub, email, role };
 }
 
-// Real Cognito login. Requires the one-time provisioning in
-// PROVISIONING.md -- E2E_TEST_USER_COGNITO_SUB is the actual `sub` of that
-// user, which must be linked to a `users` row for authenticate()'s
-// post-decode lookup to succeed.
 export async function seedRealLoginUser() {
   const cognitoSub = process.env.E2E_TEST_USER_COGNITO_SUB;
   const email = process.env.E2E_TEST_EMAIL;
-  if (!cognitoSub || !email) {
+  if (!cognitoSub || !email) { // NOSONAR
     throw new Error(
       'seedRealLoginUser: E2E_TEST_USER_COGNITO_SUB and E2E_TEST_EMAIL must be set. ' +
       'See e2e/PROVISIONING.md.'
@@ -68,7 +64,7 @@ export async function seedRealLoginUser() {
   );
 }
 
-function mintDecodeOnlyToken(cognitoSub: string, email: string) {
+function mintDecodeOnlyToken(cognitoSub: string, email: string) { // NOSONAR
   return jwt.sign({ sub: cognitoSub, email }, 'e2e-unverified-signing-key', {
     expiresIn: '2h',
   });

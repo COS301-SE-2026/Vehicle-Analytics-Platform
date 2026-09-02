@@ -30,7 +30,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
           <div className='flex-1 overflow-y-auto px-4 py-4 space-y-4'>
             <h2 className='text-base font-bold text-fleet-secondary'>{article.title}</h2>
 
-            {article.content.map((block, i) => (
+            {article.content.map((block) => (
                 <div key={block.id ?? block.type + (block.text ?? '')}>
                   {block.type === "text" && ( 
                     <p className='text-sm text-fleet-text leading-relaxed'>{block.text}</p>
@@ -38,7 +38,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
 
                   {block.type === "list" && (
                     <ul className='list-disc list-inside space-y-1.5 text-sm text-fleet-secondary'>
-                        {block.items.map((item, j) =>
+                        {block.items.map((item) =>
                            <li key={item}>{item}</li> 
                         )}
                     </ul>
@@ -65,7 +65,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                               <table className='w-full text-sm text-left'>
                                 <thead className='bg-fleet-idle/20'>
                                 <tr>
-                                  {block.headers.map((header, j) => (
+                                  {block.headers.map((header) => (
                                   <th key={header} className='px-3 py-2 font-medium text-fleet-secondary'>
                                    {header}
                                   </th>
@@ -92,7 +92,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
                         <div className="grid gap-x-6"
                             style={{ gridTemplateColumns: `repeat(${block.headers.length}, minmax(0, 1fr))`}}
                         >
-                          {block.headers.map((header, j) => (
+                          {block.headers.map((header) => (
                             <div key={header} className="text-sm font-semibold text-fleet-secondary pb-2">
                               {header}
                             </div>
@@ -111,7 +111,7 @@ export function ArticleView({ article, categoryTitle, onBack }){
 
                   {block.type === "glossary" && (
                     <dl className='space-y-4'>
-                      {block.terms.map(({ term, definition }, j) => (
+                      {block.terms.map(({ term, definition }) => (
                         <div key={term} className="relative pl-4 border-1-2 border-fleet-blue/30">
                           <dt className='text-sm font-semibold text-fleet-secondary tracking-tight'>{term}</dt>
                           <dd className='text-sm text-fleet-secondary/80 loading-mixed mt-1'>{definition}</dd>

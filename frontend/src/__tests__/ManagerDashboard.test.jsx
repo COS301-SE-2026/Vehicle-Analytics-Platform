@@ -1,5 +1,4 @@
-//import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 
 jest.mock('@/components/dashboard/DonutChart', () => ({ __esModule: true, default: () => <div>DonutChart</div> }))
 jest.mock('@/components/dashboard/StatCard', () => ({ __esModule: true, default: ({ label }) => <div>{label}</div> }))
@@ -15,6 +14,9 @@ jest.mock('@/components/dashboard/MostActiveVehiclesTable', () => ({
 }))
 jest.mock('@/components/dashboard/FleetActivityChart', () => ({ __esModule: true, default: () => <div>FleetActivityChart</div> }))
 jest.mock('@/components/dashboard/RecentVehicleEvents', () => ({ __esModule: true, default: () => <div>Recent Vehicle Events</div> }))
+jest.mock('@/components/dashboard/FleetAnalytics', () => ({ __esModule: true, default: () => <div>FleetAnalytics</div> }))
+// jest.mock('@/components/dashboard/FuelKpiCard', () => ({ __esModule: true, default: () => <div>FuelKpiCard</div> }))
+
 jest.mock('@/services/vehicleService', () => ({
   getKPIs: jest.fn(),
   getVehicleLocations: jest.fn(),
@@ -106,32 +108,42 @@ describe('ManagerDashboard', () => {
     await waitFor(() => expect(screen.getByText('No data available')).toBeInTheDocument())
   })
 
-
   test('falls back to vehicles.length when kpis.totalVehicles is undefined', async () => {
-    getKPIs.mockResolvedValue({ activeVehicles: 2, totalDistance: 100 }) // no totalVehicles
+    getKPIs.mockResolvedValue({ activeVehicles: 2, totalDistance: 100 })
     render(<ManagerDashboard />)
     await waitFor(() => expect(screen.getByText('Active Vehicles')).toBeInTheDocument())
   })
-
 
   test('handles locations with no vehicles array gracefully', async () => {
-    getVehicleLocations.mockResolvedValue({}) // no vehicles key
+    getVehicleLocations.mockResolvedValue({})
     render(<ManagerDashboard />)
     await waitFor(() => expect(screen.getByText('Active Vehicles')).toBeInTheDocument())
   })
 
-
   test('shows em-dash when totalDistance is missing from kpis', async () => {
-    getKPIs.mockResolvedValue({ activeVehicles: 2, totalVehicles: 5 }) // no totalDistance
+    getKPIs.mockResolvedValue({ activeVehicles: 2, totalVehicles: 5 })
     render(<ManagerDashboard />)
     await waitFor(() => expect(screen.getByText('Total Distance Today')).toBeInTheDocument())
   })
 
-  test('polls for data every 10 seconds', async () => {
+  test('polls for data every 5 seconds', async () => {
     jest.useFakeTimers()
     render(<ManagerDashboard />)
+    
+    // Initial call on mount
     await waitFor(() => expect(getKPIs).toHaveBeenCalledTimes(1))
-    jest.advanceTimersByTime(10000)
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+    })
+
+    await waitFor(() => expect(getKPIs).toHaveBeenCalledTimes(2))
+
+    // Fast-forward another 5 seconds
+    await act(async () => {
+      jest.advanceTimersByTime(5000)
+    })
+
     await waitFor(() => expect(getKPIs).toHaveBeenCalledTimes(3))
   })
 })

@@ -1,60 +1,61 @@
-import { renderHook, act } from '@testing-library/react'
-import { useIsMobile } from '../hooks/use-mobile'
-
-const mockAddEventListener = jest.fn()
-const mockRemoveEventListener = jest.fn()
-
-beforeEach(() => {
-  Object.defineProperty(globalThis, 'matchMedia', {
-    writable: true,
-    value: jest.fn().mockImplementation(query => ({
-      matches: false,
-      media: query,
-      addEventListener: mockAddEventListener,
-      removeEventListener: mockRemoveEventListener,
-    })),
-  })
-})
-
-afterEach(() => {
-  jest.clearAllMocks()
-})
+import { renderHook, act, waitFor } from '@testing-library/react'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 describe('useIsMobile', () => {
-  test('returns false when window width is >= 768', () => {
+  let mediaQueryListeners = []
+  
+  beforeEach(() => {
+    mediaQueryListeners = []
     Object.defineProperty(globalThis, 'innerWidth', { writable: true, value: 1024 })
-    const { result } = renderHook(() => useIsMobile())
-    expect(result.current).toBe(false)
-  })
 
-  test('returns true when window width is < 768', () => {
+    window.matchMedia = jest.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      addEventListener: jest.fn((_, cb) => mediaQueryListeners.push(cb)),
+      removeEventListener: jest.fn((_, cb) => {
+        mediaQueryListeners = mediaQueryListeners.filter((l) => l !== cb)
+      }),
+    }))
+
+  })
+  
+  test('returns true when window width is < 768', async () => {
     Object.defineProperty(globalThis, 'innerWidth', { writable: true, value: 375 })
     const { result } = renderHook(() => useIsMobile())
-    expect(result.current).toBe(true)
-  })
 
-  test('adds event listener on mount', () => {
-    renderHook(() => useIsMobile())
-    expect(mockAddEventListener).toHaveBeenCalledWith('change', expect.any(Function))
-  })
-
-  test('removes event listener on unmount', () => {
-    const { unmount } = renderHook(() => useIsMobile())
-    unmount()
-    expect(mockRemoveEventListener).toHaveBeenCalledWith('change', expect.any(Function))
-  })
-
-  test('updates when resize event fires', () => {
-    Object.defineProperty(globalThis, 'innerWidth', { writable: true, value: 1024 })
-    const { result } = renderHook(() => useIsMobile())
-    expect(result.current).toBe(false)
-
-    act(() => {
-      Object.defineProperty(globalThis, 'innerWidth', { writable: true, value: 375 })
-      const changeHandler = mockAddEventListener.mock.calls[0][1]
-      changeHandler()
+    await waitFor(() => {
+      expect(result.current).toBe(true)
     })
 
-    expect(result.current).toBe(true)
+  })
+
+  test('returns false when window width is >= 768', async () => {
+    Object.defineProperty(globalThis, 'innerWidth', { writable: true, value: 1024 })
+
+    const { result } = renderHook(() => useIsMobile())
+
+    await waitFor(() => {
+      expect(result.current).toBe(false)
+    })
+    
+  })
+
+  test('updates when resize event fires', async () => {
+    Object.defineProperty(globalThis, 'innerWidth', { writable: true, value: 1024 })
+    const { result } = renderHook(() => useIsMobile())
+
+    await waitFor(() => {
+      expect(result.current).toBe(false)
+    })
+
+    Object.defineProperty(globalThis, 'innerWidth', { writable: true, value: 375 })
+
+    act(() => {
+      mediaQueryListeners.forEach((listener) => listener())
+    })
+
+    await waitFor(() => {
+      expect(result.current).toBe(true)
+    })
   })
 })

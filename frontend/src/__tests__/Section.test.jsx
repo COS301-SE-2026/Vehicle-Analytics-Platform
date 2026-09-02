@@ -27,12 +27,6 @@ describe('WhatYouGet', () => {
     });
 
     test('renders all four features titles', () => {
-        const expectedTitles = [
-            /always know where your fleet is/i,
-            /catch risky driving before it costc you/i,
-            /settle any dispute in minutes/i,
-            /give everyone the right view, Instantly/i,
-        ];
         render(<WhatYouGet />)
         const image = screen.getByAltText('Fleet of trucks');
         expect(image).toBeInTheDocument();

@@ -61,8 +61,8 @@ export default function ManagerDashboard() {
   }
 
   useEffect(() => {
-    fetchAll()
-    const interval = setInterval(fetchAll, 5000) //5 seconds
+    void Promise.resolve().then(fetchAll)
+    const interval = setInterval(() => { void fetchAll() }, 5000)
     return () => clearInterval(interval)
   }, [activityRange])
 

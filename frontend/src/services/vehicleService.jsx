@@ -310,19 +310,36 @@ function classifyScore(score) {
   return 'POOR'
 }
  
-// range ('day' | 'week') maps directly to the backend's `period` query param
 export async function getFleetAnalytics(range = 'day') {
   const headers = await getAuthHeaders()
   try {
+
     const res = await fetch(`${API_BASE_URL}/api/fleet/analytics?period=${encodeURIComponent(range)}`, { headers })
+
     if (!res.ok) throw new Error('Failed to fetch fleet analytics')
     const data = await res.json()
     const body = data.data
  
-    const safetyTrend = (body.trend ?? []).map(row => ({
-      label: new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' }),
-      score: Math.round(row.avg_score),
-    }))
+    
+    const safetyTrend = (body.trend ?? []).map(row => {
+      let label;
+      if (range === 'day') {
+        const date = new Date(row.date);
+        label = date.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      } else {
+
+
+        label = new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' });
+      }
+      return {
+        label,
+        score: Math.round(row.avg_score),
+      };
+    })
  
     const eventBreakdown = (body.event_breakdown ?? []).map(row => ({
       type: EVENT_TYPE_LABELS[row.type] ?? row.type,
@@ -338,14 +355,13 @@ export async function getFleetAnalytics(range = 'day') {
         percentage: Math.round((row.total_events / totalEvents) * 100),
       }))
  
-    // ranked (worst first)
     const lowestSafetyScores = (body.ranked_vehicles ?? [])
       .slice(0, 5)
       .map(row => ({
         vehicleId: row.vehicle_id,
         score: Math.round(row.avg_score),
         status: classifyScore(row.avg_score),
-        daysTracked: row.days_count, // note that no per-vehicle timestamp exists here
+        daysTracked: row.days_count,
       }))
  
     return { safetyTrend, eventBreakdown, topContributors, lowestSafetyScores }

@@ -110,6 +110,7 @@ export default function GeofenceMap({
 
   useEffect(() => {
     if (map.current || !center) return;
+    if (!mapboxgl.accessToken) return;   
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,

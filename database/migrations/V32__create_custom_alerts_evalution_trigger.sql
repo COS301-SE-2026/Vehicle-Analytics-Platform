@@ -22,7 +22,7 @@ THEN
     speed_breaches AS (
          SELECT 
             r.id AS rule_id, lp.vehicle_id, r.fleet_group_id, r.condition_type,
-            lp.speed AS breach_value,
+            lp.speed::TEXT AS breach_value,
             (r.condition_params->>'max_speed_kmh') AS threshold_value,
             lp.latitude, lp.longitude, lp.time,
             jsonb_build_object('name', r.name, 'condition_params', r.condition_params) AS rule_snapshot

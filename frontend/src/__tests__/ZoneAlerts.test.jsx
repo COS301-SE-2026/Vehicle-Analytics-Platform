@@ -8,8 +8,8 @@ jest.mock("@/services/geofenceServices", () => ({
 }));
 
 jest.mock('@/components/ui/button', () => ({
-	Button: ({ children, onClick, className, type }) => (
-		<button type={type || 'button'} onClick={onClick} className={className}>{children}</button>
+	Button: ({ children, onClick, className, type, disabled }) => (
+		<button type={type || 'button'} onClick={onClick} className={className} disabled={disabled}>{children}</button>
 	),
 }));
 
@@ -21,6 +21,12 @@ jest.mock("lucide-react", () => ({
 	Trash2: (props) => <svg data-testid="icon-trash" {...props} />,
 	ChevronLeft: (props) => <svg data-testid="icon-chevron-left" {...props} />,
 	ChevronRight: (props) => <svg data-testid="icon-chevron-right" {...props} />,
+}));
+
+jest.mock('@/components/geofence/ZoneActivityDrawer', () => ({
+  ZoneActivityDrawer: ({ open }) => (
+    <div data-testid="activity-drawer" data-open={open ? "true" : "false"} />
+  ),
 }));
 
 function makeAlert(overrides = {}) {
@@ -160,23 +166,23 @@ describe("ZoneAlerts: pagination", () => {
 	});
 
 	it("navigates to page 2 via the real Pagination control", async () => {
-		getGeofenceEvents.mockResolvedValue({ total: 10, events: makeAlerts(10) });
-		render(<ZoneAlerts />);
-		await screen.findByText("Alert 0");
+    getGeofenceEvents.mockResolvedValue({ total: 10, events: makeAlerts(10) });
+    render(<ZoneAlerts />);
+    await screen.findByText("Alert 0");
 
-		fireEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    fireEvent.click(screen.getByRole("button", { name: "2" }));
 
-		expect(await screen.findByText("Alert 6")).toBeInTheDocument();
-		expect(screen.queryByText("Alert 0")).not.toBeInTheDocument();
-		expect(screen.getByText(/Showing 7.10 of 10/)).toBeInTheDocument();
-	});
+    expect(await screen.findByText("Alert 6")).toBeInTheDocument();
+    expect(screen.queryByText("Alert 0")).not.toBeInTheDocument();
+    expect(screen.getByText(/Showing 7.10 of 10/)).toBeInTheDocument();
+  });
 
 	it("resets to page 1 when refreshToken changes", async () => {
 		getGeofenceEvents.mockResolvedValue({ total: 10, events: makeAlerts(10) });
 		const { rerender } = render(<ZoneAlerts refreshToken={1} />);
 		await screen.findByText("Alert 0");
 
-		fireEvent.click(screen.getByRole("button", { name: "Page 2" }));
+		fireEvent.click(screen.getByRole("button", { name: "2" }));
 		await screen.findByText("Alert 6");
 
 		getGeofenceEvents.mockResolvedValue({ total: 10, events: makeAlerts(10) });
@@ -189,7 +195,7 @@ describe("ZoneAlerts: pagination", () => {
 		getGeofenceEvents.mockResolvedValueOnce({ total: 10, events: makeAlerts(10) });
 		const { rerender } = render(<ZoneAlerts refreshToken={1} />);
 		await screen.findByText("Alert 0");
-		fireEvent.click(screen.getByRole("button", { name: "Page 2" }));
+		fireEvent.click(screen.getByRole("button", { name: "2" }));
 		await screen.findByText("Alert 6");
 
 		getGeofenceEvents.mockResolvedValueOnce({ total: 2, events: makeAlerts(2) });
@@ -209,7 +215,7 @@ describe("ZoneAlerts: clear flow", () => {
 		render(<ZoneAlerts onAlertsCleared={onAlertsCleared} />);
 		await screen.findByText("Something happened");
 
-		fireEvent.click(screen.getByRole("button", { name: /clear all alerts/i }));
+		fireEvent.click(screen.getByRole("button", { name: /clear/i }));
 
 		await waitFor(() => expect(screen.getByText("No alerts.")).toBeInTheDocument());
 		expect(onAlertsCleared).toHaveBeenCalled();
@@ -223,7 +229,7 @@ describe("ZoneAlerts: clear flow", () => {
 		render(<ZoneAlerts />);
 		await screen.findByText("Something happened");
 
-		const clearButton = screen.getByRole("button", { name: /clear all alerts/i });
+		const clearButton = screen.getByRole("button", { name: /clear/i });
 		fireEvent.click(clearButton);
 
 		expect(await screen.findByText(/clearing/i)).toBeInTheDocument();
@@ -233,20 +239,20 @@ describe("ZoneAlerts: clear flow", () => {
 		await waitFor(() => expect(screen.getByText("No alerts.")).toBeInTheDocument());
 	});
 
-	it("re-enables the Clear button and logs if the delete call fails", async () => {
+it("re-enables the Clear button and logs if the delete call fails", async () => {
 		getGeofenceEvents.mockResolvedValue({ total: 1, events: [makeAlert()] });
 		deleteGeofenceEvents.mockRejectedValue(new Error("db error"));
 		const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
 
 		render(<ZoneAlerts />);
 		await screen.findByText("Something happened");
-		fireEvent.click(screen.getByRole("button", { name: /clear all alerts/i }));
+		fireEvent.click(screen.getByRole("button", { name: /^clear$/i }));
 
 		await waitFor(() =>
 			expect(consoleError).toHaveBeenCalledWith("Failed to clear alerts:", expect.any(Error))
 		);
 		expect(screen.getByText("Something happened")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: /clear all alerts/i })).not.toBeDisabled();
+		expect(screen.getByRole("button", { name: /^clear$/i })).not.toBeDisabled();
 		consoleError.mockRestore();
 	});
 });

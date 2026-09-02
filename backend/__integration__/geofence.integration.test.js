@@ -112,7 +112,7 @@ describe('Geofence API', () => {
         vehicle_id: null,
         trigger_type: 'entry',
       });
-      expect(zone.id).toEqual(expect.any(Number));
+      expect(zone.id).toEqual(expect.any(String));
       expect(zone.boundary.type).toBe('Polygon');
     });
 
@@ -229,7 +229,7 @@ describe('Geofence API', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.type).toBe('FeatureCollection');
 
-      const feature = res.body.data.features.find((f) => f.properties.id === id);
+      const feature = res.body.data.features.find((f) => String(f.properties.id) === String(id));
       expect(feature).toBeDefined();
       expect(feature.geometry.type).toBe('Polygon');
       expect(feature.properties).toMatchObject({ name, source: 'user' });

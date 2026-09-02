@@ -294,12 +294,16 @@ async function updateRule(req, res){
     const managerId = req.user.id;
 
     const { id } = req.params;
-    const { name, fleet_group_id, condition_type, condition_params } = req.body;
+    const { name, fleet_group_id, condition_type, condition_params, status } = req.body;
 
     const validationErrors = validateRuleFields({name, fleet_group_id, condition_type, condition_params });
 
     if(validationErrors.length > 0){
         return error(res, validationErrors.join('; '), 400);
+    }
+
+    if(status !== undefined && !['active', 'inactive'].includes(status)){
+        return error(res, "Status must be 'active' or 'inactive'", 400);
     }
 
     try{
@@ -316,10 +320,11 @@ async function updateRule(req, res){
 
         const result = await pool.query(
             `UPDATE custom_alert_rules
-            SET fleet_group_id = $1, name = $2, condition_type = $3, condition_params = $4, updated_at = NOW()
-            WHERE id = $5 AND manager_id = $6
+            SET fleet_group_id = $1, name = $2, condition_type = $3, condition_params = $4,
+                status = COALESCE($5, status), updated_at = NOW()
+            WHERE id = $6 AND manager_id = $7
             RETURNING *`,
-            [fleet_group_id, name, condition_type, condition_params, id, managerId]
+            [fleet_group_id, name, condition_type, condition_params, status, id, managerId]
         );
 
         if(result.rows.length === 0){

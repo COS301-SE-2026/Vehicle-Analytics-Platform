@@ -109,17 +109,11 @@ async function listTriggeredAlerts(req, res) {
                 ta.longitude,
                 ta.status,
                 ta.acknowledged_at,
-                ta.acknowledged_by,
                 ta.resolved_at,
-                ta.resolved_by,
-                ta.resolution,
-                ta.resolution_notes,
                 ta.created_at,
                 ta.rule_snapshot,
-                r.name AS rule_name,
-                r.priority AS rule_priority
+                r.name AS rule_name
              FROM triggered_alerts ta
-             LEFT JOIN vehicles v ON v.vehicle_id = ta.vehicle_id
              LEFT JOIN custom_alert_rules r ON r.id = ta.rule_id
              WHERE ${whereClause}
              ORDER BY ta.created_at DESC
@@ -161,7 +155,6 @@ async function getAlertDetails(req, res) {
                 r.name AS rule_name,
                 r.condition_type AS rule_condition_type,
                 r.condition_params AS rule_params,
-                r.priority AS rule_priority,
                 r.status AS rule_status,
                 g.name AS fleet_group_name
              FROM triggered_alerts ta
@@ -183,7 +176,7 @@ async function getAlertDetails(req, res) {
         const alert = alertResult.rows[0];
 
         return success(res, {
-            alert,
+            ...alert,
             vehicle_link: `/vehicles/${alert.vehicle_id}`
         });
     } catch (err) {
@@ -199,8 +192,7 @@ async function getAlertDetails(req, res) {
 async function acknowledgeAlert(req, res) {
     const managerId = req.user.id;
     const { id } = req.params;
-    const { notes } = req.body;
-
+   
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -239,19 +231,10 @@ async function acknowledgeAlert(req, res) {
         const updateResult = await client.query(
             `UPDATE triggered_alerts
              SET status = 'acknowledged',
-                 acknowledged_at = NOW(),
-                 acknowledged_by = $1,
-                 resolution_notes = COALESCE($2, resolution_notes)
-             WHERE id = $3
+                 acknowledged_at = NOW()
+             WHERE id = $1
              RETURNING *`,
-            [managerId, notes, id]
-        );
-
-        await client.query(
-            `UPDATE vehicles
-             SET unresolved_alert_count = GREATEST(unresolved_alert_count - 1, 0)
-             WHERE vehicle_id = $1`,
-            [alert.vehicle_id]
+            [id]
         );
 
         await client.query('COMMIT');
@@ -276,7 +259,6 @@ async function acknowledgeAlert(req, res) {
 async function resolveAlert(req, res) {
     const managerId = req.user.id;
     const { id } = req.params;
-    const { resolution, notes } = req.body;
 
     const client = await pool.connect();
     try {
@@ -319,13 +301,10 @@ async function resolveAlert(req, res) {
         const updateResult = await client.query(
             `UPDATE triggered_alerts
              SET status = 'resolved',
-                 resolved_at = NOW(),
-                 resolved_by = $1,
-                 resolution = COALESCE($2, 'Resolved'),
-                 resolution_notes = COALESCE($3, resolution_notes)
-             WHERE id = $4
+                 resolved_at = NOW()
+             WHERE id = $1
              RETURNING *`,
-            [managerId, resolution, notes, id]
+            [id]
         );
 
         await client.query('COMMIT');
@@ -380,10 +359,45 @@ async function getNewAlertCount(req, res) {
     }
 }
 
+async function getNewTriggeredAlerts(req, res) {
+    const managerId = req.user.id;
+    const sinceParam = req.query.since;
+    const since = sinceParam ? new Date(sinceParam) : new Date(Date.now() - 60000); // default: last 60s
+
+    if (Number.isNaN(since.getTime())) {
+        return error(res, 'Invalid since parameter', 400);
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT ta.id, ta.vehicle_id, ta.condition_type, ta.breach_value,
+                   ta.threshold_value, ta.created_at, ta.rule_snapshot,
+                   fg.name AS fleet_group_name
+            FROM triggered_alerts ta
+            JOIN fleet_manager_assignments fma ON fma.fleet_group_id = ta.fleet_group_id
+            JOIN fleet_groups fg ON fg.id = ta.fleet_group_id
+            WHERE fma.fleet_manager_id = $1
+              AND ta.status = 'new'
+              AND ta.created_at > $2
+            ORDER BY ta.created_at ASC
+        `, [managerId, since]);
+
+        return success(res, {
+            alerts: result.rows,
+            checked_at: new Date().toISOString(),
+        }, 200);
+    } catch (err) {
+        console.error('Get new triggered alerts error:', err);
+        return error(res, 'Failed to fetch new alerts: ' + err.message, 500);
+    }
+}
+
+
 module.exports = {
     listTriggeredAlerts,
     getAlertDetails,
     acknowledgeAlert,
     resolveAlert,
-    getNewAlertCount
+    getNewAlertCount,
+    getNewTriggeredAlerts,
 };

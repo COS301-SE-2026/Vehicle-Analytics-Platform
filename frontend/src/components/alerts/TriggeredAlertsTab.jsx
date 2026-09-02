@@ -365,6 +365,39 @@ export default function TriggeredAlertsTab() {
             );
           })}
       </div>
+
+      {!loading && alerts.length > 0 && (
+        <div className="flex items-center justify-between border-t border-fleet-border pt-3">
+
+          <p className="text-xs text-fleet-secondary">
+            Showing {offset + 1}–{Math.min(offset + LIMIT, pagination.total)} of {pagination.total}
+          </p>
+
+          <div className="flex items-center gap-2">
+
+            <button
+              type="button"
+              onClick={() => setOffset((prev) => Math.max(prev - LIMIT, 0))}
+              disabled={offset === 0}
+              className="flex items-center gap-1 rounded-md border border-fleet-border px-3 py-1.5 text-xs font-medium text-fleet-text hover:bg-fleet-panel disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Previous
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setOffset((prev) => prev + LIMIT)}
+              disabled={!pagination.hasMore}
+              className="flex items-center gap-1 rounded-md border border-fleet-border px-3 py-1.5 text-xs font-medium text-fleet-text hover:bg-fleet-panel disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+            
+          </div>
+        </div>
+      )}
    
     </div>
   );

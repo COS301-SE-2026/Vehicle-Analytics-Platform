@@ -19,7 +19,7 @@ const noHeader = new Set(['/login', '/register'])
 export default function AppShell({ role = 'viewer' }) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
-  const title = pageTitles[location.pathname] 
+  const title = pageTitles[location.pathname]  || 'FleetTracker'
   const hideHeader = noHeader.has(location.pathname)
 
   return (

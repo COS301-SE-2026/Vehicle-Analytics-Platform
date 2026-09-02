@@ -25,3 +25,15 @@
     --input: 40 12% 85%;
   }
 }
+
+.route-map-wrapper:fullscreen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.route-map-wrapper:fullscreen .route-map-box {
+  flex: 1 1 auto;
+  height: auto;
+}

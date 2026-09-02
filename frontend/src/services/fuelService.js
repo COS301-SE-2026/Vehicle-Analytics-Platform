@@ -1,83 +1,204 @@
-import api from './api';
 
-export const getVehicleFuelHistory = async (vehicleId, period = 'week', limit = 30) => {
-    try {
-        const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
-            params: { period, limit }
-        });
-        return response.data.data || [];
-    } catch (error) {
-        console.error('Error fetching vehicle fuel history:', error);
-        return [];
-    }
-};
 
-export const getVehicleFuelTrend = async (vehicleId, days = 30) => {
-    try {
-        const response = await api.get(`/api/fuel/vehicle/${vehicleId}/trend`, {
-            params: { days }
-        });
-        return response.data.data || [];
-    } catch (error) {
-        console.error('Error fetching vehicle fuel trend:', error);
-        return [];
-    }
-};
+import useAuthStore from '../store/authStore'
 
-export const getFleetFuelHistory = async (period = 'week', limit = 10) => {
-    try {
-        const response = await api.get('/api/fuel/fleet/history', {
-            params: { period, limit }
-        });
-        return response.data.data || [];
-    } catch (error) {
-        console.error('Error fetching fleet fuel history:', error);
-        return [];
-    }
-};
 
-export const getFuelDashboard = async () => {
-    try {
-        const response = await api.get('/api/fuel/dashboard');
-        return response.data.data || null;
-    } catch (error) {
-        console.error('Error fetching fuel dashboard:', error);
-        return null;
-    }
-};
 
-export const getVehicleFuelStats = async (vehicleId, days = 30) => {
-    try {
-        const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
-            params: { period: 'week', limit: 10 }
-        });
-        const data = response.data.data || [];
-        if (data.length > 0) {
-            const totalDistance = data.reduce((sum, h) => sum + Number(h.total_distance || 0), 0);
-            const totalFuel = data.reduce((sum, h) => sum + Number(h.total_fuel || 0), 0);
-            const avgEfficiency = totalDistance > 0 && totalFuel > 0 ? totalDistance / totalFuel : 0;
-            return {
-                avg_efficiency: avgEfficiency,
-                total_distance: totalDistance,
-                total_fuel: totalFuel,
-                trip_count: data.reduce((sum, h) => sum + Number(h.trip_count || 0), 0)
-            };
-        }
-        return { avg_efficiency: 0, total_distance: 0, total_fuel: 0, trip_count: 0 };
-    } catch (error) {
-        console.error('Error fetching vehicle fuel stats:', error);
-        return { avg_efficiency: 0, total_distance: 0, total_fuel: 0, trip_count: 0 };
-    }
-};
 
-export const calculateDailyHistory = async (vehicleId, date) => {
-    try {
-        const response = await api.post(`/api/fuel/vehicle/${vehicleId}/calculate`, null, {
-            params: { date }
-        });
-        return response.data.data || null;
-    } catch (error) {
-        console.error('Error calculating daily history:', error);
-        return null;
-    }
-};
+
+const API_BASE_URL = import.meta.env.VITE_API_URL
+
+
+
+async function getAuthHeaders() {
+
+  const token = useAuthStore.getState().token
+
+  return {
+
+    'Content-Type': 'application/json',
+
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+
+  }
+
+}
+
+
+
+export async function getVehicleFuelStats(vehicleId, days = 30) {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}?days=${days}`, { headers })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to fetch vehicle fuel stats')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+}
+
+
+
+export async function getVehicleFuelHistory(vehicleId, period = 'week', limit = 30) {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}/history?period=${period}&limit=${limit}`, { headers })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to fetch vehicle fuel history')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+}
+
+
+
+export async function getFleetFuelSummary(period = 'week') {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/fleet?period=${period}`, { headers })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to fetch fleet fuel summary')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+}
+
+
+
+export async function getFuelDashboard() {
+
+  const headers = await getAuthHeaders()
+
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/dashboard`, { headers })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to fetch fuel dashboard')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+}
+
+
+
+
+
+export async function calculateTripFuel(tripId) {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/calculate/trip/${tripId}`, {
+
+    method: 'POST',
+
+    headers
+
+  })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to calculate trip fuel')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+}
+
+
+
+export async function getVehicleFuelTrend(vehicleId, days = 30) {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}/trend?days=${days}`, { headers })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to fetch vehicle fuel trend')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+}
+
+
+
+
+
+export async function getFleetFuelHistory(period = 'week', limit = 10) {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/fleet/history?period=${period}&limit=${limit}`, { headers })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to fetch fleet fuel history')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+}
+
+
+
+export async function calculateDailyHistory(vehicleId, date) {
+
+  const headers = await getAuthHeaders()
+
+  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}/calculate?date=${date}`, {
+
+    method: 'POST',
+
+    headers
+
+  })
+
+  if (!res.ok) {
+
+    throw new Error('Failed to calculate daily history')
+
+  }
+
+  const data = await res.json()
+
+  return data.data
+
+
+}
+

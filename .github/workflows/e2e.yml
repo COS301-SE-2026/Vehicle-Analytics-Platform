@@ -74,7 +74,7 @@ jobs:
 
       - name: Install database dependencies
         working-directory: ./database
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Bootstrap stubbed roads & spatial tables
         working-directory: ./database
@@ -97,15 +97,15 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: ./backend
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install frontend dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install e2e dependencies
         working-directory: ./e2e
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install Playwright browsers
         working-directory: ./e2e

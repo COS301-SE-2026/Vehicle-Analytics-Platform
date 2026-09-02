@@ -106,6 +106,7 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
   // 2. Map Initialization
   useEffect(() => {
     if (map.current) return
+    if (!mapboxgl.accessToken) return
 
     // Safely extract and validate the center
     let startCenter = DEFAULT_CENTER;

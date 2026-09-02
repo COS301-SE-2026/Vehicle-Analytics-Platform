@@ -24,7 +24,7 @@ function familyStack(family) {
     return MONO_STACK
 }
 
-function TypeRow({ name, class: cls, family, size, leading, weight, usage, }) {
+function TypeRow({ name, class: cls, family, size, weight, usage }) {
     return (
         <tr className="border-t border border-fleet-border align-top">
             <td className="p-2 w-1/3">

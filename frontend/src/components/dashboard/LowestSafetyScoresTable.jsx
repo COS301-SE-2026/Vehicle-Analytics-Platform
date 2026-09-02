@@ -22,7 +22,9 @@ export default function LowestSafetyScoresTable({ vehicles = [] }){
                 <th className="py-2 pr-4 font-medium">Vehicle ID</th>
                 <th className="py-2 pr-4 font-medium">Score</th>
                 <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 pr-4 font-medium">Last Updated</th>
+                {/* <th className="py-2 pr-4 font-medium">Last Updated</th>  */}
+                {/* removed the above temporarily because incorrect data is displayed/ 
+                REMEMEBER TO CORRECT THIS  */}
               </tr>
             </thead>
             <tbody>

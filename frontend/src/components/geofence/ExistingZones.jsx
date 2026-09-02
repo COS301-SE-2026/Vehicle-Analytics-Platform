@@ -57,7 +57,7 @@ export function ExistingZones({
     }, []);
 
     useEffect(() => {
-        loadZones();
+        void Promise.resolve().then(loadZones);
     }, [loadZones, refreshToken]);
 
     useEffect(() => {

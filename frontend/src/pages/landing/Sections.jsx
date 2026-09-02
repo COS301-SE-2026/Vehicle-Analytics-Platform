@@ -1,6 +1,6 @@
 import { 
     MapPin, ShieldCheck, History, LayoutGrid,
-    Radio, CloudCog, Gauge, ArrowRight, TrendingUpDown, TrendingUp
+    Radio, CloudCog, Gauge, ArrowRight
 } from "lucide-react";
 import Dashboard from "./img/dashboard.png"
 import Vehicle from "./img/vehicles.png"

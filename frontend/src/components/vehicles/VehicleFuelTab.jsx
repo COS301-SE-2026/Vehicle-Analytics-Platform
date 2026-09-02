@@ -1,39 +1,21 @@
-
-
+// frontend/src/components/vehicles/VehicleFuelTab.jsx
 import React, { useState, useEffect, useRef } from 'react';
-
-
 import { motion } from 'framer-motion';
 import { getVehicleFuelHistory } from '../../services/fuelService';
-
 import { 
-
     Fuel, TrendingUp, Download, Award, Calendar, Leaf, Gauge, 
-
     Coins, TrendingDown, Zap, X
-
 } from 'lucide-react';
 
-
-
 const containerVariants = {
-
     hidden: { opacity: 0 },
-
     visible: {
-
         opacity: 1,
-
         transition: { staggerChildren: 0.06, delayChildren: 0.1 }
-
     }
-
 };
 
-
-
 const itemVariants = {
-
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
 };
@@ -276,7 +258,7 @@ function BestWorstTrips({ trips }) {
     if (!trips || trips.length < 2) return null;
     const sorted = [...trips].sort((a, b) => Number.parseFloat(b.fuel_efficiency_km_per_liter) - Number.parseFloat(a.fuel_efficiency_km_per_liter));
     const best = sorted[0];
-    const worst = sorted[sorted.length - 1];
+    const worst = sorted.at(-1); // FIXED: using .at() instead of [length-1]
     const bestEff = Number.parseFloat(best.fuel_efficiency_km_per_liter) || 0;
     const worstEff = Number.parseFloat(worst.fuel_efficiency_km_per_liter) || 0;
     if (bestEff === 0 && worstEff === 0) return null;
@@ -295,8 +277,12 @@ function BestWorstTrips({ trips }) {
                     </div>
                     <span className="text-[10px] font-medium text-emerald-600 uppercase tracking-[0.08em]">Best</span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{bestEff.toFixed(1)} <span className="text-sm font-normal text-gray-400">km/L</span></p>
-                <p className="text-xs text-gray-400 mt-1">{new Date(best.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                    {bestEff.toFixed(1)} <span className="text-sm font-normal text-gray-400">km/L</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                    {new Date(best.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                </p>
             </div>
             <div className="bg-gradient-to-br from-rose-50 to-rose-100/30 rounded-2xl p-5 border border-rose-200/30">
                 <div className="flex items-center gap-2 mb-2">
@@ -305,8 +291,12 @@ function BestWorstTrips({ trips }) {
                     </div>
                     <span className="text-[10px] font-medium text-rose-500 uppercase tracking-[0.08em]">Lowest</span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{worstEff.toFixed(1)} <span className="text-sm font-normal text-gray-400">km/L</span></p>
-                <p className="text-xs text-gray-400 mt-1">{new Date(worst.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                    {worstEff.toFixed(1)} <span className="text-sm font-normal text-gray-400">km/L</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                    {new Date(worst.trip_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+                </p>
             </div>
         </motion.div>
     );
@@ -359,8 +349,8 @@ function EfficiencyBreakdownModal({ isOpen, onClose, avgEfficiency }) {
                     <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.08em] mb-3">Road Type Fuel Rates</p>
                         <div className="grid grid-cols-2 gap-2">
-                            {Object.entries(ROAD_FUEL_RATES).map(([road, rate], index) => (
-                                <div key={`${road}-${index}`} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-100">
+                            {Object.entries(ROAD_FUEL_RATES).map(([road, rate]) => (
+                                <div key={road} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-gray-100">
                                     <span className="text-sm text-gray-600 capitalize">{road.replace('_', ' ')}</span>
                                     <span className="text-sm font-medium text-gray-900">{rate.toFixed(1)} L/100km</span>
                                 </div>
@@ -605,7 +595,7 @@ export default function VehicleFuelTab({ vehicleId }) {
                             const percentage = total > 0 ? (Number.parseFloat(item.value) / total) * 100 : 0;
                             const colors = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
                             return (
-                                <div key={`road-${idx}`} className="flex items-center gap-3">
+                                <div key={`road-${idx}-${item.name}`} className="flex items-center gap-3">
                                     <span className="text-sm text-gray-600 w-20 capitalize">{item.name}</span>
                                     <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
                                         <div
@@ -711,4 +701,3 @@ export default function VehicleFuelTab({ vehicleId }) {
         </motion.div>
     );
 }
-

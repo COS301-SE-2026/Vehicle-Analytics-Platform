@@ -34,7 +34,7 @@ const fuelRoutes = require('./routes/fuel');
 
 // added for report
 const reportRoutes = require('./routes/reports');
-app.use('/api/reports', reportRoutes);
+
 
 const app = express();
 
@@ -127,6 +127,8 @@ app.use('/api/geofences', geofenceRoutes);
 
 //I added this for demo 3
 app.use('/api/fuel', fuelRoutes);
+
+app.use('/api/reports', reportRoutes); // added for reporting
 
 
 

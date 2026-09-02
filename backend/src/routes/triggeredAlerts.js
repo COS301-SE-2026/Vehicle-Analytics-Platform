@@ -7,7 +7,8 @@ const {
     getAlertDetails,
     acknowledgeAlert,
     resolveAlert,
-    getNewAlertCount
+    getNewAlertCount,
+    getNewTriggeredAlerts,
 } = require('../controllers/triggeredAlertsController');
 
 const router = express.Router();
@@ -15,10 +16,12 @@ const router = express.Router();
 
 router.use(authenticate);
 
-router.use(requireRole(['manager']));
+router.use(requireRole(['manager', 'fleet_manager']));
 
 
 router.get('/triggered', listTriggeredAlerts);
+
+router.get('/triggered/new', getNewTriggeredAlerts);
 
 router.get('/triggered/:id', getAlertDetails);
 

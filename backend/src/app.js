@@ -28,7 +28,9 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
 const geofenceRoutes = require('./routes/geofence');
 
-const customAlerts = require('./routes/customAlerts');
+const customAlertsRoutes = require('./routes/customAlerts');
+
+const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 
 
 //I added this for demo 3
@@ -123,8 +125,9 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 
 app.use('/api/geofences', geofenceRoutes);
 
-app.use('/api/custom-alerts', customAlerts);
+app.use('/api/custom-alerts', customAlertsRoutes);
 
+app.use('/api/alerts', triggeredAlertsRoutes);
 
 //I added this for demo 3
 app.use('/api/fuel', fuelRoutes);

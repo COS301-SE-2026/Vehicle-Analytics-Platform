@@ -120,26 +120,26 @@ jest.mock('lucide-react', () => ({
 }));
 
 describe('GeofenceMap', () => {
-	beforeEach(() => {
-		jest.clearAllMocks();
-		global.navigator.geolocation = {
-			getCurrentPosition: jest.fn(),
-		};
-	});
+  beforeEach(() => {
+    jest.clearAllMocks();
+    global.navigator.geolocation = {
+      getCurrentPosition: jest.fn(),
+    };
+  });
 
-	test('falls back to default center immediately when geolocation is not supported', async () => {
-		global.navigator.geolocation = undefined;
-		render(<GeofenceMap onZoneDrawn={() => {}} />);
+  test('falls back to default center immediately when geolocation is not supported', async () => {
+    global.navigator.geolocation = undefined;
+    render(<GeofenceMap onZoneDrawn={() => {}} />);
 
-		await waitFor(() => {
-			expect(screen.queryByText(/Locating you/i)).not.toBeInTheDocument();
-		});
-		
-		expect(screen.queryByTestId('loader-icon')).not.toBeInTheDocument();
-	});
+    await waitFor(() => {
+      expect(screen.queryByText(/Locating you/i)).not.toBeInTheDocument();
+    });
+    
+    expect(screen.queryByTestId('loader-icon')).not.toBeInTheDocument();
+  });
 
-	test('renders map container', () => {
-		const { container } = render(<GeofenceMap onZoneDrawn={() => {}} />);
-		expect(container.querySelector('.relative.w-full.h-full')).toBeInTheDocument();
-	});
+  test('renders map container', () => {
+    const { container } = render(<GeofenceMap onZoneDrawn={() => {}} />);
+    expect(container.querySelector('.relative.w-full.h-full')).toBeInTheDocument();
+  });
 });

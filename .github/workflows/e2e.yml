@@ -109,12 +109,12 @@ jobs:
 
       - name: Install Playwright browsers
         working-directory: ./e2e
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Run Playwright tests
         working-directory: ./e2e
-        run: npx playwright test
-
+        run: ./node_modules/.bin/playwright test
+        
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4

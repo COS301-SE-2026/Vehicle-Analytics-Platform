@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types'
-import { Calendar as CalendarIcon, Sparkles, Loader2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Loader2 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 
 export const PERIOD_TYPES = [
-    { id: 'weekly', label: 'Last complete week' },
+    { id: 'weekly', label: 'Last complete week (Mon-Sun)' },
     { id: 'monthly', label: 'Last complete month' },
-    { id: 'current', label: 'Last 7 days of data' },
+    { id: 'current', label: 'Rolling 7 days (to latest data)' },
     { id: 'custom', label: 'Custom range' },
 ]
 
@@ -27,12 +27,12 @@ export default function ReportToolbar({
     onScopeChange,
     periodType,
     onPeriodTypeChange,
-    dateRange,
+    dateRange = null,
     onDateRangeChange,
     compareMode,
     onCompareModeChange,
     onGenerate,
-    loading,
+    loading = false,
 }) {
     const vehiclesByGroup = scopes.groups.map((group) => ({
         group,
@@ -81,7 +81,7 @@ export default function ReportToolbar({
                                     mode="range"
                                     selected={dateRange}
                                     onSelect={onDateRangeChange}
-                                    numberOfMonths={2}
+                                    numberOfMonths={1}
                                     captionLayout="dropdown"
                                     fromYear={2020}
                                     toYear={2030}
@@ -141,6 +141,7 @@ export default function ReportToolbar({
                         type="button"
                         role="switch"
                         aria-checked={compareMode}
+                        aria-label="Compare vehicles"
                         data-testid="report-compare-toggle"
                         onClick={() => onCompareModeChange(!compareMode)}
                         className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
@@ -148,8 +149,8 @@ export default function ReportToolbar({
                         }`}
                     >
                         <span
-                            className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                                compareMode ? 'translate-x-5' : 'translate-x-0.5'
+                            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                                compareMode ? 'translate-x-5' : 'translate-x-0'
                             }`}
                         />
                     </button>
@@ -163,8 +164,8 @@ export default function ReportToolbar({
                     data-testid="report-generate"
                     className="ml-auto bg-fleet-blue text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-fleet-blue/90 disabled:opacity-60 flex items-center gap-2"
                 >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {loading ? 'Generating...' : 'Generate Report'}
+                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {loading ? 'Generating...' : 'Generate Analysis'}
                 </button>
             </div>
 
@@ -200,9 +201,4 @@ ReportToolbar.propTypes = {
     onCompareModeChange: PropTypes.func.isRequired,
     onGenerate: PropTypes.func.isRequired,
     loading: PropTypes.bool,
-}
-
-ReportToolbar.defaultProps = {
-    dateRange: null,
-    loading: false,
 }

@@ -195,13 +195,13 @@ export default function Reports(){
 							</h2>
 							<p className="text-sm text-fleet-secondary">
 								{report.period.label}
-								{report.previousPeriod && ` \u00b7 compared with ${report.previousPeriod.label}`}
+								{report.previousPeriod && ` - compared with ${report.previousPeriod.label}`}
 							</p>
 						</div>
 						<p className="text-xs text-fleet-secondary">
 							{report.coverage.vehiclesWithEvents} of {report.coverage.vehiclesInScope} vehicles
 							reported events
-							{' \u00b7 '}
+							{'- '}
 							{report.coverage.activeVehicles} active
 						</p>
 					</div>

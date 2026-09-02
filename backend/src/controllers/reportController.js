@@ -359,6 +359,4 @@ async function getReportScopes(req, res) {
 module.exports = {
     generateReport,
     getReportScopes,
-    _buildNotes: buildNotes,
-    _resolveRequestedPeriod: resolveRequestedPeriod,
 };

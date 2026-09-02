@@ -2,7 +2,7 @@
 -- Evaluates repeated_unsafe_events custom alert rules against incoming
 -- vehicle_events rows. 
 
-CREATE OR REPLACE FUNCTION evaluate_repeated_unsafe_uevents_rules()
+CREATE OR REPLACE FUNCTION evaluate_repeated_unsafe_events_rules()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$

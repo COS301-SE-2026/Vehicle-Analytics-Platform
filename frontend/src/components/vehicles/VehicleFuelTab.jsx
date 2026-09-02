@@ -258,7 +258,7 @@ function BestWorstTrips({ trips }) {
     if (!trips || trips.length < 2) return null;
     const sorted = [...trips].sort((a, b) => Number.parseFloat(b.fuel_efficiency_km_per_liter) - Number.parseFloat(a.fuel_efficiency_km_per_liter));
     const best = sorted[0];
-    const worst = sorted.at(-1); // FIXED: using .at() instead of [length-1]
+    const worst = sorted.at(-1);
     const bestEff = Number.parseFloat(best.fuel_efficiency_km_per_liter) || 0;
     const worstEff = Number.parseFloat(worst.fuel_efficiency_km_per_liter) || 0;
     if (bestEff === 0 && worstEff === 0) return null;

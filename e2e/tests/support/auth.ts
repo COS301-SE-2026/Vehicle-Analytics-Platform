@@ -65,7 +65,7 @@ export async function seedRealLoginUser() {
 }
 
 function mintDecodeOnlyToken(cognitoSub: string, email: string) { // NOSONAR
-  return jwt.sign({ sub: cognitoSub, email }, 'e2e-unverified-signing-key', {
+  return jwt.sign({ sub: cognitoSub, email }, 'e2e-unverified-signing-key', { //NOSONAR
     expiresIn: '2h',
   });
 }

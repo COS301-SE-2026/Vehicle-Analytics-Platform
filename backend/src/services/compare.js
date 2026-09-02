@@ -28,12 +28,28 @@ const METRIC_DEFINITIONS = {
     inactiveVehicles: { label: 'Inactive vehicles', unit: 'vehicles', higherIsBetter: false },
     utilisationPct: { label: 'Utilisation', unit: '%', higherIsBetter: true },
 
+    // Distance (per vehicle)
+    distanceKm: { label: 'Distance', unit: 'km', higherIsBetter: null },
+    daysActive: { label: 'Days active', unit: 'days', higherIsBetter: true },
 
-
+    // Fuel
     totalFuelLiters: { label: 'Estimated fuel used', unit: 'L', higherIsBetter: null },
+    fuelLiters: { label: 'Estimated fuel used', unit: 'L', higherIsBetter: null },
     avgEfficiencyKmPerL: { label: 'Fuel efficiency', unit: 'km/L', higherIsBetter: true },
     avgConsumptionLPer100Km: { label: 'Fuel consumption', unit: 'L/100km', higherIsBetter: false },
     tripsWithFuelData: { label: 'Trips with fuel data', unit: 'trips', higherIsBetter: null },
+
+    // here i put the safety section 
+    safetyScore: { label: 'Safety score', unit: null, higherIsBetter: true },
+    worstDailyScore: { label: 'Worst daily score', unit: null, higherIsBetter: true },
+    totalEvents: { label: 'Total events', unit: 'events', higherIsBetter: false },
+    harshBrakes: { label: 'Harsh braking', unit: 'events', higherIsBetter: false },
+    harshAccelerations: { label: 'Harsh acceleration', unit: 'events', higherIsBetter: false },
+    harshCornering: { label: 'Harsh cornering', unit: 'events', higherIsBetter: false },
+    crashes: { label: 'Crashes', unit: 'events', higherIsBetter: false },
+    overspeedEvents: { label: 'Overspeed events', unit: 'events', higherIsBetter: false },
+    idlingEvents: { label: 'Idling events', unit: 'events', higherIsBetter: false },
+    eventsPerVehicleDay: { label: 'Events per vehicle-day', unit: 'events', higherIsBetter: false },
 };
 
 function definitionFor(metric){
@@ -44,31 +60,24 @@ function isNumber(value){
     return typeof value === 'number' && Number.isFinite(value);
 }
 
-function round(value, dp) {
+function round(value, dp){
     if (!isNumber(value)) return null;
     const factor = 10 ** dp;
     const sign = value < 0 ? -1 : 1;
     return (sign * Math.round(Math.abs(value) * factor)) / factor;
-
 }
 
 function directionFor(percentChange, higherIsBetter, threshold){
     if (percentChange === null) return null;
-
     if (Math.abs(percentChange) < threshold) return DIRECTION.STABLE;
-
-
 
     const rising = percentChange > 0;
     if (higherIsBetter === null) {
         return rising ? DIRECTION.INCREASED : DIRECTION.DECREASED;
     }
 
-
     const better = higherIsBetter ? rising : !rising;
-
     return better ? DIRECTION.IMPROVED : DIRECTION.DETERIORATED;
-
 }
 
 function compareMetric(metric, current, previous, options = {}){
@@ -117,9 +126,7 @@ function compareMetric(metric, current, previous, options = {}){
             absoluteChange,
             percentChange,
             direction: DIRECTION.INSUFFICIENT_BASELINE,
-
         };
-
     }
 
     return {
@@ -128,7 +135,6 @@ function compareMetric(metric, current, previous, options = {}){
         percentChange,
         direction: directionFor(percentChange, higherIsBetter, stabilityThresholdPct),
     };
-
 }
 
 function compareSummaries(current, previous, options = {}){
@@ -138,14 +144,12 @@ function compareSummaries(current, previous, options = {}){
 
     const { metrics, ...metricOptions } = options;
 
-
     const names = metrics || Object.keys(current).filter((key) => {
         const value = current[key];
         return value === null || isNumber(value);
     });
 
     const baseline = previous && typeof previous === 'object' ? previous : {};
-
 
     const result = {};
     names.forEach((name) => {
@@ -156,7 +160,6 @@ function compareSummaries(current, previous, options = {}){
     });
 
     return result;
-    
 }
 
 function isBaselineSufficient(previousSummary, options = {}){
@@ -177,6 +180,8 @@ module.exports = {
     compareMetric,
     compareSummaries,
     isBaselineSufficient,
+    definitionFor,
+    round,
     METRIC_DEFINITIONS,
     STABILITY_THRESHOLD_PCT,
     DIRECTION,

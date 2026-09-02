@@ -15,7 +15,7 @@ jest.mock('@/components/dashboard/MostActiveVehiclesTable', () => ({
 jest.mock('@/components/dashboard/FleetActivityChart', () => ({ __esModule: true, default: () => <div>FleetActivityChart</div> }))
 jest.mock('@/components/dashboard/RecentVehicleEvents', () => ({ __esModule: true, default: () => <div>Recent Vehicle Events</div> }))
 jest.mock('@/components/dashboard/FleetAnalytics', () => ({ __esModule: true, default: () => <div>FleetAnalytics</div> }))
-jest.mock('@/components/dashboard/FuelKpiCard', () => ({ __esModule: true, default: () => <div>FuelKpiCard</div> }))
+// jest.mock('@/components/dashboard/FuelKpiCard', () => ({ __esModule: true, default: () => <div>FuelKpiCard</div> }))
 
 jest.mock('@/services/vehicleService', () => ({
   getKPIs: jest.fn(),

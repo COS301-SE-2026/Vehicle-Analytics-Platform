@@ -1,204 +1,165 @@
 
-
-import useAuthStore from '../store/authStore'
-
+import api from './api';
 
 
 
+export const getVehicleFuelHistory = async (vehicleId, period = 'week', limit = 30) => {
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
+  try {
 
+    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
 
+      params: { period, limit }
 
-async function getAuthHeaders() {
+    });
 
-  const token = useAuthStore.getState().token
+    return response.data.data || [];
 
-  return {
+  } catch (error) {
 
-    'Content-Type': 'application/json',
+    console.error('Error fetching vehicle fuel history:', error);
 
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-
-  }
-
-}
-
-
-
-export async function getVehicleFuelStats(vehicleId, days = 30) {
-
-  const headers = await getAuthHeaders()
-
-  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}?days=${days}`, { headers })
-
-  if (!res.ok) {
-
-    throw new Error('Failed to fetch vehicle fuel stats')
+    return [];
 
   }
 
-  const data = await res.json()
-
-  return data.data
-
-}
+};
 
 
 
-export async function getVehicleFuelHistory(vehicleId, period = 'week', limit = 30) {
 
-  const headers = await getAuthHeaders()
+export const getVehicleFuelTrend = async (vehicleId, days = 30) => {
 
-  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}/history?period=${period}&limit=${limit}`, { headers })
+  try {
 
-  if (!res.ok) {
+    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/trend`, {
 
-    throw new Error('Failed to fetch vehicle fuel history')
+      params: { days }
 
-  }
+    });
 
-  const data = await res.json()
+    return response.data.data || [];
 
-  return data.data
+  } catch (error) {
 
-}
+    console.error('Error fetching vehicle fuel trend:', error);
 
-
-
-export async function getFleetFuelSummary(period = 'week') {
-
-  const headers = await getAuthHeaders()
-
-  const res = await fetch(`${API_BASE_URL}/api/fuel/fleet?period=${period}`, { headers })
-
-  if (!res.ok) {
-
-    throw new Error('Failed to fetch fleet fuel summary')
+    return [];
 
   }
 
-  const data = await res.json()
-
-  return data.data
-
-}
+};
 
 
 
-export async function getFuelDashboard() {
+export const getFleetFuelHistory = async (period = 'week', limit = 10) => {
 
-  const headers = await getAuthHeaders()
+  try {
 
+    const response = await api.get('/api/fuel/fleet/history', {
 
-  const res = await fetch(`${API_BASE_URL}/api/fuel/dashboard`, { headers })
+      params: { period, limit }
 
-  if (!res.ok) {
+    });
 
-    throw new Error('Failed to fetch fuel dashboard')
+    return response.data.data || [];
 
-  }
+  } catch (error) {
 
-  const data = await res.json()
+    console.error('Error fetching fleet fuel history:', error);
 
-  return data.data
-
-}
-
-
-
-
-
-export async function calculateTripFuel(tripId) {
-
-  const headers = await getAuthHeaders()
-
-  const res = await fetch(`${API_BASE_URL}/api/fuel/calculate/trip/${tripId}`, {
-
-    method: 'POST',
-
-    headers
-
-  })
-
-  if (!res.ok) {
-
-    throw new Error('Failed to calculate trip fuel')
+    return [];
 
   }
 
-  const data = await res.json()
-
-  return data.data
-
-}
+};
 
 
 
-export async function getVehicleFuelTrend(vehicleId, days = 30) {
+export const getFuelDashboard = async () => {
 
-  const headers = await getAuthHeaders()
+  try {
 
-  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}/trend?days=${days}`, { headers })
+    const response = await api.get('/api/fuel/dashboard');
 
-  if (!res.ok) {
+    return response.data.data || null;
 
-    throw new Error('Failed to fetch vehicle fuel trend')
+  } catch (error) {
 
-  }
+    console.error('Error fetching fuel dashboard:', error);
 
-  const data = await res.json()
-
-  return data.data
-
-}
-
-
-
-
-
-export async function getFleetFuelHistory(period = 'week', limit = 10) {
-
-  const headers = await getAuthHeaders()
-
-  const res = await fetch(`${API_BASE_URL}/api/fuel/fleet/history?period=${period}&limit=${limit}`, { headers })
-
-  if (!res.ok) {
-
-    throw new Error('Failed to fetch fleet fuel history')
+    return null;
 
   }
 
-  const data = await res.json()
-
-  return data.data
-
-}
+};
 
 
 
-export async function calculateDailyHistory(vehicleId, date) {
+export const getVehicleFuelStats = async (vehicleId, days = 30) => {
 
-  const headers = await getAuthHeaders()
+  try {
 
-  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}/calculate?date=${date}`, {
+    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
 
-    method: 'POST',
+      params: { period: 'week', limit: 10 }
 
-    headers
+    });
 
-  })
+    const data = response.data.data || [];
 
-  if (!res.ok) {
+    if (data.length > 0) {
 
-    throw new Error('Failed to calculate daily history')
+      const totalDistance = data.reduce((sum, h) => sum + Number(h.total_distance || 0), 0);
+
+      const totalFuel = data.reduce((sum, h) => sum + Number(h.total_fuel || 0), 0);
+
+      const avgEfficiency = totalDistance > 0 && totalFuel > 0 ? totalDistance / totalFuel : 0;
+
+      return {
+
+        avg_efficiency: avgEfficiency,
+
+        total_distance: totalDistance,
+
+        total_fuel: totalFuel,
+
+        trip_count: data.reduce((sum, h) => sum + Number(h.trip_count || 0), 0)
+            };
+
+          }
+
+          return { avg_efficiency: 0, total_distance: 0, total_fuel: 0, trip_count: 0 };
+
+        } catch (error) {
+
+          console.error('Error fetching vehicle fuel stats:', error);
+
+          return { avg_efficiency: 0, total_distance: 0, total_fuel: 0, trip_count: 0 };
+
+        }
+};
+
+
+
+export const calculateDailyHistory = async (vehicleId, date) => {
+
+  try {
+
+    const response = await api.post(`/api/fuel/vehicle/${vehicleId}/calculate`, null, {
+
+      params: { date }
+
+    });
+
+    return response.data.data || null;
+
+  } catch (error) {
+
+    console.error('Error calculating daily history:', error);
+
+    return null;
 
   }
 
-  const data = await res.json()
-
-  return data.data
-
-
-}
-
+};

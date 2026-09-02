@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 
 import { motion } from 'framer-motion';
@@ -10,7 +9,7 @@ import {
 
     Fuel, TrendingUp, Download, Award, Calendar, Leaf, Gauge, 
 
-    Coins, TrendingDown, Zap, X, Calendar as CalendarIcon
+    Coins, TrendingDown, Zap, X
 
 } from 'lucide-react';
 
@@ -54,7 +53,6 @@ const cardVariants = {
 
 function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1200, decimals = 1 }) {
 
-
     const [count, setCount] = useState(0);
 
     const [isVisible, setIsVisible] = useState(false);
@@ -62,7 +60,9 @@ function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1200, dec
     const ref = useRef(null);
 
     
+    
     useEffect(() => {
+    
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
@@ -407,13 +407,18 @@ export default function VehicleFuelTab({ vehicleId }) {
                     return;
                 }
                 
-                // Filter by date range
                 const start = new Date(startDate);
                 const end = new Date(endDate);
                 const filtered = history.filter(h => {
                     const d = new Date(h.period_start);
                     return d >= start && d <= end;
                 });
+                
+                if (filtered.length === 0) {
+                    setData(null);
+                    setLoading(false);
+                    return;
+                }
                 
                 const trips = filtered.map((h, idx) => ({
                     trip_id: idx + 1,
@@ -429,7 +434,6 @@ export default function VehicleFuelTab({ vehicleId }) {
                 const totalFuel = filtered.reduce((sum, h) => sum + parseFloat(h.total_fuel || 0), 0);
                 const avgEff = totalDistance > 0 && totalFuel > 0 ? totalDistance / totalFuel : 0;
                 
-                // Calculate road breakdown totals
                 const roadBreakdown = { motorway: 0, primary: 0, residential: 0, other: 0 };
                 trips.forEach(trip => {
                     if (trip.road_breakdown) {
@@ -503,7 +507,6 @@ export default function VehicleFuelTab({ vehicleId }) {
     const maxEff = data.trips.length > 0 ? Math.max(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
     const minEff = data.trips.length > 0 ? Math.min(...data.trips.map(t => parseFloat(t.fuel_efficiency_km_per_liter) || 0)) : 0;
 
-    // Road breakdown data for chart
     const roadData = Object.entries(data.summary.road_breakdown || {})
         .filter(([_, value]) => value > 0)
         .map(([name, value]) => ({
@@ -541,7 +544,6 @@ export default function VehicleFuelTab({ vehicleId }) {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Date Range Picker */}
                     <div className="flex items-center gap-2">
                         <input
                             type="date"

@@ -164,6 +164,10 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
         },
       });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional:
+    // initialView is a starting position only, read once at map creation.
+    // The `if (map.current) return` guard above already prevents this
+    // effect from reacting to later initialView changes.
   }, [])
 
   useEffect(() => {
@@ -284,21 +288,26 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     markers.current = {};
   }, [])
 
-  useEffect(() => {
-    if(!map.current || !minimal || vehicles.length !== 1){
-      return
-    }
-    const {lat , lng} = vehicles[0]
-    if(!Number.isFinite(lat) || !Number.isFinite(lng)){
-      return
-    }
-    const recenter = () => map.current.easeTo({center: [lng, lat], zoom: 15, duration: 800})
-    if(map.current.isStyleLoaded()){
-      recenter()
-    }else{
-      map.current.once('load', recenter)
-    }
-  }, [minimal, vehicles[0]?.lat, vehicles[0]?.lng])
+const singleVehicleLat = minimal && vehicles.length === 1 ? vehicles[0]?.lat : undefined
+const singleVehicleLng = minimal && vehicles.length === 1 ? vehicles[0]?.lng : undefined
+useEffect(() => {
+  if (!map.current || !minimal || vehicles.length !== 1) {
+    return
+  }
+  const { lat, lng } = vehicles[0]
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return
+  }
+  const recenter = () => map.current.easeTo({ center: [lng, lat], zoom: 15, duration: 800 })
+  if (map.current.isStyleLoaded()) {
+    recenter()
+  } else {
+    map.current.once('load', recenter)
+  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- vehicles is
+    // deliberately excluded: only this single vehicle's lat/lng should
+    // trigger a recenter, not every array reference change from polling.
+} , [minimal, singleVehicleLat, singleVehicleLng])
 
   return (
     <div 

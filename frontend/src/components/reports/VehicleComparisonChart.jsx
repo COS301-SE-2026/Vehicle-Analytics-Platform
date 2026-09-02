@@ -1,14 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import PropTypes from 'prop-types'
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-} from 'recharts'
+import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,} from 'recharts'
 import { BarChart3 } from 'lucide-react'
 
 const METRICS = [
@@ -30,7 +22,7 @@ const EVENT_BREAKDOWN = [
     { key: 'idlingEvents', label: 'Idling' },
 ]
 
-function ChartTooltip({ active, payload, label, unit }) {
+function ChartTooltip({ active, payload, label, unit }){
     if (!active || !payload || payload.length === 0) return null
     const value = payload[0].value
 
@@ -58,7 +50,7 @@ ChartTooltip.defaultProps = {
     unit: '',
 }
 
-function EmptyState() {
+function EmptyState(){
     return (
         <div className="h-[260px] flex flex-col items-center justify-center gap-3 text-center">
             <BarChart3 className="w-8 h-8 text-fleet-border" />
@@ -73,32 +65,25 @@ function EmptyState() {
     )
 }
 
-
-export default function VehicleComparisonChart({ vehicles }) {
+export default function VehicleComparisonChart({ vehicles }){
     const [metricKey, setMetricKey] = useState('safetyScore')
 
-    const single = vehicles.length === 1
-    const metric = useMemo(
-        () => METRICS.find((m) => m.key === metricKey) || METRICS[0],
-        [metricKey]
-    )
-
-    const data = useMemo(() => {
-        if (!vehicles.length) return []
-        return single
-            ? EVENT_BREAKDOWN.map((e) => ({
-                label: e.label,
-                value: vehicles[0][e.key] ?? 0,
-            }))
-            : vehicles.map((v) => ({
-                label: v.vehicleId,
-                value: v[metric.key] === null || v[metric.key] === undefined ? null : v[metric.key],
-            }))
-    }, [vehicles, single, metric.key])
-
-    const hasData = useMemo(() => data.some((d) => d.value !== null), [data])
-
     if (!vehicles.length) return <EmptyState />
+
+    const single = vehicles.length === 1
+    const metric = METRICS.find((m) => m.key === metricKey) || METRICS[0]
+
+    const data = single
+        ? EVENT_BREAKDOWN.map((e) => ({
+            label: e.label,
+            value: vehicles[0][e.key] ?? 0,
+        }))
+        : vehicles.map((v) => ({
+            label: v.vehicleId,
+            value: v[metric.key] === null || v[metric.key] === undefined ? null : v[metric.key],
+        }))
+
+    const withData = data.filter((d) => d.value !== null)
 
     return (
         <div className="space-y-4">
@@ -124,7 +109,7 @@ export default function VehicleComparisonChart({ vehicles }) {
                 )}
             </div>
 
-            {!hasData ? (
+            {withData.length === 0 ? (
                 <div className="h-[220px] flex items-center justify-center text-fleet-secondary text-sm">
                     None of the selected vehicles recorded this metric in the reporting period.
                 </div>

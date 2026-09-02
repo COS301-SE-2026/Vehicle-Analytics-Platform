@@ -182,7 +182,7 @@ export default function Reports(){
 
 			{!report && !loading && !error && (
 				<p className="text-sm text-fleet-secondary py-10 text-center">
-					Choose a timeframe and a scope, then generate an analysis.
+					Choose a timeframe and a scope, then generate a report.
 				</p>
 			)}
 

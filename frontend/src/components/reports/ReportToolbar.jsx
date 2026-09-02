@@ -163,10 +163,8 @@ export default function ReportToolbar({
                     data-testid="report-generate"
                     className="ml-auto bg-fleet-blue text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-fleet-blue/90 disabled:opacity-60 flex items-center gap-2"
                 >
-                    {loading
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <Sparkles className="w-4 h-4" />}
-                    {loading ? 'Generating...' : 'Generate Analysis'}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    {loading ? 'Generating...' : 'Generate Report'}
                 </button>
             </div>
 

@@ -16,12 +16,12 @@ async function authenticate(req, res, next) {
 
   
 
-  
-  if (process.env.NODE_ENV === "development") {
+  const hasAuthHeader = req.headers.authorization && req.headers.authorization.startsWith('Bearer ');
+  if (process.env.NODE_ENV === "development" && !hasAuthHeader) {
   
     req.user = {
   
-      id: "dev-user",
+      id: 1,
   
       sub: "local-dev",
   

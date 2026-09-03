@@ -1,0 +1,191 @@
+name: Security Scans
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+  # Weekly, so newly-published CVEs in unchanged dependencies still surface.
+  schedule:
+    - cron: '0 3 * * 1'
+
+jobs:
+  # ---------------------------------------------------------------
+  # Dependency CVEs. Separate job so it reports even if ZAP fails.
+  # --audit-level=high keeps low-severity transitive noise from
+  # blocking PRs; drop to =moderate once the backlog is clear.
+  # ---------------------------------------------------------------
+  dependency_audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: [backend, frontend, database, e2e]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: npm audit (${{ matrix.workspace }})
+        working-directory: ./${{ matrix.workspace }}
+        run: npm audit --audit-level=high
+
+  # ---------------------------------------------------------------
+  # ZAP baseline: passive only. Spiders the app and inspects
+  # responses -- no attack payloads -- so it is safe on every PR.
+  # The active/full scan is manual and staging-only; see
+  # security-testing-plan.md section 2.2.
+  # ---------------------------------------------------------------
+  zap_baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg16
+        env:
+          POSTGRES_DB: fleet_analytics_sec
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d fleet_analytics_sec"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: fleet_analytics_sec
+      PGUSER: admin
+      PGPASSWORD: testpassword
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: fleet_analytics_sec
+      DB_USER: admin
+      DB_PASSWORD: testpassword
+      BACKEND_PORT: 5000
+      FRONTEND_PORT: 4173
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            ./database/package-lock.json
+            ./backend/package-lock.json
+            ./frontend/package-lock.json
+
+      - name: Install postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -q && exit 0
+            echo "Waiting for postgres ($i/30)..."
+            sleep 2
+          done
+          echo "Postgres never became ready"; exit 1
+
+      - name: Install database dependencies
+        working-directory: ./database
+        run: npm ci --ignore-scripts
+
+      - name: Bootstrap stubbed roads & spatial tables
+        working-directory: ./database
+        run: psql -v ON_ERROR_STOP=1 -f __tests__/bootstrap.sql
+
+      - name: Run core migrations
+        working-directory: ./database
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(migrations/V*.sql)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No migrations found -- wrong working directory?"; exit 1
+          fi
+          while IFS= read -r file; do
+            echo "::group::$file"
+            psql -v ON_ERROR_STOP=1 -f "$file"
+            echo "::endgroup::"
+          done < <(printf '%s\n' "${files[@]}" | sort -V)
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci --ignore-scripts
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci --ignore-scripts
+
+      # NODE_ENV is deliberately NOT 'development' here. That value makes
+      # middleware/auth.js stub req.user and skip requireRole entirely, so
+      # the scan would be probing an app with no auth at all -- which is
+      # both unrepresentative and hides finding 3.1 rather than exposing it.
+      - name: Start backend
+        working-directory: ./backend
+        run: |
+          NODE_ENV=e2e PORT=${BACKEND_PORT} nohup npm run start > backend.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf "http://localhost:${BACKEND_PORT}/api/health" > /dev/null; then
+              echo "backend up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend never became healthy:"; cat backend.log; exit 1
+
+      - name: Build and serve frontend
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: http://localhost:5000
+        run: |
+          npm run build
+          nohup npm run preview -- --port ${FRONTEND_PORT} > preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf "http://localhost:${FRONTEND_PORT}" > /dev/null; then
+              echo "frontend up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend never became available:"; cat preview.log; exit 1
+
+      - name: ZAP baseline scan (frontend)
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: http://localhost:4173
+          # .zap/rules.tsv marks known-accepted findings as WARN/IGNORE so
+          # the job fails only on new issues. Keep every IGNORE justified.
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-a -j'
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: ZAP baseline scan (API)
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: http://localhost:5000/api/health
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-a'
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Upload backend log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-logs
+          path: |
+            backend/backend.log
+            frontend/preview.log
+          retention-days: 14

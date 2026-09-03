@@ -163,7 +163,7 @@ async function buildWeeklyTrends(db, vehicleIds, period){
     };
 }
 
-function buildRankings(current) {
+function buildRankings(current){
     const merged = mergeEntities([
         current.distance.vehicles,
         current.fuel.vehicles,
@@ -179,58 +179,6 @@ function buildRankings(current) {
         mostIdle: requiresAttention(merged, 'idleRatio'),
         bestFuelEfficiency: topPerformers(merged, 'avgEfficiencyKmPerL'),
     };
-}
-
-function buildNotes({ scope, period, current, previous, baselineSufficient, trends }){
-    const notes = [];
-
-    if (!scope.vehicleCount) {
-        notes.push('No vehicles fall inside this scope, so every metric is empty.');
-    }
-
-    if (!current.safety.summary.hasTelemetry) {
-        notes.push(
-            `No telemetry was recorded between ${period.fromDate} and ${period.toDate}, `
-            + 'so safety scores cannot be calculated for this period.',
-        );
-    }
-
-    if (period.previous && !baselineSufficient) {
-        notes.push(
-            `Too few vehicles were active during ${period.previous.label} for percentage `
-            + 'changes to be meaningful, so comparisons are shown without a verdict.',
-        );
-    }
-
-    if (!period.previous) {
-        notes.push('This period has no comparable previous period.');
-    }
-
-    notes.push(
-        'V.A.P.O.R has no driver entity, so all behaviour metrics are attributed to the '
-        + 'vehicle rather than to a named driver.',
-    );
-
-    notes.push(
-        'Fuel figures are modelled from speed and road class, not measured from a fuel '
-        + 'sensor, and are labelled estimated throughout.',
-    );
-
-    if (scope.unassignedVehicleCount > 0 && scope.scopeType === 'fleet') {
-        notes.push(
-            `${scope.unassignedVehicleCount} vehicle(s) belong to no fleet group and are `
-            + 'therefore outside every manager-scoped report.',
-        );
-    }
-
-    if (trends && trends.coverage.leadInDays > 0) {
-        notes.push(
-            `Weekly trend buckets start on ${trends.coverage.firstDate}; the first `
-            + `${trends.coverage.leadInDays} day(s) of the period fall outside a whole week.`,
-        );
-    }
-
-    return notes;
 }
 
 async function generateReport(req, res){
@@ -250,17 +198,13 @@ async function generateReport(req, res){
             : null;
 
         const baselineSufficient = previous
-            ? isBaselineSufficient(previous.distance.summary)
+            ? isBaselineSufficient(previous.distance.summary, current.distance.summary)
             : false;
 
         const compareOptions = { baselineSufficient };
 
         const trends = await buildWeeklyTrends(pool, scope.vehicleIds, period);
         const rankings = buildRankings(current);
-
-        const notes = buildNotes({
-            scope, period, current, previous, baselineSufficient, trends,
-        });
 
         return success(res, {
             report: {
@@ -299,6 +243,8 @@ async function generateReport(req, res){
                 vehiclesWithEvents: current.safety.summary.vehiclesWithEvents,
                 activeVehicles: current.distance.summary.activeVehicles,
                 inactiveVehicles: current.distance.summary.inactiveVehicles,
+                vehiclesWithFuelData: current.fuel.summary.vehiclesWithFuelData,
+                fuelIsEstimated: true,
                 baselineSufficient,
             },
 
@@ -340,14 +286,13 @@ async function generateReport(req, res){
 
             rankings,
             trends,
-            notes,
         }, 200);
     } catch (err) {
         return handleError(res, err, 'Generate report error');
     }
 }
 
-async function getReportScopes(req, res) {
+async function getReportScopes(req, res){
     try {
         const scopes = await listAvailableScopes(pool, req.user);
         return success(res, scopes, 200);

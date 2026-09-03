@@ -27,7 +27,6 @@ const baseVehicles = [
     {
         id: 'VH-001',
         status: 'moving',
-        zone: 'North Depot',
         hasAlert: true,
         safetyScore: 92,
         lastUpdated:'2 min ago',
@@ -36,7 +35,6 @@ const baseVehicles = [
     {
         id: 'VH-002',
         status: 'offline',
-        zone: null,
         hasAlert: false,
         safetyScore: 61,
         lastUpdated:'3 hours ago',
@@ -61,7 +59,7 @@ describe('VehiclesTable', () => {
 
     test('renders all column headers', () => {
         render(<VehiclesTable {...defaultProps} />);
-        ['VEHICLE ID', 'STATUS', 'ZONE', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS'].forEach((col) => {
+        ['VEHICLE ID', 'STATUS', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS'].forEach((col) => {
             expect(screen.getByText(col)).toBeInTheDocument()
         })
     })
@@ -79,16 +77,6 @@ describe('VehiclesTable', () => {
 
         expect(screen.getAllByTestId('safety-score-ring')).toHaveLength(2)
 
-    })
-
-    test('renders zone or "-" fallback when zone is missing', () => {
-        render(<VehiclesTable {...defaultProps} />)
-
-        const row1 = within(screen.getByTestId('vehicle-row-VH-001'))
-        expect(row1.getByText('North Depot')).toBeInTheDocument()
-
-        const row2 = within(screen.getByTestId('vehicle-row-VH-002'))
-        expect(row2.getAllByText('-')).toHaveLength(2)
     })
 
     test('renders vehicle status badges', () => {

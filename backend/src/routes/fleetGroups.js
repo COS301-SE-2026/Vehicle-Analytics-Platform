@@ -29,7 +29,7 @@ router.get('/my-groups', authenticate, requireRole(['admin', 'fleet_manager']), 
 router.post('/:id/assignments', authenticate, requireRole(['admin']), assignFleetManager);
 router.delete('/:id/assignments/:managerId', authenticate, requireRole(['admin']), removeFleetManagerAssignment);
 router.patch('/:id/vehicles', authenticate, requireRole(['admin']), bulkAssignVehiclesToGroup);
-router.get('/leaderboard', authenticate, requireRole(['admin', 'fleet_manager', 'manager']), getManagerLeaderboard);
+router.get('/leaderboard', authenticate, requireRole(['admin', 'fleet_manager']), getManagerLeaderboard);
 router.patch('/:id', authenticate, requireRole(['admin']), updateFleetGroup);
 router.delete('/:id', authenticate, requireRole(['admin']), deleteFleetGroup);
 router.patch('/:id/vehicles/unassign', authenticate, requireRole(['admin']), unassignVehiclesFromGroup);

@@ -80,7 +80,7 @@ function App() {
           <Route
             path="/map"
             element={
-              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager']}>
+              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager', 'admin']}>
                 <LiveMap />
               </ProtectedRoute>
             }

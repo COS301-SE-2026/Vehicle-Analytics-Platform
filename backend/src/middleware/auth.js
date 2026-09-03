@@ -9,7 +9,9 @@ async function authenticate(req, res, next) {
   // DEVELOPMENT BYPASS
   if (process.env.NODE_ENV === "development") {
     req.user = {
+  
       id: "dev-user",
+  
       sub: "local-dev",
       email: "dev@localhost",
       password: "dev-password",

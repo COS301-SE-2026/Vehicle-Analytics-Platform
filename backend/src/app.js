@@ -32,6 +32,10 @@ const customAlertsRoutes = require('./routes/customAlerts');
 
 const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 
+const fleetGroupsRouter = require('./routes/fleetGroupsRoutes');
+
+const fleetGroupsRouter = require('./routes/fleetGroupsRoutes');
+
 const fuelRoutes = require('./routes/fuel');
 
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
@@ -128,6 +132,8 @@ app.use('/api/geofences', geofenceRoutes);
 app.use('/api/custom-alerts', customAlertsRoutes);
 
 app.use('/api/alerts', triggeredAlertsRoutes);
+
+app.use('/api/fleet-groups', fleetGroupsRouter);
 
 //I added this for demo 3
 app.use('/api/fuel', fuelRoutes);

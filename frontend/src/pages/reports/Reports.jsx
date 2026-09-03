@@ -6,6 +6,8 @@ import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
 import { getReportScopes, generateReport } from '../../services/reportServices'
 
+const AUTO_PLOT_LIMIT = 12
+
 function toISODate(date){
 	if (!date) return undefined
 	const d = new Date(date)
@@ -56,14 +58,21 @@ export default function Reports(){
 	const [scopes, setScopes] = useState({ groups: [], vehicles: [], unassignedVehicleCount: 0 })
 	const [scopeValue, setScopeValue] = useState('fleet')
 	const [periodType, setPeriodType] = useState('weekly')
+
 	const [dateRange, setDateRange] = useState({ from: undefined, to: undefined })
 
 	const [compareMode, setCompareMode] = useState(false)
-	const [selectedVehicleIds, setSelectedVehicleIds] = useState([])
+
+	const [scopeVehicleIds, setScopeVehicleIds] = useState([])
+
+	const [plottedVehicleIds, setPlottedVehicleIds] = useState([])
 
 	const [report, setReport] = useState(null)
+
 	const [loading, setLoading] = useState(false)
+
 	const [error, setError] = useState(null)
+
 
 	useEffect(() => {
 		let cancelled = false
@@ -87,21 +96,32 @@ export default function Reports(){
 		return scopes.vehicles
 	}, [scopes.vehicles, scopeValue])
 
-	function toggleVehicle(vehicleId){
-		setSelectedVehicleIds((prev) => (prev.includes(vehicleId)
+	function toggleScopeVehicle(vehicleId){
+		setScopeVehicleIds((prev) => (prev.includes(vehicleId)
 			? prev.filter((id) => id !== vehicleId)
 			: [...prev, vehicleId]))
 	}
+
+
+
+	function togglePlottedVehicle(vehicleId){
+		setPlottedVehicleIds((prev) => (prev.includes(vehicleId)
+			? prev.filter((id) => id !== vehicleId)
+			: [...prev, vehicleId]))
+	}
+
 
 	const handleGenerate = useCallback(async () => {
 		setLoading(true)
 		setError(null)
 
-		const comparing = compareMode && selectedVehicleIds.length > 0
+		const comparing = compareMode && scopeVehicleIds.length > 0
 
 		const [dropdownType, dropdownId] = scopeValue.split(':')
+		
 		const scopeType = comparing ? 'vehicles' : dropdownType
-		const scopeId = comparing ? selectedVehicleIds : (dropdownId || undefined)
+
+		const scopeId = comparing ? scopeVehicleIds : (dropdownId || undefined)
 
 		try {
 			const result = await generateReport({
@@ -118,19 +138,26 @@ export default function Reports(){
 		} finally {
 			setLoading(false)
 		}
-	}, [scopeValue, periodType, dateRange, compareMode, selectedVehicleIds])
+	}, [scopeValue, periodType, dateRange, compareMode, scopeVehicleIds])
 
 	const entities = useMemo(
 		() => report?.rankings?.entities || report?.safety?.vehicles || [],
 		[report],
 	)
 
-	const chartVehicles = useMemo(() => {
-		if (!report) return []
-		const type = report.report.scope.type
-		if (type === 'vehicles' || type === 'vehicle') return entities
-		return []
+	useEffect(() => {
+		if (!report) {
+			setPlottedVehicleIds([])
+			return
+		}
+		const ids = entities.map((e) => e.vehicleId)
+		setPlottedVehicleIds(ids.length <= AUTO_PLOT_LIMIT ? ids : [])
 	}, [report, entities])
+
+	const chartVehicles = useMemo(
+		() => entities.filter((e) => plottedVehicleIds.includes(e.vehicleId)),
+		[entities, plottedVehicleIds],
+	)
 
 	const cardSummary = useMemo(() => (report ? {
 		...report.distance.summary,
@@ -183,8 +210,8 @@ export default function Reports(){
 				compareMode={compareMode}
 				onCompareModeChange={setCompareMode}
 				candidateVehicles={candidateVehicles}
-				selectedVehicleIds={selectedVehicleIds}
-				onToggleVehicle={toggleVehicle}
+				selectedVehicleIds={scopeVehicleIds}
+				onToggleVehicle={toggleScopeVehicle}
 				onGenerate={handleGenerate}
 				loading={loading}
 			/>
@@ -222,9 +249,7 @@ export default function Reports(){
 						</div>
 						<p className="text-xs text-fleet-secondary">
 							{report.coverage.vehiclesWithEvents} of {report.coverage.vehiclesInScope} vehicles
-							reported events
-							{' - '}
-							{report.coverage.activeVehicles} active
+							reported events{' - '} {report.coverage.activeVehicles} active
 						</p>
 					</div>
 
@@ -243,7 +268,50 @@ export default function Reports(){
 						<>
 							<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
 
-							<Panel label="Vehicle comparison">
+							<Panel
+								label="Vehicle comparison"
+								action={entities.length > 0 && (
+									<div className="flex items-center gap-3">
+										<span className="text-xs text-fleet-secondary">
+											{plottedVehicleIds.length} of {entities.length} plotted
+										</span>
+										<button
+											type="button"
+											onClick={() => setPlottedVehicleIds(
+												plottedVehicleIds.length === entities.length
+													? []
+													: entities.map((e) => e.vehicleId),
+											)}
+											className="text-xs font-medium text-fleet-blue hover:underline"
+										>
+											{plottedVehicleIds.length === entities.length ? 'Clear' : 'Select all'}
+										</button>
+									</div>
+								)}
+							>
+								{entities.length > 0 && (
+									<div className="flex flex-wrap gap-2 mb-5 max-h-32 overflow-y-auto">
+										{entities.map((entity) => {
+											const active = plottedVehicleIds.includes(entity.vehicleId)
+											return (
+												<button
+													key={entity.vehicleId}
+													type="button"
+													onClick={() => togglePlottedVehicle(entity.vehicleId)}
+													aria-pressed={active}
+													className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
+														active
+															? 'border-fleet-blue text-fleet-blue bg-fleet-blue/5'
+															: 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
+													}`}
+												>
+													{entity.vehicleId}
+												</button>
+											)
+										})}
+									</div>
+								)}
+
 								<VehicleComparisonChart vehicles={chartVehicles} />
 							</Panel>
 

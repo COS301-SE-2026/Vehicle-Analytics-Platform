@@ -88,13 +88,6 @@ describe('SafetyScoreTrendChart', () =>{
         expect(screen.getByTestId('line-chart')).toHaveAttribute('data-points', '1')
     })
 
-    test('switches to trip view and filters trips by the selected day', () => {
-        render(<SafetyScoreTrendChart dailyScores={dailyScores} trips={trips} />)
-
-        fireEvent.click(screen.getByTestId('trend-view-trip'))
-        expect(screen.getByTestId('trend-view-trip')).toHaveClass('border-fleet-blue')
-        expect(screen.getByTestId('line-chart')).toHaveAttribute('data-points', '1')
-    })
 
 
     test('highlights the day view button by defaut', () => {

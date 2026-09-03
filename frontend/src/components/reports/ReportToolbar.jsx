@@ -175,12 +175,8 @@ export default function ReportToolbar({
                 </p>
             )}
 
-            {scopes.unassignedVehicleCount > 0 && (
-                <p className="mt-3 text-xs text-fleet-secondary">
-                    {scopes.unassignedVehicleCount} vehicle(s) are not assigned to any group and fall
-                    outside every manager-scoped report.
-                </p>
-            )}
+            {/* {scopes.unassignedVehicleCount}  holds the unnassigned vehicles */}
+
         </div>
     )
 }

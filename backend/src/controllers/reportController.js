@@ -65,6 +65,7 @@ const TREND_METRICS = [
 ];
 
 const DEFAULT_CURRENT_DAYS = 7;
+const MAX_TREND_WEEKS = 6;
 
 function handleError(res, err, context){
     if (err instanceof ScopeError) {
@@ -126,32 +127,30 @@ async function resolveRequestedPeriod(db, body){
 }
 
 async function runAnalytics(db, vehicleIds, window){
-    const [safety, distance, fuel] = await Promise.all([
-        getSafetyAnalytics(db, vehicleIds, window),
-        getDistanceAnalytics(db, vehicleIds, window),
-        getFuelAnalytics(db, vehicleIds, window),
-    ]);
+    const safety = await getSafetyAnalytics(db, vehicleIds, window);
+    const distance = await getDistanceAnalytics(db, vehicleIds, window);
+    const fuel = await getFuelAnalytics(db, vehicleIds, window);
 
     return { safety, distance, fuel };
 }
 
 async function buildWeeklyTrends(db, vehicleIds, period){
-    const weeks = weeksInPeriod(period);
+    const allWeeks = weeksInPeriod(period);
 
-    if (weeks.length < MIN_WEEKS_FOR_TREND) return null;
+    if (allWeeks.length < MIN_WEEKS_FOR_TREND) return null;
 
-    const weeklySummaries = await Promise.all(
-        weeks.map(async (week) => {
-            const [safety, distance] = await Promise.all([
-                getSafetyAnalytics(db, vehicleIds, week),
-                getDistanceAnalytics(db, vehicleIds, week),
-            ]);
-            return { ...distance.summary, ...safety.summary };
-        }),
-    );
+    const weeks = allWeeks.slice(-MAX_TREND_WEEKS);
+    const weeklySummaries = [];
+
+    for (const week of weeks) {
+        const safety = await getSafetyAnalytics(db, vehicleIds, week);
+        const distance = await getDistanceAnalytics(db, vehicleIds, week);
+        weeklySummaries.push({ ...distance.summary, ...safety.summary });
+    }
 
     return {
         coverage: trendCoverage(period, weeks),
+        truncated: allWeeks.length > weeks.length,
         weeks: weeks.map((w) => ({
             index: w.index,
             label: w.label,

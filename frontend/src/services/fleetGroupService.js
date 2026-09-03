@@ -83,7 +83,7 @@ export async function createFleetGroup(name, description) {
     const data = await res.json().catch(() => ({}))
 
     if(!res.ok){
-        throw new Error('Failed to create fleet group')
+        throw new Error(data.error || 'Failed to create fleet group')
     }
 
     return data.data.group
@@ -134,4 +134,67 @@ export async function bulkAssignVehicles(fleetGroupId, vehicleIds) {
 
     return data.data
 }
+
+export async function getManagerLeaderboard(limit=5) {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/leaderboard?limit=${limit}`, {headers})
+
+    if(!res.ok){
+        throw new Error('Failed to fetch manager leaderboard')
+    }
+
+    const data = await res.json()
+    return data.data.leaderboard || []
+}
+
+export async function updateFleetGroup(id, name, description) {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({name,description}),
+    })
+
+    const data = await res.json().catch(() => ({}))
+
+    if(!res.ok){
+        throw new Error(data.error || 'Failed to update fleet group')
+    }
+
+    return data.data.group
+}
+
+export async function deleteFleetGroup(id) {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${id}`, {
+        method: 'DELETE',
+        headers,
+    })
+
+    const data = await res.json().catch(() => ({}))
+
+    if(!res.ok){
+        throw new Error(data.error || 'Failed to delete fleet group')
+    }
+
+    return data.data.message
+}
+
+export async function unassignVehicles(fleetGroupId, vehicleIds) {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${fleetGroupId}/vehicles/unassign`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({vehicleIds}),
+    })
+
+    const data = await res.json().catch(() => ({}))
+
+    if(!res.ok){
+        throw new Error(data.error || 'Failed to unassign vehicles')
+    }
+
+    return data.data
+}
+
 

@@ -420,8 +420,25 @@ async function getVehiclesList(req, res) {
 
           0
 
-        ) as avg_safety_score
+        ) as avg_safety_score,
 
+        COALESCE(
+          (SELECT SUM(harsh_brakes + harsh_accelerations + harsh_cornering)
+          FROM driver_daily_safety_scores dss
+          JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
+          WHERE dss.score_date = CURRENT_DATE
+            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))),
+          0
+        ) as harsh_events_today,
+
+        COALESCE(
+          (SELECT SUM(crashes)
+          FROM driver_daily_safety_scores dss
+          JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
+          WHERE dss.score_date = CURRENT_DATE
+            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))),
+          0
+        ) as crashes_today
 
       FROM (
         SELECT 

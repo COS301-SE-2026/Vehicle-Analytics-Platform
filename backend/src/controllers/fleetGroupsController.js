@@ -57,6 +57,7 @@ async function listFleetGroups(req, res) {
             LEFT JOIN vehicles v ON v.fleet_group_id = fg.id
             LEFT JOIN fleet_manager_assignments fma ON fma.fleet_group_id = fg.id
             LEFT JOIN users u ON u.id = fma.fleet_manager_id AND u.role IN ('fleet_manager', 'manager') AND u.is_active = true
+            WHERE fg.deleted_at IS NULL
             GROUP BY fg.id, fg.name, fg.description, fg.created_at
             ORDER BY fg.name ASC
         `);
@@ -95,7 +96,7 @@ async function assignFleetManager(req, res) {
     }
 
     try {
-        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1', [fleetGroupId]);
+        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1 AND deleted_at IS NULL', [fleetGroupId]);
         if (groupResult.rows.length === 0) {
             return error(res, 'Fleet group not found', 404);
         }
@@ -195,7 +196,7 @@ async function bulkAssignVehiclesToGroup(req, res) {
     }
 
     try {
-        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1', [fleetGroupId]);
+        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1 AND deleted_at IS NULL', [fleetGroupId]);
 
         if(groupResult.rows.length === 0){
             return error(res, 'Fleet group not found', 404);
@@ -233,7 +234,7 @@ async function listMyFleetGroups(req, res){
             COUNT(DISTINCT v.vehicle_id) AS vehicle_count
             FROM fleet_groups fg
             LEFT JOIN vehicles v ON fleet_group_id = fg.id
-            WHERE ($1::bigint[] IS NULL OR fg.id = ANY($1::bigint[]))
+            WHERE ($1::bigint[] IS NULL OR fg.id = ANY($1::bigint[])) AND fg.deleted_at IS NULL
             GROUP BY fg.id, fg.name, fg.description
             ORDER BY fg.name ASC
             `, [req.fleetGroupIds]);
@@ -251,6 +252,143 @@ async function listMyFleetGroups(req, res){
     }
 }
 
+async function getManagerLeaderboard(req,res){
+    const limit = Math.min(Number.parseInt(req.query.limit, 10) || 5, 20);
+
+    try{
+        const result = await pool.query(`
+            SELECT
+                u.id AS manager_id,
+                u.name AS manager_name,
+                COUNT(DISTINCT fma.fleet_group_id) AS group_count,
+                COUNT(DISTINCT v.vehicle_id) AS vehicle_count,
+                ROUND(AVG(dss.safety_score)::numeric, 1) AS avg_safety_score
+            FROM fleet_manager_assignments fma
+            JOIN users u
+                ON u.id = fma.fleet_manager_id
+                AND u.role IN ('fleet_manager', 'manager')
+                AND u.is_active = true
+            JOIN vehicles v
+                ON v.fleet_group_id = fma.fleet_group_id
+            JOIN driver_daily_safety_scores dss
+                ON dss.vehicle_id = v.vehicle_id
+                AND dss.score_date >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY u.id, u.name
+            HAVING COUNT(dss.*) > 0
+            ORDER BY avg_safety_score DESC, vehicle_count DESC
+            LIMIT $1
+            `, [limit]);
+
+        const leaderboard = result.rows.map((row,index) => ({
+            rank: index+1,
+            manager_id: row.manager_id,
+            manager_name: row.manager_name,
+            group_count: Number.parseInt(row.group_count,10),
+            vehicle_count: Number.parseInt(row.vehicle_count, 10),
+            avg_safety_score: Number.parseFloat(row.avg_safety_score),
+        }));
+
+        return success(res, {leaderboard}, 200);
+    }catch(err){
+        const errorMessage = err.message || 'Failed to fetch manager leaderboard';
+        console.error('Get manager leaderboard error:', err);
+        return error(res, 'Failed to fetch manager leaderboard: ' + errorMessage, 500);
+    }
+}
+
+async function updateFleetGroup(req, res) {
+    const {id: fleetGroupId} = req.params;
+    const {name, description} = req.body;
+
+    if(!name || !name.trim()) {
+        return error(res, 'name is required', 400);
+    }
+
+    try {
+        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1 AND deleted_at IS NULL', [fleetGroupId]);
+        if(groupResult.rows.length === 0){
+            return error(res, 'Fleet group not found', 404);
+        }
+
+        const result = await pool.query(`
+            UPDATE fleet_groups
+            SET name = $1, description = $2, updated_at = now()
+            WHERE id = $3
+            RETURNING id, name, description, created_at
+        `, [name.trim(), description?.trim() || null, fleetGroupId]
+    );
+
+    return success(res, {group: result.rows[0]}, 200);
+    }catch (err) {
+        if(err.code === '23505'){
+            return error(res, 'A fleet group with this name already exists', 409);
+        }
+
+        const errorMessage = err.message || 'Failed to update fleet group';
+        console.error('Update fleet group error:', err);
+        return error(res, 'Failed to update fleet group: ' + errorMessage, 500);
+    }
+}
+
+async function deleteFleetGroup(req, res) {
+    const {id: fleetGroupId} = req.params;
+
+    try {
+        const groupResult = await pool.query('SELECT id, name FROM fleet_groups WHERE id = $1 AND deleted_at IS NULL', [fleetGroupId]);
+        if(groupResult.rows.length === 0){
+            return error(res, 'Fleet group not found', 404);
+        }
+        const assignmentResult = await pool.query(
+            'SELECT fleet_manager_id FROM fleet_manager_assignments WHERE fleet_group_id = $1', [fleetGroupId]
+        );
+
+        for (const row of assignmentResult.rows){
+            await pool.query(`
+                INSERT INTO fleet_assignment_audit_log (action, fleet_manager_id, fleet_group_id, performed_by)
+                VALUES ('REMOVED', $1, $2, $3)
+            `, [row.fleet_manager_id, fleetGroupId, req.user.id]
+        );
+        }
+
+        await pool.query('DELETE FROM fleet_manager_assignments WHERE fleet_group_id = $1', [fleetGroupId]);
+        await pool.query('UPDATE vehicles SET fleet_group_id = NULL WHERE fleet_group_id = $1', [fleetGroupId]);
+        await pool.query('UPDATE fleet_groups SET deleted_at = now() WHERE id=$1', [fleetGroupId]);
+
+    return success(res, {message: `Fleet group "${groupResult.rows[0].name}" deleted successfully`}, 200);
+    }catch (err) {
+        const errorMessage = err.message || 'Failed to delete fleet group';
+        console.error('Delete fleet group error:', err);
+        return error(res, 'Failed to delete fleet group: ' + errorMessage, 500);
+    }
+}
+
+async function unassignVehiclesFromGroup(req, res) {
+    const {id: fleetGroupId} = req.params;
+    const {vehicleIds} = req.body;
+
+    if(!Array.isArray(vehicleIds) || vehicleIds.length === 0){
+        return error(res, 'vehicleIds must be a non empty array', 400);
+    }
+
+    try{
+        const updateResult = await pool.query(`
+            UPDATE vehicles SET fleet_group_id = NULL
+            WHERE vehicle_id = ANY($1::text[]) AND fleet_group_id = $2
+            RETURNING vehicle_id
+
+        `, [vehicleIds, fleetGroupId]
+    );
+
+    return success(res, {
+        message: `${updateResult.rows.length} vehicle(s) unassigned successfully`,
+        updated: updateResult.rows.map((row) => row.vehicle_id),
+    }, 200);
+    }catch(err){
+        console.error('Unassigned vehicles error:', err);
+        return error(res, 'Failed to unassign vehicles: ' + err.message, 500);
+    }
+}
+
 async function listVehiclesForAssignment(req, res) {
     const {id: fleetGroupId} = req.params;
     const {status = 'unassigned', search, page=1, limit =20} = req.query;
@@ -263,7 +401,7 @@ async function listVehiclesForAssignment(req, res) {
     }
 
     try {
-        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1', [fleetGroupId]);
+        const groupResult = await pool.query('SELECT id FROM fleet_groups WHERE id = $1 AND deleted_at IS NULL', [fleetGroupId]);
 
         if(groupResult.rows.length === 0){
             return error(res, 'Fleet group not found', 404);
@@ -288,22 +426,25 @@ async function listVehiclesForAssignment(req, res) {
         const searchParams = [];
 
         if(search) {
-            searchClause = ` AND v.vehicle_id ILIKE $${paramCount}`;
+            searchClause = ` AND vlc.province ILIKE $${paramCount}`;
             searchParams.push(`%${search}%`);
             paramCount++;
         }
 
 
         const countResult = await pool.query(
-            `SELECT COUNT(*) FROM vehicles v WHERE ${statusClause}${searchClause}`,
+            `SELECT COUNT(*) FROM vehicles v 
+            LEFT JOIN vehicle_location_cache vlc ON vlc.vehicle_id = v.vehicle_id
+             WHERE ${statusClause}${searchClause}`,
             [...baseParams, ...searchParams]
         );
 
 
         const rowsResult = await pool.query(
-            `SELECT v.vehicle_id AS id, v.fleet_group_id, fg.name AS fleet_group_name
+            `SELECT v.vehicle_id AS id, v.fleet_group_id, fg.name AS fleet_group_name, vlc.province
             FROM vehicles v
             LEFT JOIN fleet_groups fg ON fg.id = v.fleet_group_id
+            LEFT JOIN vehicle_location_cache vlc ON vlc.vehicle_id = v.vehicle_id
             WHERE ${statusClause}${searchClause}
             ORDER BY v.vehicle_id
             LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
@@ -323,4 +464,4 @@ async function listVehiclesForAssignment(req, res) {
 }
 
 
-module.exports = {createFleetGroup, listFleetGroups, assignFleetManager, removeFleetManagerAssignment, bulkAssignVehiclesToGroup, listMyFleetGroups, listVehiclesForAssignment};
+module.exports = {createFleetGroup, listFleetGroups, assignFleetManager, removeFleetManagerAssignment, bulkAssignVehiclesToGroup, listMyFleetGroups, listVehiclesForAssignment, getManagerLeaderboard, updateFleetGroup, deleteFleetGroup,unassignVehiclesFromGroup};

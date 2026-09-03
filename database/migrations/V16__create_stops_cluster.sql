@@ -1,9 +1,9 @@
 
 CREATE OR REPLACE FUNCTION cluster_points(
     p_vehicle_id TEXT default NULL,
-    p_days INTEGER default 7,
+    p_days INTEGER default 30,
     p_radius_km DOUBLE PRECISION default 0.5,
-    p_min_points INTEGER default 3
+    p_min_points INTEGER default 10
 )
 RETURNS TABLE(
     vehicle_id TEXT,

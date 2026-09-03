@@ -1,0 +1,134 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg16
+        env:
+          POSTGRES_DB: fleet_analytics_e2e
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d fleet_analytics_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: fleet_analytics_e2e
+      PGUSER: admin
+      PGPASSWORD: testpassword
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: fleet_analytics_e2e
+      DB_USER: admin
+      DB_PASSWORD: testpassword
+      COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
+      COGNITO_REGION: af-south-1
+      E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+      E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+      E2E_TEST_USER_COGNITO_SUB: ${{ secrets.E2E_TEST_USER_COGNITO_SUB }}
+      VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            ./database/package-lock.json
+            ./backend/package-lock.json
+            ./frontend/package-lock.json
+            ./e2e/package-lock.json
+
+      - name: Install postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -q && exit 0
+            echo "Waiting for postgres ($i/30)..."
+            sleep 2
+          done
+          echo "Postgres never became ready"; exit 1
+
+      - name: Install database dependencies
+        working-directory: ./database
+        run: npm ci --ignore-scripts
+
+      - name: Bootstrap stubbed roads & spatial tables
+        working-directory: ./database
+        run: psql -v ON_ERROR_STOP=1 -f __tests__/bootstrap.sql
+
+      - name: Run core migrations
+        working-directory: ./database
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(migrations/V*.sql)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No migrations found -- wrong working directory?"; exit 1
+          fi
+          while IFS= read -r file; do
+            echo "::group::$file"
+            psql -v ON_ERROR_STOP=1 -f "$file"
+            echo "::endgroup::"
+          done < <(printf '%s\n' "${files[@]}" | sort -V)
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci --ignore-scripts
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci --ignore-scripts
+
+      - name: Install e2e dependencies
+        working-directory: ./e2e
+        run: npm ci --ignore-scripts
+
+      - name: Install Playwright browsers
+        working-directory: ./e2e
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: ./e2e
+        run: ./node_modules/.bin/playwright test
+        
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 14
+
+      - name: Dump failure contexts
+        if: failure()
+        working-directory: ./e2e
+        run: |
+          for f in test-results/*/error-context.md; do
+            echo "::group::$f"
+            cat "$f"
+            echo "::endgroup::"
+          done

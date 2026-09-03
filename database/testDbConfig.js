@@ -30,7 +30,7 @@ function getDbConfig(databaseName = process.env.DB_NAME || rootEnv.DB_NAME || 'f
     host: 'localhost',
     port: 5432,
     database: databaseName,
-    user: process.env.DB_USER || rootEnv.DB_USER || 'admin',
+    user: process.env.DB_USER || 'admin',
     password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || rootEnv.DB_PASSWORD || 'localdev',
   };
 }

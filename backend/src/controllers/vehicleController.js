@@ -301,10 +301,13 @@ async function getVehiclesList(req, res) {
 
     if(status){
 
-      query += ` AND status = $${paramCount}`;
+      query += ` AND (CASE
+      WHEN pos.last_update IS NULL THEN 'offline'
+      WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
+      WHEN COALESCE(pos.speed, 0) > 0 THEN 'moving'
+      ELSE 'idle'
+      END) = $${paramCount}`;
       params.push(status);
-
-
       paramCount++;
     }
 

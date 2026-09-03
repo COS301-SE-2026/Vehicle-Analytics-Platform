@@ -32,9 +32,9 @@ const customAlertsRoutes = require('./routes/customAlerts');
 
 const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 
-
-//I added this for demo 3
 const fuelRoutes = require('./routes/fuel');
+
+const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 
 const app = express();
 
@@ -133,6 +133,9 @@ app.use('/api/alerts', triggeredAlertsRoutes);
 app.use('/api/fuel', fuelRoutes);
 
 
+app.use('/api/fuel', fuelHistoryRoutes);
+
+
 
 app.get('/api/health', (req, res) => {
 
@@ -183,5 +186,6 @@ app.use((err, req, res, next) => {
 
 
 module.exports = app;
+
 
 

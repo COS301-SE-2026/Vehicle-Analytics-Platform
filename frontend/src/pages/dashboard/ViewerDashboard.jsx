@@ -68,10 +68,6 @@ export default function ViewerDashboard() {
   const vehicles = locations.vehicles ?? []
   
   const activeVehicles = vehicles.filter(v => (v.distanceToday ?? 0) > 0)
-  const mostActive = [...activeVehicles]
-    .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
-    .slice(0, 5)
-
   return (
     <div className="space-y-6 mt-6">
       {/* Row 1 — Four KPI Cards */}

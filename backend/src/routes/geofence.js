@@ -10,7 +10,8 @@ const{
     getGeofenceEvents,
     discoverFrequentStops,
     discoverFrequentEvents,
-    createGeofenceFromCluster
+    createGeofenceFromCluster,
+    deleteGeofenceEvents
 }
 = require('../controllers/geofenceController');
 
@@ -24,6 +25,7 @@ router.get('/events', authenticate, requireRole(['admin', 'fleet_manager', 'view
 router.get('/discover/stops', authenticate, requireRole(['admin', 'fleet_manager']), discoverFrequentStops);
 router.get('/discover/events', authenticate, requireRole(['admin', 'fleet_manager']), discoverFrequentEvents);
 router.post('/discover/create', authenticate, requireRole(['admin', 'fleet_manager']), createGeofenceFromCluster);
+router.delete('/events', authenticate, requireRole(['admin', 'fleet_manager']), deleteGeofenceEvents);
 router.get('/:id', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getGeofenceById);
 router.put('/:id', authenticate, requireRole(['admin', 'fleet_manager']), updateGeofence);
 router.delete('/:id', authenticate, requireRole(['admin', 'fleet_manager']), deleteGeofence);

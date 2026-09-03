@@ -1,9 +1,8 @@
 const { Client } = require('pg');
-const { getDbConfig } = require('./__tests__/testDbConfig');
+const { getDbConfig } = require('./testDbConfig');
 
-async function createDbClient() {
-  const config = getDbConfig();
-  const client = new Client(config);
+async function createDbClient(databaseName) {
+  const client = new Client(getDbConfig(databaseName));
   await client.connect();
   return client;
 }
@@ -17,8 +16,6 @@ async function resetTelemetryData(client, vehicleIdPrefix) {
   await client.query(`DELETE FROM vehicle_events WHERE vehicle_id LIKE '${vehicleIdPrefix}%'`);
   await client.query(`DELETE FROM raw_telemetry WHERE vehicle_id LIKE '${vehicleIdPrefix}%'`);
   await client.query(`DELETE FROM telemetry_errors WHERE vehicle_id LIKE '${vehicleIdPrefix}%'`);
-  await client.query(`DELETE FROM current_vehicle_position WHERE vehicle_id LIKE '${vehicleIdPrefix}%'`);
-  await client.query(`DELETE FROM vehicle_daily_events WHERE vehicle_id LIKE '${vehicleIdPrefix}%'`);
 }
 
 module.exports = {

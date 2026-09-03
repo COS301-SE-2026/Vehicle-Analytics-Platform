@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/react'
 import MostActiveVehiclesTable from '../components/dashboard/MostActiveVehiclesTable'
 
 const mockVehicles = [
-  { id: 'VH-001', distanceToday: 120, status: 'ACTIVE', lastUpdated: new Date().toISOString() },
-  { id: 'VH-002', distanceToday: 85,  status: 'IDLE',   lastUpdated: new Date(Date.now() - 60000).toISOString() },
-  { id: 'VH-003', distanceToday: 40,  status: 'OFFLINE', lastUpdated: new Date(Date.now() - 200000).toISOString() },
+  { id: 'VH-001', distanceToday: 120, status: 'ACTIVE', lastUpdate: new Date().toISOString() },
+  { id: 'VH-002', distanceToday: 85, status: 'IDLE', lastUpdate: new Date(Date.now() - 60000).toISOString() },
+  { id: 'VH-003', distanceToday: 40, status: 'OFFLINE', lastUpdate: new Date(Date.now() - 200000).toISOString() },
 ]
 
 describe('MostActiveVehiclesTable', () => {
@@ -45,10 +45,9 @@ describe('MostActiveVehiclesTable', () => {
     expect(screen.getByText('OFFLINE')).toBeInTheDocument()
   })
 
-  // test('shows 0 km when distance is missing', () => {
-  //   render(<MostActiveVehiclesTable vehicles={[{ id: 'VH-999', status: 'OFFLINE' }]} />)
-  //   expect(screen.getByText('0 km')).toBeInTheDocument()
-  // })
-
-  
+  test('shows hours when last update is older than 60 minutes', () => {
+    const vehicles = [{ id: 'VH-010', distanceToday: 10, status: 'active', lastUpdate: new Date(Date.now() - (3 * 60 * 60 * 1000)).toISOString(), }, ]
+    render(<MostActiveVehiclesTable vehicles={vehicles} />)
+    expect(screen.getByText('3 hours ago')).toBeInTheDocument()
+  })
 })

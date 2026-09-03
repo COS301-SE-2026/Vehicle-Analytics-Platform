@@ -33,6 +33,11 @@ export default defineConfig([
   },
 
   {
+    files: ['src/components/ui/**/*.jsx', 'src/components/styleguide/DesignTokens.jsx'],
+    rules:{ 'react-refresh/only-export-components': 'off',},
+  },
+  
+  {
     files: ['jest.setup.js', 'src/__tests__/**/*.{js,jsx}'],
     languageOptions: {
       globals: {

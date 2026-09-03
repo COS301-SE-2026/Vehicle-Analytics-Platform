@@ -1,14 +1,15 @@
 
 
 
+
 import http from 'k6/http';
+
 
 import { check, sleep } from 'k6';
 
-
 import { randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 
-
+import crypto from 'k6/crypto';
 
 
 
@@ -42,35 +43,43 @@ export const options = {
 
 function generateTelemetry(vehicleId) {
 
+  
+
+  const randomLat = -26.2 + (crypto.randomInt(0, 2000) / 1000);
+
+  const randomLng = 28.0 + (crypto.randomInt(0, 2000) / 1000);
+
+  
+  
   return {
-
+  
     vehicle_id: String(vehicleId),
-
+  
     timestamp: new Date().toISOString(),
-
-    lat: -26.2 + Math.random() * 2,
-
-    lng: 28.0 + Math.random() * 2,
-
+  
+    lat: randomLat,
+  
+    lng: randomLng,
+  
     speed: randomIntBetween(0, 120),
-
+  
     heading: randomIntBetween(0, 359),
-
+  
     ignition: true,
-
+  
     movement: true,
-
+  
   };
-
 }
 
 
 
-export default function () {
+
+export default function telemetryLoadTest() {
 
   const vehicles = Array.from({ length: 15 }, (_, i) => 1000 + i);
 
-  const vehicleId = vehicles[Math.floor(Math.random() * vehicles.length)];
+  const vehicleId = vehicles[Math.floor(crypto.randomInt(0, vehicles.length))];
 
   
   
@@ -109,6 +118,7 @@ export default function () {
 
   
   sleep(1);
-}
 
+  
+}
 

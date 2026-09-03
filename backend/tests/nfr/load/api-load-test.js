@@ -1,22 +1,19 @@
 
 
+
 import http from 'k6/http';
 
 
 import { check, sleep } from 'k6';
 
 
-
-
 export const options = {
-
 
   stages: [
 
     { duration: '30s', target: 10 },
 
     { duration: '1m', target: 50 },
-
 
     { duration: '30s', target: 100 },
 
@@ -32,6 +29,7 @@ export const options = {
 
     http_req_failed: ['rate < 0.01'],
 
+
   },
 
   summaryTrendStats: ['min', 'avg', 'med', 'max'],
@@ -40,7 +38,7 @@ export const options = {
 
 
 
-export default function () {
+export default function apiLoadTest() {
 
   const token = __ENV.JWT_TOKEN;
 
@@ -65,7 +63,6 @@ export default function () {
   };
 
 
-  
   
   const res1 = http.get(
   
@@ -94,7 +91,6 @@ export default function () {
     { headers }
   
   );
-
 
 
   

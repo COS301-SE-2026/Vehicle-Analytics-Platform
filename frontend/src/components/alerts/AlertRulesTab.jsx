@@ -47,8 +47,6 @@ export default function AlertRulesTab() {
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  const [togglingId, setTogglingId] = useState(null);
-
   const [fleetGroups, setFleetGroups] = useState([]);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -98,9 +96,11 @@ export default function AlertRulesTab() {
 
         });      
 
+        console.log('fleet groups raw response:', res.data);
+
         const payload = res.data.data ?? res.data;
 
-        setFleetGroups(payload.data ?? payload ?? []);
+        setFleetGroups(res.data.data.groups);
 
       } catch (err) {
         console.error('Failed to load fleet groups:', err);
@@ -109,38 +109,7 @@ export default function AlertRulesTab() {
     fetchFleetGroups();
   }, []);
 
-  
-async function handleToggleActive(rule) {
 
-  const nextActive = !rule.is_active;
-
-  setTogglingId(rule.id);
- 
-  setRules((prev) =>
-    prev.map((r) => (r.id === rule.id ? { ...r, is_active: nextActive } : r))
-  );
-
-  try {
-    const token = useAuthStore.getState().token;
-
-    await axios.patch(
-      `${API_BASE}/api/custom-alerts/rules/${rule.id}/status`,
-      { is_active: nextActive },
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-    );
-
-  } catch (err) {
-    
-    setRules((prev) =>
-      prev.map((r) => (r.id === rule.id ? { ...r, is_active: rule.is_active } : r))
-    );
-
-    setError(err.response?.data?.message || err.message);
-
-  } finally {
-    setTogglingId(null);
-  }
-}
 
 function formatThreshold(rule) {
   const params = rule.condition_params ?? {};
@@ -203,26 +172,27 @@ function formatThreshold(rule) {
           <TableCell>{CONDITION_LABELS[rule.condition_type] ?? rule.condition_type}</TableCell>
           <TableCell>{formatThreshold(rule)}</TableCell>
           <TableCell>{rule.fleet_group_name ?? rule.fleet_group_id}</TableCell>
-           <TableCell>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={rule.is_active}
-                disabled={togglingId === rule.id}
-                onClick={() => handleToggleActive(rule)}
-                className={
-                      'relative h-6 w-11 flex-shrink-0 rounded-full transition-colors disabled:opacity-60 ' +
-                      (rule.is_active ? 'bg-fleet-blue' : 'bg-fleet-border')
-                }
-              >
+
+          <TableCell>
+            <span
+              role="status"
+              className={
+                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' +
+                (rule.status === 'active'
+                  ? 'bg-fleet-green/30 text-fleet-green'
+                  : 'bg-fleet-alert/30 text-fleet-alert')
+              }
+            >
               <span
                 className={
-                  'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ' +
-                  (rule.is_active ? 'translate-x-5' : 'translate-x-0.5')
+                  'h-1.5 w-1.5 rounded-full ' +
+                  (rule.status === 'active' ? 'bg-fleet-green' : 'bg-fleet-alert')
                 }
               />
-            </button>
+              {rule.status === 'active' ? 'Active' : 'Inactive'}
+            </span> 
           </TableCell>
+
           <TableCell className='text-right'>
               <div className="flex justify-end gap-1">
                 <Button

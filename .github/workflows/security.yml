@@ -153,9 +153,7 @@ jobs:
           cmd_options: '-a -j'
           allow_issue_writing: false
           fail_action: false
-          report_html: zap-frontend-report.html
-          report_md: zap-frontend-report.md
-          report_json: zap-frontend-report.json
+
 
       - name: ZAP baseline scan (API)
         uses: zaproxy/action-baseline@v0.12.0
@@ -164,9 +162,7 @@ jobs:
           cmd_options: '-a'
           allow_issue_writing: false
           fail_action: false
-          report_html: zap-api-report.html
-          report_md: zap-api-report.md
-          report_json: zap-api-report.json
+
 
       - name: Upload ZAP reports
         if: always()
@@ -174,8 +170,9 @@ jobs:
         with:
           name: zap-reports
           path: |
-            zap-frontend-report.*
-            zap-api-report.*
+            report_html.html
+            report_md.md
+            report_json.json
           retention-days: 90
 
       - name: Upload service logs

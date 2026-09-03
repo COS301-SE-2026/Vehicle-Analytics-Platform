@@ -33,14 +33,14 @@ function FleetGroupCard({ group, onSelect}) {
                 <button 
                     type="button"
                     onClick={() => onSelect(group)}
-                    className="text-left bg-fleet-surface rounded-xl border border-fleet-border p-5 flex flex-col gap-4 hover:border-fleet-blue transition-colors">
+                    className="text-left bg-fleet-surface rounded-xl border border-fleet-border border-b-4 border-b-fleet-blue p-5 flex flex-col gap-4 hover:border-fleet-blue hover:-translate-y-0.5 hover:shadow-md transition-all">
                         <div className="flex items-center justify-between mb-2">
                             <div>
                             <h3 className="font-display font-bold text-fleet-text text-base">{group.name}</h3>
                             <p className="text-xs text-fleet-secondary mt-1">{group.vehicle_count} vehicles</p>
                         </div>
                         <span className="h-8 w-8 shrink-0 rounded-full bg-fleet-bg flex items-center justify-center">
-                            <Truck className="w-4 h-4 text-fleet-secondary"></Truck>
+                            <Truck className="w-4 h-4 text-fleet-blue"></Truck>
 
                         </span>
 </div>

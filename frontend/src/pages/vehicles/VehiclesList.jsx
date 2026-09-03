@@ -9,6 +9,7 @@ import useAuthStore from '@/store/authStore'
 import VehicleSummaryCards from '@/components/vehicles/VehicleSummaryCards'
 import VehiclesTable from '@/components/vehicles/VehiclesTable'
 import FleetGroupCards from '@/components/vehicles/FleetGroupCards'
+import FleetvsFleetAnalytics from '@/components/vehicles/FleetvsFleetAnalytics'
 
 const PAGE_SIZE = 10
 
@@ -92,7 +93,6 @@ useEffect(() => {
             const merged = result.vehicles.map((v) => ({
                 id: v.id,
                 status: v.status,
-                zone: null, //NEED CHECK HERE
                 safetyScore: v.safety_score,
                 hasAlert: v.has_alert,
                 isSpeeding: v.is_speeding,
@@ -177,6 +177,7 @@ function handleSelectGroup(group) {
                     <p className="text-sm text-fleet-secondary">Select a group to view its vehicles</p>
                 </div>
                 <FleetGroupCards groups={myGroups} onSelect={handleSelectGroup}></FleetGroupCards>
+                <FleetvsFleetAnalytics groups={myGroups}></FleetvsFleetAnalytics>
                 </div>
             )
         }

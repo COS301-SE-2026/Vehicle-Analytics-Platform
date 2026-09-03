@@ -21,7 +21,7 @@ export default function FleetGroupsTable({ groups = [], onManage }) {
                             <th className="text-left pb-3 font-medium">Vehicles</th>
                             <th className="text-left pb-3 font-medium">Assigned</th>
                             <th className="text-left pb-3 font-medium">Status</th>
-                            <th className="text-left pb-3 font-medium">Actions</th>
+                            <th className="text-right pb-3 font-medium">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-fleet-border">

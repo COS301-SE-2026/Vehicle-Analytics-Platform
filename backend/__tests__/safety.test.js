@@ -180,7 +180,7 @@ describe('Safety Controller', () => {
         rows: [
           {
             vehicle_id: '1001',
-            safety_score: 90,
+            safety_score: 85,
             classification: 'Good',
             harsh_brakes: 0,
             harsh_accelerations: 0,

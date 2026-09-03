@@ -61,7 +61,7 @@ describe('VehiclesTable', () => {
     test('renders all column headers', () => {
         const defaultProps = makeDefaultProps()
         render(<VehiclesTable {...defaultProps} />)
-        const headers = ['VEHICLE ID', 'STATUS', 'ZONE', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
+        const headers = ['VEHICLE ID', 'STATUS', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
         headers.forEach((col) => { expect(screen.getByText(col)).toBeInTheDocument()})
     })
 

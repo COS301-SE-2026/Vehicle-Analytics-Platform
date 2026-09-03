@@ -98,7 +98,6 @@ export default function AlertRulesTab() {
 
         console.log('fleet groups raw response:', res.data);
 
-        const payload = res.data.data ?? res.data;
 
         setFleetGroups(res.data.data.groups);
 
@@ -175,7 +174,6 @@ function formatThreshold(rule) {
 
           <TableCell>
             <span
-              role="status"
               className={
                 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' +
                 (rule.status === 'active'

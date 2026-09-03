@@ -76,15 +76,27 @@ function formatBreach(alert) {
   }
 }
 
-function formatTime(value){
-  if(!value) return null;
-    return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function formatTime(value) {
+  if (!value) {
+    return null;
+  }
+  return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 function authHeaders(){
   const token = useAuthStore.getState().token;
 
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function getAlertCardStateClass(isResolved, isNew) {
+  if (isResolved) 
+    return 'border-fleet-border opacity-60';
+
+  if (isNew) 
+    return 'border-fleet-alert/40 border-l-4 border-l-fleet-alert';
+
+  return 'border-fleet-border';
 }
 
 export default function TriggeredAlertsTab() {
@@ -281,14 +293,8 @@ export default function TriggeredAlertsTab() {
             return (
               <div
                 key={alert.id}
-                className={
-                  'rounded-lg border bg-fleet-surface px-5 py-4 transition-opacity ' +
-                  (isResolved
-                    ? 'border-fleet-border opacity-60'
-                    : isNew
-                    ? 'border-fleet-alert/40 border-l-4 border-l-fleet-alert'
-                    : 'border-fleet-border')
-                }
+                className={'rounded-lg border bg-fleet-surface px-5 py-4 transition-opacity ' 
+                  + getAlertCardStateClass(isResolved, isNew)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">

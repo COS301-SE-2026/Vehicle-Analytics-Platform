@@ -288,9 +288,7 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
           <section>
 
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-fleet-text">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white">
-                1
-              </span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white"> 1 </span>
               Select Condition
             </div>
 
@@ -325,9 +323,7 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
           <section>
 
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-fleet-text">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white">
-                2
-              </span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white"> 2 </span>
               Configure Parameters
             </div>
 
@@ -409,8 +405,8 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
                 </div>
 
                 <div className="mb-4">
-                  <label className={labelClasses}>Restricted Days</label>
-                  <div className="flex flex-wrap gap-2">
+                  <span id="restricted-days-label" className={labelClasses}>Restricted Days</span>
+                  <div className="flex flex-wrap gap-2" role="group" aria-labelledby="restricted-days-label">
                     {DAYS.map((d) => {
                       const active = params.restricted_days.includes(d);
                       return (

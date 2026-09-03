@@ -261,9 +261,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
         <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
           <section>
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-fleet-text">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white">
-                1
-              </span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white"> 1 </span>
               Select Condition
             </div>
 
@@ -299,9 +297,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
 
           <section>
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-fleet-text">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white">
-                2
-              </span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white"> 2 </span>
               Configure Parameters
             </div>
 
@@ -382,8 +378,8 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
                 </div>
 
                 <div className="mb-4">
-                  <label className={labelClasses}>Restricted Days</label>
-                  <div className="flex flex-wrap gap-2">
+                  <span id="restricted-days-label" className={labelClasses}>Restricted Days</span>
+                  <div className="flex flex-wrap gap-2" role="group" aria-labelledby="restricted-days-label">
                     {DAYS.map((d) => {
                       const active = params.restricted_days.includes(d);
                       return (

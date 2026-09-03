@@ -176,11 +176,12 @@ describe('Safety Controller', () => {
 
   describe('GET /api/safety/scores/:vehicleId with date parameter', () => {
     test('should return score for specific date', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ vehicle_id: '1001' }], rowCount: 1 });
       mockQuery.mockResolvedValueOnce({
         rows: [
           {
             vehicle_id: '1001',
-            safety_score: 85,
+            safety_score: 90,
             classification: 'Good',
             harsh_brakes: 0,
             harsh_accelerations: 0,

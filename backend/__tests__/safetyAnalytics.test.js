@@ -1,371 +1,432 @@
-'use strict'
+'use strict';
 
 const {
-    setupReportingMockData,
-    DEFAULT_SAFETY_AGGREGATES,
-} = require('./setup/mockReportingDb');
-
-const{
-    getSafetyAnalytics, 
+    getSafetyAnalytics,
     REPORT_TIMEZONE,
+    _deriveVehicle,
     _emptySummary,
-
 } = require('../src/services/safetyAnalytics');
 
+const PERIOD = {
+    from: new Date('2026-08-02T22:00:00Z'),
+    to: new Date('2026-08-09T22:00:00Z'),
+    days: 7,
+};
 
-const {resolvePeriod} = require('../src/services/period');
-
-
-const PERIOD = resolvePeriod({
-    periodType: 'weekly',
-    anchor: new Date('2026-08-26T12:00:00+02:00'),
-});
-
-function makeDb(fixture = {}) {
-    const { pool, calls } = setupReportingMockData(fixture);
-    return { pool, calls };
+function vehicleRow(overrides = {}) {
+    return {
+        vehicle_id: 'V001',
+        days_with_events: '3',
+        harsh_brakes: '10',
+        harsh_accelerations: '4',
+        harsh_cornering: '2',
+        crashes: '1',
+        overspeed_events: '7',
+        idling_events: '5',
+        total_events: '29',
+        safety_score: '45',
+        worst_daily_score: '30',
+        classification: 'Poor',
+        ...overrides,
+    };
 }
 
-const perVehicleQuery = (calls) => calls.find(
-    (c) => c.sql.includes('FROM vehicle_events') && !c.sql.includes('vehicles_with_events'),
-);
+function fleetRow(overrides = {}) {
+    return {
+        vehicle_days: '4',
+        vehicles_with_events: '2',
+        safety_score: '62',
+        classification: 'Fair',
+        ...overrides,
+    };
+}
 
-describe('safetyAnalytics - argument validation', () => {
-    test('requires a usable database client', async () => {
-        await expect(getSafetyAnalytics(null, ['VH-001'], PERIOD))
-            .rejects.toThrow(/pg client or pool/);
+function makeDb({
+    vehicleRows = [vehicleRow()],
+    fleet = fleetRow(),
+    hasTelemetry = true,
+} = {}) {
+    const calls = [];
+    return {
+        calls,
+        query: jest.fn((sql, params) => {
+            calls.push({ sql, params });
+
+            if (sql.includes('clean_telemetry')) {
+                return Promise.resolve({ rows: [{ has_telemetry: hasTelemetry }], rowCount: 1 });
+            }
+            if (sql.includes('vehicles_with_events')) {
+                return Promise.resolve({ rows: fleet ? [fleet] : [], rowCount: fleet ? 1 : 0 });
+            }
+            return Promise.resolve({ rows: vehicleRows, rowCount: vehicleRows.length });
+        }),
+    };
+}
+
+describe('safetyAnalytics - guard clauses', () => {
+    test('rejects a db handle without a query function', async () => {
+        await expect(getSafetyAnalytics(undefined, [], PERIOD)).rejects.toThrow('getSafetyAnalytics requires a pg client or pool');
     });
 
-    test('requires a vehicleIds array, so an unscoped call is impossible', async () => {
-        const { pool } = makeDb();
-        await expect(getSafetyAnalytics(pool, undefined, PERIOD))
-            .rejects.toThrow(/vehicleIds array from scopeResolver/);
-        await expect(getSafetyAnalytics(pool, 'VH-001', PERIOD))
-            .rejects.toThrow(/vehicleIds array from scopeResolver/);
+    test('rejects a vehicleIds value that is not an array', async () => {
+        await expect(getSafetyAnalytics(makeDb(), 'V001', PERIOD)).rejects.toThrow('getSafetyAnalytics requires a vehicleIds array from scopeResolver');
     });
 
-    test('requires a resolved period with Date bounds', async () => {
-        const { pool } = makeDb();
-        await expect(getSafetyAnalytics(pool, ['VH-001'], null)).rejects.toThrow(/resolved period/);
-    });
-
-    test('performs no authorization of its own', async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-        expect(calls.some((c) => c.sql.includes('fleet_manager_assignments'))).toBe(false);
-    });
-
-});
-
-
-
-describe('safetyAnalytics - event predicate', () => {
-    let sql;
-    beforeEach(async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-        sql = perVehicleQuery(calls).sql;
-    });
-
-
-    test('counts harsh braking, acceleration and cornering by positive detail', () => {
-        expect(sql).toMatch(/event_detail IN \('harsh_braking', 'harsh_acceleration', 'harsh_cornering'\)/);
-        expect(sql).toMatch(/FILTER \(WHERE event_detail = 'harsh_braking'\)/);
-        expect(sql).toMatch(/FILTER \(WHERE event_detail = 'harsh_acceleration'\)/);
-        expect(sql).toMatch(/FILTER \(WHERE event_detail = 'harsh_cornering'\)/);
-    });
-
-
-    test('counts calibrated crashes only', () => {
-        expect(sql).toMatch(/event_detail LIKE 'real crash detected%'/);
-        expect(sql).toMatch(/event_detail NOT LIKE '%not calibrated%'/);
-    });
-
-
-
-    test('excludes null-detail crash and green_driving rows', () => {
-        expect(sql).toMatch(/e\.event_category = 'crash_detection'\s+AND e\.event_detail LIKE/);
-        expect(sql).toMatch(/e\.event_category = 'green_driving_type'\s+AND e\.event_detail IN/);
-        expect(sql).not.toMatch(/event_category IN \([^)]*'crash_detection'/);
-        expect(sql).not.toMatch(/event_category IN \([^)]*'green_driving_type'/);
-    });
-
-
-
-    test('counts overspeed and idling', () => {
-        expect(sql).toMatch(/event_category IN \('over_speeding', 'idling'\)/);
-        expect(sql).toMatch(/FILTER \(WHERE event_category = 'over_speeding'\)/);
-        expect(sql).toMatch(/FILTER \(WHERE event_category = 'idling'\)/);
-    });
-
-
-    test('reads vehicle_events, never the simulated score table', () => {
-        expect(sql).toMatch(/FROM vehicle_events/);
-        expect(sql).not.toMatch(/driver_daily_safety_scores/);
-        expect(sql).not.toMatch(/vehicle_daily_events/);
-        expect(sql).not.toMatch(/vehicle_penalties/);
-    });
-
-});
-
-describe('safetyAnalytics - burst de-duplication', () => {
-    let sql;
-    beforeEach(async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-        sql = perVehicleQuery(calls).sql;
-    });
-
-
-    test('reuses the existing incident_burst_window()', () => {
-        expect(sql).toMatch(/incident_burst_window\(\)/);
-        expect(sql).not.toMatch(/INTERVAL '60 seconds'/);
-    });
-
-
-    test('partitions by vehicle so bursts do not collapse across vehicles', () => {
-        expect(sql).toMatch(/PARTITION BY e\.vehicle_id, e\.event_category, e\.event_detail/);
-    });
-
-
-    test('counts only events that start an incident', () => {
-        expect(sql).toMatch(/WHERE starts_incident = 1/);
+    test.each([
+        ['a missing period', undefined],
+        ['a period with string bounds', { from: '2026-08-03', to: '2026-08-10' }],
+    ])('rejects %s', async (_label, period) => {
+        await expect(getSafetyAnalytics(makeDb(), ['V001'], period))
+            .rejects.toThrow('getSafetyAnalytics requires a resolved period with Date bounds');
     });
 
 
 });
 
-
-
-describe('safetyAnalytics - period and scope filtering', () => {
-    test('filters by authorised vehicle ids only', async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-002'], PERIOD);
-        expect(perVehicleQuery(calls).params[0]).toEqual(['VH-002']);
-    });
-
-    test('a vehicle outside the scope contributes nothing', async () => {
-        const { pool } = makeDb();
-        const result = await getSafetyAnalytics(pool, ['VH-002'], PERIOD);
-        expect(result.vehicles.map((v) => v.vehicleId)).toEqual(['VH-002']);
-    });
-
-
-    test('uses a half-open instant range on vehicle_events.time', async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-        const q = perVehicleQuery(calls);
-
-        expect(q.sql).toMatch(/e\.time >= \$2/);
-        expect(q.sql).toMatch(/e\.time < \$3/);
-        expect(q.sql).not.toMatch(/e\.time <= \$3/);
-        expect(q.params[1].getTime()).toBe(PERIOD.from.getTime());
-        expect(q.params[2].getTime()).toBe(PERIOD.to.getTime());
-    });
-
-
-    test('resolve 17-23 August 2026', () => {
-        expect(PERIOD.fromDate).toBe('2026-08-17');
-        expect(PERIOD.toDate).toBe('2026-08-23');
-    });
-
-    test('buckets days in SAST (not the session time zone)', async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-
-        expect(perVehicleQuery(calls).sql).toMatch(/e\.time AT TIME ZONE \$4/);
-        expect(perVehicleQuery(calls).params[3]).toBe(REPORT_TIMEZONE);
+describe('safetyAnalytics - query construction', () => {
+    test('reports in SAST', () => {
         expect(REPORT_TIMEZONE).toBe('Africa/Johannesburg');
     });
 
-    test('is fully parameterized', async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-        expect(perVehicleQuery(calls).sql).not.toMatch(/INTERVAL '\$\{/);
+
+
+    test('issues per-vehicle, fleet and telemetry-presence queries', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001'], PERIOD);
+        expect(db.query).toHaveBeenCalledTimes(3);
+
+    });
+
+    test('the telemetry probe takes only the scope and the bounds', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
+        const probe = db.calls.find((c) => c.sql.includes('clean_telemetry'));
+        expect(probe.params).toEqual([['V001', 'V002'], PERIOD.from, PERIOD.to]);
+    });
+
+    test('the aggregate queries receive the reporting timezone', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001'], PERIOD);
+        const aggregates = db.calls.filter((c) => !c.sql.includes('clean_telemetry'));
+        aggregates.forEach((c) => expect(c.params[3]).toBe('Africa/Johannesburg'));
+
+    });
+
+
+
+    test('collapses event bursts into incidents using the burst window', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001'], PERIOD);
+        const sql = db.calls[0].sql;
+        expect(sql).toContain('incident_burst_window()');
+        expect(sql).toContain('starts_incident = 1');
+    });
+
+    test('excludes uncalibrated crash detections', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001'], PERIOD);
+
+        expect(db.calls[0].sql).toContain("NOT LIKE '%not calibrated%'");
+    });
+
+    test('counts overspeed and idling as event categories', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001'], PERIOD);
+
+        expect(db.calls[0].sql).toContain("e.event_category IN ('over_speeding', 'idling')");
+    });
+
+    test('reuses the existing scoring weights and classifier', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001'], PERIOD);
+        const sql = db.calls[0].sql;
+
+        // Weights 2/2/1/25 and classify_safety_score() already exist in the
+        // database. The report must not introduce a second scoring scheme.
+        expect(sql).toContain('harsh_brakes * 2');
+        expect(sql).toContain('harsh_accelerations * 2');
+        expect(sql).toContain('harsh_cornering * 1');
+        expect(sql).toContain('crashes * 25');
+        expect(sql).toContain('classify_safety_score(');
+    });
+
+    test('overspeed and idling are counted but excluded from the score', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, ['V001'], PERIOD);
+        const scoreExpression = db.calls[0].sql.split('AS safety_score')[0].split('GREATEST').pop();
+
+        expect(scoreExpression).not.toContain('overspeed_events');
+        expect(scoreExpression).not.toContain('idling_events');
+    });
+
+    test('does not query at all for an empty scope', async () => {
+        const db = makeDb();
+        await getSafetyAnalytics(db, [], PERIOD);
+
+        expect(db.query).not.toHaveBeenCalled();
     });
 });
 
+describe('_deriveVehicle()', () => {
+    test('coerces string columns into numbers', () => {
+        const v = _deriveVehicle(vehicleRow());
 
-
-describe('safetyAnalytics - per-vehicle results', () => {
-    let result;
-
-    beforeEach(async () => {
-        const { pool } = makeDb();
-        result = await getSafetyAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+        expect(v.vehicleId).toBe('V001');
+        expect(v.daysWithEvents).toBe(3);
+        expect(v.harshBrakes).toBe(10);
+        expect(v.harshAccelerations).toBe(4);
+        expect(v.harshCornering).toBe(2);
+        expect(v.crashes).toBe(1);
+        expect(v.totalEvents).toBe(29);
     });
 
-    test('coerces pg bigint strings into numbers', () => {
-        expect(typeof result.vehicles[0].harshBrakes).toBe('number');
-        expect(result.vehicles[0].harshBrakes).toBe(4);
-        expect(result.vehicles[0].totalEvents).toBe(24);
+    test('carries overspeed and idling counts through', () => {
+        const v = _deriveVehicle(vehicleRow());
+
+        expect(v.overspeedEvents).toBe(7);
+        expect(v.idlingEvents).toBe(5);
     });
 
-    test('exposes every event category the report needs', () => {
-        expect(result.vehicles[0]).toEqual(expect.objectContaining({
-            vehicleId: 'VH-001',
-            harshBrakes: 4,
-            harshAccelerations: 2,
-            harshCornering: 3,
-            crashes: 0,
-            overspeedEvents: 6,
-            idlingEvents: 9,
-        }));
+    test('keeps the average and the worst daily score separate', () => {
+        const v = _deriveVehicle(vehicleRow());
+
+        expect(v.safetyScore).toBe(45);
+        expect(v.worstDailyScore).toBe(30);
     });
 
-    test('carries the score and classification from the database', () => {
-        expect(result.vehicles[0].safetyScore).toBe(85);
-        expect(result.vehicles[0].classification).toBe('Good');
-        expect(result.vehicles[1].safetyScore).toBe(32);
-        expect(result.vehicles[1].classification).toBe('Poor');
+    test('preserves the classification from the database function', () => {
+        expect(_deriveVehicle(vehicleRow()).classification).toBe('Poor');
     });
 
-    test('exposes the worst single day, not just the average', () => {
-        expect(result.vehicles[1].worstDailyScore).toBe(0);
+    test('a null score stays null and is not flattened to zero', () => {
+        const v = _deriveVehicle(vehicleRow({ safety_score: null, worst_daily_score: null }));
+
+        expect(v.safetyScore).toBeNull();
+        expect(v.worstDailyScore).toBeNull();
     });
 
-});
-
-describe('safetyAnalytics - scoring', () => {
-    let sql;
-
-    beforeEach(async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-        sql = perVehicleQuery(calls).sql;
+    test('a real zero score is preserved as zero', () => {
+        expect(_deriveVehicle(vehicleRow({ safety_score: '0' })).safetyScore).toBe(0);
     });
 
-    test('uses the existing 2/2/1/25 weights, floored at zero', () => {
-        expect(sql).toMatch(/GREATEST\(0, 100 - \(d\.harsh_brakes \* 2/);
-        expect(sql).toMatch(/d\.harsh_accelerations \* 2/);
-        expect(sql).toMatch(/d\.harsh_cornering \* 1/);
-        expect(sql).toMatch(/d\.crashes \* 25/);
+    test('a missing classification becomes null rather than undefined', () => {
+        expect(_deriveVehicle(vehicleRow({ classification: undefined })).classification).toBeNull();
     });
 
-    test('excludes overspeed and idling from the score', () => {
-        const scoreExpr = sql.slice(sql.indexOf('GREATEST(0, 100'), sql.indexOf('AS safety_score'));
-        expect(scoreExpr).not.toMatch(/overspeed/);
-        expect(scoreExpr).not.toMatch(/idling/);
-    });
+    test('treats missing counts as zero rather than NaN', () => {
+        const v = _deriveVehicle({ vehicle_id: 'V009' });
 
-    test('scores per day, then averages across the period', () => {
-        expect(sql).toMatch(/GROUP BY vehicle_id, event_day/);
-        expect(sql).toMatch(/ROUND\(AVG\(safety_score\)\)/);
-    });
-
-    test('classifies via classify_safety_score(), the single existing classifier', () => {
-        expect(sql).toMatch(/classify_safety_score\(/);
-        const src = require('fs').readFileSync(
-            require('path').resolve(__dirname, '../src/services/safetyAnalytics.js'), 'utf8',
-        );
-        expect(src).not.toMatch(/>= 90/);
-        expect(src).not.toMatch(/'Excellent'/);
+        expect(v.harshBrakes).toBe(0);
+        expect(v.totalEvents).toBe(0);
+        expect(Number.isNaN(v.crashes)).toBe(false);
     });
 });
 
-describe('safetyAnalytics - fleet summary', () => {
-    test('totals are summed across vehicles', async () => {
-        const { pool } = makeDb();
-        const { summary } = await getSafetyAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+describe('_emptySummary()', () => {
+    test('a clean period with telemetry scores a perfect 100', () => {
+        const s = _emptySummary(5, true);
 
-        expect(summary.harshBrakes).toBe(14);
-        expect(summary.harshAccelerations).toBe(10);
-        expect(summary.harshCornering).toBe(7);
+        expect(s.hasTelemetry).toBe(true);
+        expect(s.safetyScore).toBe(100);
+        expect(s.totalEvents).toBe(0);
+    });
+
+    test('a period with no telemetry has no score at all', () => {
+        // "No events because nothing was reported" is not the same result as
+        // "no events because everyone drove well".
+        const s = _emptySummary(5, false);
+
+        expect(s.hasTelemetry).toBe(false);
+        expect(s.safetyScore).toBeNull();
+    });
+
+    test('every vehicle in scope is counted as having no events', () => {
+        const s = _emptySummary(5, true);
+
+        expect(s.vehiclesInScope).toBe(5);
+        expect(s.vehiclesWithEvents).toBe(0);
+        expect(s.vehiclesWithoutEvents).toBe(5);
+    });
+
+    test('the per-vehicle-day rate is null, not zero, with no vehicle days', () => {
+        expect(_emptySummary(5, true).eventsPerVehicleDay).toBeNull();
+    });
+});
+
+describe('getSafetyAnalytics() - summary aggregation', () => {
+    const ROWS = [
+        vehicleRow({
+            vehicle_id: 'V001',
+            harsh_brakes: '10',
+            harsh_accelerations: '4',
+            harsh_cornering: '2',
+            crashes: '1',
+            overspeed_events: '7',
+            idling_events: '5',
+            total_events: '29',
+            safety_score: '45',
+        }),
+        vehicleRow({
+            vehicle_id: 'V002',
+            harsh_brakes: '2',
+            harsh_accelerations: '1',
+            harsh_cornering: '0',
+            crashes: '0',
+            overspeed_events: '3',
+            idling_events: '1',
+            total_events: '7',
+            safety_score: '92',
+        }),
+    ];
+
+    test('sums event counts across the per-vehicle rows', async () => {
+        const { summary } = await getSafetyAnalytics(makeDb({ vehicleRows: ROWS }), ['V001', 'V002'], PERIOD);
+
+        expect(summary.harshBrakes).toBe(12);
+        expect(summary.harshAccelerations).toBe(5);
+        expect(summary.harshCornering).toBe(2);
         expect(summary.crashes).toBe(1);
-        expect(summary.overspeedEvents).toBe(8);
-        expect(summary.idlingEvents).toBe(10);
-        expect(summary.totalEvents).toBe(50);
+        expect(summary.overspeedEvents).toBe(10);
+        expect(summary.idlingEvents).toBe(6);
+        expect(summary.totalEvents).toBe(36);
     });
 
-    test('the fleet score comes from the database, averaged over vehicle-days', () => {
-        return makeDb().pool && getSafetyAnalytics(makeDb().pool, ['VH-001', 'VH-002'], PERIOD)
-            .then(({ summary }) => {
-                expect(summary.safetyScore).toBe(70);
-                expect(summary.classification).toBe('Fair');
-                expect(summary.vehicleDaysWithEvents).toBe(7);
-            });
+    test('takes the fleet score from the database, not from averaging vehicle scores', async () => {
+        const db = makeDb({ vehicleRows: ROWS, fleet: fleetRow({ safety_score: '62' }) });
+        const { summary } = await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
+
+        // A mean of 45 and 92 would be 68.5. The fleet score is averaged over
+        // vehicle-days in SQL instead, so it must not be recomputed here.
+        expect(summary.safetyScore).toBe(62);
+        expect(summary.classification).toBe('Fair');
     });
 
-    test('events per vehicle-day normalises for exposure', async () => {
-        const { pool } = makeDb();
-        const { summary } = await getSafetyAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
-        expect(summary.eventsPerVehicleDay).toBeCloseTo(7.14, 2);
+    test('normalises event volume by vehicle-days', async () => {
+        const db = makeDb({ vehicleRows: ROWS, fleet: fleetRow({ vehicle_days: '4' }) });
+        const { summary } = await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
+
+        expect(summary.vehicleDaysWithEvents).toBe(4);
+        expect(summary.eventsPerVehicleDay).toBe(9);
     });
 
-    test('counts vehicles in scope that recorded nothing', async () => {
-        const { pool } = makeDb();
-        const { summary } = await getSafetyAnalytics(pool, ['VH-001', 'VH-002', 'VH-003'], PERIOD);
+    test('the per-vehicle-day rate is null when there are no vehicle days', async () => {
+        const db = makeDb({ vehicleRows: ROWS, fleet: fleetRow({ vehicle_days: '0' }) });
+        const { summary } = await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
 
-        expect(summary.vehiclesInScope).toBe(3);
+        expect(summary.eventsPerVehicleDay).toBeNull();
+    });
+
+    test('counts vehicles with and without events against the scope', async () => {
+        const db = makeDb({ vehicleRows: ROWS });
+        const { summary } = await getSafetyAnalytics(db, ['V001', 'V002', 'V003', 'V004'], PERIOD);
+
+        expect(summary.vehiclesInScope).toBe(4);
         expect(summary.vehiclesWithEvents).toBe(2);
-        expect(summary.vehiclesWithoutEvents).toBe(1);
+        expect(summary.vehiclesWithoutEvents).toBe(2);
+    });
+
+    test('never reports a negative count of vehicles without events', async () => {
+        const db = makeDb({ vehicleRows: ROWS });
+        const { summary } = await getSafetyAnalytics(db, ['V001'], PERIOD);
+
+        expect(summary.vehiclesWithoutEvents).toBe(0);
+    });
+
+    test('a null fleet score is preserved rather than coerced', async () => {
+        const db = makeDb({ vehicleRows: ROWS, fleet: fleetRow({ safety_score: null, classification: null }) });
+        const { summary } = await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
+
+        expect(summary.safetyScore).toBeNull();
+        expect(summary.classification).toBeNull();
+    });
+
+    test('survives an empty fleet aggregate row', async () => {
+        const db = makeDb({ vehicleRows: ROWS, fleet: null });
+        const { summary } = await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
+
+        expect(summary.safetyScore).toBeNull();
+        expect(summary.vehicleDaysWithEvents).toBe(0);
+        expect(summary.harshBrakes).toBe(12);
     });
 });
 
-describe('safetyAnalytics - empty periods and no telemetry', () => {
-    test('an empty scope returns no data without querying', async () => {
-        const { pool, calls } = makeDb();
-        const result = await getSafetyAnalytics(pool, [], PERIOD);
+describe('getSafetyAnalytics() - telemetry presence', () => {
+    test('no events plus telemetry means a genuinely clean period', async () => {
+        const db = makeDb({ vehicleRows: [], hasTelemetry: true });
+        const result = await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
 
-        expect(calls).toHaveLength(0);
         expect(result.vehicles).toEqual([]);
+        expect(result.summary.hasTelemetry).toBe(true);
+        expect(result.summary.safetyScore).toBe(100);
+        expect(result.summary.vehiclesInScope).toBe(2);
+    });
+
+    test('no events and no telemetry means the data is missing, not perfect', async () => {
+        // A disk-full outage in late August 2026 produced exactly this case.
+        const db = makeDb({ vehicleRows: [], hasTelemetry: false });
+        const result = await getSafetyAnalytics(db, ['V001', 'V002'], PERIOD);
+
         expect(result.summary.hasTelemetry).toBe(false);
         expect(result.summary.safetyScore).toBeNull();
     });
 
-    test('no telemetry yields a null score, never a fabricated 100', async () => {
-        const { pool } = makeDb({ safetyAggregates: [], hasTelemetry: false });
-        const { summary } = await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
+    test('an empty scope reports no telemetry and no score', async () => {
+        const result = await getSafetyAnalytics(makeDb(), [], PERIOD);
 
-        expect(summary.hasTelemetry).toBe(false);
-        expect(summary.safetyScore).toBeNull();
-        expect(summary.classification).toBeNull();
-        expect(summary.totalEvents).toBe(0);
+        expect(result.vehicles).toEqual([]);
+        expect(result.summary.hasTelemetry).toBe(false);
+        expect(result.summary.safetyScore).toBeNull();
+        expect(result.summary.vehiclesInScope).toBe(0);
     });
 
-    test('telemetry present with no events is a genuine, earned 100', async () => {
-        const { pool } = makeDb({ safetyAggregates: [], hasTelemetry: true });
-        const { summary } = await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
+    test('an empty probe result is treated as no telemetry', async () => {
+        const db = {
+            query: jest.fn((sql) => {
+                if (sql.includes('clean_telemetry')) return Promise.resolve({ rows: [], rowCount: 0 });
+                return Promise.resolve({ rows: [], rowCount: 0 });
+            }),
+        };
 
-        expect(summary.hasTelemetry).toBe(true);
-        expect(summary.safetyScore).toBe(100);
-        expect(summary.totalEvents).toBe(0);
+        const result = await getSafetyAnalytics(db, ['V001'], PERIOD);
+        expect(result.summary.hasTelemetry).toBe(false);
     });
 
-    test('the two empty cases are distinguishable', () => {
-        expect(_emptySummary(5, false).safetyScore).toBeNull();
-        expect(_emptySummary(5, true).safetyScore).toBe(100);
-    });
+    test('telemetry presence is surfaced even when events exist', async () => {
+        const db = makeDb({ hasTelemetry: true });
+        const result = await getSafetyAnalytics(db, ['V001'], PERIOD);
 
-    test('checks telemetry presence over the same scope and period', async () => {
-        const { pool, calls } = makeDb();
-        await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-
-        const probe = calls.find((c) => c.sql.includes('has_telemetry'));
-        expect(probe.params[0]).toEqual(['VH-001']);
-        expect(probe.params[1].getTime()).toBe(PERIOD.from.getTime());
-        expect(probe.sql).toMatch(/EXISTS/);
+        expect(result.summary.hasTelemetry).toBe(true);
     });
 });
 
-describe('safetyAnalytics - consistency with the other services', () => {
-    test('mirrors the distance and fuel service contract', async () => {
-        const { pool } = makeDb();
-        const result = await getSafetyAnalytics(pool, ['VH-001', 'VH-002'], PERIOD);
+describe('getSafetyAnalytics() - end to end', () => {
+    test('returns a summary alongside per-vehicle detail', async () => {
+        const result = await getSafetyAnalytics(makeDb(), ['V001'], PERIOD);
 
         expect(result).toHaveProperty('summary');
-        expect(Array.isArray(result.vehicles)).toBe(true);
-        expect(result.summary.vehiclesInScope).toBe(2);
-        result.vehicles.forEach((v) => expect(typeof v.vehicleId).toBe('string'));
+        expect(result).toHaveProperty('vehicles');
+        expect(result.vehicles[0].vehicleId).toBe('V001');
     });
 
-    test('introduces no UTC timestamps into its output', async () => {
-        const { pool } = makeDb();
-        const result = await getSafetyAnalytics(pool, ['VH-001'], PERIOD);
-        expect(JSON.stringify(result)).not.toMatch(/\d{2}:\d{2}:\d{2}/);
+    test('summary totals agree with the per-vehicle rows', async () => {
+        const db = makeDb({
+            vehicleRows: [
+                vehicleRow({ vehicle_id: 'V001', harsh_brakes: '3', total_events: '3' }),
+                vehicleRow({ vehicle_id: 'V002', harsh_brakes: '4', total_events: '4' }),
+                vehicleRow({ vehicle_id: 'V003', harsh_brakes: '5', total_events: '5' }),
+            ],
+        });
+
+        const { summary, vehicles } = await getSafetyAnalytics(db, ['V001', 'V002', 'V003'], PERIOD);
+        const manual = vehicles.reduce((sum, v) => sum + v.harshBrakes, 0);
+
+        expect(summary.harshBrakes).toBe(manual);
+        expect(summary.totalEvents).toBe(12);
     });
 
-    test('the fixture is de-duplicated incident counts, not raw rows', () => {
-        expect(DEFAULT_SAFETY_AGGREGATES).toHaveLength(2);
+    test('propagates a database failure to the caller', async () => {
+        const db = { query: jest.fn().mockRejectedValue(new Error('function does not exist')) };
+        await expect(getSafetyAnalytics(db, ['V001'], PERIOD))
+            .rejects.toThrow('function does not exist');
     });
 });

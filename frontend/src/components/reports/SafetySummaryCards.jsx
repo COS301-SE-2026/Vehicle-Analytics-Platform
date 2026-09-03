@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types'
 import {
     ShieldCheck, Activity, TrendingDown, TrendingUp,
-    CornerDownRight, AlertTriangle, Fuel, Droplet,
+    CornerDownRight, AlertTriangle, Fuel, Route,
 } from 'lucide-react'
 
 function MetricCard({ icon: Icon, label, value, unit, comparison }) {
@@ -72,11 +72,11 @@ export default function SafetySummaryCards({ summary, comparison }) {
             unit: 'km/L',
         },
         {
-            key: 'totalFuelLiters',
-            icon: Droplet,
-            label: 'Fuel Used (est.)',
-            value: summary.totalFuelLiters,
-            unit: 'L',
+            key: 'totalDistanceKm',
+            icon: Route,
+            label: 'Distance',
+            value: summary.totalDistanceKm,
+            unit: 'km',
         },
     ]
 

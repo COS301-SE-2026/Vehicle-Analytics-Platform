@@ -34,7 +34,6 @@ const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 
 const fleetGroupsRouter = require('./routes/fleetGroupsRoutes');
 
-const fleetGroupsRouter = require('./routes/fleetGroupsRoutes');
 
 const fuelRoutes = require('./routes/fuel');
 

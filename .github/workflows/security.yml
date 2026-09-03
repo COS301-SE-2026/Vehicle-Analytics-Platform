@@ -147,7 +147,7 @@ jobs:
           echo "Frontend never became available:"; cat preview.log; exit 1
 
       - name: ZAP baseline scan (frontend)
-        uses: zaproxy/action-baseline@66042c8b15feb18c21147e8b6b23b1fb0fbd18fa
+        uses: zaproxy/action-baseline@64ea8c12229f3351fcc50f5834b2c8db25042817
         with:
           target: http://localhost:4173
           cmd_options: '-a -j'
@@ -158,7 +158,7 @@ jobs:
 
 
       - name: ZAP baseline scan (API)
-        uses: zaproxy/action-baseline@66042c8b15feb18c21147e8b6b23b1fb0fbd18fa
+        uses: zaproxy/action-baseline@64ea8c12229f3351fcc50f5834b2c8db25042817
         with:
           target: http://localhost:5000/api/health
           cmd_options: '-a'

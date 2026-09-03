@@ -4,6 +4,8 @@ import FleetEventBreakdown from './FleetEventBreakdown'
 import TopEventContributors from './TopEventContributors'
 import LowestSafetyScoresTable from './LowestSafetyScoresTable'
 import { getFleetAnalytics } from '../../services/vehicleService'
+import { Magnet } from 'lucide-react'
+import ManagerLeaderboard from './ManagerLeaderboard'
 
 export default function FleetAnalytics() {
   const [range, setRange] = useState('day')
@@ -65,7 +67,14 @@ export default function FleetAnalytics() {
               <TopEventContributors contributors={data.topContributors} />
             </div>
           </div>
+          <div className="grid grid-cols-1 lg:grid-cols gap-4">
+            <div className="lg:col-span-2">
           <LowestSafetyScoresTable vehicles={data.lowestSafetyScores} />
+          </div>
+          <div className="lg:col-span-1">
+            <ManagerLeaderboard></ManagerLeaderboard>
+          </div>
+          </div>
         </>
       )}
     </div>

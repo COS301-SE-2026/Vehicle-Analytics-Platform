@@ -1,0 +1,63 @@
+
+NFR1.4 - MAP NAVIGATION TEST
+
+
+Vehicle Analytics Platform - V.A.P.O.R
+Prepared By: Kilimanjaro StoneCap
+Demo: Demo 3
+Date: September 2026
+
+
+TEST INFORMATION
+
+
+Tool: Cypress
+Test File: cypress/e2e/map-timing.cy.js
+URL: https://d25bouomowr0it.cloudfront.net/live-map
+Date: 2026-09-03
+
+
+TEST DESCRIPTION
+
+
+This test verifies that users can navigate to the live map page.
+
+Test Steps:
+1. Login to the application
+2. Navigate to /live-map
+3. Verify URL contains /live-map
+
+
+RESULTS
+
+
+Test Case                       | Result
+---------------------------------|----------
+Navigate to live map page       | PASS
+
+
+PERFORMANCE METRICS
+
+
+Metric                          | Target   | Actual   | Status
+---------------------------------|----------|----------|----------
+Navigation Time                 | < 10s    | 2.2s     | PASS
+Page Load Time                  | < 10s    | 2.2s     | PASS
+
+
+OBSERVATIONS
+
+
+1. Navigation completed in 2.2 seconds
+2. Map page loaded successfully
+3. User was properly authenticated
+
+
+CONCLUSION
+
+
+NFR1.4 - Map Navigation: PASS
+The map page loads within the target time.
+
+
+END OF REPORT

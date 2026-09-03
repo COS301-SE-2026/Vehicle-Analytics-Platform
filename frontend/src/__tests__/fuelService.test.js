@@ -1,109 +1,49 @@
-// Mock the auth store BEFORE importing the service
-jest.mock('../store/authStore', () => ({
-  __esModule: true,
-  default: { getState: jest.fn(() => ({ token: 'mock-token' })) },
-}))
+import { getVehicleFuelHistory, getFleetFuelHistory, getVehicleFuelTrend } from '../services/fuelService';
+import api from '../services/api';
 
-import authStore from '../store/authStore'
-import {
-  getVehicleFuelStats,
-  getFleetFuelSummary,
-  getFuelDashboard,
-  calculateTripFuel,
-} from '../services/fuelService'
+jest.mock('../services/api');
 
-const mockFetch = jest.fn()
-global.fetch = mockFetch
+describe('Fuel Service', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
-describe('fuelService', () => {
-  const API_BASE_URL = 'http://localhost:5000'
+    test('getVehicleFuelHistory should return data on success', async () => {
+        const mockData = { data: { data: [{ period_start: '2026-08-31' }] } };
+        api.get.mockResolvedValue(mockData);
+        const result = await getVehicleFuelHistory('1000');
+        expect(result).toEqual(mockData.data.data);
+    });
 
-  beforeEach(() => {
-    jest.clearAllMocks()
-    authStore.getState.mockReturnValue({ token: 'mock-token' })
-  })
+    test('getVehicleFuelHistory should return empty array on error', async () => {
+        api.get.mockRejectedValue(new Error('Network error'));
+        const result = await getVehicleFuelHistory('1000');
+        expect(result).toEqual([]);
+    });
 
-  test('getVehicleFuelStats makes correct API call', async () => {
-    const mockData = { vehicle_id: '1000', summary: {}, trips: [] }
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ data: mockData }),
-    })
+    test('getFleetFuelHistory should return data on success', async () => {
+        const mockData = { data: { data: [{ period_start: '2026-08-31' }] } };
+        api.get.mockResolvedValue(mockData);
+        const result = await getFleetFuelHistory();
+        expect(result).toEqual(mockData.data.data);
+    });
 
-    const result = await getVehicleFuelStats('1000', 30)
+    test('getFleetFuelHistory should return empty array on error', async () => {
+        api.get.mockRejectedValue(new Error('Network error'));
+        const result = await getFleetFuelHistory();
+        expect(result).toEqual([]);
+    });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/fuel/vehicle/1000?days=30`,
-      expect.objectContaining({
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer mock-token',
-        },
-      })
-    )
-    expect(result).toEqual(mockData)
-  })
+    test('getVehicleFuelTrend should return data on success', async () => {
+        const mockData = { data: { data: [{ period_start: '2026-08-31' }] } };
+        api.get.mockResolvedValue(mockData);
+        const result = await getVehicleFuelTrend('1000');
+        expect(result).toEqual(mockData.data.data);
+    });
 
-  test('getFleetFuelSummary makes correct API call', async () => {
-    const mockData = { period: 'week', fleet_total: {}, vehicles: [] }
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ data: mockData }),
-    })
-
-    const result = await getFleetFuelSummary('week')
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/fuel/fleet?period=week`,
-      expect.any(Object)
-    )
-    expect(result).toEqual(mockData)
-  })
-
-  test('getFuelDashboard makes correct API call', async () => {
-    const mockData = { avg_fleet_efficiency_km_l: 12.5 }
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ data: mockData }),
-    })
-
-    const result = await getFuelDashboard()
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/fuel/dashboard`,
-      expect.any(Object)
-    )
-    expect(result).toEqual(mockData)
-  })
-
-  test('calculateTripFuel makes correct API call', async () => {
-    const mockData = { trip_id: '123', total_distance: 100 }
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ data: mockData }),
-    })
-
-    const result = await calculateTripFuel('123')
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/fuel/calculate/trip/123`,
-      expect.objectContaining({
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer mock-token',
-        },
-      })
-    )
-    expect(result).toEqual(mockData)
-  })
-
-  test('throws error when API call fails', async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-    })
-
-    await expect(getFuelDashboard()).rejects.toThrow('Failed to fetch fuel dashboard')
-  })
-})
+    test('getVehicleFuelTrend should return empty array on error', async () => {
+        api.get.mockRejectedValue(new Error('Network error'));
+        const result = await getVehicleFuelTrend('1000');
+        expect(result).toEqual([]);
+    });
+});

@@ -154,6 +154,19 @@ describe('Fleet Analytics Controller', () => {
       expect(typeof response.body.data.ranked_vehicles[0].harsh_brakes).toBe('number');
     });
 
+    test('should avoid non-existent score_timestamp and return valid trend data', async () => {
+      const response = await request(app)
+        .get('/api/fleet/analytics?period=day')
+        .set('Authorization', 'Bearer test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data.trend)).toBe(true);
+      expect(response.body.data.trend.length).toBeGreaterThan(0);
+      const querySql = mockQuery.mock.calls.map(([sql]) => String(sql)).join('\n');
+      expect(querySql).not.toContain('score_timestamp');
+      expect(querySql).toContain('score_date');
+    });
     test('should return fleet analytics for week period', async () => {
       const response = await request(app)
         .get('/api/fleet/analytics?period=week')

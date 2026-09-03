@@ -1,138 +1,165 @@
 
-import useAuthStore from '../store/authStore'
+import api from './api';
 
 
 
+export const getVehicleFuelHistory = async (vehicleId, period = 'week', limit = 30) => {
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
+  try {
 
+    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
 
+      params: { period, limit }
 
-async function getAuthHeaders() {
+    });
 
-  const token = useAuthStore.getState().token
+    return response.data.data || [];
 
+  } catch (error) {
 
-  return {
+    console.error('Error fetching vehicle fuel history:', error);
 
-    'Content-Type': 'application/json',
-
-
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-
-  }
-
-}
-
-
-
-export async function getVehicleFuelStats(vehicleId, days = 30) {
-
-
-
-  const headers = await getAuthHeaders()
-
-  const res = await fetch(`${API_BASE_URL}/api/fuel/vehicle/${vehicleId}?days=${days}`, { headers })
-
-  if(!res.ok){
-
-
-    throw new Error('Failed to fetch vehicle fuel stats')
-
+    return [];
 
   }
 
-  const data = await res.json()
-
-
-  return data.data
-
-}
+};
 
 
 
 
+export const getVehicleFuelTrend = async (vehicleId, days = 30) => {
 
+  try {
 
-export async function getFleetFuelSummary(period = 'week') {
+    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/trend`, {
 
-  const headers = await getAuthHeaders()
+      params: { days }
 
-  const res = await fetch(`${API_BASE_URL}/api/fuel/fleet?period=${period}`, { headers })
+    });
 
-  if(!res.ok){
+    return response.data.data || [];
 
+  } catch (error) {
 
-    throw new Error('Failed to fetch fleet fuel summary')
+    console.error('Error fetching vehicle fuel trend:', error);
 
-  }
-
-  const data = await res.json()
-
-
-  return data.data
-
-}
-
-
-
-export async function getFuelDashboard() {
-
-  const headers = await getAuthHeaders()
-
-  const res = await fetch(`${API_BASE_URL}/api/fuel/dashboard`, { headers })
-
-  if(!res.ok){
-
-
-    throw new Error('Failed to fetch fuel dashboard')
+    return [];
 
   }
 
-
-  const data = await res.json()
-
-  return data.data
+};
 
 
 
-}
+export const getFleetFuelHistory = async (period = 'week', limit = 10) => {
 
+  try {
 
+    const response = await api.get('/api/fuel/fleet/history', {
 
-export async function calculateTripFuel(tripId) {
+      params: { period, limit }
 
+    });
 
-  const headers = await getAuthHeaders()
-  
-  
-  const res = await fetch(`${API_BASE_URL}/api/fuel/calculate/trip/${tripId}`, {
+    return response.data.data || [];
 
-    method: 'POST',
+  } catch (error) {
 
-    headers
+    console.error('Error fetching fleet fuel history:', error);
 
-
-  })
-
-
-  if(!res.ok){
-
-
-
-    
-    throw new Error('Failed to calculate trip fuel')
-
+    return [];
 
   }
 
-
-
-  const data = await res.json()
-
-
-  return data.data
+};
 
 
 
-}
+export const getFuelDashboard = async () => {
+
+  try {
+
+    const response = await api.get('/api/fuel/dashboard');
+
+    return response.data.data || null;
+
+  } catch (error) {
+
+    console.error('Error fetching fuel dashboard:', error);
+
+    return null;
+
+  }
+
+};
+
+
+
+export const getVehicleFuelStats = async (vehicleId, days = 30) => {
+
+  try {
+
+    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
+
+      params: { period: 'week', limit: 10 }
+
+    });
+
+    const data = response.data.data || [];
+
+    if (data.length > 0) {
+
+      const totalDistance = data.reduce((sum, h) => sum + Number(h.total_distance || 0), 0);
+
+      const totalFuel = data.reduce((sum, h) => sum + Number(h.total_fuel || 0), 0);
+
+      const avgEfficiency = totalDistance > 0 && totalFuel > 0 ? totalDistance / totalFuel : 0;
+
+      return {
+
+        avg_efficiency: avgEfficiency,
+
+        total_distance: totalDistance,
+
+        total_fuel: totalFuel,
+
+        trip_count: data.reduce((sum, h) => sum + Number(h.trip_count || 0), 0)
+            };
+
+          }
+
+          return { avg_efficiency: 0, total_distance: 0, total_fuel: 0, trip_count: 0 };
+
+        } catch (error) {
+
+          console.error('Error fetching vehicle fuel stats:', error);
+
+          return { avg_efficiency: 0, total_distance: 0, total_fuel: 0, trip_count: 0 };
+
+        }
+};
+
+
+
+export const calculateDailyHistory = async (vehicleId, date) => {
+
+  try {
+
+    const response = await api.post(`/api/fuel/vehicle/${vehicleId}/calculate`, null, {
+
+      params: { date }
+
+    });
+
+    return response.data.data || null;
+
+  } catch (error) {
+
+    console.error('Error calculating daily history:', error);
+
+    return null;
+
+  }
+
+};

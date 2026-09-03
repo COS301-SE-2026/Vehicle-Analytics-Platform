@@ -1,4 +1,3 @@
-import {useState} from 'react'
 
 const PRIMARY_COLOURS = [
     {name: 'Primary Blue', token: 'fleet-blue', hex: '#14304F', usage: 'Buttons, links, sidebar, active states, primary UI chrome'},

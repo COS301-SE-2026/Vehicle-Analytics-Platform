@@ -10,4 +10,3 @@ build/
 npm-debug.log*
 .vscode/
 .idea/
-.env.test

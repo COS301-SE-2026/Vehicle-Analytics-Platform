@@ -33,8 +33,8 @@ const fleetGroupsRoutes = require('./routes/fleetGroups');
 const notificationsRoutes = require('./routes/notifications');
 
 
-//I added this for demo 3
-const fuelRoutes = require('./routes/fuel');
+
+const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 
 const app = express();
 
@@ -125,8 +125,9 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 
 app.use('/api/geofences', geofenceRoutes);
 
-//I added this for demo 3
-app.use('/api/fuel', fuelRoutes);
+
+
+app.use('/api/fuel', fuelHistoryRoutes);
 
 app.use('/api/fleet-groups', fleetGroupsRoutes);
 
@@ -185,5 +186,6 @@ app.use((err, req, res, next) => {
 
 
 module.exports = app;
+
 
 

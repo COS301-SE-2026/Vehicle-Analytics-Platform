@@ -101,10 +101,6 @@ export default function AdminDashboard() {
 
   const activeVehicles = vehicles.filter(v => (v.distanceToday ?? 0) > 0)
 
-  const mostActive = [...activeVehicles]
-    .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
-    .slice(0, 5)
-
   const adminCount = users.filter(u => u.role === 'admin').length
   const managerCount = users.filter(u => u.role === 'manager').length
   const viewerCount = users.filter(u => u.role === 'viewer').length

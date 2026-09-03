@@ -126,11 +126,11 @@ export default function CreateFleetGroupModal({ open, onClose, onCreate}) {
                     </textarea>
                     </div>
 
-                    <div className="flex items-end gap-3">
+                    <div className="flex items-center justify-end gap-3">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="text-sm text-fleet-secondary hover:text-fleet-text transition-colors font-medium"
+                            className="text-sm bg-fleet-alert text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 hover:bg-fleet-alert/90 transition-colors"
                         >
                                 Cancel
                             </button>

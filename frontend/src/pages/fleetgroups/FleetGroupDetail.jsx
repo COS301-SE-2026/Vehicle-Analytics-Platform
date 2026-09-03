@@ -3,7 +3,9 @@ import {useParams, useNavigate} from 'react-router-dom'
 import {ArrowLeft,
     UserMinus,
     RefreshCw,
-    Search
+    Search,
+    Pencil,
+    Trash2
 } from 'lucide-react'
 
 import{
@@ -12,6 +14,9 @@ import{
     removeFleetManagerAssignment,
     getAvailableVehicles,
     bulkAssignVehicles,
+    updateFleetGroup,
+    deleteFleetGroup,
+    unassignVehicles,
 } from '@/services/fleetGroupService'
 
 import { getUsers } from '@/services/vehicleService'
@@ -49,6 +54,14 @@ export default function FleetGroupDetail() {
     const [selectedIds, setSelectedIds] = useState(new Set())
     const [assigning, setAssigning] = useState(false)
     const [selectingAll, setSelectingAll] = useState(false)
+
+    //editing section
+    const [isEditing, setIsEditing] = useState(false)
+    const [editName, setEditName] = useState('')
+    const [editDescription, setEditDescription] = useState('')
+    const [savingEdit, setSavingEdit] = useState(false)
+    const [editError, setEditError] = useState(null)
+    const [deleting, setDeleting] = useState(false)
 
 
     const fetchGroupAndManagers = useCallback(async () => {
@@ -214,14 +227,62 @@ export default function FleetGroupDetail() {
         setVehiclesError(null)
 
         try{
-            await bulkAssignVehicles(group.id, Array.from(selectedIds))
+            if(status === 'in_group'){
+                await unassignVehicles(group.id, Array.from(selectedIds))
+            }else{
+                await bulkAssignVehicles(group.id, Array.from(selectedIds))
+            }
             setSelectedIds(new Set())
             await fetchVehiclePage()
         }catch(err) {
-            setVehiclesError(err.message || 'Failed to assign vehicles')
+            setVehiclesError(err.message || (status === 'in_group' ? 'Failed to unassign vehicles' : 'Failed to assign vehicles'))
         }finally{
             setAssigning(false)
         }
+    }
+
+    function startEditing() {
+        setEditName(group.name)
+        setEditDescription(group.description || '')
+        setEditError(null)
+        setIsEditing(true)
+    }
+
+    async function handleSaveEdit(){
+        if(!editName.trim()){
+            setEditError('Group name is required')
+            return
+        }
+
+        setSavingEdit(true)
+        setEditError(null)
+
+        try{
+            await updateFleetGroup(group.id, editName.trim(), editDescription.trim() || null)
+            setIsEditing(false)
+            await fetchGroupAndManagers()
+        }catch(err) {
+            setEditError(err.message || 'Failed to save changes')
+        }finally{
+            setSavingEdit(false)
+        }
+    }
+
+    async function handleDeleteGroup(){
+        if(!window.confirm(`Delete "${group.name}"? This unassigns its ${group.vehicle_count ?? 0} vehicles and removes an assigned manager. This cannot be undone.`)){
+            return
+        }
+
+        setDeleting(true)
+
+        try{
+            await deleteFleetGroup(group.id)
+            navigate('/fleet-groups')
+        }catch(err) {
+            setEditError(err.message || 'Failed to delete fleet group')
+            setDeleting(false)
+        }
+        
     }
 
     const pageIds = vehicles.map((v) => v.id)
@@ -239,8 +300,37 @@ export default function FleetGroupDetail() {
                 </button>
 
                 <div>
+                    {isEditing ? (
+                        <div className="space-y-2">
+                            <input  
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="font-display font-bold text-fleet-text text-xl w-full border border-fleet-border rounded-lg px-3 py-1.5 bg-fleet-surface">
+
+                            </input>
+                            <textarea
+                                value={editDescription}
+                                onChange={(e) => setEditDescription(e.target.value)}
+                                rows={2}
+                                placeholder="Description (optional)"
+                                className="text-sm text-fleet-secondary w-full border border-fleet-border rounded-lg px-3 py-2 bg-fleet-surface">
+
+                                </textarea>
+                        </div>
+                    ) : ( 
+                        <div className="flex items-center gap-2">
                     <h1 className="font-display font-bold text-fleet-text text-xl">{group.name}</h1>
-                    {group.description && (
+                    <button
+                        type="button"
+                        onClick={startEditing}
+                        className="text-fleet-secondary hover:text-fleet-text transition-colors"
+                        aria-label="Edit fleet group">
+                            <Pencil className="w-4 h-4"></Pencil>
+                        </button>
+                        </div>
+                    )}
+                    {!isEditing && group.description && (
                         <p className="text-sm text-fleet-secondary mt-1">{group.description}</p>
                     )}
                 </div>
@@ -320,8 +410,14 @@ export default function FleetGroupDetail() {
                 type="button"
                 disabled={selectedIds.size === 0 || assigning}
                 onClick={handleBulkAssign} 
-                className="text-sm bg-fleet-blue text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 hover:bg-fleet-blue/90 transition-colors">
-                    {assigning ? 'Assigning...' : `Assign ${selectedIds.size || ''} to group`}
+                className={`text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors ${
+                    status === 'in_group'
+                        ? 'bg-fleet-alert text-white hover:bg-fleet-alert/90'
+                        : 'bg-fleet-blue text-white hover:bg-fleet-blue/90'
+                }`}>
+                    {assigning 
+                            ? (status === 'in_group' ? 'Unassigning...' : 'Assigning...')
+                            : `${status === 'in_group' ? 'Unassign' : 'Assign'} ${selectedIds.size || ''} ${status === 'in_group' ? 'from' : 'to'} group`}
                 </button>
             </div>
 
@@ -346,7 +442,7 @@ export default function FleetGroupDetail() {
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search vehicle ID..."
+                        placeholder="Search Province..."
                         className="text-sm border border-fleet-border rounded-lg pl-8 pr-3 py-1.5 bg-fleet-surface text-fleet-text"></input>
                 </div>
             </div>
@@ -373,6 +469,7 @@ export default function FleetGroupDetail() {
                                 </th>
 
                                 <th className="text-left pb-3 font-medium">Vehicle</th>
+                                <th className="text-left pb-3 font-medium">Province</th>
                                 <th className="text-left pb-3 font-medium">Current Group</th>
 
                             </tr>
@@ -389,13 +486,14 @@ export default function FleetGroupDetail() {
                                         ></input>
                                     </td>
                                     <td className="py-3 text-fleet-text font-medium">{vehicle.id}</td>
+                                    <td className="py-3 text-fleet-secondary">{vehicle.province || '-'}</td>
                                     <td className="py-3 text-fleet-secondary">{vehicle.fleet_group_name || 'Unassigned'}</td>
                                 </tr>
                             ))}
 
                             {vehicles.length === 0 && (
                                 <tr>
-                                    <td colSpan={3} className="py-8 text-center text-fleet-secondary text-sm">
+                                    <td colSpan={4} className="py-8 text-center text-fleet-secondary text-sm">
                                         No vehicles found
                                     </td>
                                 </tr>
@@ -436,6 +534,28 @@ export default function FleetGroupDetail() {
         )}
             </>
         )}
+        </div>
+        {editError && (
+            <p className="text-xs text-fleet-alert">{editError}</p>
+        )}
+
+        <div className="flex items-center justify-end gap-2">
+            {isEditing && (
+                <button 
+                    type="button"
+                    disabled={savingEdit}
+                    onClick={handleSaveEdit}
+                    className="text-sm bg-fleet-blue text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 hover:bg-fleet-blue/90 transition-colors">
+                        {savingEdit ? 'Saving...' : 'Save edits'}
+                </button>
+            )}
+                <button 
+                    type="button"
+                    disabled={deleting}
+                    onClick={handleDeleteGroup}
+                    className="text-sm border border-fleet-alert text-fleet-alert px-4 py-2 rounded-lg font-medium disabled:opacity-50 hover:bg-fleet-alert/10 transition-colors">
+                        {deleting ? 'Deleting...' : 'Delete Group'}
+                </button>
         </div>
         </div>
     )

@@ -35,7 +35,7 @@ const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 const fleetGroupsRouter = require('./routes/fleetGroupsRoutes');
 
 
-const fuelRoutes = require('./routes/fuel');
+// const fuelRoutes = require('./routes/fuel'); // removed: file doesn't exist, superseded by fuelHistoryRoutes
 
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 
@@ -135,7 +135,6 @@ app.use('/api/alerts', triggeredAlertsRoutes);
 app.use('/api/fleet-groups', fleetGroupsRouter);
 
 //I added this for demo 3
-app.use('/api/fuel', fuelRoutes);
 
 
 app.use('/api/fuel', fuelHistoryRoutes);

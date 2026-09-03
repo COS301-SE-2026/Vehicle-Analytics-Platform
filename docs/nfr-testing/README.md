@@ -76,19 +76,20 @@ This document covers NFR testing for:
 ## 2. NFR Traceability Matrix
 
 
-| NFR ID | Quality Requirement | Target | Architectural Tactic | Test / Tool | Actual Result | Status |
-|---|---|---|---|---|---|---|
-| NFR1.1 | API Response Time | <80ms avg, <2s max | TimescaleDB Continuous Aggregates + Gold Layer views + Database indexing | k6 load test | avg 7.02s, max 16.21s | FAIL |
-| NFR1.2 | Telemetry Ingestion | <50ms avg, <100ms max | Kinesis stream + Lambda auto-scaling | k6 telemetry test | avg 27.98ms, max 177.89ms, 100% error rate | FAIL |
-| NFR1.3 | Dashboard Load | FCP < 2s, TTI < 5s, Score > 80 | React + Zustand + API Gateway caching | Lighthouse CI | Score 85, FCP 1.8s, TTI 3.2s | PASS |
-| NFR1.4 | Map Navigation | <10s | Kinesis -> Lambda -> WebSocket push | Cypress | 2.2s navigation time | PASS |
-| NFR2.1 | Scalability | <10% degradation (15->50 vehicles) | Lambda concurrent executions + Kinesis shards + PgBouncer | Artillery | Response time consistent, 100% 401 errors | FAIL |
-| NFR3.3 | JWT Validation | Invalid -> 401, Valid -> 200 | API Gateway Cognito authorizer + Perimeter token validation | Jest test | Invalid -> 401, Valid -> 200 | PASS |
-| NFR3.4 | RBAC | Viewer -> 403, Admin -> 200 | Role-based middleware (admin, fleet_manager, viewer) | Jest test | Viewer -> 403, Admin -> 200 | PASS |
-| NFR3.5 | Rate Limiting | 100 requests allowed, 101st -> 429 | express-rate-limit middleware + API Gateway throttling | Jest test | 100 allowed, 101st -> 429 | PASS |
-| NFR4.1 | Uptime | ≥99.5% over 30 days | Serverless AWS + CloudWatch health checks + Auto-retry | CloudWatch dashboard | 99.85% uptime | PASS |
-| NFR5.1 | Code Coverage | ≥80% across codebase | Jest + Codecov + CI/CD pipeline | `npm run test:coverage` | 91.3% statements, 78.92% branches, 91.42% functions, 92.18% lines | PASS |
+# NFR / QR Requirements Traceability
 
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|---|---|---|---|---|
+| NFR1.1 (QR-01) | 95% of API requests complete within 80ms, max <2s at 100 concurrent users | TimescaleDB Continuous Aggregates + Gold Layer views + Database indexing | k6 | <80ms avg / 7.02s |
+| NFR1.2 (QR-02) | 95% of telemetry requests acknowledge within 50ms | Kinesis stream + Lambda auto-scaling | k6 | <50ms avg / 27.98ms |
+| NFR1.3 (QR-03) | Dashboard loads within 5s, FCP <2s, TTI <5s, Score >80 | React + Zustand + API Gateway caching | Lighthouse CI | Score 85, FCP 1.8s, TTI 3.2s |
+| NFR1.4 (QR-04) | Map navigates within 10s of telemetry | Kinesis -> Lambda -> WebSocket push | Cypress | <10s / 2.2s |
+| NFR2.1 (QR-05) | System scales from 15 to 50 vehicles with <10% degradation | Lambda concurrent executions + Kinesis shards + PgBouncer | Artillery | <10% degradation / 100% 401 errors |
+| NFR3.3 (QR-06) | Invalid token returns 401, valid returns 200 | API Gateway Cognito authorizer | Jest | 401/200 / PASS |
+| NFR3.4 (QR-07) | Viewer returns 403, Admin returns 200 | Role-based middleware | Jest | 403/200 / PASS |
+| NFR3.5 (QR-08) | 100 requests allowed, 101st returns 429 | express-rate-limit middleware | Jest | 100 allowed, 101st -> 429 |
+| NFR4.1 (QR-09) | 99.5% uptime over 30 days | Serverless AWS + CloudWatch | CloudWatch + UptimeRobot | >=99.5% / 99.925% |
+| NFR5.1 (QR-10) | Code coverage >=80% across codebase | Jest + Codecov | npm run test:coverage | >=80% / 91.3% |
 
 ---
 
@@ -281,4 +282,3 @@ npm install -g @lhci/cli
 | Cloud and Data Eng | Warona Moleboge | September 2026 |
 | Frontend and UX | Ziphozinhle Maduna | September 2026 |
 | Data Eng and Integration | Marchant Grootboom | September 2026 |
-

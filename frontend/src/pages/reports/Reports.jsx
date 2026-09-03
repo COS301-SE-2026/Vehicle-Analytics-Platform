@@ -6,7 +6,6 @@ import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
 import { getReportScopes, generateReport } from '../../services/reportServices'
 
-
 function toISODate(date){
 	if (!date) return undefined
 	const d = new Date(date)
@@ -76,17 +75,38 @@ export default function Reports(){
 		return () => { cancelled = true }
 	}, [])
 
+	const candidateVehicles = useMemo(() => {
+		const [scopeType, scopeId] = scopeValue.split(':')
+
+		if (scopeType === 'group') {
+			return scopes.vehicles.filter((v) => String(v.groupId) === scopeId)
+		}
+		if (scopeType === 'vehicle') {
+			return scopes.vehicles.filter((v) => v.vehicleId === scopeId)
+		}
+		return scopes.vehicles
+	}, [scopes.vehicles, scopeValue])
+
+	function toggleVehicle(vehicleId){
+		setSelectedVehicleIds((prev) => (prev.includes(vehicleId)
+			? prev.filter((id) => id !== vehicleId)
+			: [...prev, vehicleId]))
+	}
+
 	const handleGenerate = useCallback(async () => {
 		setLoading(true)
 		setError(null)
-		setSelectedVehicleIds([])
 
-		const [scopeType, scopeId] = scopeValue.split(':')
+		const comparing = compareMode && selectedVehicleIds.length > 0
+
+		const [dropdownType, dropdownId] = scopeValue.split(':')
+		const scopeType = comparing ? 'vehicles' : dropdownType
+		const scopeId = comparing ? selectedVehicleIds : (dropdownId || undefined)
 
 		try {
 			const result = await generateReport({
 				scopeType,
-				scopeId: scopeId || undefined,
+				scopeId,
 				periodType,
 				from: periodType === 'custom' ? toISODate(dateRange?.from) : undefined,
 				to: periodType === 'custom' ? toISODate(dateRange?.to) : undefined,
@@ -98,7 +118,7 @@ export default function Reports(){
 		} finally {
 			setLoading(false)
 		}
-	}, [scopeValue, periodType, dateRange])
+	}, [scopeValue, periodType, dateRange, compareMode, selectedVehicleIds])
 
 	const entities = useMemo(
 		() => report?.rankings?.entities || report?.safety?.vehicles || [],
@@ -107,24 +127,24 @@ export default function Reports(){
 
 	const chartVehicles = useMemo(() => {
 		if (!report) return []
+		const type = report.report.scope.type
+		if (type === 'vehicles' || type === 'vehicle') return entities
+		return []
+	}, [report, entities])
 
-		if (report.report.scope.type === 'vehicle') {
-			return entities.filter((e) => e.vehicleId === report.report.scope.id)
-		}
+	const cardSummary = useMemo(() => (report ? {
+		...report.distance.summary,
+		...report.fuel.summary,
+		...report.safety.summary,
+	} : null), [report])
 
-		if (!compareMode) return []
-		return entities.filter((e) => selectedVehicleIds.includes(e.vehicleId))
-	}, [report, entities, compareMode, selectedVehicleIds])
+	const cardComparison = useMemo(() => (report ? {
+		...(report.distance.comparison || {}),
+		...(report.fuel.comparison || {}),
+		...(report.safety.comparison || {}),
+	} : null), [report])
 
-	function toggleVehicle(vehicleId) {
-		setSelectedVehicleIds((prev) => (prev.includes(vehicleId)
-			? prev.filter((id) => id !== vehicleId)
-			: [...prev, vehicleId]))
-	}
-
-	const summary = report?.safety?.summary
 	const noTelemetry = report && report.coverage && !report.coverage.hasTelemetry
-	const scopedToVehicle = report?.report?.scope?.type === 'vehicle'
 
 	return (
 		<div className="space-y-6">
@@ -162,6 +182,9 @@ export default function Reports(){
 				onDateRangeChange={setDateRange}
 				compareMode={compareMode}
 				onCompareModeChange={setCompareMode}
+				candidateVehicles={candidateVehicles}
+				selectedVehicleIds={selectedVehicleIds}
+				onToggleVehicle={toggleVehicle}
 				onGenerate={handleGenerate}
 				loading={loading}
 			/>
@@ -195,13 +218,12 @@ export default function Reports(){
 							</h2>
 							<p className="text-sm text-fleet-secondary">
 								{report.period.label}
-								{report.previousPeriod && ` - compared with ${report.previousPeriod.label}`}
 							</p>
 						</div>
 						<p className="text-xs text-fleet-secondary">
 							{report.coverage.vehiclesWithEvents} of {report.coverage.vehiclesInScope} vehicles
 							reported events
-							{'- '}
+							{' - '}
 							{report.coverage.activeVehicles} active
 						</p>
 					</div>
@@ -219,39 +241,9 @@ export default function Reports(){
 						</div>
 					) : (
 						<>
-							<SafetySummaryCards summary={summary} comparison={report.safety.comparison} />
+							<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
 
-							<Panel
-								label={scopedToVehicle ? 'Vehicle analytics' : 'Vehicle comparison'}
-								action={compareMode && !scopedToVehicle && (
-									<span className="text-xs text-fleet-secondary">
-										{selectedVehicleIds.length} selected
-									</span>
-								)}
-							>
-								{compareMode && !scopedToVehicle && (
-									<div className="flex flex-wrap gap-2 mb-5">
-										{entities.map((entity) => {
-											const active = selectedVehicleIds.includes(entity.vehicleId)
-											return (
-												<button
-													key={entity.vehicleId}
-													type="button"
-													onClick={() => toggleVehicle(entity.vehicleId)}
-													aria-pressed={active}
-													className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
-														active
-															? 'border-fleet-blue text-fleet-blue bg-fleet-blue/5'
-															: 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
-													}`}
-												>
-													{entity.vehicleId}
-												</button>
-											)
-										})}
-									</div>
-								)}
-
+							<Panel label="Vehicle comparison">
 								<VehicleComparisonChart vehicles={chartVehicles} />
 							</Panel>
 
@@ -259,14 +251,6 @@ export default function Reports(){
 								<SafetyVehicleTable vehicles={report.safety.vehicles} />
 							</Panel>
 						</>
-					)}
-
-					{report.notes?.length > 0 && (
-						<ul className="text-xs text-fleet-secondary space-y-1 border-t border-fleet-border pt-4">
-							{report.notes.map((note) => (
-								<li key={note}>{note}</li>
-							))}
-						</ul>
 					)}
 				</div>
 			)}

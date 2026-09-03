@@ -22,26 +22,23 @@ const LABEL_CLASS =
     'text-xs font-semibold uppercase tracking-wider text-fleet-secondary'
 
 export default function ReportToolbar({
-    scopes,
-    scopeValue,
-    onScopeChange,
-    periodType,
-    onPeriodTypeChange,
-    dateRange = null,
-    onDateRangeChange,
-    compareMode,
-    onCompareModeChange,
-    onGenerate,
-    loading = false,
-}) {
-    const vehiclesByGroup = scopes.groups.map((group) => ({
-        group,
-        vehicles: scopes.vehicles.filter((v) => v.groupId === group.id),
-    }))
-
-    const ungroupedVehicles = scopes.vehicles.filter((v) => v.groupId === null)
-    const rangeLabel = `${formatDateLabel(dateRange?.from)} - ${formatDateLabel(dateRange?.to)}`
-    const customIncomplete = periodType === 'custom' && (!dateRange?.from || !dateRange?.to)
+	scopes,
+	scopeValue,
+	onScopeChange,
+	periodType,
+	onPeriodTypeChange,
+	dateRange = null,
+	onDateRangeChange,
+	compareMode,
+	onCompareModeChange,
+	candidateVehicles = [],
+	selectedVehicleIds = [],
+	onToggleVehicle,
+	onGenerate,
+	loading = false,
+}){
+	const rangeLabel = `${formatDateLabel(dateRange?.from)} - ${formatDateLabel(dateRange?.to)}`
+	const customIncomplete = periodType === 'custom' && (!dateRange?.from || !dateRange?.to)
 
     return (
         <div className="bg-white rounded-2xl border border-fleet-border p-5 shadow-sm">
@@ -62,35 +59,36 @@ export default function ReportToolbar({
                     </select>
                 </div>
 
-                {periodType === 'custom' && (
-                    <div className="flex flex-col gap-1.5">
-                        <span className={LABEL_CLASS}>Dates</span>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <button
-                                    type="button"
-                                    data-testid="report-calendar-trigger"
-                                    className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2 text-sm text-fleet-text bg-white hover:border-fleet-blue"
-                                >
-                                    <CalendarIcon size={14} className="text-fleet-secondary" />
-                                    {rangeLabel}
-                                </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-2" align="start">
-                                <Calendar
-                                    mode="range"
-                                    selected={dateRange}
-                                    onSelect={onDateRangeChange}
-                                    numberOfMonths={1}
-                                    captionLayout="dropdown"
-                                    fromYear={2020}
-                                    toYear={2030}
-                                    className="min-w-[220px]"
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                )}
+				{periodType === 'custom' && (
+					<div className="flex flex-col gap-1.5">
+						<span className={LABEL_CLASS}>Dates</span>
+						<Popover>
+							<PopoverTrigger asChild>
+								<button
+									type="button"
+									data-testid="report-calendar-trigger"
+									className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2 text-sm text-fleet-text bg-white hover:border-fleet-blue"
+								>
+									<CalendarIcon size={14} className="text-fleet-secondary" />
+									{rangeLabel}
+								</button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-2" align="start">
+								<Calendar
+									mode="range"
+									selected={dateRange}
+									onSelect={onDateRangeChange}
+									numberOfMonths={1}
+									captionLayout="dropdown"
+									fromYear={2020}
+									toYear={2030}
+									defaultMonth={dateRange?.from}
+									className="min-w-[220px]"
+								/>
+							</PopoverContent>
+						</Popover>
+					</div>
+				)}
 
                 <div className="flex flex-col gap-1.5">
                     <label htmlFor="report-scope" className={LABEL_CLASS}>
@@ -104,37 +102,25 @@ export default function ReportToolbar({
                     >
                         <option value="fleet">Entire fleet</option>
 
-                        {scopes.groups.length > 0 && (
-                            <optgroup label="Vehicle groups">
-                                {scopes.groups.map((g) => (
-                                    <option key={`group-${g.id}`} value={`group:${g.id}`}>{g.name}</option>
-                                ))}
-                            </optgroup>
-                        )}
+						{scopes.groups.length > 0 && (
+							<optgroup label="Groups">
+								{scopes.groups.map((g) => (
+									<option key={`group-${g.id}`} value={`group:${g.id}`}>{g.name}</option>
+								))}
+							</optgroup>
+						)}
 
-                        {vehiclesByGroup.map(({ group, vehicles }) => (
-                            vehicles.length > 0 && (
-                                <optgroup key={`vehicles-${group.id}`} label={`${group.name} - vehicles`}>
-                                    {vehicles.map((v) => (
-                                        <option key={v.vehicleId} value={`vehicle:${v.vehicleId}`}>
-                                            {v.vehicleId}
-                                        </option>
-                                    ))}
-                                </optgroup>
-                            )
-                        ))}
-
-                        {ungroupedVehicles.length > 0 && (
-                            <optgroup label="Ungrouped vehicles">
-                                {ungroupedVehicles.map((v) => (
-                                    <option key={v.vehicleId} value={`vehicle:${v.vehicleId}`}>
-                                        {v.vehicleId}
-                                    </option>
-                                ))}
-                            </optgroup>
-                        )}
-                    </select>
-                </div>
+						{scopes.vehicles.length > 0 && (
+							<optgroup label="Individual vehicles">
+								{scopes.vehicles.map((v) => (
+									<option key={v.vehicleId} value={`vehicle:${v.vehicleId}`}>
+										{v.groupName ? `${v.vehicleId} (${v.groupName})` : `${v.vehicleId} (ungrouped)`}
+									</option>
+								))}
+							</optgroup>
+						)}
+					</select>
+				</div>
 
                 <div className="flex items-center gap-2 pb-2">
                     <button
@@ -175,26 +161,72 @@ export default function ReportToolbar({
                 </p>
             )}
 
-            {/* {scopes.unassignedVehicleCount}  holds the unnassigned vehicles */}
+			{compareMode && (
+				<div className="mt-4 pt-4 border-t border-fleet-border">
+					<div className="flex items-center justify-between mb-3">
+						<p className={LABEL_CLASS}>
+							Vehicles to compare
+						</p>
+						<span className="text-xs text-fleet-secondary">
+							{selectedVehicleIds.length} selected
+						</span>
+					</div>
 
-        </div>
-    )
+					{candidateVehicles.length === 0 ? (
+						<p className="text-xs text-fleet-secondary">
+							No vehicles available for the current selection.
+						</p>
+					) : (
+						<div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+							{candidateVehicles.map((v) => {
+								const active = selectedVehicleIds.includes(v.vehicleId)
+								return (
+									<button
+										key={v.vehicleId}
+										type="button"
+										onClick={() => onToggleVehicle(v.vehicleId)}
+										aria-pressed={active}
+										title={v.groupName || 'Ungrouped'}
+										className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
+											active
+												? 'border-fleet-blue text-fleet-blue bg-fleet-blue/5'
+												: 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
+										}`}
+									>
+										{v.vehicleId}
+									</button>
+								)
+							})}
+						</div>
+					)}
+
+					<p className="mt-3 text-xs text-fleet-secondary">
+						Set the fleet selection to Entire fleet to compare across groups, including
+						ungrouped vehicles.
+					</p>
+				</div>
+			)}
+		</div>
+	)
 }
 
 ReportToolbar.propTypes = {
-    scopes: PropTypes.shape({
-        groups: PropTypes.array.isRequired,
-        vehicles: PropTypes.array.isRequired,
-        unassignedVehicleCount: PropTypes.number,
-    }).isRequired,
-    scopeValue: PropTypes.string.isRequired,
-    onScopeChange: PropTypes.func.isRequired,
-    periodType: PropTypes.string.isRequired,
-    onPeriodTypeChange: PropTypes.func.isRequired,
-    dateRange: PropTypes.object,
-    onDateRangeChange: PropTypes.func.isRequired,
-    compareMode: PropTypes.bool.isRequired,
-    onCompareModeChange: PropTypes.func.isRequired,
-    onGenerate: PropTypes.func.isRequired,
-    loading: PropTypes.bool,
+	scopes: PropTypes.shape({
+		groups: PropTypes.array.isRequired,
+		vehicles: PropTypes.array.isRequired,
+		unassignedVehicleCount: PropTypes.number,
+	}).isRequired,
+	scopeValue: PropTypes.string.isRequired,
+	onScopeChange: PropTypes.func.isRequired,
+	periodType: PropTypes.string.isRequired,
+	onPeriodTypeChange: PropTypes.func.isRequired,
+	dateRange: PropTypes.object,
+	onDateRangeChange: PropTypes.func.isRequired,
+	compareMode: PropTypes.bool.isRequired,
+	onCompareModeChange: PropTypes.func.isRequired,
+	candidateVehicles: PropTypes.array,
+	selectedVehicleIds: PropTypes.array,
+	onToggleVehicle: PropTypes.func.isRequired,
+	onGenerate: PropTypes.func.isRequired,
+	loading: PropTypes.bool,
 }

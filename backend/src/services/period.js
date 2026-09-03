@@ -128,7 +128,7 @@ function resolveCurrent(anchor, currentDays) {
     const end = addDaysWall(startOfDayWall(toWall(anchor)), 1);
     const start = addDaysWall(end, -currentDays);
     const prevStart = addDaysWall(start, -currentDays);
-    const label = `Last ${currentDays} days to ${formatDayMonth(new Date(end.getTime() - MS_PER_DAY))}`;
+    const label = `Last ${currentDays} days to and including ${formatDayMonth(new Date(end.getTime() - MS_PER_DAY))}`;
     const prevLabel = `Previous ${currentDays} days`;
 
     return {

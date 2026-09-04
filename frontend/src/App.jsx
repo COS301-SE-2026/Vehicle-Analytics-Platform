@@ -128,6 +128,7 @@ function App() {
             }
           />
 
+        <Route
           path="/fleet-groups"
           element={
             <ProtectedRoute allowedRoles={['admin']}>

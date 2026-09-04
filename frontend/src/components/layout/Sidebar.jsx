@@ -1,20 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, UsersRound, FileBarChart } from 'lucide-react'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000'
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/viewer' },
-  { icon: Map, label: 'Live Map', path: '/map' },
-  { icon: Globe, label: 'Geofence', path: '/geofence'},
-  { icon: Truck, label: 'Vehicles', path: '/vehicles'}
-]
+
 
 export default function Sidebar({ role, collapsed, onToggle }) {
   const navigate = useNavigate()
@@ -22,6 +17,18 @@ export default function Sidebar({ role, collapsed, onToggle }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   
   const displayRole = storeRole ?? role
+const dashboardPath = useAuthStore.getState().getDashboardPath();
+
+
+const navItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
+  { icon: Map, label: 'Live Map', path: '/map' },
+  { icon: Globe, label: 'Geofence', path: '/geofence'},
+  { icon: Truck, label: 'Vehicles', path: '/vehicles'},
+  { icon: FileBarChart, label: 'Reports', path: '/reports'},
+
+  ...(displayRole === 'admin' ? [{icon: UsersRound, label: 'FleetGroups', path: '/fleet-groups'}] : []),
+]
   const name = user?.name ?? 'User Name'
   
   // Safe extraction of initials

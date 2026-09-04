@@ -1,14 +1,16 @@
---discover hotspots of avl events using postgis extension
+-- Discover hotspots of avl events (harsh braking, crashes, etc).
+
+CREATE INDEX IF NOT EXISTS idx_vehicle_events_lookup
+  ON vehicle_events (event_category, event_detail, time);
 
 CREATE OR REPLACE FUNCTION cluster_events(
     p_event_category TEXT default NULL,
     p_event_detail TEXT default NULL,
     p_vehicle_id TEXT default NULL,
-    p_days INTEGER default 7, --since data loops after 7 days,
+    p_days INTEGER default 30,
     radius_km DOUBLE PRECISION default 0.25,
-    min_points INTEGER default 3
+    min_points INTEGER default 10
 )
-
 RETURNS TABLE(
     cluster_id INTEGER,
     event_category TEXT,
@@ -23,7 +25,7 @@ RETURNS TABLE(
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    eps_meters DOUBLE PRECISION := radius_km * 1000; -- Convert km to meters
+    eps_meters DOUBLE PRECISION := radius_km * 1000;
 BEGIN
     RETURN QUERY
     WITH filtered_events AS (
@@ -32,10 +34,10 @@ BEGIN
             e.event_category,
             e.event_detail,
             e.time,
-            ST_TRANSFORM(ST_SetSRID(ST_MakePoint(e.longitude, e.latitude), 4326), 3857) AS geom_proj,
-            ST_SetSRID(ST_MakePoint(e.longitude, e.latitude), 4326) AS geom_4326
+            ST_TRANSFORM(e.location, 3857) AS geom_proj,
+            e.location AS geom_4326
         FROM vehicle_events e
-        WHERE e.latitude IS NOT NULL AND e.longitude IS NOT NULL
+        WHERE e.location IS NOT NULL
           AND e.time >= NOW() - (p_days || ' days')::INTERVAL
           AND (p_vehicle_id IS NULL OR e.vehicle_id = p_vehicle_id)
           AND (p_event_category IS NOT NULL OR e.event_category <> 'ignition')
@@ -69,6 +71,3 @@ BEGIN
     ORDER BY event_count DESC, vehicle_count DESC;
 END;
 $$;
-
-CREATE INDEX idx_vehicle_events_location ON vehicle_events USING GIST(location);
-CREATE INDEX idx_vehicle_events_lookup ON vehicle_events (event_category, event_detail, time);

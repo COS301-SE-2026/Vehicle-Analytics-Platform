@@ -4,6 +4,8 @@ import FleetEventBreakdown from './FleetEventBreakdown'
 import TopEventContributors from './TopEventContributors'
 import LowestSafetyScoresTable from './LowestSafetyScoresTable'
 import { getFleetAnalytics } from '../../services/vehicleService'
+import { Magnet } from 'lucide-react'
+import ManagerLeaderboard from './ManagerLeaderboard'
 
 export default function FleetAnalytics() {
   const [range, setRange] = useState('day')
@@ -12,10 +14,12 @@ export default function FleetAnalytics() {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    getFleetAnalytics(range)
+    void Promise.resolve().then(() => getFleetAnalytics(range))
       .then((res) => { if (!cancelled) setData(res) })
-      .catch(() => { if (!cancelled) setData(null) })
+      .catch((err) => { 
+        console.error('Fleet analytics failed:', err)
+        if (!cancelled) setData(null) 
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [range])
@@ -34,7 +38,7 @@ export default function FleetAnalytics() {
                 : 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
             }`}
           >
-            Daily
+            Today
           </button>
           <button
             type="button"
@@ -58,14 +62,26 @@ export default function FleetAnalytics() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
-              <FleetSafetyScoreTrend data={data.safetyTrend} />
+              
+              {/* Dynamic title based on range */}
+              <FleetSafetyScoreTrend 
+                data={data.safetyTrend} 
+                title={range === 'day' ? 'Fleet Safety Score (Today - Hourly)' : 'Fleet Safety Score Trend'}
+              />
             </div>
             <div className="space-y-4">
               <FleetEventBreakdown events={data.eventBreakdown} />
               <TopEventContributors contributors={data.topContributors} />
             </div>
           </div>
+          <div className="grid grid-cols-1 lg:grid-cols gap-4">
+            <div className="lg:col-span-2">
           <LowestSafetyScoresTable vehicles={data.lowestSafetyScores} />
+          </div>
+          <div className="lg:col-span-1">
+            <ManagerLeaderboard></ManagerLeaderboard>
+          </div>
+          </div>
         </>
       )}
     </div>

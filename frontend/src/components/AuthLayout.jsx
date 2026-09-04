@@ -1,17 +1,7 @@
 import './AuthLayout.css';
-import vaporLogo from '../assets/logo.png';
+import vaporLogo from '../assets/newLogo.png';
 import PropTypes from 'prop-types';
 
-const getStatus = (index) => {
-  if (index === 4) return 'warning';
-  if (index === 9) return 'offline';
-  return 'active';
-};
-
-const vehicles = Array.from({ length: 15 }, (_, i) => ({
-  id: i,
-  status: getStatus(i),
-}));
 
 export default function AuthLayout({ children }) {
   return (
@@ -35,6 +25,7 @@ export default function AuthLayout({ children }) {
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
             <span className="stat-num">15</span>
+            {/* update this to dynamically show the number of cars in the data and not show it statically */}
             <span className="stat-label">Vehicles</span>
           </div>
           <div className="auth-stat">

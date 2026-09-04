@@ -28,6 +28,16 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
 const geofenceRoutes = require('./routes/geofence');
 
+const fleetGroupsRoutes = require('./routes/fleetGroups');
+
+const notificationsRoutes = require('./routes/notifications');
+
+
+
+const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
+
+// added for report
+const reportRoutes = require('./routes/reports');
 
 
 const app = express();
@@ -120,6 +130,15 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 app.use('/api/geofences', geofenceRoutes);
 
 
+
+app.use('/api/fuel', fuelHistoryRoutes);
+
+app.use('/api/fleet-groups', fleetGroupsRoutes);
+
+app.use('/api/notifications', notificationsRoutes)
+
+
+app.use('/api/reports', reportRoutes); // added for reporting
 
 
 

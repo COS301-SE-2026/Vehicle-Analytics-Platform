@@ -44,12 +44,13 @@ export default function RouteMap({ routePoints, routeLabel}) {
         if (!mapContainer.current || routePoints.length === 0){
             return
         }
+        if (!mapboxgl.accessToken) return
 
         const coordinates = routePoints.map((point) => [point.lng, point.lat])
 
         map.current = new mapboxgl.Map({
             container: mapContainer.current,
-            style: 'mapbox://styles/mapbox/dark-v11',
+            style: 'mapbox://styles/mapbox/streets-v11',
             center: coordinates[Math.floor(coordinates.length / 2)],
             zoom: 12,
         })
@@ -158,6 +159,14 @@ export default function RouteMap({ routePoints, routeLabel}) {
             } 
         }, [isPlaying, lastIndex, routePoints, playbackSpeed])
 
+            useEffect(() => {
+            function onFsChange() {
+                requestAnimationFrame(() => map.current?.resize())
+            }
+            document.addEventListener('fullscreenchange', onFsChange)
+            return () => document.removeEventListener('fullscreenchange', onFsChange)
+        }, [])
+
 
         function handlePlayPause(){
             if(currentIndex >= lastIndex){
@@ -200,7 +209,7 @@ export default function RouteMap({ routePoints, routeLabel}) {
                 setCurrentIndex((indx) => Math.min(lastIndex, indx + 1))
             } else if(event.key === 'ArrowLeft') {
                 setIsPlaying(false)
-                setCurrentIndex((indx) => Math.min(lastIndex, indx - 1))
+                setCurrentIndex((indx) => Math.max(0, indx - 1))
             }else if(event.key === 'Home') {
                 setIsPlaying(false)
                 setCurrentIndex(0)
@@ -212,8 +221,8 @@ export default function RouteMap({ routePoints, routeLabel}) {
         }
 
     return (
-    <div ref={wrapperRef}>
-        <div className="relative h-64 rounded-lg overflow-hidden">
+    <div ref={wrapperRef} className="route-map-wrapper bg-white">
+        <div className="route-map-box relative h-64 rounded-lg overflow-hidden">
             <div ref={mapContainer} style={{width: '100%', height: '100%'}}/>
             <div className="absolute top-3 left-3 bg-white rounded-md px-3 py-1.5 text-xs font-medium text-fleet-text shadow-sm">
                 {routeLabel}

@@ -101,10 +101,6 @@ export default function AdminDashboard() {
 
   const activeVehicles = vehicles.filter(v => (v.distanceToday ?? 0) > 0)
 
-  const mostActive = [...activeVehicles]
-    .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
-    .slice(0, 5)
-
   const adminCount = users.filter(u => u.role === 'admin').length
   const managerCount = users.filter(u => u.role === 'manager').length
   const viewerCount = users.filter(u => u.role === 'viewer').length
@@ -146,7 +142,7 @@ export default function AdminDashboard() {
     <div className="space-y-4">
 
       {/* Row 1 — Four KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         <StatCard
           icon={Truck}
           label="Active Vehicles"

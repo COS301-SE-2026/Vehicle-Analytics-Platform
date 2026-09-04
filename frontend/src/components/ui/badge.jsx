@@ -1,4 +1,3 @@
-import * as React from "react"
 import { cva } from "class-variance-authority";
 import { Slot } from "@radix-ui/react-slot"; 
 import PropTypes from "prop-types"

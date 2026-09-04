@@ -1,0 +1,2640 @@
+openapi: 3.0.3
+info:
+  title: V.A.P.O.R. Fleet Analytics API
+  description: Vehicle Analytics, Processing and Operations in Real-time
+  version: 1.0.0
+  contact:
+    name: Kilimanjaro StoneCap
+    email: kilimanjaro.capstone@gmail.com
+
+servers:
+  - url: https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod/api
+    description: Production
+  - url: http://localhost:5000/api
+    description: Development
+
+tags:
+  - name: Authentication
+  - name: Admin
+  - name: Vehicles
+  - name: Dashboard
+  - name: Safety
+  - name: Trips
+  - name: Fleet Analytics
+  - name: Geofences
+  - name: Fuel Efficiency
+  - name: Fleet Groups
+  - name: Custom Alerts
+  - name: Reports
+  - name: System
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Common
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    # User
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, fleet_manager, viewer]
+        is_active:
+          type: boolean
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        idToken:
+          type: string
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+
+    # Vehicle
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [moving, idle, offline]
+        safety_score:
+          type: integer
+        has_alert:
+          type: boolean
+        is_speeding:
+          type: boolean
+        distance_today:
+          type: number
+        fleet_group_id:
+          type: integer
+          nullable: true
+        fleet_group_name:
+          type: string
+          nullable: true
+
+    VehicleLocation:
+      type: object
+      properties:
+        vehicle_id:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        speed:
+          type: number
+        status:
+          type: string
+        last_updated:
+          type: string
+          format: date-time
+
+    # Trip
+    Trip:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          format: date
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        distance:
+          type: number
+        safety_score:
+          type: integer
+        harsh_brakes:
+          type: integer
+        harsh_accelerations:
+          type: integer
+        harsh_cornering:
+          type: integer
+
+    TripReplay:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            type: object
+            properties:
+              lat:
+                type: number
+              lng:
+                type: number
+              speed:
+                type: number
+              timestamp:
+                type: string
+                format: date-time
+              speed_color:
+                type: string
+                enum: [green, amber, red]
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [harsh_braking, harsh_acceleration, harsh_cornering, crash_detection]
+              timestamp:
+                type: string
+                format: date-time
+              lat:
+                type: number
+              lng:
+                type: number
+
+    # Fuel
+    FuelHistory:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        total_distance:
+          type: number
+        total_fuel:
+          type: number
+        avg_efficiency:
+          type: number
+        road_class_breakdown:
+          type: object
+          properties:
+            motorway:
+              type: number
+            primary:
+              type: number
+            residential:
+              type: number
+            other:
+              type: number
+        trip_count:
+          type: integer
+        efficiency_change:
+          type: string
+
+    FuelTrend:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date
+        avg_efficiency:
+          type: number
+        total_distance:
+          type: number
+        total_fuel:
+          type: number
+        trip_count:
+          type: integer
+
+    FleetFuelSummary:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date
+        total_distance:
+          type: number
+        total_fuel:
+          type: number
+        avg_efficiency:
+          type: number
+        vehicles_tracked:
+          type: integer
+
+    # Geofence
+    Geofence:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        boundary:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [Polygon]
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  type: number
+        vehicle_id:
+          type: string
+          nullable: true
+        trigger_type:
+          type: string
+          enum: [entry, exit, both, none]
+        source:
+          type: string
+          enum: [user, auto_hotspot, security_marker]
+        hotspot_kind:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    GeofenceEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        geofence_id:
+          type: integer
+          nullable: true
+        geofence_name:
+          type: string
+          nullable: true
+        vehicle_id:
+          type: string
+          nullable: true
+        event_type:
+          type: string
+          enum: [entry, exit, hotspot_created, security_alert]
+        latitude:
+          type: number
+        longitude:
+          type: number
+        speed:
+          type: number
+          nullable: true
+        event_time:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    # Dashboard
+    DashboardKPIs:
+      type: object
+      properties:
+        active_vehicles:
+          type: integer
+        total_vehicles:
+          type: integer
+        total_distance_today:
+          type: number
+        active_trips:
+          type: integer
+        avg_safety_score:
+          type: integer
+
+    Alert:
+      type: object
+      properties:
+        vehicle_id:
+          type: string
+        event_type:
+          type: string
+        location:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    # Fleet Groups
+    FleetGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        vehicle_count:
+          type: integer
+        assigned_managers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              email:
+                type: string
+        is_unassigned:
+          type: boolean
+
+    FleetGroupAssignment:
+      type: object
+      required:
+        - managerId
+      properties:
+        managerId:
+          type: integer
+
+    BulkVehicleAssignment:
+      type: object
+      required:
+        - vehicleIds
+      properties:
+        vehicleIds:
+          type: array
+          items:
+            type: string
+
+    # Custom Alerts
+    CustomAlertRule:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        fleet_group_id:
+          type: integer
+        condition_type:
+          type: string
+          enum: [speed_threshold, time_based_restriction, repeated_unsafe_events, safety_score_drop, trip_duration_exceeded]
+        condition_params:
+          type: object
+        status:
+          type: string
+          enum: [active, inactive]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ConditionParams:
+      type: object
+      properties:
+        max_speed_kmh:
+          type: number
+        start_time:
+          type: string
+          pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+        end_time:
+          type: string
+          pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
+        restricted_days:
+          type: array
+          items:
+            type: string
+            enum: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+        event_types:
+          type: array
+          items:
+            type: string
+            enum: [harsh_braking, harsh_acceleration, harsh_cornering]
+        count:
+          type: integer
+        window_minutes:
+          type: number
+        min_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        max_trip_minutes:
+          type: integer
+        max_daily_minutes:
+          type: integer
+
+    TriggeredAlert:
+      type: object
+      properties:
+        id:
+          type: integer
+        rule_id:
+          type: integer
+        rule_name:
+          type: string
+        fleet_group_id:
+          type: integer
+        fleet_group_name:
+          type: string
+        vehicle_id:
+          type: string
+        condition_type:
+          type: string
+        condition_params:
+          type: object
+        status:
+          type: string
+          enum: [new, acknowledged, resolved]
+        triggered_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    # Reports
+    ReportScope:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [admin, fleet_manager]
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+        vehicles:
+          type: array
+          items:
+            type: object
+            properties:
+              vehicleId:
+                type: string
+              groupId:
+                type: integer
+                nullable: true
+              groupName:
+                type: string
+                nullable: true
+        unassignedVehicleCount:
+          type: integer
+
+    ReportRequest:
+      type: object
+      properties:
+        scope_type:
+          type: string
+          enum: [fleet, group, vehicle]
+          default: fleet
+        scope_id:
+          type: string
+          nullable: true
+        period_type:
+          type: string
+          enum: [weekly, monthly, current, custom]
+          default: weekly
+        anchor:
+          type: string
+          format: date-time
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        current_days:
+          type: integer
+          minimum: 1
+          default: 7
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ============================
+  # 1. AUTHENTICATION
+  # ============================
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 2. ADMIN
+  # ============================
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Get all users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users/{userId}/role:
+    patch:
+      tags:
+        - Admin
+      summary: Update user role
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [admin, fleet_manager, viewer]
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users/{userId}:
+    delete:
+      tags:
+        - Admin
+      summary: Deactivate user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 3. VEHICLES
+  # ============================
+  /vehicles:
+    get:
+      tags:
+        - Vehicles
+      summary: List all vehicles
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [moving, idle, offline]
+        - name: min_score
+          in: query
+          schema:
+            type: integer
+        - name: alerts
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of vehicles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      vehicles:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Vehicle'
+                      stats:
+                        type: object
+                        properties:
+                          harsh_events_today:
+                            type: integer
+                          crashes_today:
+                            type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /vehicles/locations:
+    get:
+      tags:
+        - Vehicles
+      summary: Get real-time vehicle locations
+      responses:
+        '200':
+          description: Real-time locations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VehicleLocation'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /vehicles/{vehicleId}:
+    get:
+      tags:
+        - Vehicles
+      summary: Get vehicle details
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Vehicle details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /vehicles/{vehicleId}/trips:
+    get:
+      tags:
+        - Vehicles
+      summary: Get vehicle trips
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      trips:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Trip'
+                      stats:
+                        type: object
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 4. DASHBOARD
+  # ============================
+  /dashboard/kpis:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard KPIs
+      responses:
+        '200':
+          description: Dashboard KPIs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /dashboard/alerts:
+    get:
+      tags:
+        - Dashboard
+      summary: Get recent alerts
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Recent alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alert'
+
+  /dashboard/activity:
+    get:
+      tags:
+        - Dashboard
+      summary: Get activity history
+      parameters:
+        - name: range
+          in: query
+          schema:
+            type: string
+            enum: [day, week]
+            default: week
+      responses:
+        '200':
+          description: Activity history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /dashboard/total-distance:
+    get:
+      tags:
+        - Dashboard
+      summary: Get total distance today
+      responses:
+        '200':
+          description: Total distance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /dashboard/stats:
+    get:
+      tags:
+        - Dashboard
+      summary: Get fleet stats
+      responses:
+        '200':
+          description: Fleet statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ============================
+  # 5. SAFETY
+  # ============================
+  /safety/scores:
+    get:
+      tags:
+        - Safety
+      summary: Get fleet safety scores
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Fleet safety scores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /safety/scores/{vehicleId}:
+    get:
+      tags:
+        - Safety
+      summary: Get vehicle safety score
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Vehicle safety score
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /safety/trend/{vehicleId}:
+    get:
+      tags:
+        - Safety
+      summary: Get safety trend
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+      responses:
+        '200':
+          description: Safety trend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ============================
+  # 6. TRIPS
+  # ============================
+  /trips/history/{vehicleId}:
+    get:
+      tags:
+        - Trips
+      summary: Get trip history
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: before
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Trip history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /trips/replay/{tripId}:
+    get:
+      tags:
+        - Trips
+      summary: Replay a trip
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Trip replay data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TripReplay'
+        '404':
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 7. FLEET ANALYTICS
+  # ============================
+  /fleet/analytics:
+    get:
+      tags:
+        - Fleet Analytics
+      summary: Get fleet analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week]
+            default: week
+      responses:
+        '200':
+          description: Fleet analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /fleet/vehicle/{vehicleId}/scores:
+    get:
+      tags:
+        - Fleet Analytics
+      summary: Get vehicle daily scores
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+      responses:
+        '200':
+          description: Daily scores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 8. GEOFENCES
+  # ============================
+  /geofences:
+    get:
+      tags:
+        - Geofences
+      summary: List geofences
+      parameters:
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [user, auto_hotspot, security_marker]
+      responses:
+        '200':
+          description: List of geofences
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      geofences:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Geofence'
+
+    post:
+      tags:
+        - Geofences
+      summary: Create a geofence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - boundary
+              properties:
+                name:
+                  type: string
+                boundary:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [Polygon]
+                    coordinates:
+                      type: array
+                      items:
+                        type: array
+                        items:
+                          type: number
+                vehicle_id:
+                  type: string
+                  nullable: true
+                trigger_type:
+                  type: string
+                  enum: [entry, exit, both]
+                  default: both
+      responses:
+        '201':
+          description: Geofence created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /geofences/geojson:
+    get:
+      tags:
+        - Geofences
+      summary: Get geofences as GeoJSON
+      parameters:
+        - name: vehicle_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Geofences as GeoJSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum: [FeatureCollection]
+                      features:
+                        type: array
+                        items:
+                          type: object
+
+  /geofences/{id}:
+    get:
+      tags:
+        - Geofences
+      summary: Get geofence by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Geofence details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Geofence not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Geofences
+      summary: Update a geofence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                boundary:
+                  type: object
+                trigger_type:
+                  type: string
+                  enum: [entry, exit, both, none]
+      responses:
+        '200':
+          description: Geofence updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Geofence not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Geofences
+      summary: Delete a geofence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Geofence deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Geofence not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /geofences/events:
+    get:
+      tags:
+        - Geofences
+      summary: Get geofence events
+      parameters:
+        - name: geofence_id
+          in: query
+          schema:
+            type: integer
+        - name: vehicle_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Geofence events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      events:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/GeofenceEvent'
+
+    delete:
+      tags:
+        - Geofences
+      summary: Delete geofence events
+      parameters:
+        - name: geofence_id
+          in: query
+          schema:
+            type: integer
+        - name: event_type
+          in: query
+          schema:
+            type: string
+            enum: [entry, exit, hotspot_created, security_alert]
+        - name: before
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Events deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /geofences/discover/stops:
+    get:
+      tags:
+        - Geofences
+      summary: Discover frequent stops
+      parameters:
+        - name: vehicle_id
+          in: query
+          schema:
+            type: string
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+        - name: min_points
+          in: query
+          schema:
+            type: integer
+            default: 3
+        - name: radius_km
+          in: query
+          schema:
+            type: number
+            default: 0.5
+      responses:
+        '200':
+          description: Frequent stops
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /geofences/discover/events:
+    get:
+      tags:
+        - Geofences
+      summary: Discover event hotspots
+      parameters:
+        - name: vehicle_id
+          in: query
+          schema:
+            type: string
+        - name: event_category
+          in: query
+          schema:
+            type: string
+        - name: event_detail
+          in: query
+          schema:
+            type: string
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+        - name: min_points
+          in: query
+          schema:
+            type: integer
+            default: 3
+        - name: radius_km
+          in: query
+          schema:
+            type: number
+            default: 0.5
+      responses:
+        '200':
+          description: Event hotspots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /geofences/discover/create:
+    post:
+      tags:
+        - Geofences
+      summary: Create geofence from cluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - center_lat
+                - center_lng
+              properties:
+                name:
+                  type: string
+                center_lat:
+                  type: number
+                center_lng:
+                  type: number
+                vehicle_id:
+                  type: string
+                  nullable: true
+                radius_km:
+                  type: number
+                  default: 0.5
+      responses:
+        '201':
+          description: Geofence created from cluster
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 9. FUEL EFFICIENCY
+  # ============================
+  /fuel/vehicle/{vehicleId}/history:
+    get:
+      tags:
+        - Fuel Efficiency
+      summary: Get vehicle fuel history
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: week
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Vehicle fuel history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FuelHistory'
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fuel/vehicle/{vehicleId}/trend:
+    get:
+      tags:
+        - Fuel Efficiency
+      summary: Get vehicle fuel trend
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Vehicle fuel trend
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FuelTrend'
+        '404':
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fuel/fleet/history:
+    get:
+      tags:
+        - Fuel Efficiency
+      summary: Get fleet fuel summary
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: week
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Fleet fuel summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FleetFuelSummary'
+
+  /fuel/vehicle/{vehicleId}/calculate:
+    post:
+      tags:
+        - Fuel Efficiency
+      summary: Calculate daily fuel history (Admin only)
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Fuel history calculated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 10. FLEET GROUPS
+  # ============================
+  /fleet-groups:
+    get:
+      tags:
+        - Fleet Groups
+      summary: List all fleet groups
+      responses:
+        '200':
+          description: List of fleet groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      groups:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FleetGroup'
+
+    post:
+      tags:
+        - Fleet Groups
+      summary: Create a fleet group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Fleet group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fleet-groups/my-groups:
+    get:
+      tags:
+        - Fleet Groups
+      summary: Get my assigned fleet groups
+      responses:
+        '200':
+          description: My fleet groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      groups:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FleetGroup'
+
+  /fleet-groups/leaderboard:
+    get:
+      tags:
+        - Fleet Groups
+      summary: Get manager leaderboard
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+            maximum: 20
+      responses:
+        '200':
+          description: Manager leaderboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      leaderboard:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            rank:
+                              type: integer
+                            manager_id:
+                              type: integer
+                            manager_name:
+                              type: string
+                            group_count:
+                              type: integer
+                            vehicle_count:
+                              type: integer
+                            avg_safety_score:
+                              type: number
+
+  /fleet-groups/{id}:
+    patch:
+      tags:
+        - Fleet Groups
+      summary: Update a fleet group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Fleet group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Fleet Groups
+      summary: Delete a fleet group (soft delete)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Fleet group deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fleet-groups/{id}/assignments:
+    post:
+      tags:
+        - Fleet Groups
+      summary: Assign a fleet manager
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FleetGroupAssignment'
+      responses:
+        '201':
+          description: Manager assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: User or group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Already assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fleet-groups/{id}/assignments/{managerId}:
+    delete:
+      tags:
+        - Fleet Groups
+      summary: Remove a fleet manager
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: managerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Manager unassigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fleet-groups/{id}/vehicles:
+    patch:
+      tags:
+        - Fleet Groups
+      summary: Bulk assign vehicles
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkVehicleAssignment'
+      responses:
+        '200':
+          description: Vehicles assigned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      updated:
+                        type: array
+                        items:
+                          type: string
+                      not_found:
+                        type: array
+                        items:
+                          type: string
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /fleet-groups/{id}/vehicles/unassign:
+    patch:
+      tags:
+        - Fleet Groups
+      summary: Bulk unassign vehicles
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkVehicleAssignment'
+      responses:
+        '200':
+          description: Vehicles unassigned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      updated:
+                        type: array
+                        items:
+                          type: string
+
+  /fleet-groups/{id}/available-vehicles:
+    get:
+      tags:
+        - Fleet Groups
+      summary: List available vehicles
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [unassigned, in_group, other]
+            default: unassigned
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Available vehicles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      vehicles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            fleet_group_id:
+                              type: integer
+                              nullable: true
+                            fleet_group_name:
+                              type: string
+                              nullable: true
+                            province:
+                              type: string
+                              nullable: true
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+  # ============================
+  # 11. CUSTOM ALERTS
+  # ============================
+  /alerts/rules:
+    post:
+      tags:
+        - Custom Alerts
+      summary: Create alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - fleet_group_id
+                - condition_type
+              properties:
+                name:
+                  type: string
+                fleet_group_id:
+                  type: integer
+                condition_type:
+                  type: string
+                  enum: [speed_threshold, time_based_restriction, repeated_unsafe_events, safety_score_drop, trip_duration_exceeded]
+                condition_params:
+                  $ref: '#/components/schemas/ConditionParams'
+                status:
+                  type: string
+                  enum: [active, inactive]
+                  default: active
+      responses:
+        '201':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Custom Alerts
+      summary: List alert rules
+      responses:
+        '200':
+          description: List of alert rules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomAlertRule'
+
+  /alerts/rules/{id}:
+    get:
+      tags:
+        - Custom Alerts
+      summary: Get alert rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert rule details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Custom Alerts
+      summary: Update alert rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                condition_type:
+                  type: string
+                  enum: [speed_threshold, time_based_restriction, repeated_unsafe_events, safety_score_drop, trip_duration_exceeded]
+                condition_params:
+                  $ref: '#/components/schemas/ConditionParams'
+                status:
+                  type: string
+                  enum: [active, inactive]
+      responses:
+        '200':
+          description: Rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Custom Alerts
+      summary: Delete alert rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Rule deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/rules/{id}/status:
+    patch:
+      tags:
+        - Custom Alerts
+      summary: Update rule status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [active, inactive]
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/triggered:
+    get:
+      tags:
+        - Custom Alerts
+      summary: Get triggered alerts
+      parameters:
+        - name: fleet_group_id
+          in: query
+          schema:
+            type: integer
+        - name: vehicle_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [new, acknowledged, resolved]
+        - name: condition_type
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Triggered alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TriggeredAlert'
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          limit:
+                            type: integer
+                          offset:
+                            type: integer
+                          hasMore:
+                            type: boolean
+
+  /alerts/triggered/{id}:
+    get:
+      tags:
+        - Custom Alerts
+      summary: Get triggered alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/triggered/{id}/acknowledge:
+    put:
+      tags:
+        - Custom Alerts
+      summary: Acknowledge alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/triggered/{id}/resolve:
+    put:
+      tags:
+        - Custom Alerts
+      summary: Resolve alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alert resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/count/new:
+    get:
+      tags:
+        - Custom Alerts
+      summary: Get new alert count
+      parameters:
+        - name: fleet_group_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: New alert count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+
+  /alerts/triggered/new:
+    get:
+      tags:
+        - Custom Alerts
+      summary: Get new triggered alerts
+      parameters:
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: New triggered alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      alerts:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TriggeredAlert'
+                      checked_at:
+                        type: string
+                        format: date-time
+
+  # ============================
+  # 12. REPORTS
+  # ============================
+  /reports/scopes:
+    get:
+      tags:
+        - Reports
+      summary: Get reporting scopes
+      responses:
+        '200':
+          description: Reporting scopes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ReportScope'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reports/generate:
+    post:
+      tags:
+        - Reports
+      summary: Generate a report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+      responses:
+        '200':
+          description: Report generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================
+  # 13. SYSTEM
+  # ============================
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+      security: []

@@ -1,17 +1,18 @@
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db/pool');
 const { error } = require('../utils/response');
-console.log("NODE_ENV =", process.env.NODE_ENV);
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("DISABLE_AUTH:", process.env.DISABLE_AUTH);
 
 async function authenticate(req, res, next) {
-  // DEVELOPMENT BYPASS
-  if (process.env.NODE_ENV === "development") {
+
+
+  
+
+  const hasAuthHeader = req.headers.authorization && req.headers.authorization.startsWith('Bearer ');
+  if (process.env.NODE_ENV === "development" && !hasAuthHeader) {
+  
     req.user = {
   
-      id: "dev-user",
-  
+      id: 1,
       sub: "local-dev",
       email: "dev@localhost",
       password: "dev-password",

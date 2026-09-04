@@ -29,6 +29,10 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 const geofenceRoutes = require('./routes/geofence');
 
 const customAlertsRoutes = require('./routes/customAlerts');
+const fleetGroupsRoutes = require('./routes/fleetGroups');
+
+const notificationsRoutes = require('./routes/notifications');
+
 
 const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 
@@ -36,6 +40,10 @@ const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 // const fuelRoutes = require('./routes/fuel'); // removed: file doesn't exist, superseded by fuelHistoryRoutes
 
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
+
+// added for report
+const reportRoutes = require('./routes/reports');
+
 
 const app = express();
 
@@ -134,6 +142,13 @@ app.use('/api/alerts', triggeredAlertsRoutes);
 
 
 app.use('/api/fuel', fuelHistoryRoutes);
+
+app.use('/api/fleet-groups', fleetGroupsRoutes);
+
+app.use('/api/notifications', notificationsRoutes)
+
+
+app.use('/api/reports', reportRoutes); // added for reporting
 
 
 

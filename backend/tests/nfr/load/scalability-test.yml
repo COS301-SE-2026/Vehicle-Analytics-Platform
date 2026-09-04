@@ -1,0 +1,28 @@
+
+
+config:
+  target: "https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "15 vehicles"
+    - duration: 30
+      arrivalRate: 15
+      name: "50 vehicles"
+  defaults:
+    headers:
+      Authorization: "Bearer {{ $processEnvironment.JWT_TOKEN }}"
+
+scenarios:
+  - name: "Get vehicle data"
+    flow:
+      - get:
+          url: "/api/vehicles/locations"
+          expect:
+            - statusCode: 200
+            - hasProperty: success
+      - get:
+          url: "/api/dashboard/kpis"
+          expect:
+            - statusCode: 200
+            - hasProperty: success

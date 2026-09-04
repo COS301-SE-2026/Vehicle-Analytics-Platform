@@ -7,6 +7,7 @@ const {getFleetKPIs, getActiveAlerts, getFleetActivityHistory, getTotalDistanceT
 
 
 const {authenticate, requireRole} = require('../middleware/auth');
+const { requireFleetGroupAccess } = require('../middleware/fleetGroupAccess');
 
 
 
@@ -14,15 +15,15 @@ const router = express.Router();
 
 
 
-router.get('/kpis', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getFleetKPIs);
+router.get('/kpis', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), requireFleetGroupAccess, getFleetKPIs);
 
-router.get('/alerts', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getActiveAlerts);
+router.get('/alerts', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), requireFleetGroupAccess, getActiveAlerts);
 
-router.get('/activity', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getFleetActivityHistory);
+router.get('/activity', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), requireFleetGroupAccess, getFleetActivityHistory);
 
-router.get('/total-distance', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getTotalDistanceToday);
+router.get('/total-distance', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), requireFleetGroupAccess, getTotalDistanceToday);
 
-router.get('/stats', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), getFleetStats);
+router.get('/stats', authenticate, requireRole(['admin', 'fleet_manager', 'viewer']), requireFleetGroupAccess, getFleetStats);
 
 
 

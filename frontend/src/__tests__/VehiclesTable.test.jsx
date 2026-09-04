@@ -27,7 +27,6 @@ function makeDefaultProps() {
             {
                 id: 'VH-001',
                 status: 'moving',
-                zone: 'North Depot',
                 hasAlert: true,
                 safetyScore: 92,
                 lastUpdated: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
@@ -36,7 +35,6 @@ function makeDefaultProps() {
             {
                 id: 'VH-002',
                 status: 'offline',
-                zone: null,
                 hasAlert: false,
                 safetyScore: 61,
                 lastUpdated: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
@@ -63,7 +61,7 @@ describe('VehiclesTable', () => {
     test('renders all column headers', () => {
         const defaultProps = makeDefaultProps()
         render(<VehiclesTable {...defaultProps} />)
-        const headers = ['VEHICLE ID', 'STATUS', 'ZONE', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
+        const headers = ['VEHICLE ID', 'STATUS', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
         headers.forEach((col) => { expect(screen.getByText(col)).toBeInTheDocument()})
     })
 
@@ -82,16 +80,6 @@ describe('VehiclesTable', () => {
         expect(screen.getAllByTestId('safety-score-ring')).toHaveLength(2)
     })
 
-    test('renders zone or "-" fallback when zone is missing', () => {
-        const defaultProps = makeDefaultProps()
-        render(<VehiclesTable {...defaultProps} />)
-
-        const row1 = within(screen.getByTestId('vehicle-row-VH-001'))
-        expect(row1.getByText('North Depot')).toBeInTheDocument()
-
-        const row2 = within(screen.getByTestId('vehicle-row-VH-002'))
-        expect(row2.getAllByText('-')).toHaveLength(2)
-    })
 
     test('renders vehicle status badges', () => {
         const defaultProps = makeDefaultProps()

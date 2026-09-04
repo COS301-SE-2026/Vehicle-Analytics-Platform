@@ -233,7 +233,7 @@ describe('resolvePeriod() - current', () => {
 		expect(period.fromDate).toBe('2026-08-06');
 		expect(period.toDate).toBe('2026-08-12');
 		expect(period.days).toBe(7);
-		expect(period.label).toBe('Last 7 days to 12 Aug');
+		expect(period.label).toBe('Last 7 days to and including 12 Aug');
 	});
 
 	test('honours a custom currentDays window', () => {

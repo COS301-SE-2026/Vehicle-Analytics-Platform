@@ -10,8 +10,9 @@ LANGUAGE plpgsql
 AS $$
 
 DECLARE
-
     debounce_minutes INT := 5;
+    condition_type_trip_duration TEXT := 'trip_duration_exceeded';
+
     v_fleet_group_id BIGINT;
     v_trip_minutes NUMERIC;
     v_daily_minutes NUMERIC;
@@ -19,106 +20,134 @@ DECLARE
 
 BEGIN
 
-    
     IF NOT (OLD.status = 'open' AND NEW.status = 'completed') THEN
         RETURN NEW;
     END IF;
- 
-    SELECT fleet_group_id INTO v_fleet_group_id
-    FROM vehicles WHERE vehicle_id = NEW.vehicle_id;
- 
+
+    SELECT fleet_group_id
+    INTO v_fleet_group_id
+    FROM vehicles
+    WHERE vehicle_id = NEW.vehicle_id;
+
     IF v_fleet_group_id IS NULL THEN
         RETURN NEW;
     END IF;
- 
+
     v_trip_minutes := NEW.duration_seconds / 60.0;
- 
+
     FOR v_rule IN
     (
-        SELECT id, condition_params
+        SELECT id, name, condition_params
         FROM custom_alert_rules
-
         WHERE fleet_group_id = v_fleet_group_id
           AND status = 'active'
-          AND condition_type = 'trip_duration_exceeded'
-
+          AND condition_type = condition_type_trip_duration
     ) LOOP
-       
+
+        -- Check single-trip duration limit
         IF v_rule.condition_params ? 'max_trip_minutes'
-           AND v_trip_minutes > (v_rule.condition_params->>'max_trip_minutes')::NUMERIC THEN
- 
+           AND v_trip_minutes >
+               (v_rule.condition_params->>'max_trip_minutes')::NUMERIC THEN
+
             INSERT INTO triggered_alerts(
-                rule_id, vehicle_id, fleet_group_id, condition_type,
-                breach_value, threshold_value, created_at, rule_snapshot
+                rule_id,
+                vehicle_id,
+                fleet_group_id,
+                condition_type,
+                breach_value,
+                threshold_value,
+                created_at,
+                rule_snapshot
             )
-
             SELECT
-                v_rule.id, NEW.vehicle_id, v_fleet_group_id, 'trip_duration_exceeded',
-                round(v_trip_minutes)::TEXT, v_rule.condition_params->>'max_trip_minutes', 
-                
+                v_rule.id,
+                NEW.vehicle_id,
+                v_fleet_group_id,
+                condition_type_trip_duration,
+                round(v_trip_minutes)::TEXT,
+                v_rule.condition_params->>'max_trip_minutes',
                 NEW.end_time,
-                jsonb_build_object('name', v_rule.name, 'condition_params', v_rule.condition_params)
-
+                jsonb_build_object(
+                    'name', v_rule.name,
+                    'condition_params', v_rule.condition_params
+                )
             WHERE NOT EXISTS
             (
-                SELECT 1 FROM triggered_alerts ta
+                SELECT 1
+                FROM triggered_alerts ta
                 WHERE ta.rule_id = v_rule.id
-
                   AND ta.vehicle_id = NEW.vehicle_id
-                  AND ta.created_at > (NEW.end_time - (debounce_minutes || ' minutes')::INTERVAL)
+                  AND ta.created_at >
+                      (
+                          NEW.end_time
+                          - (debounce_minutes || ' minutes')::INTERVAL
+                      )
             );
-            
-        END IF;
- 
 
+        END IF;
+
+        -- Check same-day cumulative duration limit
         IF v_rule.condition_params ? 'max_daily_minutes' THEN
 
-            SELECT SUM(duration_seconds) / 60.0 INTO v_daily_minutes
+            SELECT SUM(duration_seconds) / 60.0
+            INTO v_daily_minutes
             FROM trips
-
             WHERE vehicle_id = NEW.vehicle_id
               AND status = 'completed'
               AND DATE(start_time) = DATE(NEW.start_time);
- 
-            IF v_daily_minutes > (v_rule.condition_params->>'max_daily_minutes')::NUMERIC THEN
+
+            IF v_daily_minutes >
+               (v_rule.condition_params->>'max_daily_minutes')::NUMERIC THEN
 
                 INSERT INTO triggered_alerts(
-                    rule_id, vehicle_id, fleet_group_id, condition_type,
-                    breach_value, threshold_value, created_at, rule_snapshot
+                    rule_id,
+                    vehicle_id,
+                    fleet_group_id,
+                    condition_type,
+                    breach_value,
+                    threshold_value,
+                    created_at,
+                    rule_snapshot
                 )
-
                 SELECT
-                    v_rule.id, NEW.vehicle_id, v_fleet_group_id, 'trip_duration_exceeded',
-                    round(v_daily_minutes)::TEXT, v_rule.condition_params->>'max_daily_minutes',
-
+                    v_rule.id,
+                    NEW.vehicle_id,
+                    v_fleet_group_id,
+                    condition_type_trip_duration,
+                    round(v_daily_minutes)::TEXT,
+                    v_rule.condition_params->>'max_daily_minutes',
                     NEW.end_time,
-                    jsonb_build_object('name', v_rule.name, 'condition_params', v_rule.condition_params)
-
-                WHERE NOT EXISTS (
-
-                    SELECT 1 FROM triggered_alerts ta
-
+                    jsonb_build_object(
+                        'name', v_rule.name,
+                        'condition_params', v_rule.condition_params
+                    )
+                WHERE NOT EXISTS
+                (
+                    SELECT 1
+                    FROM triggered_alerts ta
                     WHERE ta.rule_id = v_rule.id
                       AND ta.vehicle_id = NEW.vehicle_id
-                      AND ta.created_at > (NEW.end_time - (debounce_minutes || ' minutes')::INTERVAL)
+                      AND ta.created_at >
+                          (
+                              NEW.end_time
+                              - (debounce_minutes || ' minutes')::INTERVAL
+                          )
                 );
+
             END IF;
         END IF;
+
     END LOOP;
- 
+
     RETURN NEW;
 END;
 $$;
- 
- 
+
+
 DROP TRIGGER IF EXISTS trip_duration_alert_trigger ON trips;
 
 CREATE TRIGGER trip_duration_alert_trigger
-
 AFTER UPDATE OF status ON trips
-
 FOR EACH ROW
-
 WHEN (OLD.status = 'open' AND NEW.status = 'completed')
-
 EXECUTE FUNCTION evaluate_trip_duration_rules();

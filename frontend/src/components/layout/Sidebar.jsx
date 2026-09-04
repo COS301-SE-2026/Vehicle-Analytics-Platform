@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, BellRing } from 'lucide-react'
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, BellRing, FileBarChart } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
@@ -11,11 +11,12 @@ const API_BASE_URL =
 
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboardPath' },
   { icon: Map, label: 'Live Map', path: '/map' },
   { icon: Globe, label: 'Geofence', path: '/geofence'},
   { icon: Truck, label: 'Vehicles', path: '/vehicles'},
-  { icon: BellRing, label: 'Custom Alerts', path: '/custom-alerts'}
+  { icon: BellRing, label: 'Custom Alerts', path: '/custom-alerts'},
+  { icon: FileBarChart, label: 'Reports', path: '/reports'},
 ]
 
 export default function Sidebar({ role, collapsed, onToggle }) {
@@ -32,6 +33,7 @@ const navItems = [
   { icon: Map, label: 'Live Map', path: '/map' },
   { icon: Globe, label: 'Geofence', path: '/geofence'},
   { icon: Truck, label: 'Vehicles', path: '/vehicles'},
+  { icon: BellRing, label: 'Custom Alerts', path: '/custom-alerts'},
   { icon: FileBarChart, label: 'Reports', path: '/reports'},
 
   ...(displayRole === 'admin' ? [{icon: UsersRound, label: 'FleetGroups', path: '/fleet-groups'}] : []),

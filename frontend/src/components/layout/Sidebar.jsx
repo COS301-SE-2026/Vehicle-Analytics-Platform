@@ -1,14 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, UsersRound, FileBarChart } from 'lucide-react'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000'
-
 
 
 
@@ -26,6 +25,8 @@ const navItems = [
   { icon: Map, label: 'Live Map', path: '/map' },
   { icon: Globe, label: 'Geofence', path: '/geofence'},
   { icon: Truck, label: 'Vehicles', path: '/vehicles'},
+  { icon: FileBarChart, label: 'Reports', path: '/reports'},
+
   ...(displayRole === 'admin' ? [{icon: UsersRound, label: 'FleetGroups', path: '/fleet-groups'}] : []),
 ]
   const name = user?.name ?? 'User Name'

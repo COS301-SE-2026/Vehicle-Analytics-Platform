@@ -36,6 +36,10 @@ const notificationsRoutes = require('./routes/notifications');
 
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 
+// added for report
+const reportRoutes = require('./routes/reports');
+
+
 const app = express();
 
 
@@ -134,6 +138,7 @@ app.use('/api/fleet-groups', fleetGroupsRoutes);
 app.use('/api/notifications', notificationsRoutes)
 
 
+app.use('/api/reports', reportRoutes); // added for reporting
 
 
 

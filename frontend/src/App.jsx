@@ -17,6 +17,8 @@ import VehicleProfile from './pages/vehicles/VehicleProfile'
 import FleetGroupsManagement from './pages/fleetgroups/FleetGroupsManagement'
 import FleetGroupDetail from './pages/fleetgroups/FleetGroupDetail'
 
+import Reports from './pages/reports/Reports'
+
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
 
@@ -127,6 +129,13 @@ function App() {
               <FleetGroupDetail/>
             </ProtectedRoute>
           }></Route>
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
 

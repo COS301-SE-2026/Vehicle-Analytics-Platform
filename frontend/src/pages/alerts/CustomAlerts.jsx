@@ -18,7 +18,7 @@ export default function CustomAlerts() {
                         key={tab.id}
                         type="button"
                         data-testid={`custom-alerts-tab-${tab.id}`}
-                        onClick={() => SetActiveTab(tab.id)}
+                        onClick={() => setActiveTab(tab.id)}
                         className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
                             activeTab === tab.id
                             ? 'border-fleet-blue text-fleet-text'

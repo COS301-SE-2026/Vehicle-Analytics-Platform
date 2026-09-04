@@ -12,7 +12,7 @@ DECLARE
 BEGIN
     IF NOT EXISTS(
 
-        SELECT 1 FROM custom_alert_rules
+        SELECT cb.* FROM custom_alert_rules
         WHERE status = 'active' 
         AND condition_type = 'repeated_unsafe_events'
 

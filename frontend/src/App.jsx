@@ -15,6 +15,8 @@ import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 import VehiclesList from './pages/vehicles/VehiclesList'
 import VehicleProfile from './pages/vehicles/VehicleProfile'
 
+import Reports from './pages/reports/Reports'
+
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuthStore()
 
@@ -108,6 +110,15 @@ function App() {
                 <Geofence />
               </ProtectedRoute>
           }
+          />
+
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+                <Reports />
+              </ProtectedRoute>
+            }
           />
         </Route>
 

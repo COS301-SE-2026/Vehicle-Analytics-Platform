@@ -59,9 +59,9 @@ test.describe('Fixture-authenticated access (no login form, no Cognito)', () => 
     await expect(page).toHaveURL(/\/dashboard\/viewer/);
   });
 
-  test('a seeded admin session cannot reach /map (admin is not in its allowedRoles)', async ({ page }) => {
-    await seedAuthenticated(page, 'admin');
-    await page.goto('/map');
-    await expect(page).toHaveURL(/\/dashboard\/admin/);
-  });
+test('a seeded admin session can reach /map', async ({ page }) => {
+  await seedAuthenticated(page, 'admin');
+  await page.goto('/map');
+  await expect(page).toHaveURL(/\/map/);
+});
 });

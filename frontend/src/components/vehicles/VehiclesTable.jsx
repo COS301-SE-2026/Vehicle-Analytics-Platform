@@ -10,8 +10,7 @@ import {
 import VehicleStatusBadge from './VehicleStatusBadge'
 import SafetyScoreRing from './SafetyScoreRing'
 
-
-const columns = ['VEHICLE ID', 'STATUS', 'ZONE', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
+const columns = ['VEHICLE ID', 'STATUS', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
 
 function parseTimestamp(value) {
     if (!value) return null
@@ -72,7 +71,6 @@ export default function VehiclesTable({ vehicles, page, totalPages, totalVehicle
                         className="border-b border-fleet-border last:border-0 hover:bg-gray-50 cursor-pointer">
                             <td className="px-4 py-3 font-medium text-fleet-text">{vehicle.id}</td>
                             <td className="px-4 py-3"><VehicleStatusBadge status={vehicle.status}></VehicleStatusBadge></td>
-                            <td className="px-4 py-3 text-fleet-secondary">{vehicle.zone ?? '-'}</td>
                             <td className="px-4 py-3">{vehicle.hasAlert ? <AlertCircle className="w-4 h-4 text-fleet-alert"></AlertCircle> : <span className="text-fleet-secondary">-</span>}</td>
                             <td className="px-4 py-3"><SafetyScoreRing score={vehicle.safetyScore}></SafetyScoreRing></td>
                             <td className={`px-4 py-3 ${vehicle.stale ? 'text-fleet-alert' : 'text-fleet-secondary'}`}>

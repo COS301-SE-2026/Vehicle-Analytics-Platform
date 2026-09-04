@@ -35,6 +35,12 @@ function isSameDay(a, b){
     )
 }
 
+function parseLocalDate(dateStr){
+    const datePart = dateStr.split('T')[0]
+    const [year, month, day] = datePart.split('-').map(Number)
+    return new Date(year, month - 1, day)
+}
+
 function CustomToolTip({ active, payload, label }){
     if(!active || !payload || payload.length === 0){
         return null
@@ -71,7 +77,7 @@ const dayData = useMemo(
     () =>
     dailyScores
         .filter((entry) => {
-            const d = new Date(entry.date)
+            const d = parseLocalDate(entry.date)
             if(!dateRange?.from || !dateRange?.to){
                 return true
             }
@@ -89,7 +95,7 @@ const dayData = useMemo(
 const tripData = useMemo(
     () =>
         [...trips]
-    .filter((trip) => isSameDay(new Date(trip.date) , tripDay))
+    .filter((trip) => isSameDay(parseLocalDate(trip.date) , tripDay))
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .map((trip) => ({
         label: trip.routeLabel,

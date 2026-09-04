@@ -220,13 +220,17 @@ export async function getFleetSafetyScores(date = null){
   return data.data.vehicles || []
 }
 
-export async function getVehiclesList({status, page = 1, limit = 20} = {}) {
+export async function getVehiclesList({status, page = 1, limit = 20, fleetGroupId} = {}) {
   const headers = await getAuthHeaders()
 
   const params = new URLSearchParams()
 
   if (status && status !== 'all'){
     params.set('status', status)
+  }
+
+  if(fleetGroupId){
+    params.set('fleet_group_id', fleetGroupId)
   }
 
   params.set('page', page)

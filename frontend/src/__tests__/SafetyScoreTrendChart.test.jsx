@@ -4,12 +4,9 @@ import {
     fireEvent,
     cleanup
 } from '@testing-library/react'
-
 import '@testing-library/jest-dom'
 
-
 import SafetyScoreTrendChart from '@/components/vehicles/SafetyScoreTrendChart'
-
 import { getScoreSeverity } from '@/utils/safetyScore'
 
 afterEach(cleanup)
@@ -28,25 +25,24 @@ jest.mock('@/components/ui/calendar', () => ({
     Calendar: ({ mode}) => <div data-testid="calendar" data-mode={mode} />,
 }))
 
-//recharts invokes tool tip on hover so This is to allow control over the exact props that get passed into Custom tool tip
 let mockTooltipProps = null
 
 jest.mock('recharts', () => {
-    const {cloneElement} = require('react')
+    const { cloneElement } = require('react')
     return {
-    ResponsiveContainer: ({ children}) => <div data-testid="responsive-container">{children}</div>,
-    LineChart: ({children, data}) => (
-        <div data-testid="line-chart" data-points={data.length}>
-            {children}
-        </div>
-    ),
-    Line: () => <div data-testid="line" />,
-    XAxis: () => null,
-    YAxis: () => null,
-    CartesianGrid: () => null,
-    Tooltip: ({content}) =>
-        mockTooltipProps ? <div data-testid="tooltip-wrapper">{cloneElement(content, mockTooltipProps)}</div> : null,
-}
+        ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
+        LineChart: ({ children, data }) => (
+            <div data-testid="line-chart" data-points={data.length}>
+                {children}
+            </div>
+        ),
+        Line: () => <div data-testid="line" />,
+        XAxis: () => null,
+        YAxis: () => null,
+        CartesianGrid: () => null,
+        Tooltip: ({ content }) =>
+            mockTooltipProps ? <div data-testid="tooltip-wrapper">{cloneElement(content, mockTooltipProps)}</div> : null,
+    }
 })
 
 const baseSeverity = {
@@ -56,9 +52,11 @@ const baseSeverity = {
     barClass: 'bg-fleet-green',
 }
 
+// Pass the full ISO timestamp so there is zero offset ambiguity.
+// This ensures entry.date evaluates to exactly the moment the test starts.
 const today = new Date()
-const isoToday = today.toISOString().slice(0,10)
-const isoOldDate = '2020-01-01'
+const isoToday = today.toISOString()
+const isoOldDate = '2020-01-01T12:00:00.000Z'
 
 const dailyScores = [
     {date: isoToday, score: 85},
@@ -82,7 +80,6 @@ describe('SafetyScoreTrendChart', () =>{
         expect(screen.getByText('No safety score data available')).toBeInTheDocument()
     })
 
-
     test('renders the chart with day-view data within the default date range', () => {
         render(<SafetyScoreTrendChart dailyScores={dailyScores} trips={trips} />)
         expect(screen.getByTestId('line-chart')).toHaveAttribute('data-points', '1')
@@ -96,18 +93,15 @@ describe('SafetyScoreTrendChart', () =>{
         expect(screen.getByTestId('line-chart')).toHaveAttribute('data-points', '1')
     })
 
-
-    test('highlights the day view button by defaut', () => {
+    test('highlights the day view button by default', () => {
         render(<SafetyScoreTrendChart dailyScores={dailyScores} trips={trips} />)
 
         expect(screen.getByTestId('trend-view-day')).toHaveClass('border-fleet-blue')
         expect(screen.getByTestId('trend-view-trip')).not.toHaveClass('border-fleet-blue')
     })
 
-
-    test('shows a daate range label in day view', () => {
+    test('shows a date range label in day view', () => {
         render(<SafetyScoreTrendChart dailyScores={dailyScores} trips={trips} />)
-
         expect(screen.getByTestId('trend-calendar-trigger')).toBeInTheDocument()
     })
 
@@ -116,13 +110,11 @@ describe('SafetyScoreTrendChart', () =>{
 
         expect(screen.getByTestId('calendar')).toHaveAttribute('data-mode', 'range')
 
-
-
         fireEvent.click(screen.getByTestId('trend-view-trip'))
         expect(screen.getByTestId('calendar')).toHaveAttribute('data-mode', 'single')
     })
 
-    test('CustomTooltip rendrs score and severity label when active', () => {
+    test('CustomTooltip renders score and severity label when active', () => {
         mockTooltipProps = {active: true, payload: [{ value: 85}], label: '20 Jul'}
 
         render(<SafetyScoreTrendChart dailyScores={dailyScores} trips={trips} />)
@@ -133,14 +125,10 @@ describe('SafetyScoreTrendChart', () =>{
         expect(getScoreSeverity).toHaveBeenCalledWith(85)
     })
 
-
     test('CustomToolTip renders nothing when inactive or payload is empty', () => {
         mockTooltipProps = {active: false, payload: [], label: '20 Jul'}
 
         render(<SafetyScoreTrendChart dailyScores={dailyScores} trips={trips} />)
-
         expect(screen.queryByText('20 Jul')).not.toBeInTheDocument()
     })
-
 })
-

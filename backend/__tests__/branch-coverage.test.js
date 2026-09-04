@@ -44,7 +44,7 @@ describe('Branch Coverage Tests', () => {
   
     token = jwt.sign(
   
-      {id: 1, sub: 'test-sub', email: 'test@test.com', role: 'fleet_manager'},
+      {id: 1, sub: 'test-sub', email: 'test@test.com', role: 'admin'},
   
       process.env.JWT_SECRET
   
@@ -677,6 +677,7 @@ describe('Branch Coverage Tests', () => {
 
       mockPool.query
 
+      .mockResolvedValueOnce({rows: [{ id: '1001'}] })
       .mockResolvedValueOnce({rows: [] })
 
       .mockResolvedValueOnce({rows: [{avg_safety_score: 0, total_distance: 0, total_trips: 0 }] });
@@ -719,7 +720,9 @@ describe('Branch Coverage Tests', () => {
     
     test('GET /api/vehicles/:id/safety-trend - handles empty trend', async () => {
     
-      mockPool.query.mockResolvedValue({ rows: [] });
+      mockPool.query
+      .mockResolvedValueOnce({ rows: [{id: '1001'}] })
+      .mockResolvedValue({ rows: [] });
     
       const response = await authGet('/api/vehicles/1001/safety-trend?days=7');
     

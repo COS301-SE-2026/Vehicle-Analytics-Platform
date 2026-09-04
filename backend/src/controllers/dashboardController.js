@@ -56,9 +56,11 @@ async function getFleetKPIs(req, res) {
       ) as active_vehicles
     
     
-      FROM current_vehicle_position
+      FROM current_vehicle_position cvp
+      JOIN vehicles v ON v.vehicle_id = cvp.vehicle_id
+      WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
     
-      `);
+      `, [req.fleetGroupIds]);
 
     
       const alerts_result = await pool.query(`
@@ -67,10 +69,12 @@ async function getFleetKPIs(req, res) {
       -- take .length; COUNT(*) does it in the database.
       -- 'speeding' dropped: no such event_category is ever emitted.
       SELECT COUNT(*) AS alert_count
-      FROM vehicle_events
-      WHERE time >= data_today()
+      FROM vehicle_events ve
+      JOIN vehicles v ON v.vehicle_id = ve.vehicle_id
+      WHERE ve.time >= data_today()
         AND event_category IN ('green_driving_type', 'crash_detection')
-    `);
+        AND ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
+    `, [req.fleetGroupIds]);
 
 
 
@@ -82,14 +86,12 @@ async function getFleetKPIs(req, res) {
     
       COALESCE(SUM(distance_km), 0) AS distance_today
     
-      FROM vehicle_daily_distance
+      FROM vehicle_daily_distance vdd
+      JOIN vehicles v ON v.vehicle_id = vdd.vehicle_id
     
-    
-      WHERE day >= data_today();
-
-
+      WHERE day >= data_today() AND ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
       
-    `);
+    `, [req.fleetGroupIds]);
 
 
 
@@ -169,6 +171,7 @@ async function getActiveAlerts(req, res) {
       -- rather than a coordinate pair. Falls back to lat/lng when a
       -- vehicle has no cached geocode yet.
       LEFT JOIN vehicle_location_cache vlc ON vlc.vehicle_id = ve.vehicle_id
+      JOIN vehicles v ON v.vehicle_id = ve.vehicle_id
       WHERE ve.event_category IN (
               'green_driving_type', 'crash_detection',
               -- 'speeding' dropped: the pipeline never emits it, so it
@@ -176,12 +179,13 @@ async function getActiveAlerts(req, res) {
               -- towing/unplug/immobilizer are the most urgent things here.
               'towing', 'unplug', 'immobilizer'
             )
+        AND ($2::bigint[] IS NULL OR v.fleet_group_id = ANY($2::bigint[]))
       ORDER BY ve.time DESC
   
       LIMIT $1
   
   
-      `, [limit]);
+      `, [limit, req.fleetGroupIds]);
 
       
     
@@ -310,17 +314,19 @@ async function getFleetActivityHistory(req, res) {
         time_bucket($1::interval, time) AS bucket,
   
   
-        COUNT(DISTINCT vehicle_id) FILTER (WHERE speed >= 3) AS active_vehicles
+        COUNT(DISTINCT ct.vehicle_id) FILTER (WHERE ct.speed >= 3) AS active_vehicles
   
-        FROM clean_telemetry
-      WHERE time >= data_now() - $2::interval 
+        FROM clean_telemetry ct
+        JOIN vehicles v ON v.vehicle_id = ct.vehicle_id
+      WHERE ct.time >= data_now() - $2::interval 
+      AND  ($3::bigint[] IS NULL OR v.fleet_group_id = ANY($3::bigint[]))
   
       GROUP BY 1
   
   
       ORDER BY 1;
   
-      `, [config.bucket, config.interval]);
+      `, [config.bucket, config.interval, req.fleetGroupIds]);
 
       
     
@@ -387,13 +393,13 @@ async function getTotalDistanceToday(req, res) {
 
       SELECT
 
-      COALESCE(SUM(distance_km), 0) AS total_lifetime_distance,
+      COALESCE(SUM(vdd.distance_km), 0) AS total_lifetime_distance,
 
       COALESCE(
 
-      SUM(distance_km) FILTER (
+      SUM(vdd.distance_km) FILTER (
 
-      WHERE day >= data_today()
+      WHERE vdd.day >= data_today()
 
       ),
 
@@ -401,14 +407,16 @@ async function getTotalDistanceToday(req, res) {
 
       ) AS distance_today,
 
-      COUNT(DISTINCT vehicle_id) FILTER (
+      COUNT(DISTINCT vdd.vehicle_id) FILTER (
 
-      WHERE day >= data_today()
+      WHERE vdd.day >= data_today()
         ) AS vehicles_driven_today
 
 
-        FROM vehicle_daily_distance;
-    `);
+        FROM vehicle_daily_distance vdd
+        JOIN vehicles v ON v.vehicle_id = vdd.vehicle_id
+        WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]));
+    `, [req.fleetGroupIds]);
 
 
 
@@ -488,14 +496,16 @@ async function getFleetStats(req, res) {
           WHERE time > data_now() - INTERVAL '1 hour'
           AND event_category IN ('green_driving_type', 'crash_detection')
         ) ve ON v.vehicle_id = ve.vehicle_id
+         WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
         ) stats
-        `); 
+        `, [req.fleetGroupIds]); 
     
         const distanceResult = await pool.query(`  
-          SELECT COALESCE(SUM(distance_km), 0) as total_distance
-          FROM vehicle_daily_distance
-          WHERE day = data_today()
-    `);
+          SELECT COALESCE(SUM(vdd.distance_km), 0) as total_distance
+          FROM vehicle_daily_distance vdd
+          JOIN vehicles v ON v.vehicle_id = vdd.vehicle_id
+          WHERE vdd.day = data_today() AND ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
+    `, [req.fleetGroupIds]);
 
     const userResult = await pool.query(`
       SELECT COUNT(*) as total_users,

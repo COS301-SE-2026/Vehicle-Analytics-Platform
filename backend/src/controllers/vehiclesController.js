@@ -6,9 +6,23 @@ const {pool} = require('../db/pool');
 
 const {success, error} = require('../utils/response');
 
+/**
+ * This will be shared by both safety score trend and vehicle trips endpoint.
+ * It confirms vehicle exists and belongs to on of the callers allowed fleet groups before 
+ * their respective data is returned.
+ */
+
+async function vehicleIsAccessible(vehicleId, fleetGroupIds) {
+    const result = await pool.query(`
+        SELECT 1 FROM vehicles
+        WHERE vehicle_id = $1
+            AND ($2::bigint[] IS NULL OR fleet_group_id = ANY($2::bigint[]))
+        `, [vehicleId, fleetGroupIds]
+    );
 
 
-
+    return result.rows.length > 0;
+}
 
 
 async function getVehicleSafetyTrend(req, res) {
@@ -23,6 +37,10 @@ async function getVehicleSafetyTrend(req, res) {
 
     
     try {
+
+        if(!(await vehicleIsAccessible(vehicleId, req.fleetGroupIds))) {
+            return error(res, 'Vehicle not found', 404);
+        }
     
         const result = await pool.query(`
     
@@ -48,7 +66,7 @@ async function getVehicleSafetyTrend(req, res) {
     
             WHERE vehicle_id = $1
     
-            AND score_date >= CURRENT_DATE - INTERVAL '${parseInt(days)} days'
+            AND score_date >= CURRENT_DATE - INTERVAL '${Number.parseInt(days, 10)} days'
     
             ORDER BY score_date ASC
     
@@ -117,6 +135,10 @@ async function getVehicleTrips(req, res) {
 
     
     try {
+
+        if(!(await vehicleIsAccessible(vehicleId, req.fleetGroupIds))) {
+            return error(res, 'Vehicle not found', 404);
+        }
     
         const result = await pool.query(`
     
@@ -138,7 +160,7 @@ async function getVehicleTrips(req, res) {
     
                 FROM get_trip_history_with_events($1, NULL, NULL, $2, $3)
     
-                `, [vehicleId, before || null, parseInt(limit)]);
+                `, [vehicleId, before || null, Number.parseInt(limit, 10)]);
 
                 
         const statsResult = await pool.query(`

@@ -12,4 +12,8 @@ const pool = new Pool({
   ssl: false // Forced to false to accept non-SSL connections
 });
 
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle DB client:', err.message);
+});
+
 module.exports = { pool };

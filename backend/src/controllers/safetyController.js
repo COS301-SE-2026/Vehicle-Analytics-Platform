@@ -29,6 +29,15 @@ async function getVehicleSafetyScore(req, res) {
 
     
     try{
+        const accessCheck = await pool.query(`
+            SELECT 1 FROM vehicles
+            WHERE vehicle_id = $1
+                AND ($2::bigint[] IS NULL OR fleet_group_id = ANY($2::bigint[]))
+            `, [vehicleId, req.fleetGroupIds])
+
+        if(accessCheck.rows.length === 0) {
+            return error(res, 'Vehicle not found', 404);
+        }
     
         let query = `
     
@@ -275,26 +284,27 @@ async function getFleetSafetyScores(req, res) {
         let query = `
     
         SELECT 
-                vehicle_id, score_date,
+                dss.vehicle_id, dss.score_date,
     
-                safety_score, harsh_brakes,
+                dss.safety_score, dss.harsh_brakes,
     
     
-                harsh_accelerations, harsh_cornering,
+                dss.harsh_accelerations, dss.harsh_cornering,
     
-                crashes, total_events,
-                classification
+                dss.crashes, dss.total_events,
+                dss.classification
     
-                FROM driver_daily_safety_scores
+                FROM driver_daily_safety_scores dss
+                JOIN vehicles v ON v.vehicle_id = dss.vehicle_id
     
-                WHERE 1=1
+                WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
     
     
                 `;
-        const params = [];
+        const params = [req.fleetGroupIds];
     
     
-        let paramCount = 1;
+        let paramCount = 2;
 
     
     

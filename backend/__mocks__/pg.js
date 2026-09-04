@@ -7,6 +7,7 @@ module.exports = {
     query: mockQuery,
     connect: mockConnect,
     end: mockEnd,
+    on: jest.fn(),
   })),
   mockQuery,
 };

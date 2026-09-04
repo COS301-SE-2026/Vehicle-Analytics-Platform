@@ -7,6 +7,7 @@ import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehicl
 import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import FleetAnalytics from '../../components/dashboard/FleetAnalytics'
+import LeaderboardWelcomeModal from '@/components/dashboard/LeaderboardWelcomeModal'
 
 function formatActivityPoints(points, range) {
   return points.map((point) => {
@@ -112,6 +113,7 @@ export default function ManagerDashboard() {
 
   return (
     <div className="space-y-4">
+      <LeaderboardWelcomeModal></LeaderboardWelcomeModal>
 
       {/* Row 1 - KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
@@ -186,7 +188,8 @@ export default function ManagerDashboard() {
         yDomain={[0, 'dataMax']}
         useFallback={false}
       />
-      <FleetAnalytics />
+
+          <FleetAnalytics/>
     </div>
   )
 }

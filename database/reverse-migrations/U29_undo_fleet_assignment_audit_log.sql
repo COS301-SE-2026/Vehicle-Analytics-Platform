@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS fleet_assignment_audit_log;

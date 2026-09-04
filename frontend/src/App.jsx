@@ -14,6 +14,8 @@ import useAuthStore from './store/authStore'
 import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 import VehiclesList from './pages/vehicles/VehiclesList'
 import VehicleProfile from './pages/vehicles/VehicleProfile'
+import FleetGroupsManagement from './pages/fleetgroups/FleetGroupsManagement'
+import FleetGroupDetail from './pages/fleetgroups/FleetGroupDetail'
 
 import Reports from './pages/reports/Reports'
 
@@ -80,7 +82,7 @@ function App() {
           <Route
             path="/map"
             element={
-              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager']}>
+              <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager', 'admin']}>
                 <LiveMap />
               </ProtectedRoute>
             }
@@ -113,14 +115,32 @@ function App() {
           />
 
           <Route
-            path="/reports"
-            element={
-              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
-                <Reports />
-              </ProtectedRoute>
-            }
-          />
+          path="/fleet-groups"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <FleetGroupsManagement/>
+            </ProtectedRoute>
+          }></Route>
+
+<Route
+  path="/fleet-groups/:id"
+  element={
+    <ProtectedRoute allowedRoles={['admin']}>
+      <FleetGroupDetail/>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/reports"
+  element={
+    <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+      <Reports />
+    </ProtectedRoute>
+  }
+/>
         </Route>
+
 
         {/* Default redirect - TEMP for testing */}
         <Route path="/landing" element={<Landing />} />

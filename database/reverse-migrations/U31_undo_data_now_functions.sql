@@ -1,0 +1,2 @@
+DROP FUNCTION IF EXISTS data_now();
+DROP FUNCTION IF EXISTS data_today();

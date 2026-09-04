@@ -12,7 +12,7 @@ jest.mock('../../src/middleware/auth', () => ({
 
 
     
-    req.user = {id: 1, role: 'fleet_manager', sub: 'test-sub'};
+    req.user = {id: 1, role: 'admin', sub: 'test-sub'};
 
 
     

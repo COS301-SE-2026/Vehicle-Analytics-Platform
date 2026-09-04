@@ -1,3 +1,5 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env.test') });
+
 const required = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
 const missing = required.filter((k) => !process.env[k]);
 

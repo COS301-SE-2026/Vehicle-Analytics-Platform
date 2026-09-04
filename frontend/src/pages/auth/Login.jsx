@@ -52,6 +52,7 @@ export default function Login() {
       console.log('Successfully logged in! Role assigned:', data.data.user.role);
       
       // Redirect to the appropriate dashboard home
+      sessionStorage.setItem('vaporJustLoggedIn', 'true')
       navigate(useAuthStore.getState().getDashboardPath());
 
     } catch (err) {

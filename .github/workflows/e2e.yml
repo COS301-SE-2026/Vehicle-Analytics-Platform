@@ -123,12 +123,12 @@ jobs:
           path: e2e/playwright-report/
           retention-days: 14
 
-      - name: Dump failure contexts
-        if: failure()
-        working-directory: ./e2e
-        run: |
-          for f in test-results/*/error-context.md; do
-            echo "::group::$f"
-            cat "$f"
-            echo "::endgroup::"
-          done
+      # - name: Dump failure contexts
+      #   if: failure()
+      #   working-directory: ./e2e
+      #   run: |
+      #     for f in test-results/*/error-context.md; do
+      #       echo "::group::$f"
+      #       cat "$f"
+      #       echo "::endgroup::"
+      #     done

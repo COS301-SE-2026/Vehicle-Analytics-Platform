@@ -122,20 +122,23 @@ function App() {
             </ProtectedRoute>
           }></Route>
 
-          <Route
-          path="/fleet-groups/:id"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <FleetGroupDetail/>
-            </ProtectedRoute>
-          }></Route>
-            path="/reports"
-            element={
-              <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
-                <Reports />
-              </ProtectedRoute>
-            }
-          />
+<Route
+  path="/fleet-groups/:id"
+  element={
+    <ProtectedRoute allowedRoles={['admin']}>
+      <FleetGroupDetail/>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/reports"
+  element={
+    <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+      <Reports />
+    </ProtectedRoute>
+  }
+/>
         </Route>
 
 

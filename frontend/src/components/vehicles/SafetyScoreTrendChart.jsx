@@ -36,7 +36,8 @@ function isSameDay(a, b){
 }
 
 function parseLocalDate(dateStr){
-    const [year,month,day] = dateStr.split('-').map(Number)
+    const datePart = dateStr.split('T')[0]
+    const [year, month, day] = datePart.split('-').map(Number)
     return new Date(year, month - 1, day)
 }
 

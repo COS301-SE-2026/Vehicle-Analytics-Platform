@@ -1,4 +1,4 @@
--- Migration: V32__create_custom_alert_evaluation_trigger.sql
+-- Migration: V32__create_custom_alerts_evalution_trigger.sql
 
 CREATE OR REPLACE FUNCTION evaluate_custom_alert_rules_batch()
 RETURNS TRIGGER 
@@ -6,11 +6,13 @@ LANGUAGE plpgsql
 AS $$ 
 DECLARE
     debounce_minutes INT := 5;
+    c_status_active CONSTANT TEXT := 'active';
+    c_key_name CONSTANT TEXT := 'name';
+    c_key_condition_params CONSTANT TEXT := 'condition_params';
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM custom_alert_rules WHERE status = 'active' LIMIT 1)
-THEN 
+    IF NOT EXISTS (SELECT 1 FROM custom_alert_rules WHERE status = c_status_active LIMIT 1)
+    THEN 
         RETURN NULL;
-
     END IF;
 
     WITH latest_points AS (
@@ -25,14 +27,14 @@ THEN
             lp.speed::TEXT AS breach_value,
             (r.condition_params->>'max_speed_kmh') AS threshold_value,
             lp.latitude, lp.longitude, lp.time,
-            jsonb_build_object('name', r.name, 'condition_params', r.condition_params) AS rule_snapshot
+            jsonb_build_object(c_key_name, r.name, c_key_condition_params, r.condition_params) AS rule_snapshot
 
         FROM latest_points lp
         JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
         JOIN custom_alert_rules r
 
             ON r.fleet_group_id = v.fleet_group_id
-            AND r.status = 'active'
+            AND r.status = c_status_active
              AND r.condition_type = 'speed_threshold'
         WHERE lp.speed > (r.condition_params->>'max_speed_kmh')::NUMERIC
     ),
@@ -44,14 +46,14 @@ THEN
             lp.time::TIME::TEXT AS breach_value,
             (r.condition_params->>'start_time') || '-' || (r.condition_params->>'end_time') AS threshold_value,
             lp.latitude, lp.longitude, lp.time,
-            jsonb_build_object( 'name', r.name,'condition_params', r.condition_params) AS rule_snapshot
+            jsonb_build_object(c_key_name, r.name, c_key_condition_params, r.condition_params) AS rule_snapshot
 
         FROM latest_points lp
         JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
         JOIN custom_alert_rules r
 
             ON r.fleet_group_id = v.fleet_group_id
-            AND r.status = 'active'
+            AND r.status = c_status_active
              AND r.condition_type = 'time_based_restriction'
         WHERE (
             CASE

@@ -1,4 +1,4 @@
--- Migration: V33__create_trip_duration_exceeded_trigger.sql
+-- Migration: V35__create_trip_duration_exceeded_trigger.sql
 -- Evaluates trip_duration_exceeded custom alert rules when a trip
 -- transitions from 'open' to 'completed' (set by finalize_trip(), the
 -- existing trip state machine). Checks both a single-trip duration cap
@@ -12,6 +12,10 @@ AS $$
 DECLARE
 
     debounce_minutes INT := 5;
+    c_status_active CONSTANT TEXT := 'active';
+    c_status_open CONSTANT TEXT := 'open';
+    c_status_completed CONSTANT TEXT := 'completed';
+    c_condition_type CONSTANT TEXT := 'trip_duration_exceeded';
     v_fleet_group_id BIGINT;
     v_trip_minutes NUMERIC;
     v_daily_minutes NUMERIC;
@@ -20,7 +24,7 @@ DECLARE
 BEGIN
 
     
-    IF NOT (OLD.status = 'open' AND NEW.status = 'completed') THEN
+    IF NOT (OLD.status = c_status_open AND NEW.status = c_status_completed) THEN
         RETURN NEW;
     END IF;
  
@@ -39,8 +43,8 @@ BEGIN
         FROM custom_alert_rules
 
         WHERE fleet_group_id = v_fleet_group_id
-          AND status = 'active'
-          AND condition_type = 'trip_duration_exceeded'
+          AND status = c_status_active
+          AND condition_type = c_condition_type
 
     ) LOOP
        
@@ -53,7 +57,7 @@ BEGIN
             )
 
             SELECT
-                v_rule.id, NEW.vehicle_id, v_fleet_group_id, 'trip_duration_exceeded',
+                v_rule.id, NEW.vehicle_id, v_fleet_group_id, c_condition_type,
                 round(v_trip_minutes)::TEXT, v_rule.condition_params->>'max_trip_minutes', 
                 
                 NEW.end_time,
@@ -77,7 +81,7 @@ BEGIN
             FROM trips
 
             WHERE vehicle_id = NEW.vehicle_id
-              AND status = 'completed'
+              AND status = c_status_completed
               AND DATE(start_time) = DATE(NEW.start_time);
  
             IF v_daily_minutes > (v_rule.condition_params->>'max_daily_minutes')::NUMERIC THEN
@@ -88,7 +92,7 @@ BEGIN
                 )
 
                 SELECT
-                    v_rule.id, NEW.vehicle_id, v_fleet_group_id, 'trip_duration_exceeded',
+                    v_rule.id, NEW.vehicle_id, v_fleet_group_id, c_condition_type,
                     round(v_daily_minutes)::TEXT, v_rule.condition_params->>'max_daily_minutes',
 
                     NEW.end_time,

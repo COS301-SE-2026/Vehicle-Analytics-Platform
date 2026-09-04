@@ -14,5 +14,8 @@ npm-debug.log*
 .env
 .env.local
 
+**/node_modules.env.test
+docker-compose.override.yml
+.docker-empty-initdb/
 **/node_modulesbackend/.env.test
 .lighthouseci/

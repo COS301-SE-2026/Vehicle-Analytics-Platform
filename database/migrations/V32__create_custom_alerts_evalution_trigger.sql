@@ -1,14 +1,16 @@
 -- Migration: V32__create_custom_alerts_evalution_trigger.sql
 
+\i common_alert_constants.sql
+
 CREATE OR REPLACE FUNCTION evaluate_custom_alert_rules_batch()
 RETURNS TRIGGER 
 LANGUAGE plpgsql
 AS $$ 
 DECLARE
-    debounce_minutes INT := 5;
-    c_status_active CONSTANT TEXT := 'active';
-    c_key_name CONSTANT TEXT := 'name';
-    c_key_condition_params CONSTANT TEXT := 'condition_params';
+    v_debounce_minutes CONSTANT INT := :debounce_minutes;
+    v_status_active CONSTANT TEXT := :'c_status_active';
+    v_key_name CONSTANT TEXT := :'c_key_name';
+    v_key_condition_params CONSTANT TEXT := :'c_key_condition_params';
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM custom_alert_rules WHERE status = c_status_active LIMIT 1)
     THEN 

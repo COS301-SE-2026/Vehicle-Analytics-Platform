@@ -4,6 +4,8 @@
 -- existing trip state machine). Checks both a single-trip duration cap
 -- and a same-day cumulative duration cap.
 
+\i common_alert_constants.sql
+
 CREATE OR REPLACE FUNCTION evaluate_trip_duration_rules()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -11,11 +13,11 @@ AS $$
 
 DECLARE
 
-    debounce_minutes INT := 5;
-    c_status_active CONSTANT TEXT := 'active';
-    c_status_open CONSTANT TEXT := 'open';
-    c_status_completed CONSTANT TEXT := 'completed';
-    c_condition_type CONSTANT TEXT := 'trip_duration_exceeded';
+    v_debounce_minutes CONSTANT INT := :debounce_minutes;
+    v_status_active CONSTANT TEXT := :'c_status_active';
+    v_status_open CONSTANT TEXT := :'c_status_open';
+    v_status_completed CONSTANT TEXT := :'c_status_completed';
+    v_condition_type CONSTANT TEXT := :'c_condition_type';
     v_fleet_group_id BIGINT;
     v_trip_minutes NUMERIC;
     v_daily_minutes NUMERIC;

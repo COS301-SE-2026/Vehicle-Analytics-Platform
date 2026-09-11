@@ -1,25 +1,13 @@
 -- Manual verification for V32__create_custom_alert_evaluation_trigger.sql
 -- Run this against your local dev DB (NOT test/CI) after applying V32.
--- Cleans up after itself at the end.
-\set ON_ERROR_STOP on
-\set vehicle_id 'VERIFY-VEH-1'
-BEGIN;
--- 1. Set up a manager, fleet group, assignment, and vehicle
-INSERT INTO users (cognito_sub, name, email, role)
-VALUES ('VERIFY-sub-1', 'Verify Manager', 'verify-manager@example.com', 'fleet_manager')
-RETURNING id AS manager_id \gset
-INSERT INTO fleet_groups (name)
-VALUES ('VERIFY-Group')
-RETURNING id AS group_id \gset
-INSERT INTO fleet_manager_assignments (fleet_manager_id, fleet_group_id, assigned_by)
-VALUES (:manager_id, :group_id, :manager_id);
-INSERT INTO vehicles (vehicle_id, fleet_group_id)
-VALUES (:'vehicle_id', :group_id)
-ON CONFLICT (vehicle_id) DO UPDATE SET fleet_group_id = :group_id;
+
+\i verify_common_setup.sql
+
 -- 2. Create a speed_threshold rule: alert if speed > 100 km/h
 INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
 VALUES (:manager_id, :group_id, 'VERIFY-Speed-Rule', 'speed_threshold', '{"max_speed_kmh": 100}')
 RETURNING id AS speed_rule_id \gset
+
 -- 3. Create a time_based_restriction rule: alert if driving 22:00-05:00
 INSERT INTO custom_alert_rules (manager_id, fleet_group_id, name, condition_type, condition_params)
 VALUES (:manager_id, :group_id, 'VERIFY-Time-Rule', 'time_based_restriction', '{"start_time": "22:00", "end_time": "05:00"}')
@@ -57,3 +45,4 @@ WHERE r.name LIKE 'VERIFY-%';
 -- Roll back everything — this script never leaves test data behind
 ROLLBACK;
 \echo '--- Verification complete, all test data rolled back ---'
+\i verify_common_cleanup.sql

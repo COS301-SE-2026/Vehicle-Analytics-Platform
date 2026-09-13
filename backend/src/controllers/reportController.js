@@ -21,6 +21,8 @@ const { compareSummaries, isBaselineSufficient } = require('../services/compare'
 const { topPerformers, requiresAttention, mergeEntities } = require('../services/rank');
 const { buildTrends, MIN_WEEKS_FOR_TREND } = require('../services/trend');
 
+const { buildReportPdf, reportFilename } = require('../services/reportPdf');
+
 const COMPARED_METRICS = [
     'safetyScore',
     'totalEvents',
@@ -67,7 +69,9 @@ const TREND_METRICS = [
 const DEFAULT_CURRENT_DAYS = 7;
 const MAX_TREND_WEEKS = 6;
 
-function handleError(res, err, context){
+const OUTPUT_FORMATS = ['json', 'pdf'];
+
+function handleError(res, err, context) {
     if (err instanceof ScopeError) {
         return error(res, err.message, err.statusCode);
     }
@@ -126,6 +130,7 @@ async function resolveRequestedPeriod(db, body){
     return resolvePeriod({ periodType, anchor, currentDays });
 }
 
+
 async function runAnalytics(db, vehicleIds, window){
     const safety = await getSafetyAnalytics(db, vehicleIds, window);
     const distance = await getDistanceAnalytics(db, vehicleIds, window);
@@ -139,12 +144,14 @@ async function buildWeeklyTrends(db, vehicleIds, period){
 
     if (allWeeks.length < MIN_WEEKS_FOR_TREND) return null;
 
-    const weeks = allWeeks.slice(-MAX_TREND_WEEKS);
-    const weeklySummaries = [];
 
+    const weeks = allWeeks.slice(-MAX_TREND_WEEKS);
+
+    const weeklySummaries = [];
     for (const week of weeks) {
         const safety = await getSafetyAnalytics(db, vehicleIds, week);
         const distance = await getDistanceAnalytics(db, vehicleIds, week);
+
         weeklySummaries.push({ ...distance.summary, ...safety.summary });
     }
 
@@ -180,112 +187,137 @@ function buildRankings(current){
     };
 }
 
+
+async function buildReportPayload(db, user, request){
+    const scopeType = readParam(request, 'scope_type', 'scopeType') || 'fleet';
+    const scopeId = readParam(request, 'scope_id', 'scopeId') || null;
+
+    const scope = await resolveScope(db, user, { scopeType, scopeId });
+    const period = await resolveRequestedPeriod(db, request);
+
+    const current = await runAnalytics(db, scope.vehicleIds, period);
+
+    const previous = period.previous ? await runAnalytics(db, scope.vehicleIds, period.previous): null;
+
+    const baselineSufficient = previous ? isBaselineSufficient(previous.distance.summary, current.distance.summary) : false;
+
+    const compareOptions = { baselineSufficient };
+
+    const trends = await buildWeeklyTrends(db, scope.vehicleIds, period);
+    const rankings = buildRankings(current);
+
+    return {
+        report: {
+            generatedAt: new Date().toISOString(),
+            scope: {
+                type: scope.scopeType,
+                id: scope.scopeId,
+                label: scope.label,
+                vehicleCount: scope.vehicleCount,
+                groupIds: scope.groupIds,
+                unassignedVehicleCount: scope.unassignedVehicleCount,
+            },
+            requestedBy: { role: scope.role },
+        },
+
+        period: {
+            type: period.type,
+            label: period.label,
+            fromDate: period.fromDate,
+            toDate: period.toDate,
+            days: period.days,
+        },
+
+        previousPeriod: period.previous
+            ? {
+                label: period.previous.label,
+                fromDate: period.previous.fromDate,
+                toDate: period.previous.toDate,
+                days: period.previous.days,
+            }
+            : null,
+
+        coverage: {
+            hasTelemetry: current.safety.summary.hasTelemetry,
+            vehiclesInScope: scope.vehicleCount,
+            vehiclesWithEvents: current.safety.summary.vehiclesWithEvents,
+            activeVehicles: current.distance.summary.activeVehicles,
+            inactiveVehicles: current.distance.summary.inactiveVehicles,
+            vehiclesWithFuelData: current.fuel.summary.vehiclesWithFuelData,
+            fuelIsEstimated: true,
+            baselineSufficient,
+        },
+
+        safety: {
+            summary: current.safety.summary,
+            vehicles: current.safety.vehicles,
+            comparison: previous
+                ? compareSummaries(
+                    current.safety.summary,
+                    previous.safety.summary,
+                    { ...compareOptions, metrics: COMPARED_METRICS },
+                )
+                : null,
+        },
+
+        distance: {
+            summary: current.distance.summary,
+            vehicles: current.distance.vehicles,
+            comparison: previous
+                ? compareSummaries(
+                    current.distance.summary,
+                    previous.distance.summary,
+                    { ...compareOptions, metrics: DISTANCE_COMPARED_METRICS },
+                )
+                : null,
+        },
+
+        fuel: {
+            summary: current.fuel.summary,
+            vehicles: current.fuel.vehicles,
+            comparison: previous
+                ? compareSummaries(
+                    current.fuel.summary,
+                    previous.fuel.summary,
+                    { ...compareOptions, metrics: FUEL_COMPARED_METRICS },
+                )
+                : null,
+        },
+
+        rankings,
+        trends,
+    };
+}
+
 async function generateReport(req, res){
     try {
         const body = req.body || {};
 
-        const scopeType = readParam(body, 'scope_type', 'scopeType') || 'fleet';
-        const scopeId = readParam(body, 'scope_id', 'scopeId') || null;
+        const format = (readParam(body, 'format', 'format') || 'json').toLowerCase();
+        if (!OUTPUT_FORMATS.includes(format)) {
+            throw new ScopeError(
+                `Invalid format. Expected one of: ${OUTPUT_FORMATS.join(', ')}`,
+                400,
+            );
+        }
 
-        const scope = await resolveScope(pool, req.user, { scopeType, scopeId });
-        const period = await resolveRequestedPeriod(pool, body);
+        const payload = await buildReportPayload(pool, req.user, body);
 
-        const current = await runAnalytics(pool, scope.vehicleIds, period);
+        if (format === 'json') {
+            return success(res, payload, 200);
+        }
 
-        const previous = period.previous
-            ? await runAnalytics(pool, scope.vehicleIds, period.previous)
-            : null;
 
-        const baselineSufficient = previous
-            ? isBaselineSufficient(previous.distance.summary, current.distance.summary)
-            : false;
+        const pdf = await buildReportPdf(payload);
 
-        const compareOptions = { baselineSufficient };
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${reportFilename(payload)}"`,
+        );
+        res.setHeader('Content-Length', pdf.length);
 
-        const trends = await buildWeeklyTrends(pool, scope.vehicleIds, period);
-        const rankings = buildRankings(current);
-
-        return success(res, {
-            report: {
-                generatedAt: new Date().toISOString(),
-                scope: {
-                    type: scope.scopeType,
-                    id: scope.scopeId,
-                    label: scope.label,
-                    vehicleCount: scope.vehicleCount,
-                    groupIds: scope.groupIds,
-                    unassignedVehicleCount: scope.unassignedVehicleCount,
-                },
-                requestedBy: { role: scope.role },
-            },
-
-            period: {
-                type: period.type,
-                label: period.label,
-                fromDate: period.fromDate,
-                toDate: period.toDate,
-                days: period.days,
-            },
-
-            previousPeriod: period.previous
-                ? {
-                    label: period.previous.label,
-                    fromDate: period.previous.fromDate,
-                    toDate: period.previous.toDate,
-                    days: period.previous.days,
-                }
-                : null,
-
-            coverage: {
-                hasTelemetry: current.safety.summary.hasTelemetry,
-                vehiclesInScope: scope.vehicleCount,
-                vehiclesWithEvents: current.safety.summary.vehiclesWithEvents,
-                activeVehicles: current.distance.summary.activeVehicles,
-                inactiveVehicles: current.distance.summary.inactiveVehicles,
-                vehiclesWithFuelData: current.fuel.summary.vehiclesWithFuelData,
-                fuelIsEstimated: true,
-                baselineSufficient,
-            },
-
-            safety: {
-                summary: current.safety.summary,
-                vehicles: current.safety.vehicles,
-                comparison: previous
-                    ? compareSummaries(
-                        current.safety.summary,
-                        previous.safety.summary,
-                        { ...compareOptions, metrics: COMPARED_METRICS },
-                    )
-                    : null,
-            },
-
-            distance: {
-                summary: current.distance.summary,
-                vehicles: current.distance.vehicles,
-                comparison: previous
-                    ? compareSummaries(
-                        current.distance.summary,
-                        previous.distance.summary,
-                        { ...compareOptions, metrics: DISTANCE_COMPARED_METRICS },
-                    )
-                    : null,
-            },
-
-            fuel: {
-                summary: current.fuel.summary,
-                vehicles: current.fuel.vehicles,
-                comparison: previous
-                    ? compareSummaries(
-                        current.fuel.summary,
-                        previous.fuel.summary,
-                        { ...compareOptions, metrics: FUEL_COMPARED_METRICS },
-                    )
-                    : null,
-            },
-
-            rankings,
-            trends,
-        }, 200);
+        return res.status(200).send(pdf);
     } catch (err) {
         return handleError(res, err, 'Generate report error');
     }
@@ -303,4 +335,5 @@ async function getReportScopes(req, res){
 module.exports = {
     generateReport,
     getReportScopes,
+    buildReportPayload,
 };

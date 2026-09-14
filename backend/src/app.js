@@ -28,11 +28,16 @@ const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
 
 const geofenceRoutes = require('./routes/geofence');
 
+const customAlertsRoutes = require('./routes/customAlerts');
 const fleetGroupsRoutes = require('./routes/fleetGroups');
 
 const notificationsRoutes = require('./routes/notifications');
 
 
+const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
+
+
+// const fuelRoutes = require('./routes/fuel'); // removed: file doesn't exist, superseded by fuelHistoryRoutes
 
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 
@@ -129,6 +134,11 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 
 app.use('/api/geofences', geofenceRoutes);
 
+app.use('/api/custom-alerts', customAlertsRoutes);
+
+app.use('/api/alerts', triggeredAlertsRoutes);
+
+//I added this for demo 3
 
 
 app.use('/api/fuel', fuelHistoryRoutes);

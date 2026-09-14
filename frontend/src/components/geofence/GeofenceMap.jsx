@@ -161,7 +161,6 @@ export default function GeofenceMap({
 
     map.current.addControl(draw.current, "top-left");
 
-    // Scoped container variable avoids SonarQube `this` rule flags
     let controlContainer = null;
 
     const liveMapControl = {

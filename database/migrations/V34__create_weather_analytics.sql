@@ -23,3 +23,18 @@ CREATE TABLE IF NOT EXISTS weather_observations (
     fetched_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (lat_grid, lon_grid, obs_date)
 );
+
+CREATE OR REPLACE FUNCTION bucket_weather(p_precip_mm NUMERIC, p_temp_max_c NUMERIC)
+RETURNS TEXT
+LANGUAGE sql IMMUTABLE AS $$
+    SELECT
+        CASE WHEN p_precip_mm >= 10 THEN 'heavy_rain'
+             WHEN p_precip_mm >= 1  THEN 'light_rain'
+             ELSE 'dry'
+        END
+        || '_' ||
+        CASE WHEN p_temp_max_c >= 30 THEN 'hot'
+             WHEN p_temp_max_c >= 15 THEN 'mild'
+             ELSE 'cold'
+        END;
+$$;

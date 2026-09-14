@@ -4,7 +4,12 @@
 -- existing trip state machine). Checks both a single-trip duration cap
 -- and a same-day cumulative duration cap.
 
-\i common_alert_constants.sql
+-- Define constants
+\set debounce_minutes 5
+\set status_active 'active'
+\set status_open 'open'
+\set status_completed 'completed'
+\set condition_type 'trip_duration_exceeded'
 
 CREATE OR REPLACE FUNCTION evaluate_trip_duration_rules()
 RETURNS TRIGGER
@@ -13,11 +18,6 @@ AS $$
 
 DECLARE
 
-    v_debounce_minutes CONSTANT INT := :debounce_minutes;
-    v_status_active CONSTANT TEXT := :'c_status_active';
-    v_status_open CONSTANT TEXT := :'c_status_open';
-    v_status_completed CONSTANT TEXT := :'c_status_completed';
-    v_condition_type CONSTANT TEXT := :'c_condition_type';
     v_fleet_group_id BIGINT;
     v_trip_minutes NUMERIC;
     v_daily_minutes NUMERIC;
@@ -26,7 +26,7 @@ DECLARE
 BEGIN
 
     
-    IF NOT (OLD.status = c_status_open AND NEW.status = c_status_completed) THEN
+    IF NOT (OLD.status = :'status_open' AND NEW.status = :'status_completed') THEN
         RETURN NEW;
     END IF;
 
@@ -46,8 +46,8 @@ BEGIN
         SELECT id, name, condition_params
         FROM custom_alert_rules
         WHERE fleet_group_id = v_fleet_group_id
-          AND status = c_status_active
-          AND condition_type = c_condition_type
+          AND status = :'status_active'
+          AND condition_type = :'condition_type'
 
     ) LOOP
 
@@ -70,12 +70,9 @@ BEGIN
                 v_rule.id,
                 NEW.vehicle_id,
                 v_fleet_group_id,
-                condition_type_trip_duration,
+                :'condition_type',
                 round(v_trip_minutes)::TEXT,
                 v_rule.condition_params->>'max_trip_minutes',
-                v_rule.id, NEW.vehicle_id, v_fleet_group_id, c_condition_type,
-                round(v_trip_minutes)::TEXT, v_rule.condition_params->>'max_trip_minutes', 
-                
                 NEW.end_time,
                 jsonb_build_object(
                     'name', v_rule.name,
@@ -90,7 +87,7 @@ BEGIN
                   AND ta.created_at >
                       (
                           NEW.end_time
-                          - (debounce_minutes || ' minutes')::INTERVAL
+                          - (:debounce_minutes || ' minutes')::INTERVAL
                       )
             );
 
@@ -103,7 +100,7 @@ BEGIN
             INTO v_daily_minutes
             FROM trips
             WHERE vehicle_id = NEW.vehicle_id
-              AND status = c_status_completed
+              AND status = :'status_completed'
               AND DATE(start_time) = DATE(NEW.start_time);
 
             IF v_daily_minutes >
@@ -123,7 +120,7 @@ BEGIN
                     v_rule.id,
                     NEW.vehicle_id,
                     v_fleet_group_id,
-                    condition_type_trip_duration,
+                    :'condition_type',
                     round(v_daily_minutes)::TEXT,
                     v_rule.condition_params->>'max_daily_minutes',
                     NEW.end_time,
@@ -140,7 +137,7 @@ BEGIN
                       AND ta.created_at >
                           (
                               NEW.end_time
-                              - (debounce_minutes || ' minutes')::INTERVAL
+                              - (:debounce_minutes || ' minutes')::INTERVAL
                           )
                 );
 
@@ -159,5 +156,5 @@ DROP TRIGGER IF EXISTS trip_duration_alert_trigger ON trips;
 CREATE TRIGGER trip_duration_alert_trigger
 AFTER UPDATE OF status ON trips
 FOR EACH ROW
-WHEN (OLD.status = 'open' AND NEW.status = 'completed')
+WHEN (OLD.status = :'status_open' AND NEW.status = :'status_completed')
 EXECUTE FUNCTION evaluate_trip_duration_rules();

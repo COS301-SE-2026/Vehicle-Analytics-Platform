@@ -278,3 +278,193 @@ function drawComparisonTable(doc, comparison){
     doc.moveDown(0.4);
     
 }
+
+
+
+function drawVehicleTable(doc, vehicles){
+    sectionHeading(doc, `Vehicle detail (${vehicles.length})`);
+
+    if (!vehicles.length) {
+        doc.fillColor(COLOR.secondary).fontSize(9).font('Helvetica')
+            .text('No vehicle recorded events in this period.');
+        return;
+    }
+
+    const sorted = [...vehicles].sort((a, b) => {
+        if (a.safetyScore === null || a.safetyScore === undefined) return 1;
+        if (b.safetyScore === null || b.safetyScore === undefined) return -1;
+        return a.safetyScore - b.safetyScore;
+    });
+
+    function drawColumnHeaders(){
+        const y = doc.y;
+        let x = doc.page.margins.left;
+        doc.fillColor(COLOR.secondary).fontSize(7).font('Helvetica-Bold');
+        VEHICLE_COLUMNS.forEach((col) => {
+            doc.text(col.label, x, y, { width: col.width, align: col.align });
+            x += col.width;
+        });
+        doc.y = y + 11;
+        rule(doc);
+        doc.y += 3;
+    }
+
+    drawColumnHeaders();
+
+    sorted.forEach((v) => {
+        if (ensureSpace(doc, 16)) drawColumnHeaders();
+
+        const y = doc.y;
+        let x = doc.page.margins.left;
+
+        VEHICLE_COLUMNS.forEach((col) => {
+            const raw = v[col.key];
+            let colour = COLOR.text;
+
+            if (col.key === 'crashes' && raw > 0) colour = COLOR.red;
+            if (col.key === 'safetyScore' && typeof raw === 'number') {
+                colour = raw >= 75 ? COLOR.green : raw >= 50 ? COLOR.amber : COLOR.red;
+            }
+            if (raw === null || raw === undefined) colour = COLOR.secondary;
+
+            doc.fillColor(colour).fontSize(8).font('Helvetica').text(formatValue(raw), x, y, { width: col.width, align: col.align });
+
+            x += col.width;
+
+        });
+
+        doc.y = y + 12.5;
+    });
+}
+
+function drawRanking(doc, title, ranking){
+    if (!ranking || ranking.status !== 'ok' || !ranking.entries.length) return;
+
+    ensureSpace(doc, 30 + ranking.entries.length * 12);
+
+
+    doc.fillColor(COLOR.text).fontSize(9).font('Helvetica-Bold').text(title);
+
+
+    doc.moveDown(0.2);
+
+    ranking.entries.forEach((entry) => {
+        doc.fillColor(COLOR.secondary).fontSize(8.5).font('Helvetica')
+            .text(
+                `${entry.rank}. ${entry.id}    ${formatValue(entry.value)}`
+                + `${ranking.unit ? ` ${ranking.unit}` : ''}${entry.tied ? '  (tied)' : ''}`,
+                { indent: 8 },
+            );
+    });
+
+    doc.moveDown(0.5);
+
+
+}
+
+function drawRankings(doc, rankings){
+
+    if (!rankings) return;
+
+    const blocks = [
+        ['Vehicles requiring attention', rankings.vehiclesRequiringAttention],
+        ['Safest vehicles', rankings.safestVehicles],
+        ['Most events', rankings.mostEvents],
+        ['Highest utilisation', rankings.highestUtilisation],
+        ['Best fuel efficiency', rankings.bestFuelEfficiency],
+    ].filter(([, r]) => r && r.status === 'ok' && r.entries.length);
+
+    if (!blocks.length) return;
+
+    sectionHeading(doc, 'Rankings');
+
+    blocks.forEach(([title, ranking]) => drawRanking(doc, title, ranking));
+
+}
+
+
+
+function drawTrends(doc, trends){
+    if (!trends || !trends.metrics) return;
+
+    const metrics = Object.values(trends.metrics).filter((m) => m.classification !== 'insufficient_data');
+
+
+
+    if (!metrics.length) return;
+
+    sectionHeading(doc, 'Week-by-week trend');
+
+
+    const labelWidth = 130;
+
+    const weekWidth = Math.min(62,(contentWidth(doc) - labelWidth - 70) / Math.max(1, trends.weeks.length),);
+
+    ensureSpace(doc, 40);
+
+    let x = doc.page.margins.left;
+
+    const headerY = doc.y;
+
+    doc.fillColor(COLOR.secondary).fontSize(7.5).font('Helvetica-Bold').text('Metric', x, headerY, { width: labelWidth });
+
+    x += labelWidth;
+
+    trends.weeks.forEach((week) => {
+        doc.text(week.label, x, headerY, { width: weekWidth, align: 'right' });
+        x += weekWidth;
+    });
+    doc.text('Trend', x, headerY, { width: 70, align: 'right' });
+
+    doc.y = headerY + 13;
+    rule(doc);
+    doc.y += 4;
+
+    metrics.forEach((metric) => {
+        ensureSpace(doc, 18);
+        const y = doc.y;
+        let cx = doc.page.margins.left;
+
+        doc.fillColor(COLOR.text).fontSize(8.5).font('Helvetica').text(metric.label, cx, y, { width: labelWidth });
+        cx += labelWidth;
+
+        metric.points.forEach((point) => {
+            doc.fillColor(point.value === null ? COLOR.secondary : COLOR.text).text(formatValue(point.value), cx, y, { width: weekWidth, align: 'right' });
+            cx += weekWidth;
+        });
+
+        const tone = metric.classification === 'improving' ? COLOR.green
+            : metric.classification === 'deteriorating' ? COLOR.red
+                : COLOR.secondary;
+
+        doc.fillColor(tone).font('Helvetica-Bold').text(metric.classification, cx, y, { width: 70, align: 'right' });
+
+        doc.y = y + 14;
+    });
+
+}
+
+// function drawFootnotes(doc, report){
+//     sectionHeading(doc, 'About these figures');
+
+//     const notes = [
+//         'Safety scores weight harsh braking, acceleration, cornering and crashes. '
+//         + 'Overspeed and idling events are counted but do not affect the score.',
+//         'Repeated events of the same type within the incident burst window are counted as one incident.',
+//         'Fuel consumption is modelled from speed and road class, not measured from a fuel sensor.',
+//         'Distance and trip counts include completed trips only; a vehicle mid-trip contributes no distance.',
+//         'All dates are South African Standard Time.',
+//     ];
+
+//     if (report.coverage.vehiclesWithFuelData === 0) {
+//         notes.push('No vehicle in this scope has modelled fuel data for this period.');
+//     }
+
+//     doc.fillColor(COLOR.secondary).fontSize(7.5).font('Helvetica');
+//     notes.forEach((note) => {
+//         ensureSpace(doc, 24);
+//         doc.text(`\u2022 ${note}`, { width: contentWidth(doc) });
+//         doc.moveDown(0.15);
+//     });
+// }  
+//  NOTWE : too be added again just in cases 

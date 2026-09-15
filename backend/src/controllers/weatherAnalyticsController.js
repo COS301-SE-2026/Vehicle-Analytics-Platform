@@ -103,7 +103,7 @@ async function ensureHistoricalWeather(lat, lon, startDate, endDate) {
   }
 }
 
-\async function getTodaysWeatherBucket(lat, lon) {
+async function getTodaysWeatherBucket(lat, lon) {
   const url = `${OPEN_METEO_FORECAST_URL}?latitude=${lat}&longitude=${lon}` +
     `&current=precipitation,temperature_2m&timezone=auto`;
   const res = await fetch(url);

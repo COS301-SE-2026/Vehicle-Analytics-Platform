@@ -468,3 +468,86 @@ function drawTrends(doc, trends){
 //     });
 // }  
 //  NOTWE : too be added again just in cases 
+
+function drawPageNumbers(doc){
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i += 1) {
+        doc.switchToPage(i);
+
+        const bottom = doc.page.margins.bottom;
+
+        doc.page.margins.bottom = 0;
+
+        doc.fillColor(COLOR.secondary).fontSize(7).font('Helvetica').text(
+            `V.A.P.O.R Fleet Performance Report    Page ${i - range.start + 1} of ${range.count}`,
+            doc.page.margins.left,
+            doc.page.height - 32, 
+            { width: contentWidth(doc), align: 'center' },
+        );
+
+        doc.page.margins.bottom = bottom;
+        
+    }
+}
+
+function buildReportPdf(report){
+    if (!report || !report.report || !report.period) {
+        throw new Error('buildReportPdf requires a report dataset');
+    }
+
+    return new Promise((resolve, reject) => {
+        const doc = new PDFDocument({ ...PAGE, bufferPages: true });
+
+        const chunks = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        try {
+            const summary = {
+                ...report.distance.summary,
+                ...report.fuel.summary,
+                ...report.safety.summary,
+            };
+
+            const comparison = {
+                ...(report.distance.comparison || {}),
+                ...(report.fuel.comparison || {}),
+                ...(report.safety.comparison || {}),
+            };
+
+            drawHeader(doc, report);
+            drawCoverage(doc, report);
+            drawSummaryCards(doc, summary);
+
+            if (report.previousPeriod) drawComparisonTable(doc, comparison);
+
+            drawRankings(doc, report.rankings);
+            drawTrends(doc, report.trends);
+            drawVehicleTable(doc, report.rankings?.entities || report.safety.vehicles || []);
+            drawFootnotes(doc, report);
+
+            drawPageNumbers(doc);
+
+            doc.end();
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+function reportFilename(report){
+    const scope = String(report.report.scope.label)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 40) || 'fleet';
+
+    return `vapor-report-${scope}-${report.period.fromDate}-to-${report.period.toDate}.pdf`;
+}
+
+module.exports = {
+    buildReportPdf,
+    reportFilename,
+    _formatValue: formatValue,
+};

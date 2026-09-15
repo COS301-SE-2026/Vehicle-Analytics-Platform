@@ -72,5 +72,76 @@ async function readError(res){
     const err = new Error(message)
     err.status = res.status
     return err
+
+}
+
+
+
+export async function generateReport({
+    scopeType = 'fleet',
+    scopeId,
+    periodType = 'weekly',
+    anchor,
+    from,
+    to,
+} = {}) {
+    const headers = await getAuthHeaders()
+
+    const res = await fetch(`${API_BASE_URL}/api/reports/generate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(buildBody({ scopeType, scopeId, periodType, anchor, from, to })),
+    })
+
+    if (!res.ok) throw await readError(res)
+
+    const data = await res.json()
+
+    return data.data
+}
+
+
+
+export async function downloadReportPdf({
+    scopeType = 'fleet',
+    scopeId,
+    periodType = 'weekly',
+    anchor,
+    from,
+    to,
+} = {}) {
+    const headers = await getAuthHeaders()
+
+    const res = await fetch(`${API_BASE_URL}/api/reports/generate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(
+            buildBody({ scopeType, scopeId, periodType, anchor, from, to, format: 'pdf' }),
+        ),
+
+    })
+
+    if (!res.ok) throw await readError(res)
+
+    const disposition = res.headers.get('Content-Disposition') || ''
+
+    const match = disposition.match(/filename="([^"]+)"/)
+
+    const filename = match ? match[1] : 'vapor-report.pdf'
+
+    const blob = await res.blob()
+
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+
+    return filename
     
 }

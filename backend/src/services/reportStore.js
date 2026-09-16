@@ -94,6 +94,119 @@ async function saveReport(db, { payload, trigger = 'manual', generatedBy }){
     );
 
     return toSummary(result.rows[0]);
-    
+
 
 }
+
+async function listReports(db, user, options = {}){
+    const { getAccessibleGroups } = require('./scopeResolver');
+
+    const {
+        limit = DEFAULT_LIMIT,
+        offset = 0,
+        scopeType = null,
+        periodType = null,
+        trigger = null,
+    } = options;
+
+    const safeLimit = Math.min(Math.max(Number(limit) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+
+    const safeOffset = Math.max(Number(offset) || 0, 0);
+
+    const groups = await getAccessibleGroups(db, user);
+    const role = groups.length >= 0 && user && user.role ? String(user.role).toLowerCase() : null;
+
+    const isAdmin = role === 'admin';
+
+    const conditions = [];
+
+    const params = [];
+
+    if (!isAdmin) {
+        params.push(groups.map((g) => g.id));
+        conditions.push(`group_ids && $${params.length}::bigint[]`);
+    }
+
+
+    if (scopeType) {
+        params.push(scopeType);
+        conditions.push(`scope_type = $${params.length}`);
+    }
+
+
+    if (periodType) {
+        params.push(periodType);
+        conditions.push(`period_type = $${params.length}`);
+    }
+
+
+
+    if (trigger) {
+        params.push(trigger);
+        conditions.push(`trigger_source = $${params.length}`);
+    }
+
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    params.push(safeLimit);
+    params.push(safeOffset);
+
+    const result = await db.query(
+        `SELECT ${SUMMARY_COLUMNS}
+         FROM fleet_reports
+         ${where}
+         ORDER BY generated_at DESC
+         LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params,
+    );
+
+
+    return {
+        reports: result.rows.map(toSummary),
+        limit: safeLimit,
+        offset: safeOffset,
+    };
+
+}
+
+async function getReport(db, user, id){
+    const reportId = Number(id);
+
+    if (!Number.isInteger(reportId) || reportId < 1) {
+        throw new ScopeError('Invalid report id', 400);
+    }
+
+    const result = await db.query(
+        `SELECT ${SUMMARY_COLUMNS}, dataset
+         FROM fleet_reports
+         WHERE id = $1`,
+        [reportId],
+    );
+
+
+    if (!result.rows.length) {
+        throw new ScopeError('Report not found or not authorized', 403);
+    }
+
+
+    const row = result.rows[0];
+
+    await assertCanReadReport(db, user, (row.group_ids || []).map(Number));
+
+    return {
+        ...toSummary(row),
+        dataset: row.dataset,
+    };
+
+    
+}
+
+
+module.exports = {
+    saveReport,
+    listReports,
+    getReport,
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+};

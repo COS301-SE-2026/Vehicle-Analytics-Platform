@@ -22,6 +22,8 @@ const { topPerformers, requiresAttention, mergeEntities } = require('../services
 const { buildTrends, MIN_WEEKS_FOR_TREND } = require('../services/trend');
 
 const { buildReportPdf, reportFilename } = require('../services/reportPdf');
+const { saveReport, listReports, getReport } = require('../services/reportStore');
+const { runScheduledReports } = require('../services/reportRunner');
 
 const COMPARED_METRICS = [
     'safetyScore',
@@ -68,7 +70,6 @@ const TREND_METRICS = [
 
 const DEFAULT_CURRENT_DAYS = 7;
 const MAX_TREND_WEEKS = 6;
-
 const OUTPUT_FORMATS = ['json', 'pdf'];
 
 function handleError(res, err, context) {
@@ -79,13 +80,13 @@ function handleError(res, err, context) {
     return error(res, 'Failed to generate report', 500);
 }
 
-function readParam(body, snake, camel){
+function readParam(body, snake, camel) {
     if (body[snake] !== undefined && body[snake] !== null) return body[snake];
     if (body[camel] !== undefined && body[camel] !== null) return body[camel];
     return undefined;
 }
 
-function parseDate(value, field){
+function parseDate(value, field) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
         throw new ScopeError(`Invalid ${field} date`, 400);
@@ -93,7 +94,7 @@ function parseDate(value, field){
     return date;
 }
 
-async function resolveRequestedPeriod(db, body){
+async function resolveRequestedPeriod(db, body) {
     const periodType = readParam(body, 'period_type', 'periodType') || 'weekly';
 
     if (!PERIOD_TYPES.includes(periodType)) {
@@ -130,8 +131,7 @@ async function resolveRequestedPeriod(db, body){
     return resolvePeriod({ periodType, anchor, currentDays });
 }
 
-
-async function runAnalytics(db, vehicleIds, window){
+async function runAnalytics(db, vehicleIds, window) {
     const safety = await getSafetyAnalytics(db, vehicleIds, window);
     const distance = await getDistanceAnalytics(db, vehicleIds, window);
     const fuel = await getFuelAnalytics(db, vehicleIds, window);
@@ -139,19 +139,19 @@ async function runAnalytics(db, vehicleIds, window){
     return { safety, distance, fuel };
 }
 
-async function buildWeeklyTrends(db, vehicleIds, period){
+async function buildWeeklyTrends(db, vehicleIds, period) {
     const allWeeks = weeksInPeriod(period);
 
     if (allWeeks.length < MIN_WEEKS_FOR_TREND) return null;
-
 
     const weeks = allWeeks.slice(-MAX_TREND_WEEKS);
 
     const weeklySummaries = [];
     for (const week of weeks) {
+        /* eslint-disable no-await-in-loop */
         const safety = await getSafetyAnalytics(db, vehicleIds, week);
         const distance = await getDistanceAnalytics(db, vehicleIds, week);
-
+        /* eslint-enable no-await-in-loop */
         weeklySummaries.push({ ...distance.summary, ...safety.summary });
     }
 
@@ -169,7 +169,7 @@ async function buildWeeklyTrends(db, vehicleIds, period){
     };
 }
 
-function buildRankings(current){
+function buildRankings(current) {
     const merged = mergeEntities([
         current.distance.vehicles,
         current.fuel.vehicles,
@@ -187,8 +187,7 @@ function buildRankings(current){
     };
 }
 
-
-async function buildReportPayload(db, user, request){
+async function buildReportPayload(db, user, request) {
     const scopeType = readParam(request, 'scope_type', 'scopeType') || 'fleet';
     const scopeId = readParam(request, 'scope_id', 'scopeId') || null;
 
@@ -197,9 +196,13 @@ async function buildReportPayload(db, user, request){
 
     const current = await runAnalytics(db, scope.vehicleIds, period);
 
-    const previous = period.previous ? await runAnalytics(db, scope.vehicleIds, period.previous): null;
+    const previous = period.previous
+        ? await runAnalytics(db, scope.vehicleIds, period.previous)
+        : null;
 
-    const baselineSufficient = previous ? isBaselineSufficient(previous.distance.summary, current.distance.summary) : false;
+    const baselineSufficient = previous
+        ? isBaselineSufficient(previous.distance.summary, current.distance.summary)
+        : false;
 
     const compareOptions = { baselineSufficient };
 
@@ -289,11 +292,22 @@ async function buildReportPayload(db, user, request){
     };
 }
 
-async function generateReport(req, res){
+function sendPdf(res, payload) {
+    const filename = reportFilename(payload);
+
+    return buildReportPdf(payload).then((pdf) => {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', pdf.length);
+        return res.status(200).send(pdf);
+    });
+}
+
+async function generateReport(req, res) {
     try {
         const body = req.body || {};
 
-        const format = (readParam(body, 'format', 'format') || 'json').toLowerCase();
+        const format = String(readParam(body, 'format', 'format') || 'json').toLowerCase();
         if (!OUTPUT_FORMATS.includes(format)) {
             throw new ScopeError(
                 `Invalid format. Expected one of: ${OUTPUT_FORMATS.join(', ')}`,
@@ -303,27 +317,26 @@ async function generateReport(req, res){
 
         const payload = await buildReportPayload(pool, req.user, body);
 
-        if (format === 'json') {
-            return success(res, payload, 200);
+        const persist = readParam(body, 'save', 'save') === true;
+        let stored = null;
+
+        if (persist) {
+            stored = await saveReport(pool, {
+                payload,
+                trigger: 'manual',
+                generatedBy: String(req.user?.id ?? 'unknown'),
+            });
         }
 
+        if (format === 'pdf') return sendPdf(res, payload);
 
-        const pdf = await buildReportPdf(payload);
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="${reportFilename(payload)}"`,
-        );
-        res.setHeader('Content-Length', pdf.length);
-
-        return res.status(200).send(pdf);
+        return success(res, stored ? { ...payload, storedReportId: stored.id } : payload, 200);
     } catch (err) {
         return handleError(res, err, 'Generate report error');
     }
 }
 
-async function getReportScopes(req, res){
+async function getReportScopes(req, res) {
     try {
         const scopes = await listAvailableScopes(pool, req.user);
         return success(res, scopes, 200);
@@ -332,8 +345,70 @@ async function getReportScopes(req, res){
     }
 }
 
+
+async function listReportHistory(req, res) {
+    try {
+        const result = await listReports(pool, req.user, {
+            limit: req.query.limit,
+            offset: req.query.offset,
+            scopeType: req.query.scope_type || null,
+            periodType: req.query.period_type || null,
+            trigger: req.query.trigger || null,
+        });
+
+        return success(res, result, 200);
+    } catch (err) {
+        return handleError(res, err, 'List report history error');
+    }
+}
+
+async function getStoredReport(req, res){
+    try {
+        const stored = await getReport(pool, req.user, req.params.id);
+        return success(res, stored, 200);
+    } catch (err) {
+        return handleError(res, err, 'Get stored report error');
+    }
+}
+
+async function getStoredReportPdf(req, res){
+    try {
+        const stored = await getReport(pool, req.user, req.params.id);
+        return sendPdf(res, stored.dataset);
+    } catch (err) {
+        return handleError(res, err, 'Get stored report PDF error');
+    }
+}
+
+async function runScheduled({ periodType = 'weekly', anchor = null } = {}){
+    return runScheduledReports(pool, { buildReportPayload }, { periodType, anchor });
+}
+
+
+
+async function runScheduledHttp(req, res){
+    try {
+        const body = req.body || {};
+        const summary = await runScheduled({
+            periodType: readParam(body, 'period_type', 'periodType') || 'weekly',
+            anchor: readParam(body, 'anchor', 'anchor') || null,
+        });
+
+        return success(res, summary, 200);
+    } catch (err) {
+        return handleError(res, err, 'Scheduled report run error');
+    }
+}
+
+
 module.exports = {
     generateReport,
     getReportScopes,
+    listReportHistory,
+    getStoredReport,
+    getStoredReportPdf,
+    runScheduledHttp,
+
     buildReportPayload,
+    runScheduled,
 };

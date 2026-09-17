@@ -64,3 +64,52 @@ export const inputClasses =
   'placeholder:text-fleet-secondary focus:outline-none focus:ring-2 focus:ring-fleet-blue/40 focus:border-fleet-blue';
 
 export const labelClasses = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-fleet-secondary';
+
+
+export function buildConditionParams(conditionType, params) {
+  
+  switch (conditionType) {
+
+    case 'speed_threshold':
+      return { max_speed_kmh: Number(params.max_speed_kmh) };
+
+    case 'time_based_restriction':
+      return {
+        start_time: params.start_time,
+
+        end_time: params.end_time,
+
+        ...(params.restricted_days.length ? { restricted_days: params.restricted_days } : {}),
+      };
+
+    case 'repeated_unsafe_events':
+
+      return {
+        event_types: params.event_types,
+
+        count: Number(params.count),
+
+        window_minutes: Number(params.window_minutes),
+      };
+
+    case 'safety_score_drop':
+
+      return { min_score: Number(params.min_score) };
+
+    case 'trip_duration_exceeded': {
+
+      const out = {};
+
+      if (params.max_trip_minutes !== '')
+         out.max_trip_minutes = Number(params.max_trip_minutes);
+
+      if (params.max_daily_minutes !== '') 
+        out.max_daily_minutes = Number(params.max_daily_minutes);
+
+      return out;
+    }
+
+    default:
+      return {};
+  }
+}

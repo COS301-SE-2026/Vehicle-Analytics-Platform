@@ -261,6 +261,42 @@ export default function RuleConditionFields({
             />
           </div>
         )}
+
+        {conditionType === 'trip_duration_exceeded' && (
+          <div className="mb-4 grid grid-cols-2 gap-3">
+
+            <div>
+              <label className={labelClasses} htmlFor="max-trip">Max Trip Duration (min)</label>
+
+              <input
+                id="max-trip"
+                type="number"
+                min="1"
+                className={inputClasses}
+                value={params.max_trip_minutes}
+                onChange={(e) => onUpdateParam('max_trip_minutes', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className={labelClasses} htmlFor="max-daily">Max Daily Duration (min)</label>
+
+              <input
+                id="max-daily"
+                type="number"
+                min="1"
+                className={inputClasses}
+                value={params.max_daily_minutes}
+                onChange={(e) => onUpdateParam('max_daily_minutes', e.target.value)}
+              />
+
+            </div>
+            
+          </div>
+        )}
+
+        {children}
+
       </section>
     </>
   );

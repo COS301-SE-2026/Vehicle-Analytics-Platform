@@ -45,3 +45,22 @@ export const CONDITIONS = [
   },
 
 ];
+
+export const EMPTY_PARAMS = {
+  speed_threshold: {  max_speed_kmh: '' },
+
+  time_based_restriction: { start_time: '', end_time: '', restricted_days: [] },
+
+  repeated_unsafe_events: { event_types: [], count: '', window_minutes: '' },
+
+  safety_score_drop : { min_score: '' },
+
+  trip_duration_exceeded: { max_trip_minutes: '', max_daily_minutes: '' },
+
+};
+
+export const inputClasses =
+  'w-full rounded-md border border-fleet-border bg-fleet-surface px-3 py-2 text-sm text-fleet-text ' +
+  'placeholder:text-fleet-secondary focus:outline-none focus:ring-2 focus:ring-fleet-blue/40 focus:border-fleet-blue';
+
+export const labelClasses = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-fleet-secondary';

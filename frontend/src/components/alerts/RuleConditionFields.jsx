@@ -190,7 +190,7 @@ export default function RuleConditionFields({
             <label className={labelClasses}>Event Types</label>
 
             <div className="flex flex-wrap gap-2">
-              {EVENT_TYPES.maps((ev) => {
+              {EVENT_TYPES.map((ev) => {
                 const active = params.event_types.includes(ev.value);
 
                 return (
@@ -249,12 +249,14 @@ export default function RuleConditionFields({
 
         {conditionType === 'safety_score_drop' && (
           <div className="mb-4">
-            <label className={labelClasses} htmlFor="min-score">Minimun Safety Score</label>
+            <label className={labelClasses} htmlFor="min-score">Minimum Safety Score</label>
 
             <input
               id='min-score'
               type="number"
-              className={labelClasses}
+              min="0"
+              max="100"
+              className={inputClasses}
               value={params.min_score}
               onChange={(e) => onUpdateParam('min_score', e.target.value)}
               required 
@@ -291,7 +293,7 @@ export default function RuleConditionFields({
               />
 
             </div>
-            
+
           </div>
         )}
 

@@ -45,7 +45,7 @@ export default function RuleConditionFields({
                     : 'border-fleet-border bg-fleet-surface hover:border-fleet-secondary')
                 }
               >
-                
+
                 <Icon className="mt-0.5 h-5 w-5 flex-shrink-0 text-fleet-blue" strokeWidth={1.6} />
 
                 <span>
@@ -58,6 +58,49 @@ export default function RuleConditionFields({
               </button>
             );
           })}
+        </div>
+
+        <div className='mb-3 flex items-center gap-2 text-sm font-semibold text-fleet-text'>
+          <span className='flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white'> 2 </span>
+          Configure Parameters
+        </div>
+
+        {error && (
+
+          <div className='mb-4 rounded-md border border-fleet-alert/30 bg-fleet-alert/10 px-3 py-2 text-sm text-fleet-alert'>
+            {error}
+          </div>
+        )}
+
+        <div className='mb-4'>
+          <label className={labelClasses} htmlFor="alert-name">Alert Name</label>
+
+          <input
+            id="alert-name"
+            className={inputClasses}
+            value={name}
+            onChange={(e) => onNameChange(e.target.value)}
+            placeholder='High Speeding'
+            required
+          />
+
+        </div>
+
+        <div className='mb-4'>
+          <label className={labelClasses} htmlFor='fleet-group'>Fleet Group</label>
+
+          <select
+            id='fleet-group'
+            className={inputClasses}
+            value={fleetGroupId}
+            onChange={(e) => onFleetGroupChange(e.target.value)}
+            required
+          >
+            <option value=''>Select a fleet group</option>
+            {fleetGroups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
         </div>
       </section>
     </>

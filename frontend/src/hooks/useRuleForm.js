@@ -19,6 +19,9 @@ export default function useRuleForm() {
     setError,
     selectCondition,
     updateParam,
+    toggleFromList,
+    buildConditionParams,
+    reset,
   };
 }
 
@@ -34,4 +37,30 @@ export default function useRuleForm() {
     setParams((prev) => ({ ...prev, [key]: value }));
   }
 
+    function toggleFromList(key, value){
+    setParams((prev) => {
+
+      const list = prev[key] || [];
+
+      const next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+
+      return { ...prev, [key]: next };
+    });
+  }
+
+  function buildConditionParams(){
+    return buildParams(conditionType, params);
+  }
+
+    function reset(next = {}){
+    setConditionType(next.conditionType ?? 'speed_threshold');
+
+    setName(next.name ?? '');
+
+    setFleetGroupId(next.fleetGroupId ?? '');
+
+    setParams(next.params ?? EMPTY_PARAMS.speed_threshold);
+
+    setError('');
+  }
    

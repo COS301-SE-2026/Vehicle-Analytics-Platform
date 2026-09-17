@@ -67,7 +67,7 @@ export const labelClasses = 'mb-1.5 block text-xs font-medium uppercase tracking
 
 
 export function buildConditionParams(conditionType, params) {
-  
+
   switch (conditionType) {
 
     case 'speed_threshold':
@@ -112,4 +112,20 @@ export function buildConditionParams(conditionType, params) {
     default:
       return {};
   }
+}
+
+export function paramsFromRule(rule, type){
+  const base = EMPTY_PARAMS[type];
+  const source = rule?.condition_params ?? {};
+
+  if(rule?.condition_type !== type )
+    return base;
+
+  return Object.keys(base).reduce((acc, key) => {
+    
+    acc[key] = source[key] ?? base[key];
+
+    return acc;
+  }, {});
+  
 }

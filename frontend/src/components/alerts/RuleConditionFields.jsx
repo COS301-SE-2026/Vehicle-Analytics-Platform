@@ -102,6 +102,86 @@ export default function RuleConditionFields({
             ))}
           </select>
         </div>
+
+        {conditionType === 'speed_threshold' && (
+          <div className='mb-4'>
+
+            <label className={labelClasses} htmlFor='max-speed'>Speed Limit (km/h)</label>
+
+            <input
+              id='max-speed'
+              type='number'
+              min='1'
+              className={inputClasses}
+              value={params.max_speed_kmh}
+              onChange={(e) => onUpdateParam('max_speed_kmh', e.target.value)}
+              required
+            />
+
+          </div>
+        )}
+
+        {conditionType === 'time_based_restriction' &&  (
+          <>
+
+            <div className='mb-4 grid grid-cols-2 gap-3'>
+              <div>
+                <label className={labelClasses} htmlFor="start-time">Start Time</label>
+
+                 <input
+                  id='start-time'
+                  type='time'
+                  className={inputClasses}
+                  value={params.start_time}
+                  onChange={(e) => onUpdateParam('start_time', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={labelClasses} htmlFor="end-time">End Time</label>
+
+                <input
+                  id='end-time'
+                  type='time'
+                  className={inputClasses}
+                  value={params.end_time}
+                  onChange={(e) => onUpdateParam('end_time', e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className='mb-4'>
+              <span id='restricted-days-label' className={labelClasses}>Restricted Days</span>
+
+              <div className="flex flex-wrap gap-2" role="group" aria-labelledby="restricted-days-label">
+
+                 {DAYS.map((d) => {
+                  const active = params.restricted_days.includes(d);
+
+                  return (
+                    <button
+                      type="button"
+                      key={d}
+                      onClick={() => onToggleFromList('restricted_days', d)}
+                      className={
+                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors' +
+                        (active
+                          ? 'border-fleet-blue bg-fleet-blue text-white'
+                          : 'border-fleet-border bg-fleet-surface text-fleet-text hover:border-fleet-secondary'
+                        )
+                      }
+                    >
+                      {d}
+                    </button>
+                  );
+                 })} 
+              </div>
+            </div>
+
+          </>
+        )}
       </section>
     </>
   );

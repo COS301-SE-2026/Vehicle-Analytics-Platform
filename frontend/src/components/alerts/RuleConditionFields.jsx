@@ -182,6 +182,85 @@ export default function RuleConditionFields({
 
           </>
         )}
+
+        {conditionType === 'repeated_unsafe_events' && (
+          <>
+
+          <div className='mb-4'>
+            <label className={labelClasses}>Event Types</label>
+
+            <div className="flex flex-wrap gap-2">
+              {EVENT_TYPES.maps((ev) => {
+                const active = params.event_types.includes(ev.value);
+
+                return (
+                  <button
+                    type="button"
+                    key={ev.value}
+                    onClick={() => onToggleFromList('event_types', ev.value)}
+                    className={
+                      'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors' +
+                      (active
+                        ? 'border-fleet-blue bg-fleet-blue text-white'
+                        : 'border-fleet-border bg-fleet-surface text-fleet-text hover:border-fleet-secondary'
+                      )
+                    }
+                  >
+                    {ev.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className='mb-4 grid grid-cols-2 gap-3'>
+
+            <div>
+
+              <label className={labelClasses} htmlFor="count">Occurrences</label>
+              <input
+                id='count'
+                type="number"
+                min="1"
+                className={inputClasses}
+                value={params.count}
+                onChange={(e) => onUpdateParam('count', e.target.value)}
+                required 
+              />
+            </div>
+
+            <div>
+              <label className={labelClasses} htmlFor="window">Within (minutes)</label>
+
+              <input
+                id="window"
+                type="number" 
+                min="1"
+                className={inputClasses}
+                value={params.window_minutes}
+                onChange={(e) => onUpdateParam('window_minutes', e.target.value)}
+                required
+              />
+            </div>
+
+          </div>
+          </>
+        )}
+
+        {conditionType === 'safety_score_drop' && (
+          <div className="mb-4">
+            <label className={labelClasses} htmlFor="min-score">Minimun Safety Score</label>
+
+            <input
+              id='min-score'
+              type="number"
+              className={labelClasses}
+              value={params.min_score}
+              onChange={(e) => onUpdateParam('min_score', e.target.value)}
+              required 
+            />
+          </div>
+        )}
       </section>
     </>
   );

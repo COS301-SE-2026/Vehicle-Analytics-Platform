@@ -61,7 +61,7 @@ describe('EditAlertRuleModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
 
     onClose.mockClear();
-    await user.click(screen.getByRole('presentation'));
+    await user.click(screen.getByRole('button', { name: 'Close dialog' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

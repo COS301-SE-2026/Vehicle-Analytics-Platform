@@ -56,21 +56,18 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
     }
   }
 
-  return (
-     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-static-element-interactions
-    <div
-      role="presentation"
-      tabIndex={-1}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-fleet-blue/40 p-4"
-      onClick={handleClose}
-      onKeyDown={(e) => {
-      if (e.key === 'Escape') handleClose();
-      }}
-    >
-      <div
-        className="flex max-h-[85vh] w-full max-w-[520px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
+    return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close dialog"
+        className="absolute inset-0 bg-fleet-blue/40 cursor-default"
+        onClick={handleClose}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') handleClose();
+        }}
+      />
+      <div className="relative flex max-h-[85vh] w-full max-w-[520px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between rounded-t-xl border-b border-fleet-border px-6 py-5">
           <h2 className="font-display text-xl font-semibold text-fleet-text">
             Create New Custom Alert

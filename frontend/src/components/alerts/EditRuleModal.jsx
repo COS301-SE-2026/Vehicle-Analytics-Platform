@@ -21,7 +21,7 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
 
   useEffect(() => {
 
-    if (!rule)
+    if(!rule) 
       return;
 
     const type = rule.condition_type ?? 'speed_threshold';
@@ -40,7 +40,7 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
    
   }, [rule]);
 
-  if (!isOpen) 
+  if(!isOpen)
     return null;
 
   async function handleSubmit(e) {
@@ -96,19 +96,18 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
   }
 
   return (
-    <div
-      role="presentation"
-      tabIndex={-1}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-fleet-blue/40 p-4"
-      onClick={onClose}
-      onKeyDown={(e) => {
-      if (e.key === 'Escape') onClose();
-     }}
-    >
-      <div
-        className="flex max-h-[85vh] w-full max-w-[520px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
+    
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close dialog"
+        className="absolute inset-0 bg-fleet-blue/40 cursor-default"
+        onClick={onClose}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+      />
+      <div className="relative flex max-h-[85vh] w-full max-w-[520px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between rounded-t-xl border-b border-fleet-border px-6 py-5">
           <h2 className="font-display text-xl font-semibold text-fleet-text">
             Edit Custom Alert
@@ -137,19 +136,13 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
             onUpdateParam={form.updateParam}
             onToggleFromList={form.toggleFromList}
           >
-
             <div className="mb-1 flex items-center justify-between rounded-md border border-fleet-border px-3.5 py-3">
-
               <div className="flex-1 min-w-0 pr-3">
-
                 <p className="text-sm font-medium text-fleet-text">Rule Status</p>
-
                 <p className="text-xs text-fleet-secondary">Inactive rules stop evaluating but keep their configuration.</p>
-
               </div>
 
               <div className="inline-flex overflow-hidden rounded-md border border-fleet-border">
-
                 <button
                   type="button"
                   onClick={() => setStatus('active')}
@@ -163,7 +156,6 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
                 >
                   Active
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setStatus('inactive')}
@@ -177,11 +169,8 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
                 >
                   Inactive
                 </button>
-
               </div>
-
             </div>
-
           </RuleConditionFields>
         </form>
 
@@ -202,11 +191,8 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
           >
             {submitting ? 'Saving…' : 'Save Changes'}
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 }

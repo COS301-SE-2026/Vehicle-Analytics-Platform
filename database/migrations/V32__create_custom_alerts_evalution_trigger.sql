@@ -1,18 +1,17 @@
--- Migration: V32__create_custom_alerts_evalution_trigger.sql
-
--- Define constants
-\set debounce_minutes 5
-\set status_active 'active'
-\set key_name 'name'
-\set key_condition_params 'condition_params'
-
 CREATE OR REPLACE FUNCTION evaluate_custom_alert_rules_batch()
-RETURNS TRIGGER 
+RETURNS TRIGGER
 LANGUAGE plpgsql
-AS $$ 
+AS $$
+DECLARE
+    debounce_minutes     CONSTANT INT     := 5;
+    status_active        CONSTANT TEXT    := 'active';
+    key_name              CONSTANT TEXT   := 'name';
+    key_condition_params  CONSTANT TEXT   := 'condition_params';
+    key_start_time         CONSTANT TEXT  := 'start_time';
+    key_end_time            CONSTANT TEXT := 'end_time';
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM custom_alert_rules WHERE status = :'status_active' LIMIT 1)
-    THEN 
+    IF NOT EXISTS (SELECT 1 FROM custom_alert_rules WHERE status = status_active LIMIT 1)
+    THEN
         RETURN NULL;
     END IF;
 
@@ -23,50 +22,44 @@ BEGIN
     ),
 
     speed_breaches AS (
-         SELECT 
+         SELECT
             r.id AS rule_id, lp.vehicle_id, r.fleet_group_id, r.condition_type,
             lp.speed::TEXT AS breach_value,
             (r.condition_params->>'max_speed_kmh') AS threshold_value,
             lp.latitude, lp.longitude, lp.time,
-            jsonb_build_object(:'key_name', r.name, :'key_condition_params', r.condition_params) AS rule_snapshot
+            jsonb_build_object(key_name, r.name, key_condition_params, r.condition_params) AS rule_snapshot
 
         FROM latest_points lp
         JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
         JOIN custom_alert_rules r
-
             ON r.fleet_group_id = v.fleet_group_id
-            AND r.status = :'status_active'
-             AND r.condition_type = 'speed_threshold'
+            AND r.status = status_active
+            AND r.condition_type = 'speed_threshold'
         WHERE lp.speed > (r.condition_params->>'max_speed_kmh')::NUMERIC
     ),
-    
 
     time_breaches AS (
-        SELECT 
+        SELECT
             r.id AS rule_id, lp.vehicle_id, r.fleet_group_id, r.condition_type,
             lp.time::TIME::TEXT AS breach_value,
-            (r.condition_params->>'start_time') || '-' || (r.condition_params->>'end_time') AS threshold_value,
+            (r.condition_params->>key_start_time) || '-' || (r.condition_params->>key_end_time) AS threshold_value,
             lp.latitude, lp.longitude, lp.time,
-            jsonb_build_object(:'key_name', r.name, :'key_condition_params', r.condition_params) AS rule_snapshot
+            jsonb_build_object(key_name, r.name, key_condition_params, r.condition_params) AS rule_snapshot
 
         FROM latest_points lp
         JOIN vehicles v ON v.vehicle_id = lp.vehicle_id
         JOIN custom_alert_rules r
-
             ON r.fleet_group_id = v.fleet_group_id
-            AND r.status = :'status_active'
-             AND r.condition_type = 'time_based_restriction'
+            AND r.status = status_active
+            AND r.condition_type = 'time_based_restriction'
         WHERE (
             CASE
-              
-                WHEN (r.condition_params->>'start_time')::TIME > (r.condition_params->>'end_time')::TIME THEN
-                    lp.time::TIME >= (r.condition_params->>'start_time')::TIME
-                    OR lp.time::TIME < (r.condition_params->>'end_time')::TIME
-
+                WHEN (r.condition_params->>key_start_time)::TIME > (r.condition_params->>key_end_time)::TIME THEN
+                    lp.time::TIME >= (r.condition_params->>key_start_time)::TIME
+                    OR lp.time::TIME < (r.condition_params->>key_end_time)::TIME
                 ELSE
-
-                    lp.time::TIME >= (r.condition_params->>'start_time')::TIME
-                    AND lp.time::TIME < (r.condition_params->>'end_time')::TIME
+                    lp.time::TIME >= (r.condition_params->>key_start_time)::TIME
+                    AND lp.time::TIME < (r.condition_params->>key_end_time)::TIME
             END
         )
         AND (
@@ -76,52 +69,31 @@ BEGIN
     ),
 
     all_breaches AS (
-
         SELECT * FROM speed_breaches
         UNION ALL
-
         SELECT * FROM time_breaches
     ),
-
 
     deduped_breaches AS (
         SELECT ab.*
         FROM all_breaches ab
         WHERE NOT EXISTS (
-
             SELECT 1 FROM triggered_alerts ta
-
             WHERE ta.rule_id = ab.rule_id
-
               AND ta.vehicle_id = ab.vehicle_id
-              AND ta.created_at > (ab.time - (:debounce_minutes || ' minutes')::INTERVAL)
+              AND ta.created_at > (ab.time - (debounce_minutes || ' minutes')::INTERVAL)
         )
     )
- 
+
     INSERT INTO triggered_alerts (
         rule_id, vehicle_id, fleet_group_id, condition_type,
-
         breach_value, threshold_value, latitude, longitude, created_at, rule_snapshot
     )
-
     SELECT
         rule_id, vehicle_id, fleet_group_id, condition_type,
-
         breach_value, threshold_value, latitude, longitude, time, rule_snapshot
-
     FROM deduped_breaches;
- 
+
     RETURN NULL;
 END;
 $$;
- 
- 
-CREATE TRIGGER custom_alert_evaluation_trigger
-
-AFTER INSERT ON clean_telemetry
-
-REFERENCING NEW TABLE AS new_ct_rows
-
-FOR EACH STATEMENT
-
-EXECUTE FUNCTION evaluate_custom_alert_rules_batch();

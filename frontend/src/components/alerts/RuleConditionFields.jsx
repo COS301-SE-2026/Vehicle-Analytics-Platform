@@ -19,7 +19,6 @@ export default function RuleConditionFields({
 
 {
   return (
-    <>
       <section>
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-fleet-text">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white">1</span>
@@ -262,6 +261,5 @@ export default function RuleConditionFields({
         )}
         {children}
       </section>
-    </>
   );
 }

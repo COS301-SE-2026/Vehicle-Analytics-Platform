@@ -32,6 +32,37 @@ const CONDITION_LABELS = {
   trip_duration_exceeded: 'Trip Duration Exceeded'
 };
 
+function formatThreshold(rule) {
+  const params = rule.condition_params ?? {};
+
+  switch (rule.condition_type) {
+    case 'speed_threshold':
+      return params.max_speed_kmh != null ? `${params.max_speed_kmh} km/h` : '—';
+
+    case 'time_based_restriction':
+      return params.start_time && params.end_time
+        ? `${params.start_time}–${params.end_time}`
+        : '—';
+
+    case 'repeated_unsafe_events':
+      return params.count != null && params.window_minutes != null
+        ? `${params.count}x in ${params.window_minutes}m`
+        : '—';
+
+    case 'safety_score_drop':
+      return params.min_score != null ? `< ${params.min_score}` : '—';
+
+    case 'trip_duration_exceeded':
+      if (params.max_trip_minutes != null) return `${params.max_trip_minutes} min/trip`;
+      if (params.max_daily_minutes != null) return `${params.max_daily_minutes} min/day`;
+      return '—';
+
+    default:
+      return rule.threshold_value ?? '—';
+  }
+}
+
+
 export default function AlertRulesTab() {
   const [rules, setRules] = useState([]);
 
@@ -107,38 +138,6 @@ export default function AlertRulesTab() {
     }
     fetchFleetGroups();
   }, []);
-
-
-
-function formatThreshold(rule) {
-  const params = rule.condition_params ?? {};
-
-  switch (rule.condition_type) {
-    case 'speed_threshold':
-      return params.max_speed_kmh != null ? `${params.max_speed_kmh} km/h` : '—';
-
-    case 'time_based_restriction':
-      return params.start_time && params.end_time
-        ? `${params.start_time}–${params.end_time}`
-        : '—';
-
-    case 'repeated_unsafe_events':
-      return params.count != null && params.window_minutes != null
-        ? `${params.count}x in ${params.window_minutes}m`
-        : '—';
-
-    case 'safety_score_drop':
-      return params.min_score != null ? `< ${params.min_score}` : '—';
-
-    case 'trip_duration_exceeded':
-      if (params.max_trip_minutes != null) return `${params.max_trip_minutes} min/trip`;
-      if (params.max_daily_minutes != null) return `${params.max_daily_minutes} min/day`;
-      return '—';
-
-    default:
-      return rule.threshold_value ?? '—';
-  }
-}
 
   let tableContent;
 

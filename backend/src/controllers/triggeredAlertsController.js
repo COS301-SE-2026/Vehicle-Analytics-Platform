@@ -2,6 +2,25 @@
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
 
+
+async function findAlertForUpdate(client, id) {
+    const result = await client.query(
+        `SELECT * FROM triggered_alerts WHERE id = $1 FOR UPDATE`,
+        [id]
+    );
+    return result.rows[0] || null;
+}
+
+async function managerHasFleetAccess(client, managerId, fleetGroupId) {
+    const result = await client.query(
+        `SELECT 1 FROM fleet_manager_assignments
+         WHERE fleet_manager_id = $1 AND fleet_group_id = $2`,
+        [managerId, fleetGroupId]
+    );
+    return result.rows.length > 0;
+}
+
+
 /**
  * List triggered alerts with filtering and pagination
  * GET /api/alerts/triggered
@@ -200,25 +219,14 @@ async function acknowledgeAlert(req, res) {
         // Lock the row for the duration of the transaction so two
         // concurrent acknowledge requests can't both pass the status
         // check before either writes.
-        const alertResult = await client.query(
-            `SELECT * FROM triggered_alerts WHERE id = $1 FOR UPDATE`,
-            [id]
-        );
+        const alert = await findAlertForUpdate(client, id);
 
-        if (alertResult.rows.length === 0) {
+        if (!alert) {
             await client.query('ROLLBACK');
             return error(res, 'Alert not found', 404);
         }
 
-        const alert = alertResult.rows[0];
-
-        const accessResult = await client.query(
-            `SELECT 1 FROM fleet_manager_assignments
-             WHERE fleet_manager_id = $1 AND fleet_group_id = $2`,
-            [managerId, alert.fleet_group_id]
-        );
-
-        if (accessResult.rows.length === 0) {
+        if(!(await managerHasFleetAccess(client, managerId, alert.fleet_group_id))) {
             await client.query('ROLLBACK');
             return error(res, 'Access denied', 403);
         }
@@ -264,25 +272,13 @@ async function resolveAlert(req, res) {
     try {
         await client.query('BEGIN');
 
-        const alertResult = await client.query(
-            `SELECT * FROM triggered_alerts WHERE id = $1 FOR UPDATE`,
-            [id]
-        );
-
-        if (alertResult.rows.length === 0) {
+        const alert = await findAlertForUpdate(client, id);
+        if(!alert) {
             await client.query('ROLLBACK');
             return error(res, 'Alert not found', 404);
         }
 
-        const alert = alertResult.rows[0];
-
-        const accessResult = await client.query(
-            `SELECT 1 FROM fleet_manager_assignments
-             WHERE fleet_manager_id = $1 AND fleet_group_id = $2`,
-            [managerId, alert.fleet_group_id]
-        );
-
-        if (accessResult.rows.length === 0) {
+        if(!(await managerHasFleetAccess(client, managerId, alert.fleet_group_id))) {
             await client.query('ROLLBACK');
             return error(res, 'Access denied', 403);
         }

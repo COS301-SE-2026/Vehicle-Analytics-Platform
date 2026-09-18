@@ -122,7 +122,7 @@ export default function AlertRulesTab() {
       try {
        const token = useAuthStore.getState().token;
 
-       const res = await axios.get(`${API_BASE}/api/fleet-groups`, { //check actual endpoint route
+       const res = await axios.get(`${API_BASE}/api/fleet-groups/my-groups`, { 
           headers: token ? { Authorization: `Bearer ${token}` } : {},
 
         });      
@@ -138,7 +138,7 @@ export default function AlertRulesTab() {
     }
     fetchFleetGroups();
   }, []);
-
+  
   let tableContent;
 
   if (loading) {

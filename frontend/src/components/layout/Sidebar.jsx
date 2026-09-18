@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, BellRing, FileBarChart } from 'lucide-react'
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, BellRing, FileBarChart, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'

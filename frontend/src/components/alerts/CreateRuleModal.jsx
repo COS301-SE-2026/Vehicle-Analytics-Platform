@@ -57,6 +57,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
   }
 
   return (
+     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-static-element-interactions
     <div
       role="presentation"
       tabIndex={-1}

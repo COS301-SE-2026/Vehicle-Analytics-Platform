@@ -59,8 +59,12 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
   return (
     <div
       role="presentation"
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-fleet-blue/40 p-4"
       onClick={handleClose}
+      onKeyDown={(e) => {
+      if (e.key === 'Escape') handleClose();
+      }}
     >
       <div
         className="flex max-h-[85vh] w-full max-w-[520px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150"

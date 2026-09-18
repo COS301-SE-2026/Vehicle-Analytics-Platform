@@ -185,7 +185,7 @@ describe('DeleteAlertRuleModal', () => {
 
     )
 
-    await user.click(screen.getByRole('presentation'))
+    await user.click(screen.getByRole('button', { name: 'Close dialog' }));
 
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -252,7 +252,7 @@ describe('DeleteAlertRuleModal', () => {
  
   await user.click(screen.getByRole('button', { name: /Cancel/i }))
 
-  await user.click(screen.getByRole('presentation'))
+   await user.click(screen.getByRole('button', { name: 'Close dialog' }))
 
   expect(onClose).not.toHaveBeenCalled()
 })

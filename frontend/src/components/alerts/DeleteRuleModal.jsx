@@ -70,16 +70,14 @@ export default function DeleteAlertRuleModal({ isOpen, onClose, onDeleted, rule 
   }
 
   return (
-  
-    <div
-      role="presentation"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-fleet-blue/40 p-4"
-      onClick={handleClose}
-    >
-      <div
-        className="flex w-full max-w-[440px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close dialog"
+        className="absolute inset-0 bg-fleet-blue/40 cursor-default"
+        onClick={handleClose}
+      />
+      <div className="relative flex w-full max-w-[440px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between rounded-t-xl border-b border-fleet-border px-6 py-5">
           <h2 className="font-display text-xl font-semibold text-fleet-text">
             Delete Alert Rule

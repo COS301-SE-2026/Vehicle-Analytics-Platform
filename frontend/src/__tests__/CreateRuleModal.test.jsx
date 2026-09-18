@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 
 import axios from 'axios';
 import CreateAlertRuleModal from '@/components/alerts/CreateRuleModal';
-import { fleetGroups, mockToast, setupCommonMocks } from './ruleModalTestUtils';
+import { fleetGroups, mockToast, setupCommonMocks } from '../test-utils/ruleModalTestUtils';
 
 jest.mock('axios');
 

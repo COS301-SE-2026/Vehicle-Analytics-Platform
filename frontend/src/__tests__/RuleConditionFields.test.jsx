@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 
 import RuleConditionFields from '@/components/alerts/RuleConditionFields';
 import { EMPTY_PARAMS } from '@/components/alerts/ruleFormConstants';
-import { fleetGroups } from './ruleModalTestUtils';
+import { fleetGroups } from '../test-utils/ruleModalTestUtils';
 
 function renderFields(overrides = {}) {
   const props = {

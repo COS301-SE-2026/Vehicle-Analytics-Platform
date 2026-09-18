@@ -4,10 +4,7 @@ import '@testing-library/jest-dom';
 
 import axios from 'axios';
 import EditAlertRuleModal from '@/components/alerts/EditRuleModal';
-import useAuthStore from '@/store/authStore';
-import { useToast } from '@/components/alerts/ToastProvider';
-import { fleetGroups, baseRule, mockToast, setupCommonMocks } from './ruleModalTestUtils';
-
+import { fleetGroups, baseRule, mockToast, setupCommonMocks } from '../test-utils/ruleModalTestUtils';
 jest.mock('axios');
 jest.mock('@/store/authStore', () => ({
   __esModule: true,

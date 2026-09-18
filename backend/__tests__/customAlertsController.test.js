@@ -35,6 +35,39 @@ function mockAssignmentThenInsert(insertRow) {
     return Promise.resolve({ rows: [], rowCount: 0 });
   });
 }
+
+function mockAssignmentDenied() {
+  mockQuery.mockImplementation((sql) => {
+    const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+    if (q.includes('fleet_manager_assignments')) {
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    }
+    return Promise.resolve({ rows: [], rowCount: 0 });
+  });
+}
+
+function mockAssignmentThenError() {
+  mockQuery.mockImplementation((sql) => {
+    const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+    if (q.includes('fleet_manager_assignments')) {
+      return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
+    }
+    return Promise.reject(new Error('Database error'));
+  });
+}
+
+function mockAssignmentThenQuery(matchStr, rows) {
+  mockQuery.mockImplementation((sql) => {
+    const q = typeof sql === 'string' ? sql.toLowerCase() : '';
+    if (q.includes('fleet_manager_assignments')) {
+      return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
+    }
+    if (q.includes(matchStr)) {
+      return Promise.resolve({ rows, rowCount: rows.length });
+    }
+    return Promise.resolve({ rows: [], rowCount: 0 });
+  });
+}
  
 describe('Custom Alert Rules Controller', () => {
   beforeEach(() => {
@@ -43,23 +76,8 @@ describe('Custom Alert Rules Controller', () => {
  
   describe('POST /rules', () => {
     test('should create a rule when manager is assigned to the fleet group', async () => {
-      mockQuery.mockImplementation((sql) => {
-
-        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
-
-        if (q.includes('fleet_manager_assignments')) {
-          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
-        }
-
-        if (q.includes('insert into custom_alert_rules')) {
-          return Promise.resolve({
-            rows: [{ id: 1, ...validRulePayload, status: 'active' }],
-            rowCount: 1,
-          });
-        }
-
-        return Promise.resolve({ rows: [], rowCount: 0 });
-      });
+      
+      mockAssignmentThenInsert({ id: 1, ...validRulePayload, status: 'active' });
  
       const response = await request(app)
         .post(`${BASE}/rules`)
@@ -87,15 +105,7 @@ describe('Custom Alert Rules Controller', () => {
  
     test('should reject with 403 when manager is not assigned to the fleet group', async () => {
 
-      mockQuery.mockImplementation((sql) => {
-
-        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
-        
-        if (q.includes('fleet_manager_assignments')) {
-          return Promise.resolve({ rows: [], rowCount: 0 });
-        }
-        return Promise.resolve({ rows: [], rowCount: 0 });
-      });
+      mockAssignmentDenied();
  
       const response = await request(app)
         .post(`${BASE}/rules`)
@@ -108,17 +118,9 @@ describe('Custom Alert Rules Controller', () => {
     });
  
     test('should handle database error', async () => {
-      mockQuery.mockImplementation((sql) => {
+     
+       mockAssignmentThenError();
 
-        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
-
-        if (q.includes('fleet_manager_assignments')) {
-          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
-        }
-
-        return Promise.reject(new Error('Database error'));
-      });
- 
       const response = await request(app)
         .post(`${BASE}/rules`)
         .set('Authorization', 'Bearer test-token')
@@ -429,24 +431,8 @@ describe('Custom Alert Rules Controller', () => {
 
     test('should update a rule', async () => {
 
-      mockQuery.mockImplementation((sql) => {
+      mockAssignmentThenQuery('update custom_alert_rules', [{ id: 1, ...validRulePayload, name: 'Updated Rule', status: 'active' }]);
 
-        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
-
-        if (q.includes('fleet_manager_assignments')) {
-          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
-        }
-
-        if (q.includes('update custom_alert_rules')) {
-          return Promise.resolve({
-            rows: [{ id: 1, ...validRulePayload, name: 'Updated Rule', status: 'active' }],
-            rowCount: 1,
-          });
-        }
-
-        return Promise.resolve({ rows: [], rowCount: 0 });
-      });
- 
       const response = await request(app)
         .put(`${BASE}/rules/1`)
         .set('Authorization', 'Bearer test-token')
@@ -459,16 +445,7 @@ describe('Custom Alert Rules Controller', () => {
  
     test('should return 404 when updating a rule that does not belong to the manager', async () => {
 
-      mockQuery.mockImplementation((sql) => {
-
-        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
-
-        if (q.includes('fleet_manager_assignments')) {
-          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
-        }
-
-        return Promise.resolve({ rows: [], rowCount: 0 });
-      });
+     mockAssignmentThenQuery('update custom_alert_rules', []);
  
       const response = await request(app)
         .put(`${BASE}/rules/999`)
@@ -489,14 +466,8 @@ describe('Custom Alert Rules Controller', () => {
     });
 
     test('should reject with 403 when manager is not assigned to the fleet group', async () => {
-      mockQuery.mockImplementation((sql) => {
-        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
 
-        if (q.includes('fleet_manager_assignments')) {
-          return Promise.resolve({ rows: [], rowCount: 0 });
-        }
-        return Promise.resolve({ rows: [], rowCount: 0 });
-      });
+      mockAssignmentDenied();
 
       const response = await request(app)
         .put(`${BASE}/rules/1`)
@@ -508,16 +479,9 @@ describe('Custom Alert Rules Controller', () => {
     });
 
     test('should handle database error', async () => {
-      mockQuery.mockImplementation((sql) => {
-        const q = typeof sql === 'string' ? sql.toLowerCase() : '';
-
-        if (q.includes('fleet_manager_assignments')) {
-          return Promise.resolve({ rows: [{ '?column?': 1 }], rowCount: 1 });
-        }
-
-        return Promise.reject(new Error('Database error'));
-      });
-
+      
+      mockAssignmentThenError();      
+      
       const response = await request(app)
         .put(`${BASE}/rules/1`)
         .set('Authorization', 'Bearer test-token')

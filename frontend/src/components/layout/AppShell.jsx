@@ -11,7 +11,8 @@ const pageTitles = {
   '/map':               'Live Map',
   '/vehicles':          'Vehicles',
   '/geofence':          'Geofence',
-  '/custom-alerts':     'Custom Alerts'
+  '/custom-alerts':     'Custom Alerts',
+  '/reports':           'Reports'
 }
 
 const noHeader = new Set(['/login', '/register'])

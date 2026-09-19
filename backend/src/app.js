@@ -32,6 +32,7 @@ const fleetGroupsRoutes = require('./routes/fleetGroups');
 
 const notificationsRoutes = require('./routes/notifications');
 
+const weatherAnalyticsRoutes = require('./routes/weatherAnalytics');
 
 
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
@@ -140,7 +141,7 @@ app.use('/api/notifications', notificationsRoutes)
 
 app.use('/api/reports', reportRoutes); // added for reporting
 
-
+app.use('/api/analytics', weatherAnalyticsRoutes);
 
 app.get('/api/health', (req, res) => {
 

@@ -1,6 +1,7 @@
 import { 
     MapPin, ShieldCheck, History, LayoutGrid,
-    Radio, CloudCog, Gauge, ArrowRight
+    Radio, CloudCog, Gauge, ArrowRight,
+    Tags, BellRing, Fuel, BarChart3
 } from "lucide-react";
 import Dashboard from "./img/dashboard.png"
 import Vehicle from "./img/vehicles.png"
@@ -22,7 +23,7 @@ export function WhatYouGet() {
         {
             icon: History,
             title: "Settle Any Dispute in Minutes - Trip History & Playback",
-            description: "Replay any trip with full route and event data. No more disputes over a late delivery or complaint.",
+            description: "Replay any trip with full route data and speed visualization along the way. No more disputes over a late delivery or complaint.",
         },
         {
             icon: LayoutGrid,
@@ -45,7 +46,7 @@ export function WhatYouGet() {
                 <div key={title} className="flex gap-3">
                     <Icon className="w-h h-5 text-fleet-green shrink-0 mt-1" />
                     <div>
-                        <h3 className="font-bold text-slate-900">{title}</h3>
+                        <h3 className="font-bold text-slate-900 mb-3">{title}</h3>
                         <p className="text-sm text-slate-500 mt-1">{description}</p>
                     </div>
                 </div>
@@ -54,6 +55,54 @@ export function WhatYouGet() {
       </div>
     </section>
   );
+}
+
+export function MoreCapabilities() {
+    const capabilities = [
+        {
+            icon: Tags,
+            title: "Organize Fleets Your Way",
+            description: "Group vehicles by fleet, depot, or client with custom organization tags - built for how you actually operate.",
+        },
+        {
+            icon: BellRing,
+            title: "Set the Alerts That Matter to You",
+            description: "Define your own speed thresholds and time-based restrictions, and get notified the moment they're crossed.",
+        },
+        {
+            icon: Fuel,
+            title: "Spot Fuel Waste Before It Adds Up",
+            description: "Fuel efficiency metrics are calculated automatically from distance and speed data - no extra hardware needed.",
+        },
+        {
+            icon: BarChart3,
+            title: "See Trends, Not Just Snapshots",
+            description: "Daily and weekly summaries roll up driver behaviour and fleet performance, so patterns are obvious at a glance.",
+        },
+    ];
+
+    return (
+        <section className="max-w-7xl mx-auto px-6 py-20">
+            <h2 className="text-3xl font-bold text-slate-900 mb-10">
+                Built for How Fleets Actually Run
+            </h2>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {capabilities.map(({ icon: Icon, title, description }) => (
+                    <div
+                        key={title}
+                        className="bg-fleet-bg rounded-xl border border-slate-100 shadow-sm p-6
+                                   hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:z-10 relative
+                                   transition-all duration-200"
+                    >
+                        <Icon className="w-5 h-5 text-fleet-green mb-3" />
+                        <h3 className="font-bold text-fleet-blue text-slate-900 mb-1">{title}</h3>
+                        <p className="text-sm text-slate-500">{description}</p>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
 }
 
 export function HowItWorks(){
@@ -129,6 +178,7 @@ export default function Sections() {
     return (
         <>
         <WhatYouGet />
+        <MoreCapabilities />
         <HowItWorks />
         <CommandCenter />
         </>

@@ -38,3 +38,12 @@ LANGUAGE sql IMMUTABLE AS $$
              ELSE 'cold'
         END;
 $$;
+
+CREATE OR REPLACE FUNCTION statistical_event_categories()
+RETURNS TEXT[]
+LANGUAGE sql IMMUTABLE AS $$
+    SELECT ARRAY[
+        'green_driving_type', 'crash_detection','idling',
+        'towing', 'unplug', 'immobilizer'
+    ];
+$$;

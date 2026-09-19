@@ -7,7 +7,7 @@ const NOMINATIM_USER_AGENT = 'FleetAnalyticsPlatform/1.0 (contact: ops@yourfleet
 const OPEN_METEO_ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 
-const MIN_SAMPLE_SIZE = 10;
+const MIN_SAMPLE_SIZE = 10; // below this, a probability is flagged low-confidence, not hidden
 
 async function geocodeSuburb(searchTerm) {
   const cached = await pool.query(
@@ -165,6 +165,7 @@ async function getEventProbability(req, res) {
         AND wo.obs_date = ve.time::date
        WHERE ve.time::date BETWEEN $1 AND $2
          AND ve.location IS NOT NULL
+         AND ve.event_category = ANY (statistical_event_categories())
          AND ${areaFilter}
        GROUP BY ve.event_category, wo.weather_bucket`,
       queryParams

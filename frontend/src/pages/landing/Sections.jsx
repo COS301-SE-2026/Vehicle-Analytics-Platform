@@ -38,13 +38,13 @@ export function WhatYouGet() {
         What You Get, Every Day
       </h2>
 
-      <div className="grid md:grid-cols-2 gap-12 items-start">
+      <div className="grid md:grid-cols-2 gap-12 items-stretch">
         {/* ADD IMAGE HERE */}
-        <img src={Vehicle} alt="Fleet of trucks" className="rounded-2xl w-full h-auto object-cover" />
+        <img src={Vehicle} alt="Fleet of trucks" className="rounded-2xl w-full h-full object-contain" />
         <div className="flex flex-col gap-6">
             {features.map(({icon: Icon, title, description}) => (
                 <div key={title} className="flex gap-3">
-                    <Icon className="w-h h-5 text-fleet-green shrink-0 mt-1" />
+                    <Icon className="w-5 h-5 text-fleet-green shrink-0 mt-1" />
                     <div>
                         <h3 className="font-bold text-slate-900 mb-3">{title}</h3>
                         <p className="text-sm text-slate-500 mt-1">{description}</p>

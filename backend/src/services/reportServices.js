@@ -38,7 +38,7 @@ export async function getReportScopes(){
 
 }
 
-function buildBody({ scopeType, scopeId, periodType, anchor, from, to, format }){
+function buildBody({ scopeType, scopeId, periodType, anchor, from, to, format, save }){
     const body = {
         scope_type: scopeType,
         scope_id: scopeId,
@@ -55,6 +55,8 @@ function buildBody({ scopeType, scopeId, periodType, anchor, from, to, format })
 
 
     if (format) body.format = format
+
+    if (save) body.save = true
 
 
     return body
@@ -84,13 +86,14 @@ export async function generateReport({
     anchor,
     from,
     to,
+    save = false,
 } = {}) {
     const headers = await getAuthHeaders()
 
     const res = await fetch(`${API_BASE_URL}/api/reports/generate`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(buildBody({ scopeType, scopeId, periodType, anchor, from, to })),
+        body: JSON.stringify(buildBody({ scopeType, scopeId, periodType, anchor, from, to, save })),
     })
 
     if (!res.ok) throw await readError(res)
@@ -123,6 +126,12 @@ export async function downloadReportPdf({
 
     if (!res.ok) throw await readError(res)
 
+    return saveResponseAsFile(res)
+}
+
+
+
+async function saveResponseAsFile(res){
     const disposition = res.headers.get('Content-Disposition') || ''
 
     const match = disposition.match(/filename="([^"]+)"/)
@@ -144,4 +153,31 @@ export async function downloadReportPdf({
 
     return filename
     
+}
+
+
+export async function listReportHistory({ limit = 25, offset = 0, trigger } = {}){
+    const headers = await getAuthHeaders()
+
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    if (trigger) params.set('trigger', trigger)
+
+    const res = await fetch(`${API_BASE_URL}/api/reports?${params.toString()}`, { headers })
+
+    if (!res.ok) throw await readError(res)
+
+    const data = await res.json()
+    return data.data?.reports || []
+}
+
+
+
+export async function downloadStoredReportPdf(reportId){
+    const headers = await getAuthHeaders()
+
+    const res = await fetch(`${API_BASE_URL}/api/reports/${reportId}/pdf`, { headers })
+
+    if (!res.ok) throw await readError(res)
+
+    return saveResponseAsFile(res)
 }

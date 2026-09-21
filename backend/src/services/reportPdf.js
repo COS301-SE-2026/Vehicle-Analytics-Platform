@@ -29,7 +29,7 @@ const HEADLINE_METRICS = [
 const VEHICLE_COLUMNS = [
     { key: 'vehicleId', label: 'Vehicle', width: 62, align: 'left' },
     { key: 'safetyScore', label: 'Score', width: 42, align: 'right' },
-    { key: 'classification', label: 'Rating', width: 58, align: 'left' },
+    { key: 'classification', label: 'Rating', width: 58, align: 'left', pad: 10 },
     { key: 'totalEvents', label: 'Events', width: 48, align: 'right' },
     { key: 'harshBrakes', label: 'Brake', width: 44, align: 'right' },
     { key: 'harshAccelerations', label: 'Accel', width: 44, align: 'right' },
@@ -105,6 +105,7 @@ function rule(doc, colour = COLOR.border){
 
 
 function sectionHeading(doc, title){
+    doc.x = doc.page.margins.left;
     ensureSpace(doc, 60);
     doc.moveDown(0.8);
     doc.fillColor(COLOR.secondary).fontSize(8).font('Helvetica-Bold')
@@ -189,11 +190,13 @@ function drawSummaryCards(doc, summary){
 
     ensureSpace(doc, height * 2 + gap + 10);
 
+    const startY = doc.y;
+
     cards.forEach((card, i) => {
         const col = i % perRow;
         const row = Math.floor(i / perRow);
         const x = doc.page.margins.left + col * (width + gap);
-        const y = doc.y + row * (height + gap);
+        const y = startY + row * (height + gap);
 
         doc.save().roundedRect(x, y, width, height, 4).lineWidth(0.5).strokeColor(COLOR.border).stroke().restore();
 
@@ -211,7 +214,8 @@ function drawSummaryCards(doc, summary){
             );
     });
 
-    doc.y += height * 2 + gap + 6;
+    doc.x = doc.page.margins.left;
+    doc.y = startY + height * 2 + gap + 6;
 
 }
 
@@ -301,7 +305,7 @@ function drawVehicleTable(doc, vehicles){
         let x = doc.page.margins.left;
         doc.fillColor(COLOR.secondary).fontSize(7).font('Helvetica-Bold');
         VEHICLE_COLUMNS.forEach((col) => {
-            doc.text(col.label, x, y, { width: col.width, align: col.align });
+            doc.text(col.label, x + (col.pad || 0), y, { width: col.width - (col.pad || 0), align: col.align });
             x += col.width;
         });
         doc.y = y + 11;
@@ -327,7 +331,7 @@ function drawVehicleTable(doc, vehicles){
             }
             if (raw === null || raw === undefined) colour = COLOR.secondary;
 
-            doc.fillColor(colour).fontSize(8).font('Helvetica').text(formatValue(raw), x, y, { width: col.width, align: col.align });
+            doc.fillColor(colour).fontSize(8).font('Helvetica').text(formatValue(raw), x + (col.pad || 0), y, { width: col.width - (col.pad || 0), align: col.align });
 
             x += col.width;
 
@@ -338,6 +342,7 @@ function drawVehicleTable(doc, vehicles){
 }
 
 function drawRanking(doc, title, ranking){
+    doc.x = doc.page.margins.left;
     if (!ranking || ranking.status !== 'ok' || !ranking.entries.length) return;
 
     ensureSpace(doc, 30 + ranking.entries.length * 12);
@@ -444,30 +449,6 @@ function drawTrends(doc, trends){
 
 }
 
-// function drawFootnotes(doc, report){
-//     sectionHeading(doc, 'About these figures');
-
-//     const notes = [
-//         'Safety scores weight harsh braking, acceleration, cornering and crashes. '
-//         + 'Overspeed and idling events are counted but do not affect the score.',
-//         'Repeated events of the same type within the incident burst window are counted as one incident.',
-//         'Fuel consumption is modelled from speed and road class, not measured from a fuel sensor.',
-//         'Distance and trip counts include completed trips only; a vehicle mid-trip contributes no distance.',
-//         'All dates are South African Standard Time.',
-//     ];
-
-//     if (report.coverage.vehiclesWithFuelData === 0) {
-//         notes.push('No vehicle in this scope has modelled fuel data for this period.');
-//     }
-
-//     doc.fillColor(COLOR.secondary).fontSize(7.5).font('Helvetica');
-//     notes.forEach((note) => {
-//         ensureSpace(doc, 24);
-//         doc.text(`\u2022 ${note}`, { width: contentWidth(doc) });
-//         doc.moveDown(0.15);
-//     });
-// }  
-//  NOTWE : too be added again just in cases 
 
 function drawPageNumbers(doc){
     const range = doc.bufferedPageRange();
@@ -525,7 +506,6 @@ function buildReportPdf(report){
             drawRankings(doc, report.rankings);
             drawTrends(doc, report.trends);
             drawVehicleTable(doc, report.rankings?.entities || report.safety.vehicles || []);
-            drawFootnotes(doc, report);
 
             drawPageNumbers(doc);
 

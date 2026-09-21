@@ -162,18 +162,25 @@ function compareSummaries(current, previous, options = {}){
     return result;
 }
 
-function isBaselineSufficient(previousSummary, options = {}){
+
+function isBaselineSufficient(previousSummary, currentSummary = null, options = {}){
     const { minActiveVehicles = 1, minCoverageRatio = 0.5 } = options;
 
     if (!previousSummary || typeof previousSummary !== 'object') return false;
 
-    const active = previousSummary.activeVehicles ?? previousSummary.vehiclesWithFuelData;
-    const inScope = previousSummary.vehiclesInScope;
+    const previousActive = previousSummary.activeVehicles ?? previousSummary.vehiclesWithFuelData;
+    if (!isNumber(previousActive) || previousActive < minActiveVehicles) return false;
 
-    if (!isNumber(active) || active < minActiveVehicles) return false;
-    if (!isNumber(inScope) || inScope === 0) return false;
+    if (!currentSummary || typeof currentSummary !== 'object') {
+        const inScope = previousSummary.vehiclesInScope;
+        if (!isNumber(inScope) || inScope === 0) return false;
+        return (previousActive / inScope) >= minCoverageRatio;
+    }
 
-    return (active / inScope) >= minCoverageRatio;
+    const currentActive = currentSummary.activeVehicles ?? currentSummary.vehiclesWithFuelData;
+    if (!isNumber(currentActive) || currentActive === 0) return true;
+
+    return (previousActive / currentActive) >= minCoverageRatio;
 }
 
 module.exports = {

@@ -1,18 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { FileBarChart, AlertCircle, Loader2, Download } from 'lucide-react'
+import {
+	FileBarChart, AlertCircle, Loader2, Download, FileDown, Save,
+} from 'lucide-react'
 import SafetySummaryCards from '../../components/reports/SafetySummaryCards'
 import SafetyVehicleTable from '../../components/reports/SafetyVehicleTable'
 import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
-import { getReportScopes, generateReport } from '../../services/reportServices'
-
-import { FileDown, Save } from 'lucide-react'
 import ReportHistory from '../../components/reports/ReportHistory'
-import { getReportScopes, generateReport, downloadReportPdf } from '../../services/reportServices'
-
-const [historyKey, setHistoryKey] = useState(0)
-const [busy, setBusy] = useState(null)   // 'pdf' | 'save' | null
-
+import {
+	getReportScopes, generateReport, downloadReportPdf,
+} from '../../services/reportServices'
 
 const AUTO_PLOT_LIMIT = 12
 
@@ -22,6 +19,18 @@ function toISODate(date){
 	const month = String(d.getMonth() + 1).padStart(2, '0')
 	const day = String(d.getDate()).padStart(2, '0')
 	return `${d.getFullYear()}-${month}-${day}`
+}
+
+//PDF and the saved copy always describe exactly what the user is looking at.
+function requestFromReport(r){
+	const custom = r.period.type === 'custom'
+	return {
+		scopeType: r.report.scope.type,
+		scopeId: r.report.scope.id ?? undefined,
+		periodType: r.period.type,
+		from: custom ? r.period.fromDate : undefined,
+		to: custom ? r.period.toDate : undefined,
+	}
 }
 
 const CSV_COLUMNS = [
@@ -66,21 +75,23 @@ export default function Reports(){
 	const [scopes, setScopes] = useState({ groups: [], vehicles: [], unassignedVehicleCount: 0 })
 	const [scopeValue, setScopeValue] = useState('fleet')
 	const [periodType, setPeriodType] = useState('weekly')
-
 	const [dateRange, setDateRange] = useState({ from: undefined, to: undefined })
 
 	const [compareMode, setCompareMode] = useState(false)
-
 	const [scopeVehicleIds, setScopeVehicleIds] = useState([])
-
 	const [plottedVehicleIds, setPlottedVehicleIds] = useState([])
 
 	const [report, setReport] = useState(null)
-
 	const [loading, setLoading] = useState(false)
-
 	const [error, setError] = useState(null)
 
+
+
+	const [busy, setBusy] = useState(null) // 'pdf' | 'save' | null
+
+
+
+	const [historyKey, setHistoryKey] = useState(0)
 
 	useEffect(() => {
 		let cancelled = false
@@ -110,25 +121,19 @@ export default function Reports(){
 			: [...prev, vehicleId]))
 	}
 
-
-
 	function togglePlottedVehicle(vehicleId){
 		setPlottedVehicleIds((prev) => (prev.includes(vehicleId)
 			? prev.filter((id) => id !== vehicleId)
 			: [...prev, vehicleId]))
 	}
 
-
 	const handleGenerate = useCallback(async () => {
 		setLoading(true)
 		setError(null)
 
 		const comparing = compareMode && scopeVehicleIds.length > 0
-
 		const [dropdownType, dropdownId] = scopeValue.split(':')
-		
 		const scopeType = comparing ? 'vehicles' : dropdownType
-
 		const scopeId = comparing ? scopeVehicleIds : (dropdownId || undefined)
 
 		try {
@@ -147,6 +152,29 @@ export default function Reports(){
 			setLoading(false)
 		}
 	}, [scopeValue, periodType, dateRange, compareMode, scopeVehicleIds])
+
+	async function runAction(kind, fn){
+		setBusy(kind)
+		setError(null)
+		try {
+			await fn()
+		} catch (err) {
+			setError(err.message || 'Action failed')
+		} finally {
+			setBusy(null)
+		}
+	}
+
+	function handleDownloadPdf(){
+		return runAction('pdf', () => downloadReportPdf(requestFromReport(report)))
+	}
+
+	function handleSave(){
+		return runAction('save', async () => {
+			await generateReport({ ...requestFromReport(report), save: true })
+			setHistoryKey((k) => k + 1)
+		})
+	}
 
 	const entities = useMemo(
 		() => report?.rankings?.entities || report?.safety?.vehicles || [],
@@ -195,15 +223,43 @@ export default function Reports(){
 				</div>
 
 				{report && (
-					<button
-						type="button"
-						onClick={() => downloadCsv(report, entities)}
-						className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2
-							text-sm text-fleet-text bg-white hover:border-fleet-blue"
-					>
-						<Download className="w-4 h-4 text-fleet-secondary" />
-						Export CSV
-					</button>
+					<div className="flex flex-wrap items-center gap-2">
+						<button
+							type="button"
+							onClick={() => downloadCsv(report, entities)}
+							className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2
+								text-sm text-fleet-text bg-white hover:border-fleet-blue"
+						>
+							<Download className="w-4 h-4 text-fleet-secondary" />
+							Export CSV
+						</button>
+
+						<button
+							type="button"
+							onClick={handleSave}
+							disabled={busy !== null}
+							className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2
+								text-sm text-fleet-text bg-white hover:border-fleet-blue disabled:opacity-60"
+						>
+							{busy === 'save'
+								? <Loader2 className="w-4 h-4 animate-spin" />
+								: <Save className="w-4 h-4 text-fleet-secondary" />}
+							{busy === 'save' ? 'Saving --' : 'Save to history'}
+						</button>
+
+						<button
+							type="button"
+							onClick={handleDownloadPdf}
+							disabled={busy !== null}
+							className="flex items-center gap-2 bg-fleet-blue text-white rounded-lg px-3 py-2
+								text-sm hover:bg-fleet-blue/90 disabled:opacity-60"
+						>
+							{busy === 'pdf'
+								? <Loader2 className="w-4 h-4 animate-spin" />
+								: <FileDown className="w-4 h-4" />}
+							{busy === 'pdf' ? 'Preparing -- ' : 'Download PDF'}
+						</button>
+					</div>
 				)}
 			</div>
 
@@ -330,6 +386,11 @@ export default function Reports(){
 					)}
 				</div>
 			)}
+
+			{/* Outside the report block so history is visible before anything has been generated in this session. */}
+			<Panel label="Report history">
+				<ReportHistory refreshKey={historyKey} />
+			</Panel>
 		</div>
 	)
 }

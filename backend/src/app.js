@@ -1,110 +1,68 @@
+const express = require("express");
 
+const cors = require("cors");
 
+const helmet = require("helmet");
 
+const rateLimit = require("express-rate-limit");
 
-const express = require('express');
+const authRoutes = require("./routes/auth");
 
-const cors = require('cors');
+const vehicleRoutes = require("./routes/vehicles");
 
-const helmet = require('helmet');
+const dashboardRoutes = require("./routes/dashboard");
 
-const rateLimit = require('express-rate-limit');
+const adminRoutes = require("./routes/admin");
 
+const safetyRoutes = require("./routes/safety");
 
+const tripRoutes = require("./routes/trip");
 
-const authRoutes = require('./routes/auth');
+const fleetAnalyticsRoutes = require("./routes/fleetAnalytics");
 
-const vehicleRoutes = require('./routes/vehicles');
+const geofenceRoutes = require("./routes/geofence");
 
-const dashboardRoutes = require('./routes/dashboard');
+const fleetGroupsRoutes = require("./routes/fleetGroups");
 
-const adminRoutes = require('./routes/admin');
+const notificationsRoutes = require("./routes/notifications");
 
-const safetyRoutes = require('./routes/safety');
+//I added this for demo 3
+const fuelRoutes = require("./routes/fuel");
 
-const tripRoutes = require('./routes/trip');
+// added for report for demo 3 moving forward
+const reportRoutes = require("./routes/reports");
 
-const fleetAnalyticsRoutes = require('./routes/fleetAnalytics');
+const fuelHistoryRoutes = require("./routes/fuelHistoryRoutes");
 
-const geofenceRoutes = require('./routes/geofence');
+const customAlertsRoutes = require("./routes/customAlerts");
 
-const fleetGroupsRoutes = require('./routes/fleetGroups');
-
-const notificationsRoutes = require('./routes/notifications');
-
-const weatherAnalyticsRoutes = require('./routes/weatherAnalytics');
-
-
-const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
-
-// added for report
-const reportRoutes = require('./routes/reports');
-
+const triggeredAlertsRoutes = require("./routes/triggeredAlerts");
 
 const app = express();
 
-
-
-app.set('trust proxy', true);
-
-
+app.set('trust proxy', 1);
 
 const limiter = rateLimit({
-
-  windowMs: 15*60*1000,
+  windowMs: 15 * 60 * 1000,
 
   max: 1000,
 
-
-
-
-
-  message: 'Too many requests from this IP, please try again later.',
-
-
+  message: "Too many requests from this IP, please try again later.",
 
   keyGenerator: (req) => {
-
-
-
-    return req.ip || req.headers['x-forwarded-for'] || 'unknown';
-
-
-
-  }
-
-
-
-
+    return req.ip || req.headers["x-forwarded-for"] || "unknown";
+  },
 });
 
+app.use(
+  cors({
+    origin: true,
 
+    credentials: true,
 
-
-
-app.use(cors({
-
-
-
-  origin: true,
-
-
-
-  credentials: true,
-
-
-
-  allowedHeaders: ['Content-Type', 'Authorization']
-
-
-
-}));
-
-
-
-
-
-
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 app.use(helmet());
 
@@ -112,86 +70,51 @@ app.use(express.json());
 
 app.use(limiter);
 
+app.use("/api/auth", authRoutes);
 
+app.use("/api/vehicles", vehicleRoutes);
 
-app.use('/api/auth', authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
-app.use('/api/vehicles', vehicleRoutes);
+app.use("/api/admin", adminRoutes);
 
-app.use('/api/dashboard', dashboardRoutes);
+app.use("/api/safety", safetyRoutes);
 
-app.use('/api/admin', adminRoutes);
+app.use("/api/trips", tripRoutes);
 
-app.use('/api/safety', safetyRoutes);
+app.use("/api/fleet", fleetAnalyticsRoutes);
 
-app.use('/api/trips', tripRoutes);
+app.use("/api/geofences", geofenceRoutes);
 
-app.use('/api/fleet', fleetAnalyticsRoutes);
+//I added this for demo 3
+app.use("/api/fuel", fuelRoutes);
 
-app.use('/api/geofences', geofenceRoutes);
+app.use("/api/fleet-groups", fleetGroupsRoutes);
 
+app.use("/api/notifications", notificationsRoutes);
 
+app.use("/api/fuel", fuelHistoryRoutes);
 
-app.use('/api/fuel', fuelHistoryRoutes);
+app.use("/api/reports", reportRoutes); // added for reporting
 
-app.use('/api/fleet-groups', fleetGroupsRoutes);
+app.use("/api/custom-alerts", customAlertsRoutes);
 
-app.use('/api/notifications', notificationsRoutes)
+app.use("/api/alerts", triggeredAlertsRoutes);
 
-
-app.use('/api/reports', reportRoutes); // added for reporting
-
-app.use('/api/analytics', weatherAnalyticsRoutes);
-
-app.get('/api/health', (req, res) => {
-
-
-
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-
-
-
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
-
-
-
-
 
 app.use((req, res) => {
-
-
-
-  res.status(404).json({ error: 'Route not found' });
-
-
-
+  res.status(404).json({ error: "Route not found" });
 });
-
-
-
 
 app.use((err, req, res, next) => {
+  console.error("Lambda Exception Execution Trace:", err.stack);
 
-
-
-
-
-  console.error('Lambda Exception Execution Trace:', err.stack);
-
-
-  
-  res.status(500).json({ error: 'Internal server error', details: err.message });
-
-
-
+  res
+    .status(500)
+    .json({ error: "Internal server error" });
 });
 
-
-
-
-
-
 module.exports = app;
-
-
-

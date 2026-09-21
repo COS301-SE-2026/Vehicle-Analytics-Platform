@@ -6,6 +6,14 @@ import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
 import { getReportScopes, generateReport } from '../../services/reportServices'
 
+import { FileDown, Save } from 'lucide-react'
+import ReportHistory from '../../components/reports/ReportHistory'
+import { getReportScopes, generateReport, downloadReportPdf } from '../../services/reportServices'
+
+const [historyKey, setHistoryKey] = useState(0)
+const [busy, setBusy] = useState(null)   // 'pdf' | 'save' | null
+
+
 const AUTO_PLOT_LIMIT = 12
 
 function toISODate(date){

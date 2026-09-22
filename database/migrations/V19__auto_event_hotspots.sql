@@ -127,7 +127,7 @@ BEGIN
     -- Readable name for the zone, shown on the map and in the Zone Alerts panel.
     v_name := COALESCE(NULLIF(v_area, '') || ' - ', '')
               || v_label
-              || ' (' || v_incidents || ' incidents / ' || v_events || ' events, '
+              || ' (' || v_incidents || ' incidents / '
               || v_days || ' days, '
               || v_vehicles || ' vehicle' || CASE WHEN v_vehicles = 1 THEN '' ELSE 's' END
               || ', ~' || COALESCE(v_avg_speed, 0) || ' km/h)';
@@ -188,7 +188,7 @@ EXECUTE FUNCTION detect_event_hotspots_batch();
 CREATE OR REPLACE FUNCTION backfill_event_hotspots(
     p_days          INTEGER          DEFAULT 14,
     p_radius_km     DOUBLE PRECISION DEFAULT 0.25,
-    p_min_incidents INTEGER          DEFAULT 5
+    p_min_incidents INTEGER          DEFAULT 15
 )
 RETURNS INTEGER
 LANGUAGE plpgsql

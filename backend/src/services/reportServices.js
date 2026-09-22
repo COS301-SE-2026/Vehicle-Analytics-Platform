@@ -105,29 +105,29 @@ export async function generateReport({
 
 
 
-export async function downloadReportPdf({
-    scopeType = 'fleet',
-    scopeId,
-    periodType = 'weekly',
-    anchor,
-    from,
-    to,
-} = {}) {
-    const headers = await getAuthHeaders()
+// export async function downloadReportPdf({
+//     scopeType = 'fleet',
+//     scopeId,
+//     periodType = 'weekly',
+//     anchor,
+//     from,
+//     to,
+// } = {}) {
+//     const headers = await getAuthHeaders()
 
-    const res = await fetch(`${API_BASE_URL}/api/reports/generate`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(
-            buildBody({ scopeType, scopeId, periodType, anchor, from, to, format: 'pdf' }),
-        ),
+//     const res = await fetch(`${API_BASE_URL}/api/reports/generate`, {
+//         method: 'POST',
+//         headers,
+//         body: JSON.stringify(
+//             buildBody({ scopeType, scopeId, periodType, anchor, from, to, format: 'pdf' }),
+//         ),
 
-    })
+//     })
 
-    if (!res.ok) throw await readError(res)
+//     if (!res.ok) throw await readError(res)
 
-    return saveResponseAsFile(res)
-}
+//     return saveResponseAsFile(res)
+// }
 
 
 

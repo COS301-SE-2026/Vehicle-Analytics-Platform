@@ -6,11 +6,9 @@ import SafetySummaryCards from '../../components/reports/SafetySummaryCards'
 import SafetyVehicleTable from '../../components/reports/SafetyVehicleTable'
 import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
-import ReportHistory from '../../components/reports/ReportHistory'
-import {
-	getReportScopes, generateReport, downloadReportPdf,
-} from '../../services/reportServices'
-
+// import ReportHistory from '../../components/reports/ReportHistory'
+import {getReportScopes, generateReport, /*downloadReportPdf,*/ } from '../../services/reportServices'
+/**/
 const AUTO_PLOT_LIMIT = 12
 
 function toISODate(date){
@@ -388,9 +386,9 @@ export default function Reports(){
 			)}
 
 			{/* Outside the report block so history is visible before anything has been generated in this session. */}
-			<Panel label="Report history">
+			{/* <Panel label="Report history">
 				<ReportHistory refreshKey={historyKey} />
-			</Panel>
+			</Panel> */}
 		</div>
 	)
 }

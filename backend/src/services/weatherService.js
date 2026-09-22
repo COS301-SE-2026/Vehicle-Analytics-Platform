@@ -23,7 +23,6 @@ const RECENT_REFRESH_DAYS = 2;
 const RECENT_MAX_AGE_HOURS = 3;
 
 // Open-Meteo accepts comma-separated coordinates and returns one result per
-// location. If your plan or endpoint rejects this, set BATCH_SIZE to 1.
 const BATCH_SIZE = 50;
 const BATCH_PAUSE_MS = 5000;
 

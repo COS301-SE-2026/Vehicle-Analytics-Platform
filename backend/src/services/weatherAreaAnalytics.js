@@ -3,9 +3,7 @@
 const { ensureWeather } = require('./weatherService');
 const { addDays } = require('../utils/dateUtils');
 
-// ---------------------------------------------------------------------------
 // Settings
-// ---------------------------------------------------------------------------
 
 const MAX_DAYS = 7;
 const REFERENCE_DAYS = 28;        // "normal" window before the selected period
@@ -13,9 +11,6 @@ const WET_THRESHOLD_MM = 1;       // a wet day has >= 1 mm of rain
 const HEAVY_RAIN_MM = 10;
 const PROBABILITY_KM = 10;        // probabilities are "at least one event in 10 km"
 
-// Sparse rates are pulled towards their parent rate as if the parent had
-// been observed over this many extra km. Stops a 3 km visit to a suburb from
-// producing an extreme rate.
 const PRIOR_KM = 1000;
 
 const MIN_EXPECTED = 5;           // fewer expected events than this: no verdict
@@ -25,13 +20,6 @@ const LOW_RATIO = 0.8;
 const MIN_AREA_KM = 25;           // areas with less driving are grouped as low exposure
 const MAX_AREAS = 200;
 
-// Data-quality checks. Both rest on the same fact: when the fleet would
-// normally log 20+ events, seeing (almost) none is not plausible chance.
-//  - A day whose events fall below 20% of the fleet's normal rate is treated
-//    as missing event data for that event type, and left out.
-//  - A vehicle with zero events of a type, over distance where the fleet
-//    would log 20+, is treated as not reporting that type, and left out of
-//    that type's rates and comparisons.
 const GAP_MIN_DAY_KM = 1000;      // only days with this much driving set the normal rate
 const GAP_MIN_EXPECTED = 20;
 const GAP_RATIO = 0.2;
@@ -63,9 +51,7 @@ function zeroEvents() {
     return Object.fromEntries(EVENTS.map(({ key }) => [key, 0]));
 }
 
-// ---------------------------------------------------------------------------
 // SQL
-// ---------------------------------------------------------------------------
 // $1 window start, $2 window end, $3 vehicle ids, $4 wet threshold,
 // $5 period start, $6.. one date[] per event: days with missing event data.
 
@@ -190,9 +176,7 @@ LEFT JOIN weather_observations wo
       AND wo.obs_date BETWEEN $2::date AND $3::date
 WHERE ra.id = ANY($1::bigint[])`;
 
-// ---------------------------------------------------------------------------
 // Statistics helpers
-// ---------------------------------------------------------------------------
 
 function round(value, dp = 2) {
     if (value === null || value === undefined || !Number.isFinite(value)) return null;
@@ -433,9 +417,7 @@ function detectNotReported(rows) {
     return { notReported, counts };
 }
 
-// ---------------------------------------------------------------------------
 // Accumulators
-// ---------------------------------------------------------------------------
 // km:       all distance, for display
 // eventKm:  per event, the distance during which that event was being
 //           recorded (gap days and non-reporting vehicles removed)
@@ -529,9 +511,7 @@ function vehicleDayShares(vehicleDayRows, notReported) {
     return shares;
 }
 
-// ---------------------------------------------------------------------------
 // Report sections
-// ---------------------------------------------------------------------------
 
 function buildFleetSummary(period, reference, shares, notReportedCounts) {
     return EVENTS.map((ev) => {
@@ -652,8 +632,6 @@ function buildAreas(period, reference, conditionRate, areaDetail) {
 
         const metrics = {};
         for (const ev of EVENTS) {
-            // What the fleet as a whole would log over this area's km,
-            // given the weather on the days those km were driven.
             let expected = 0;
             for (const condition of CONDITIONS) {
                 const c = period.byAreaCond.get(`${areaId}|${condition}`);
@@ -816,9 +794,7 @@ function notReportedWarning(counts) {
     return `Some vehicles recorded none of an event type over distances where the fleet would normally record 20 or more (${parts.join(', ')}). Their devices are probably not reporting that event, so they are left out of it rather than counted as perfect. Check those devices' event settings.`;
 }
 
-// ---------------------------------------------------------------------------
 // Entry point
-// ---------------------------------------------------------------------------
 
 function emptySections() {
     return {

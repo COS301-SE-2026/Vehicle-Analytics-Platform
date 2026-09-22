@@ -153,8 +153,6 @@ function Td({ children, align = 'left', className = '' }) {
 
 Td.propTypes = { children: PropTypes.node, align: PropTypes.string, className: PropTypes.string }
 
-// ---------------------------------------------------------------------------
-
 function FleetCards({ fleet, reference }) {
 	return (
 		<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -558,8 +556,6 @@ DailyPanel.propTypes = {
 	eventLabel: PropTypes.string.isRequired,
 }
 
-// ---------------------------------------------------------------------------
-
 export default function WeatherAreaReport({ scopes, scopeValue, onScopeChange }) {
 	const [days, setDays] = useState(7)
 	const [eventKey, setEventKey] = useState('harsh_braking')
@@ -690,15 +686,6 @@ export default function WeatherAreaReport({ scopes, scopeValue, onScopeChange })
 							</p>
 						)}
 					</div>
-
-					{/* {report.warnings.length > 0 && (
-						<div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-							<AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-							<ul className="text-sm text-amber-800 space-y-1">
-								{report.warnings.map((w) => <li key={w}>{w}</li>)}
-							</ul>
-						</div>
-					)} */}
 
 					{hasData && (
 						<>

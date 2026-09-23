@@ -29,6 +29,7 @@ function makeDefaultProps() {
                 status: 'moving',
                 hasAlert: true,
                 safetyScore: 92,
+                avgSafetyScore: 88,
                 lastUpdated: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
                 stale: false,
             },
@@ -37,6 +38,7 @@ function makeDefaultProps() {
                 status: 'offline',
                 hasAlert: false,
                 safetyScore: 61,
+                avgSafetyScore: 65,
                 lastUpdated: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
                 stale: true,
             },
@@ -50,7 +52,7 @@ function makeDefaultProps() {
 }
 
 describe('VehiclesTable', () => {
-    beforeEach(() => { 
+    beforeEach(() => {
         jest.useFakeTimers()
         jest.setSystemTime(new Date('2026-08-15T12:00:00.000Z'))
         jest.clearAllMocks()
@@ -61,23 +63,26 @@ describe('VehiclesTable', () => {
     test('renders all column headers', () => {
         const defaultProps = makeDefaultProps()
         render(<VehiclesTable {...defaultProps} />)
-        const headers = ['VEHICLE ID', 'STATUS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
+        const headers = ['VEHICLE ID', 'STATUS', 'DAILY SAFETY', 'AVG SAFETY', 'LAST UPDATED', 'ACTIONS']
         headers.forEach((col) => { expect(screen.getByText(col)).toBeInTheDocument()})
     })
 
-    test('renders a row per vehicle with id and safety score', () => {
+    test('renders a row per vehicle with id and safety scores', () => {
         const defaultProps = makeDefaultProps()
         render(<VehiclesTable {...defaultProps} />)
 
         const row1 = within(screen.getByTestId('vehicle-row-VH-001'))
         expect(row1.getByText('VH-001')).toBeInTheDocument()
-        expect(row1.getByText('92')).toBeInTheDocument()
+        expect(row1.getByText('92')).toBeInTheDocument() // daily
+        expect(row1.getByText('88')).toBeInTheDocument() // avg
 
         const row2 = within(screen.getByTestId('vehicle-row-VH-002'))
         expect(row2.getByText('VH-002')).toBeInTheDocument()
-        expect(row2.getByText('61')).toBeInTheDocument()
+        expect(row2.getByText('61')).toBeInTheDocument() // daily
+        expect(row2.getByText('65')).toBeInTheDocument() // avg
 
-        expect(screen.getAllByTestId('safety-score-ring')).toHaveLength(2)
+        // 2 rings per row (Daily + Avg) × 2 vehicles = 4
+        expect(screen.getAllByTestId('safety-score-ring')).toHaveLength(4)
     })
 
 

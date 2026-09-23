@@ -39,3 +39,18 @@ IMMUTABLE
 AS $$
   SELECT p_score < (p_params->>'min_score')::NUMERIC
 $$;
+
+CREATE OR REPLACE FUNCTION alert_trip_duration_breach(
+  p_duration_minutes NUMERIC,
+  p_params JSONB,
+  p_key TEXT DEFAULT 'max_trip_minutes'
+)
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT (p_params ? p_key)
+    AND p_duration_minutes > (p_params->>p_key)::NUMERIC
+$$;
+
+

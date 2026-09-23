@@ -55,6 +55,23 @@ const AXIS_PROPS = {
 	tickLine: false,
 }
 
+function niceNumber(v) {
+	if (v < 1) return Math.round(v)
+	const mag = 10 ** Math.floor(Math.log10(v))
+	const n = v / mag
+	return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * mag
+}
+
+function sqrtTicks(max, count = 5) {
+	const out = new Set([0])
+	for (let i = 1; i < count; i += 1) out.add(niceNumber(max * (i / (count - 1)) ** 2))
+	return [...out].filter((t) => t <= max).sort((a, b) => a - b)
+}
+
+function zeroSafeMax(dataMax) {
+	return dataMax === 0 || dataMax === null || dataMax === undefined || Number.isNaN(dataMax) ? 1 : dataMax
+}
+
 function fmt(value, digits = 1) {
 	if (value === null || value === undefined || Number.isNaN(Number(value))) return '—'
 	return Number(value).toLocaleString('en-US', { maximumFractionDigits: digits })
@@ -110,7 +127,11 @@ export function RateComparisonChart({ fleet, referenceDays }) {
 			<BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }} barGap={2}>
 				<CartesianGrid vertical={false} stroke={CHART_COLORS.grid} />
 				<XAxis dataKey="label" {...AXIS_PROPS} interval={0} />
-				<YAxis {...AXIS_PROPS} axisLine={false} />
+				<YAxis
+					{...AXIS_PROPS}
+					axisLine={false}
+					domain={[0, zeroSafeMax]}
+				/>
 				<Tooltip
 					cursor={{ fill: '#F3F4F6' }}
 					content={({ active, payload }) => (active && payload?.length ? (
@@ -202,7 +223,11 @@ export function WetDryChart({ impact }) {
 			<BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }} barGap={2}>
 				<CartesianGrid vertical={false} stroke={CHART_COLORS.grid} />
 				<XAxis dataKey="label" {...AXIS_PROPS} interval={0} />
-				<YAxis {...AXIS_PROPS} axisLine={false} />
+				<YAxis
+					{...AXIS_PROPS}
+					axisLine={false}
+					domain={[0, zeroSafeMax]}
+				/>
 				<Tooltip
 					cursor={{ fill: '#F3F4F6' }}
 					content={({ active, payload }) => (active && payload?.length ? (
@@ -228,14 +253,16 @@ const RATIO_TICKS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6]
 
 function ratioPoint(ev, comparison, index, offset, series) {
 	if (!comparison) return null
+	const low = Number.isFinite(comparison.low) ? comparison.low : 0
+	const high = Number.isFinite(comparison.high) ? comparison.high : comparison.ratio
 	return {
 		x: comparison.ratio,
 		y: index + offset,
-		err: [comparison.ratio - comparison.low, comparison.high - comparison.ratio],
+		err: [comparison.ratio - low, high - comparison.ratio],
 		label: ev.label,
 		series,
-		low: comparison.low,
-		high: comparison.high,
+		low,
+		high,
 		significant: comparison.significant,
 	}
 }
@@ -250,8 +277,19 @@ export function WeatherRatioChart({ impact }) {
 		return <p className="text-sm text-fleet-secondary py-10 text-center">Not enough wet and dry driving to compare.</p>
 	}
 
-	const lo = Math.min(1, ...all.map((p) => p.low)) * 0.85
-	const hi = Math.max(1, ...all.map((p) => p.high)) * 1.15
+	// A log-scale axis is undefined at (and breaks near) 0, so keep both
+	// bounds strictly positive and finite. `low` can legitimately be 0
+	// (e.g. zero wet-weather events), and `high` can legitimately be null
+	// (the backend's confidence interval overflowed to Infinity and got
+	// rounded away). Left unguarded, either collapses several ticks onto
+	// the same pixel, which is what caused the duplicate "tick-…" React
+	// key warning.
+	const MIN_RATIO = 0.1
+	const MAX_RATIO = 10
+	const finiteLows = all.map((p) => p.low).filter((v) => Number.isFinite(v) && v > 0)
+	const finiteHighs = all.map((p) => p.high).filter((v) => Number.isFinite(v) && v > 0)
+	const lo = Math.max(MIN_RATIO, Math.min(1, ...(finiteLows.length ? finiteLows : [1])) * 0.85)
+	const hi = Math.min(MAX_RATIO, Math.max(1, ...(finiteHighs.length ? finiteHighs : [1])) * 1.15)
 	const ticks = RATIO_TICKS.filter((t) => t >= lo && t <= hi)
 
 	return (
@@ -364,7 +402,7 @@ export function AreaScatterChart({ areas, eventKey, fleetRate }) {
 					type="number"
 					dataKey="y"
 					scale="sqrt"
-					domain={[0, 'auto']}
+					domain={[0, zeroSafeMax]}
 					label={{ value: 'Per 100 km', angle: -90, position: 'insideLeft', offset: 16, fontSize: 12, fill: CHART_COLORS.axis }}
 					{...AXIS_PROPS}
 					axisLine={false}
@@ -437,6 +475,7 @@ export function VehicleScatterChart({ vehicles, eventKey }) {
 	}
 
 	const max = Math.max(1, ...points.map((p) => Math.max(p.x, p.y))) * 1.05
+	const ticks = sqrtTicks(max)
 
 	return (
 		<ChartFrame height={340}>
@@ -447,6 +486,8 @@ export function VehicleScatterChart({ vehicles, eventKey }) {
 					dataKey="x"
 					scale="sqrt"
 					domain={[0, max]}
+					ticks={ticks}
+					allowDecimals={false}
 					tickFormatter={(v) => fmt(v, 0)}
 					label={{ value: 'Events the fleet would log', position: 'insideBottom', offset: -4, fontSize: 12, fill: CHART_COLORS.axis }}
 					{...AXIS_PROPS}
@@ -456,6 +497,8 @@ export function VehicleScatterChart({ vehicles, eventKey }) {
 					dataKey="y"
 					scale="sqrt"
 					domain={[0, max]}
+					ticks={ticks}
+					allowDecimals={false}
 					tickFormatter={(v) => fmt(v, 0)}
 					label={{ value: 'Events logged', angle: -90, position: 'insideLeft', offset: 16, fontSize: 12, fill: CHART_COLORS.axis }}
 					{...AXIS_PROPS}
@@ -507,7 +550,9 @@ VehicleScatterChart.propTypes = {
 	eventKey: PropTypes.string.isRequired,
 }
 
+// ---------------------------------------------------------------------------
 // Day by day: event rate (line) against share of km driven wet (bars)
+// ---------------------------------------------------------------------------
 
 export function DailyChart({ daily, eventKey, eventLabel }) {
 	const data = daily.map((d) => {

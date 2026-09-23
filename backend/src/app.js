@@ -87,7 +87,7 @@ app.use("/api/fleet", fleetAnalyticsRoutes);
 app.use("/api/geofences", geofenceRoutes);
 
 //I added this for demo 3
-// app.use("/api/fuel", fuelRoutes);
+//app.use("/api/fuel", fuelRoutes);
 
 app.use("/api/fleet-groups", fleetGroupsRoutes);
 
@@ -97,9 +97,9 @@ app.use("/api/fuel", fuelHistoryRoutes);
 
 app.use("/api/reports", reportRoutes); // added for reporting
 
-// app.use("/api/custom-alerts", customAlertsRoutes);
+app.use("/api/custom-alerts", customAlertsRoutes);
 
-// app.use("/api/alerts", triggeredAlertsRoutes);
+app.use("/api/alerts", triggeredAlertsRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });

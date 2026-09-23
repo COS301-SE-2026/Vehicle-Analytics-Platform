@@ -1,9 +1,10 @@
+DROP TRIGGER IF EXISTS trigger_detect_event_hotspots ON vehicle_events;
+
 -- Automatic event-hotspot geofences.
 --
--- When 5 monitored safety INCIDENTS accumulate within R of each other, a
+-- When 100 monitored safety INCIDENTS accumulate within R of each other, a
 -- circular geofence is created so the hotspot shows on the map, and an
 -- alert row is written to geofence_events for the Zone Alerts panel.
-
 
 CREATE OR REPLACE FUNCTION monitored_event_categories()
 RETURNS TEXT[]
@@ -48,7 +49,7 @@ $$;
 CREATE OR REPLACE FUNCTION evaluate_event_hotspot(
     p_point         GEOMETRY(POINT, 4326),
     p_radius_km     DOUBLE PRECISION DEFAULT 0.25,
-    p_min_incidents INTEGER          DEFAULT 5,
+    p_min_incidents INTEGER          DEFAULT 100,
     p_window        INTERVAL         DEFAULT INTERVAL '14 days'
 )
 RETURNS BIGINT
@@ -123,10 +124,9 @@ BEGIN
 
     v_area := describe_point_area(ST_Y(v_centroid), ST_X(v_centroid));
 
-    
     -- Readable name for the zone, shown on the map and in the Zone Alerts panel.
     v_name := COALESCE(NULLIF(v_area, '') || ' - ', '')
-              || v_label
+              || COALESCE(v_label, 'Hotspot')
               || ' (' || v_incidents || ' incidents / '
               || v_days || ' days, '
               || v_vehicles || ' vehicle' || CASE WHEN v_vehicles = 1 THEN '' ELSE 's' END
@@ -188,7 +188,7 @@ EXECUTE FUNCTION detect_event_hotspots_batch();
 CREATE OR REPLACE FUNCTION backfill_event_hotspots(
     p_days          INTEGER          DEFAULT 14,
     p_radius_km     DOUBLE PRECISION DEFAULT 0.25,
-    p_min_incidents INTEGER          DEFAULT 15
+    p_min_incidents INTEGER          DEFAULT 100
 )
 RETURNS INTEGER
 LANGUAGE plpgsql

@@ -15,6 +15,29 @@ const PAGE_SIZE = 10
 
 const SCOPED_ROLES = new Set(['manager', 'fleet_manager'])
 
+const SELECTED_GROUP_KEY = 'vehiclesSelectedGroup'
+
+function readSavedGroup() {
+    try {
+        const saved = sessionStorage.getItem(SELECTED_GROUP_KEY)
+        return saved ? JSON.parse(saved) : null
+    } catch {
+        return null
+    }
+}
+
+function saveGroup(group) {
+    try {
+        if (group) {
+            sessionStorage.setItem(SELECTED_GROUP_KEY, JSON.stringify(group))
+        } else {
+            sessionStorage.removeItem(SELECTED_GROUP_KEY)
+        }
+    } catch {
+        // storage unavailable, fall back to in-memory only
+    }
+}
+
 function calculateDelta(current, previous) {
     if(current == null || previous == null){
         return null
@@ -36,7 +59,7 @@ export default function VehiclesList(){
     const [myGroups, setMyGroups] = useState([])
     const [groupsLoading, setGroupsLoading] = useState(isScoped)
     const [groupsError, setGroupsError] = useState(null)
-    const [selectedGroup, setSelectedGroup] = useState(null)
+    const [selectedGroup, setSelectedGroup] = useState(() => readSavedGroup())
 
 
     const [vehicles, setVehicles] = useState([])
@@ -64,6 +87,19 @@ useEffect(() => {
 
                 setMyGroups(groups)
                 setGroupsError(null)
+
+                const saved = readSavedGroup()
+
+
+                if (saved && !groups.some((g) => String(g.id) === String(saved.id))) {
+
+                    saveGroup(null)
+
+
+
+                    setSelectedGroup(null)
+
+                }
 
         }catch(err) {
             if(cancelled){
@@ -149,7 +185,10 @@ useEffect(() => {
 
 
 function handleSelectGroup(group) {
+    saveGroup(group)
+
     setSelectedGroup(group)
+
     setPage(1)
     setStatusFilter('all')
     setLoading(true)
@@ -230,7 +269,7 @@ function handleSelectGroup(group) {
             {isScoped && (
                 <button 
                     type="button"
-                    onClick={() => setSelectedGroup(null)}
+                    onClick={() => { saveGroup(null); setSelectedGroup(null) }}
                     className="inline-flex items-center gap-1 text-xs text-fleet-secondary hover:text-fleet-text mb-1">
                         <ArrowLeft className="w-3.5 h-3.5"></ArrowLeft>
                         Switch group

@@ -30,3 +30,12 @@ AS $$
             OR p_params->'restricted_days' ? to_char(p_timestamp, 'Dy')
         )
 $$;
+
+
+CREATE OR REPLACE FUNCTION alert_score_breach(p_score NUMERIC, p_params JSONB)
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT p_score < (p_params->>'min_score')::NUMERIC
+$$;

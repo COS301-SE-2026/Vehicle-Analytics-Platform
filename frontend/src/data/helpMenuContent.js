@@ -267,7 +267,18 @@ export const helpMenuData = [
                     ),
                 ],
             },
-
+            {
+                id: "switching-between-groups",
+                title: "Switching Between Groups",
+                preview: "Working across more than one fleet",
+                roles: MANAGER_AND_ADMIN,
+                content: [
+                    text(
+                        "If you're assigned to more than one fleet group, go back to the group cards and pick a different one. The dashboard, map, vehicle list, and safety scores all update to the newly selected group."
+                    ),
+                    callout("Switching groups doesn't reload the page - the views update in place."),
+                ],
+            }
        ],
     },
     {

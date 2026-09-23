@@ -29,6 +29,7 @@ const EVENT_ICONS = {
 const PAGE_SIZE = 8
 
 function formatEventLabel(type) {
+    if (!type) return 'Unknown Event'
     return type
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -80,7 +81,9 @@ export default function AllEventsPanel({ open, onOpenChange, vehicleId, events }
                                     <p className="text-sm font-medium text-fleet-text">{formatEventLabel(event.type)}</p>
                                     <p className="text-xs text-fleet-secondary">
                                         {event.speed ? `${event.speed} KM/H \u2022 ` : ''}
-                                        {event.latitude.toFixed(4)}, {event.longitude.toFixed(4)}
+                                        {Number.isFinite(event.latitude) && Number.isFinite(event.longitude)
+                                            ? `${event.latitude.toFixed(4)}, ${event.longitude.toFixed(4)}`
+                                            : 'Location unknown'}
                                     </p>
                                 </div>
                                 <span className="text-xs text-fleet-secondary">{formatTime(event.timestamp)}</span>

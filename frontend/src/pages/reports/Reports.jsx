@@ -187,9 +187,7 @@ export default function Reports(){
 		<div className="space-y-6">
 			<div className="flex flex-wrap items-start justify-between gap-3">
 				<div className="flex items-start gap-3">
-					<FileBarChart className="w-7 h-7 text-fleet-blue shrink-0 mt-0.5" />
 					<div>
-						<h1 className="text-2xl font-bold text-fleet-text">Fleet Reports</h1>
 						<p className="text-sm text-fleet-secondary mt-1">
 							{isPerformance
 								? 'Analyse fleet performance and driving behaviour over a reporting period.'

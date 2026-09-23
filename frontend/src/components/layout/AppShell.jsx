@@ -9,6 +9,10 @@ const pageTitles = {
   '/dashboard/manager': 'Dashboard',
   '/dashboard/admin':   'Admin Dashboard',
   '/map':               'Live Map',
+  '/vehicles':          'Vehicles',
+  '/geofence':          'Geofence',
+  '/custom-alerts':     'Custom Alerts',
+  '/reports':           'Reports'
 }
 
 const noHeader = new Set(['/login', '/register'])
@@ -16,7 +20,7 @@ const noHeader = new Set(['/login', '/register'])
 export default function AppShell({ role = 'viewer' }) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
-  const title = pageTitles[location.pathname] || 'FleetTracker'
+  const title = pageTitles[location.pathname]  || 'FleetTracker'
   const hideHeader = noHeader.has(location.pathname)
 
   return (

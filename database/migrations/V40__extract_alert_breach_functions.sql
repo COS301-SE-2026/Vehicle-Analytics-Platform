@@ -54,3 +54,11 @@ AS $$
 $$;
 
 
+CREATE OR REPLACE FUNCTION alert_unsafe_events_breach(p_event_count INT, p_params JSONB)
+RETURNS BOOLEAN
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT (p_params ? 'count')
+    AND p_event_count >= (p_params->>'count')::INT
+$$;

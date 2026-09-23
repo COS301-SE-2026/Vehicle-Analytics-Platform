@@ -21,7 +21,7 @@ export async function getKPIs() {
   const headers = await getAuthHeaders();
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeout = setTimeout(() => controller.abort(), 10000);
  
     const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, {
       headers,
@@ -72,11 +72,6 @@ export async function getVehicleLocations() {
       movement: v.movement,
       lastUpdate: v.last_update,
       distanceToday: Number.parseFloat(v.distance_today) || 0,
-      // Reverse-geocoded fields from vehicle_location_cache, joined in by
-      // getLiveLocations. Previously fetched by the backend but never
-      // surfaced past this mapping step -- LiveFleetMapPlaceholder's
-      // VehiclePanel falls back to raw coordinates specifically because
-      // these were never here to prefer.
       road: v.road,
       roadClass: v.road_class,
       routeNumber: v.route_number,
@@ -189,7 +184,7 @@ export async function getVehiclePositionBuffer() {
  
   const data = await res.json();
 
-  return data.data; // { type: 'FeatureCollection', timestamp, features: [...] }
+  return data.data;
 }
 
 export async function getVehicleSafetyScore(vehicleId, date = null) {
@@ -244,12 +239,14 @@ export async function getVehiclesList({status, page = 1, limit = 20, fleetGroupI
   const data = await res.json()
 
   return {
-    vehicles: data.data.vehicles || [],
+    vehicles: (data.data.vehicles || []).map(v => ({
+      ...v,
+      safetyScore: v.safety_score,
+      avgSafetyScore: v.avg_safety_score,
+    })),
     stats: data.data.stats || {},
     pagination: data.data.pagination || {}
   }
-
-  
 }
 
 
@@ -304,8 +301,6 @@ const EVENT_TYPE_LABELS = {
   harsh_acceleration: 'Harsh Acceleration',
   harsh_cornering: 'Harsh Cornering',
   speeding: 'Speeding',
-  // side note that the backend's event_breakdown query does not query crash detection so that will not show anhythi
-  // at the moment 
 }
  
 function classifyScore(score) {

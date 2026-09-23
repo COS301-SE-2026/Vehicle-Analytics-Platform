@@ -71,9 +71,10 @@ describe('VehicleSummaryCards', () => {
         expect(screen.getByText('-')).toBeInTheDocument()
     })
 
-    test('falls back to "-" when lowestScoringVehicle is missing', () => {
-        render(<VehicleSummaryCards summary={{ ...baseSummary, lowestScoringVehicle: { id: undefined, score: undefined} }} />)
-        expect(getScoreSeverity).toHaveBeenCalledWith(0)
-        expect(screen.getByText('- / 100')).toBeInTheDocument()
+    test('shows a neutral empty state when there is no lowest scoring vehicle', () => {
+        render(<VehicleSummaryCards summary={{ ...baseSummary, lowestScoringVehicle: null }} />)
+        expect(screen.getByText('-')).toBeInTheDocument()
+        expect(screen.getByText('No safety data yet today')).toBeInTheDocument()
+        expect(screen.queryByText(/\/ 100/)).not.toBeInTheDocument()
     })
 })

@@ -54,7 +54,7 @@ AS $$
 $$;
 
 
-CREATE OR REPLACE FUNCTION alert_unsafe_events_breach(p_event_count INT, p_params JSONB)
+CREATE OR REPLACE FUNCTION alert_unsafe_events_breach(p_event_count BIGINT, p_params JSONB)
 RETURNS BOOLEAN
 LANGUAGE sql
 IMMUTABLE
@@ -396,3 +396,11 @@ BEGIN
     RETURN NULL;
 END;
 $$;
+
+DROP TRIGGER IF EXISTS repeated_unsafe_events_trigger ON vehicle_events;
+
+CREATE TRIGGER repeated_unsafe_events_trigger
+AFTER INSERT ON vehicle_events
+REFERENCING NEW TABLE AS new_events
+FOR EACH STATEMENT
+EXECUTE FUNCTION evaluate_repeated_unsafe_events_rules();

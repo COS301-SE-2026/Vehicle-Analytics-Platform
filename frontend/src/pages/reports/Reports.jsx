@@ -386,9 +386,9 @@ export default function Reports(){
 			)}
 
 			{/* Outside the report block so history is visible before anything has been generated in this session. */}
-			{/* <Panel label="Report history">
+			<Panel label="Report history">
 				<ReportHistory refreshKey={historyKey} />
-			</Panel> */}
+			</Panel>
 		</div>
 	)
 }

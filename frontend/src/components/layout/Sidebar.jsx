@@ -88,13 +88,13 @@ const navItems = [
           <button
             type="button"
             onClick={onToggle}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-fleet-blue hover:bg-fleet-blue/80 transition-colors ml-auto"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-fleet-surface hover:bg-fleet-blue/20 transition-colors ml-auto"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? (
-              <ChevronRight className="w-4 h-4 text-white" />
+              <ChevronRight className="w-4 h-4 text-fleet-blue" />
             ) : (
-              <ChevronLeft className="w-4 h-4 text-white" />
+              <ChevronLeft className="w-4 h-4 text-fleet-blue" />
             )}
           </button>
         </div>

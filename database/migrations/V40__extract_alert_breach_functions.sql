@@ -10,7 +10,7 @@ LANGUAGE sql
 IMMUTABLE
 AS $$ 
     SELECT p_speed > (p_params->>'max_speed_kmh')::NUMERIC
-$$
+$$;
 
 CREATE OR REPLACE FUNCTION alert_time_breach(p_timestamp TIMESTAMPTZ, p_params JSONB)
 RETURNS BOOLEAN
@@ -26,7 +26,7 @@ AS $$
             AND p_timestamp::TIME < (p_params->>'end_time')::TIME
         END
         AND (
-            p_timestamp->'restricted_days' IS NULL
+            p_params->'restricted_days' IS NULL
             OR p_params->'restricted_days' ? to_char(p_timestamp, 'Dy')
         )
 $$;

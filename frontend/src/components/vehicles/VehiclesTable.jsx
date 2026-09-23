@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { AlertCircle, ChevronRight, ChevronLeft, } from 'lucide-react'
 
 import PropTypes from 'prop-types'
@@ -11,6 +11,11 @@ import VehicleStatusBadge from './VehicleStatusBadge'
 import SafetyScoreRing from './SafetyScoreRing'
 
 const columns = ['VEHICLE ID', 'STATUS', 'ALERTS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
+
+function getPageNumbers(page, totalPages) {
+    const pages = new Set([1, totalPages, page - 1, page, page + 1])
+    return [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a-b)
+}
 
 function parseTimestamp(value) {
     if (!value) return null
@@ -45,7 +50,7 @@ function formatRelativeTime(value, nowMs) {
 export default function VehiclesTable({ vehicles, page, totalPages, totalVehicles, pageSize, onPageChange }){
     const navigate = useNavigate()
     const [nowMs, setNowMs] = useState(() => Date.now())
-    const start = (page-1)* pageSize + 1
+    const start = totalVehicles === 0 ? 0 : (page-1)* pageSize + 1
     const end = Math.min(page *pageSize, totalVehicles)
 
     useEffect(() => { const interval = setInterval(() => setNowMs(Date.now()), 30000)
@@ -68,6 +73,14 @@ export default function VehiclesTable({ vehicles, page, totalPages, totalVehicle
                         key={vehicle.id}
                         data-testid={`vehicle-row-${vehicle.id}`}
                         onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                navigate(`/vehicles/${vehicle.id}`)
+                            }
+                        }}
+                        tabIndex={0}
+
                         className="border-b border-fleet-border last:border-0 hover:bg-gray-50 cursor-pointer">
                             <td className="px-4 py-3 font-medium text-fleet-text">{vehicle.id}</td>
                             <td className="px-4 py-3"><VehicleStatusBadge status={vehicle.status}></VehicleStatusBadge></td>
@@ -79,6 +92,13 @@ export default function VehiclesTable({ vehicles, page, totalPages, totalVehicle
                             <td className="px-4 py-3"><ChevronRight className="w-4 h-4 text-fleet-secondary"></ChevronRight></td>
                         </tr>
                     ))}
+                    {vehicles.length === 0 && (
+                        <tr>
+                            <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-fleet-secondary">
+                                No vehicles match this filter
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
 
@@ -93,15 +113,20 @@ export default function VehiclesTable({ vehicles, page, totalPages, totalVehicle
                     className="w-7 h-7 flex items-center justify-center rounded-md border border-fleet-border disabled:opacity-40">
                         <ChevronLeft className="w-3.5 h-3.5"></ChevronLeft>
                     </button>
-                    {Array.from({ length: totalPages}, (_,i) => i+1).map((p) => (
+                    {getPageNumbers(page, totalPages).map((p, i, arr) => (
+                        <Fragment key={p}>
+                            {i > 0 && p-arr[i-1] > 1 && (
+                                <span className="px-1 text-fleet-secondary">...</span>
+                            )}
                         <button
-                        key={p}
                         type="button"
                         data-testid={`vehicles-page-${p}`}
                         onClick={() => onPageChange(p)}
                         className={`w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium ${p === page ? 'bg-fleet-blue text-white' : 'border border-fleet-border text-fleet-text'}`}>
                             {p}
                         </button>
+                        </Fragment>
+                    
                     ))}
                     <button
                     type="button"

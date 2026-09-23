@@ -22,6 +22,8 @@ export const ROLES = {
 const ALL_ROLES = [ROLES.VIEWER, ROLES.FLEET_MANAGER, ROLES.ADMIN];
 const MANAGER_AND_ADMIN = [ROLES.FLEET_MANAGER, ROLES.ADMIN];
 
+const ADMIN_ONLY = [ROLES.ADMIN];
+
 const text = (value) => ({ type: "text", text: value });
 const list = (items) => ({ type: "list", items });
 const table = (headers, rows) => ({ type: "table", headers, rows });
@@ -241,6 +243,32 @@ export const helpMenuData = [
                 ],
             },
         ],
+    },
+    {
+        id: "fleet-groups",
+        title: "Fleet Groups",
+        icon: "layers",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+            {
+                id: "what-are-fleet-groups",
+                title: "What Fleet Groups Are",
+                preview: "How vehicles are organised and scoped",
+                roles: MANAGER_AND_ADMIN,
+                content: [
+                    text(
+                        "A fleet group is a named collection of vehicles. Admins create the groups and decide which vehicles belong to each one, then assign Fleet Managers to the groups they're responsible for."
+                    ),
+                    text(
+                        "Once you're assigned, your dashboard, map, vehicle list, and safety scores are scoped to your groups only. Admins always see every group, assigned or not."
+                    ),
+                    callout(
+                        "Access is checked on every request, not stored when you log in. If your access changes, you'll see it on the next refresh - no need to log out and back in."
+                    ),
+                ],
+            },
+
+       ],
     },
     {
         id: "geofencing",

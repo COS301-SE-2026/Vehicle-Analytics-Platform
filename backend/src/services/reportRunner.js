@@ -1,222 +1,135 @@
 'use strict';
 
-const { assertCanReadReport,assertReportingUser, getAccessibleGroups, ScopeError,
-} = require('./scopeResolver');
+const { getAccessibleGroups } = require('./scopeResolver');
 
-const DEFAULT_LIMIT = 25;
-
-
-const MAX_LIMIT = 100;
-
-const TRIGGERS = ['manual', 'scheduled'];
+const { saveReport } = require('./reportStore');
 
 
-const SUMMARY_COLUMNS = `
-    id,
-    scope_type,
-    scope_id,
-    scope_label,
-    group_ids,
-    includes_unassigned,
-    period_type,
-    period_start::text AS period_start,
-    period_end::text   AS period_end,
-    generated_at,
-    generated_by,
-    trigger_source
-`;
-
-function toSummary(row){
-    return {
-        id: Number(row.id),
-        scope: {
-            type: row.scope_type,
-            id: row.scope_id,
-            label: row.scope_label,
-            groupIds: (row.group_ids || []).map(Number),
-            includesUnassigned: Boolean(row.includes_unassigned),
-        },
-        period: {
-            type: row.period_type,
-            fromDate: String(row.period_start).slice(0, 10),
-            toDate: String(row.period_end).slice(0, 10),
-        },
-        generatedAt: row.generated_at,
-        generatedBy: row.generated_by,
-        trigger: row.trigger_source,
-    };
-
-}
+const SYSTEM_USER = Object.freeze({ id: 0, role: 'admin', name: 'scheduler' });
 
 
+const SCHEDULED_PERIOD_TYPES = ['weekly', 'monthly'];
 
-async function saveReport(db, { payload, trigger = 'manual', generatedBy } = {}){
+
+function validateScheduledInputs(db, deps, periodType){
     if (!db || typeof db.query !== 'function') {
-        throw new Error('saveReport requires a pg client or pool');
-    }
-    if (!payload || !payload.report || !payload.period) {
-        throw new Error('saveReport requires a report dataset');
-    }
-    if (!TRIGGERS.includes(trigger)) {
-        throw new Error(`Unknown trigger '${trigger}'`);
+        throw new Error('runScheduledReports requires a pg client or pool');
     }
 
-    const { scope } = payload.report;
-    const scopeId = Array.isArray(scope.id) ? scope.id.join(',') : scope.id;
-
-    const values = [
-        scope.type,
-        scopeId || null,
-        scope.label,
-        scope.groupIds || [],
-        Boolean(scope.includesUnassigned),
-        payload.period.type,
-        payload.period.fromDate,
-        payload.period.toDate,
-        generatedBy || 'unknown',
-        trigger,
-        JSON.stringify(payload),
-    ];
+    const { buildReportPayload } = deps || {};
+    if (typeof buildReportPayload !== 'function') {
+        throw new Error('runScheduledReports requires a buildReportPayload function');
+    }
 
 
-    
-    const conflictClause = trigger === 'scheduled'
-        ? `ON CONFLICT (scope_type, COALESCE(scope_id, ''), period_type, period_start)
-           WHERE trigger_source = 'scheduled'
-           DO UPDATE SET
-               scope_label         = EXCLUDED.scope_label,
-               group_ids           = EXCLUDED.group_ids,
-               includes_unassigned = EXCLUDED.includes_unassigned,
-               period_end          = EXCLUDED.period_end,
-               generated_at        = now(),
-               generated_by        = EXCLUDED.generated_by,
-               dataset             = EXCLUDED.dataset`
-        : '';
-
-    const result = await db.query(
-        `INSERT INTO fleet_reports (
-            scope_type, scope_id, scope_label, group_ids, includes_unassigned,
-            period_type, period_start, period_end,
-            generated_by, trigger_source, dataset
-         ) VALUES ($1, $2, $3, $4::bigint[], $5, $6, $7, $8, $9, $10, $11::jsonb)
-         ${conflictClause}
-         RETURNING ${SUMMARY_COLUMNS}`,
-        values,
-    );
-
-    return toSummary(result.rows[0]);
-}
-
-async function listReports(db, user, options = {}){
-    const role = assertReportingUser(user);
-
-    const {
-        limit = DEFAULT_LIMIT,
-        offset = 0,
-        scopeType = null,
-        periodType = null,
-        trigger = null,
-    } = options;
-
-    const safeLimit = Math.min(Math.max(Number(limit) || DEFAULT_LIMIT, 1), MAX_LIMIT);
-
-    const safeOffset = Math.max(Number(offset) || 0, 0);
-
-    const conditions = [];
-
-    const params = [];
-
-
-
-    if (role !== 'admin') {
-        const groups = await getAccessibleGroups(db, user);
-        params.push(groups.map((g) => g.id));
-        conditions.push(
-            `cardinality(group_ids) > 0 AND group_ids <@ $${params.length}::bigint[] AND NOT includes_unassigned`,
+    if (!SCHEDULED_PERIOD_TYPES.includes(periodType)) {
+        throw new Error(
+            `Scheduled reports support ${SCHEDULED_PERIOD_TYPES.join(' and ')}, got '${periodType}'`,
         );
     }
 
-    if (scopeType) {
-        params.push(scopeType);
-        conditions.push(`scope_type = $${params.length}`);
-    }
 
-    if (periodType) {
-        params.push(periodType);
-        conditions.push(`period_type = $${params.length}`);
-    }
-
-    if (trigger) {
-        params.push(trigger);
-        conditions.push(`trigger_source = $${params.length}`);
-    }
-
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    params.push(safeLimit);
-
-    params.push(safeOffset);
-
-    const result = await db.query(
-        `SELECT ${SUMMARY_COLUMNS}
-         FROM fleet_reports
-         ${where}
-         ORDER BY generated_at DESC, id DESC
-         LIMIT $${params.length - 1} OFFSET $${params.length}`,
-        params,
-    );
-
-    return {
-        reports: result.rows.map(toSummary),
-        limit: safeLimit,
-        offset: safeOffset,
-    };
+    return buildReportPayload;
 
 }
 
-async function getReport(db, user, id){
-    
-    assertReportingUser(user);
 
-    const reportId = Number(id);
-    if (!Number.isInteger(reportId) || reportId < 1) {
-        throw new ScopeError('Invalid report id', 400);
+
+
+function resolveRunAnchor(anchor, now){
+    if (anchor === null || anchor === undefined || anchor === '') return now();
+
+    const date = anchor instanceof Date ? anchor : new Date(anchor);
+    if (Number.isNaN(date.getTime())) {
+        throw new Error(`Invalid scheduled report anchor '${anchor}'`);
+    }
+    return date;
+}
+
+async function runScheduledReports(db, deps, options = {}){
+    const { periodType = 'weekly', anchor = null, now = () => new Date() } = options;
+    const buildReportPayload = validateScheduledInputs(db, deps, periodType);
+    const runAnchor = resolveRunAnchor(anchor, now);
+
+    const startedAt = new Date();
+    const groups = await getAccessibleGroups(db, SYSTEM_USER);
+
+    const targets = [
+        { scopeType: 'fleet', scopeId: null, label: 'Entire fleet' },
+        ...groups.map((g) => ({ scopeType: 'group', scopeId: String(g.id), label: g.name })),
+    ];
+
+    const generated = [];
+
+    const failed = [];
+
+    for (const target of targets) {
+        try {
+            const payload = await buildReportPayload(db, SYSTEM_USER, {
+                scope_type: target.scopeType,
+                scope_id: target.scopeId,
+                period_type: periodType,
+                anchor: runAnchor.toISOString(),
+            });
+
+
+
+            const saved = await saveReport(db, {
+                payload,
+                trigger: 'scheduled',
+                generatedBy: 'scheduler',
+            });
+
+
+
+            generated.push({
+                reportId: saved.id,
+                scopeType: target.scopeType,
+                scopeId: target.scopeId,
+                label: target.label,
+                periodFrom: saved.period.fromDate,
+                periodTo: saved.period.toDate,
+                vehicleCount: payload.report.scope.vehicleCount,
+                hasTelemetry: payload.coverage.hasTelemetry,
+            });
+            
+        } catch (err) {
+            console.error(
+                `Scheduled ${periodType} report failed for ${target.scopeType} ${target.label}:`,
+                err.message,
+            );
+            failed.push({
+                scopeType: target.scopeType,
+                scopeId: target.scopeId,
+                label: target.label,
+                error: err.message,
+            });
+        }
     }
 
-    const result = await db.query(
-        `SELECT ${SUMMARY_COLUMNS}, dataset
-         FROM fleet_reports
-         WHERE id = $1`,
-        [reportId],
+    const finishedAt = new Date();
+
+    const summary = {
+        periodType,
+        anchor: runAnchor.toISOString(),
+        startedAt: startedAt.toISOString(),
+        finishedAt: finishedAt.toISOString(),
+        durationMs: finishedAt.getTime() - startedAt.getTime(),
+        attempted: targets.length,
+        generated,
+        failed,
+    };
+
+    console.log(
+        `Scheduled ${periodType} reports: ${generated.length} generated, `
+        + `${failed.length} failed, ${summary.durationMs}ms`,
     );
 
-
-    if (!result.rows.length) {
-        throw new ScopeError('Report not found or not authorized', 403);
-    }
-
-    const row = result.rows[0];
-    try {
-        await assertCanReadReport(db, user, row.group_ids || [], Boolean(row.includes_unassigned));
-    } catch (err) {
-        if (err instanceof ScopeError && err.statusCode === 403) {
-            throw new ScopeError('Report not found or not authorized', 403);
-        }
-        throw err;
-    }
-
-    return {
-        ...toSummary(row),
-        dataset: row.dataset,
-    };
+    return summary;
 }
 
 module.exports = {
-    saveReport,
-    listReports,
-    getReport,
-    DEFAULT_LIMIT,
-    MAX_LIMIT,
-    TRIGGERS,
-    _toSummary: toSummary,
+    runScheduledReports,
+    SYSTEM_USER,
+    SCHEDULED_PERIOD_TYPES,
 };

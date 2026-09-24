@@ -61,13 +61,14 @@ async function getAccessibleGroups(db, user){
 
 	const result = role === 'admin'
 		? await db.query(
-			'SELECT id, name FROM fleet_groups ORDER BY name',
+			'SELECT id, name FROM fleet_groups WHERE deleted_at IS NULL ORDER BY name',
 		)
 		: await db.query(
 				`SELECT g.id, g.name
 				FROM fleet_manager_assignments a
 				JOIN fleet_groups g ON g.id = a.fleet_group_id
 				WHERE a.fleet_manager_id = $1
+					AND g.deleted_at IS NULL
 				ORDER BY g.name`,
 				[user.id],
 		);
@@ -93,6 +94,7 @@ async function getAllVehicles(db){
 		'SELECT vehicle_id FROM vehicles ORDER BY vehicle_id',
 	);
 	return result.rows.map((row) => row.vehicle_id);
+	
 }
 
 async function countUnassignedVehicles(db){
@@ -137,6 +139,7 @@ async function resolveFleetScope(db, role, groups, accessibleGroupIds, unassigne
 		scopeId: null,
 		label: role === 'admin' ? 'Entire fleet' : 'Assigned fleet',
 		groupIds: accessibleGroupIds,
+		includesUnassigned: role === 'admin' && unassignedVehicleCount > 0,
 		vehicleIds,
 		vehicleCount: vehicleIds.length,
 		unassignedVehicleCount,
@@ -161,6 +164,7 @@ async function resolveGroupScope(db, role, groups, scopeId, unassignedVehicleCou
 		scopeId: String(group.id),
 		label: group.name,
 		groupIds: [group.id],
+		includesUnassigned: false,
 		vehicleIds,
 		vehicleCount: vehicleIds.length,
 		unassignedVehicleCount,
@@ -182,6 +186,7 @@ async function authoriseVehicles(db, role, accessibleGroupIds, vehicleIds){
 	}
 
 	const groupIds = [];
+	let includesUnassigned = false;
 	result.rows.forEach((row) => {
 		const groupId = toGroupId(row.fleet_group_id);
 
@@ -191,10 +196,11 @@ async function authoriseVehicles(db, role, accessibleGroupIds, vehicleIds){
 			}
 		}
 
+		if (groupId === null) includesUnassigned = true;
 		if (groupId !== null && !groupIds.includes(groupId)) groupIds.push(groupId);
 	});
 
-	return { rows: result.rows, groupIds };
+	return { rows: result.rows, groupIds, includesUnassigned };
 }
 
 async function resolveVehicleScope(db, role, accessibleGroupIds, scopeId, unassignedVehicleCount){
@@ -202,7 +208,7 @@ async function resolveVehicleScope(db, role, accessibleGroupIds, scopeId, unassi
 		throw new ScopeError('A vehicle_id is required for scopeType "vehicle"', 400);
 	}
 
-	const { rows, groupIds } = await authoriseVehicles(
+	const { rows, groupIds, includesUnassigned } = await authoriseVehicles(
 		db, role, accessibleGroupIds, [scopeId.trim()],
 	);
 
@@ -213,6 +219,7 @@ async function resolveVehicleScope(db, role, accessibleGroupIds, scopeId, unassi
 		scopeId: vehicle.vehicle_id,
 		label: vehicle.vehicle_id,
 		groupIds,
+		includesUnassigned,
 		vehicleIds: [vehicle.vehicle_id],
 		vehicleCount: 1,
 		unassignedVehicleCount,
@@ -240,7 +247,7 @@ async function resolveVehiclesScope(db, role, accessibleGroupIds, scopeId, unass
 		);
 	}
 
-	const { rows, groupIds } = await authoriseVehicles(db, role, accessibleGroupIds, ids);
+	const { rows, groupIds, includesUnassigned } = await authoriseVehicles(db, role, accessibleGroupIds, ids);
 	const vehicleIds = rows.map((row) => row.vehicle_id);
 
 	return {
@@ -250,6 +257,7 @@ async function resolveVehiclesScope(db, role, accessibleGroupIds, scopeId, unass
 			? vehicleIds[0]
 			: `${vehicleIds.length} selected vehicles`,
 		groupIds,
+		includesUnassigned,
 		vehicleIds,
 		vehicleCount: vehicleIds.length,
 		unassignedVehicleCount,
@@ -257,18 +265,32 @@ async function resolveVehiclesScope(db, role, accessibleGroupIds, scopeId, unass
 	};
 }
 
-async function assertCanReadReport(db, user, reportGroupIds){
+
+
+function canReadReport(role, accessibleGroupIds, reportGroupIds, includesUnassigned = false){
+	if (role === 'admin') return true;
+	if (includesUnassigned) return false;
+
+	const raw = Array.isArray(reportGroupIds) ? reportGroupIds : [];
+	const requested = raw.map(toGroupId);
+
+	if (!requested.length || requested.some((id) => id === null)) return false;
+
+	const accessible = new Set(accessibleGroupIds);
+	return requested.every((id) => accessible.has(id));
+}
+
+async function assertCanReadReport(db, user, reportGroupIds, includesUnassigned = false){
 	const role = assertReportingUser(user);
+
 	if (role === 'admin') return;
-    
-    const groups = await getAccessibleGroups(db, user);
-	const accessible = new Set(groups.map((g) => g.id));
 
-	const requested = (reportGroupIds || []).map(toGroupId).filter((id) => id !== null);
+	const groups = await getAccessibleGroups(db, user);
 
-	if (!requested.length || !requested.some((id) => accessible.has(id))) {
+	if (!canReadReport(role, groups.map((g) => g.id), reportGroupIds, includesUnassigned)) {
 		throw new ScopeError(NOT_AUTHORISED, 403);
 	}
+
 }
 
 async function listAvailableScopes(db, user){
@@ -313,6 +335,8 @@ module.exports = {
 	resolveScope,
 	getAccessibleGroups,
 	assertCanReadReport,
+	assertReportingUser,
+	canReadReport,
 	listAvailableScopes,
 	ScopeError,
 	SCOPE_TYPES,

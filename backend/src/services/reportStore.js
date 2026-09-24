@@ -1,11 +1,15 @@
 'use strict';
 
-const { assertCanReadReport, ScopeError } = require('./scopeResolver');
+const { assertCanReadReport,assertReportingUser, getAccessibleGroups, ScopeError,
+} = require('./scopeResolver');
 
 const DEFAULT_LIMIT = 25;
+
+
 const MAX_LIMIT = 100;
 
 const TRIGGERS = ['manual', 'scheduled'];
+
 
 const SUMMARY_COLUMNS = `
     id,
@@ -13,9 +17,10 @@ const SUMMARY_COLUMNS = `
     scope_id,
     scope_label,
     group_ids,
+    includes_unassigned,
     period_type,
-    period_start,
-    period_end,
+    period_start::text AS period_start,
+    period_end::text   AS period_end,
     generated_at,
     generated_by,
     trigger_source
@@ -29,11 +34,12 @@ function toSummary(row){
             id: row.scope_id,
             label: row.scope_label,
             groupIds: (row.group_ids || []).map(Number),
+            includesUnassigned: Boolean(row.includes_unassigned),
         },
         period: {
             type: row.period_type,
-            fromDate: row.period_start instanceof Date ? row.period_start.toISOString().slice(0, 10) : String(row.period_start).slice(0, 10),
-            toDate: row.period_end instanceof Date ? row.period_end.toISOString().slice(0, 10) : String(row.period_end).slice(0, 10),
+            fromDate: String(row.period_start).slice(0, 10),
+            toDate: String(row.period_end).slice(0, 10),
         },
         generatedAt: row.generated_at,
         generatedBy: row.generated_by,
@@ -42,7 +48,9 @@ function toSummary(row){
 
 }
 
-async function saveReport(db, { payload, trigger = 'manual', generatedBy }){
+
+
+async function saveReport(db, { payload, trigger = 'manual', generatedBy } = {}){
     if (!db || typeof db.query !== 'function') {
         throw new Error('saveReport requires a pg client or pool');
     }
@@ -54,7 +62,6 @@ async function saveReport(db, { payload, trigger = 'manual', generatedBy }){
     }
 
     const { scope } = payload.report;
-
     const scopeId = Array.isArray(scope.id) ? scope.id.join(',') : scope.id;
 
     const values = [
@@ -62,6 +69,7 @@ async function saveReport(db, { payload, trigger = 'manual', generatedBy }){
         scopeId || null,
         scope.label,
         scope.groupIds || [],
+        Boolean(scope.includesUnassigned),
         payload.period.type,
         payload.period.fromDate,
         payload.period.toDate,
@@ -70,36 +78,36 @@ async function saveReport(db, { payload, trigger = 'manual', generatedBy }){
         JSON.stringify(payload),
     ];
 
+
     const conflictClause = trigger === 'scheduled'
         ? `ON CONFLICT (scope_type, COALESCE(scope_id, ''), period_type, period_start)
            WHERE trigger_source = 'scheduled'
            DO UPDATE SET
-               scope_label    = EXCLUDED.scope_label,
-               group_ids      = EXCLUDED.group_ids,
-               period_end     = EXCLUDED.period_end,
-               generated_at   = now(),
-               generated_by   = EXCLUDED.generated_by,
-               dataset        = EXCLUDED.dataset`
+               scope_label         = EXCLUDED.scope_label,
+               group_ids           = EXCLUDED.group_ids,
+               includes_unassigned = EXCLUDED.includes_unassigned,
+               period_end          = EXCLUDED.period_end,
+               generated_at        = now(),
+               generated_by        = EXCLUDED.generated_by,
+               dataset             = EXCLUDED.dataset`
         : '';
 
     const result = await db.query(
         `INSERT INTO fleet_reports (
-            scope_type, scope_id, scope_label, group_ids,
+            scope_type, scope_id, scope_label, group_ids, includes_unassigned,
             period_type, period_start, period_end,
             generated_by, trigger_source, dataset
-         ) VALUES ($1, $2, $3, $4::bigint[], $5, $6, $7, $8, $9, $10::jsonb)
+         ) VALUES ($1, $2, $3, $4::bigint[], $5, $6, $7, $8, $9, $10, $11::jsonb)
          ${conflictClause}
          RETURNING ${SUMMARY_COLUMNS}`,
         values,
     );
 
     return toSummary(result.rows[0]);
-
-
 }
 
 async function listReports(db, user, options = {}){
-    const { getAccessibleGroups } = require('./scopeResolver');
+    const role = assertReportingUser(user);
 
     const {
         limit = DEFAULT_LIMIT,
@@ -113,54 +121,49 @@ async function listReports(db, user, options = {}){
 
     const safeOffset = Math.max(Number(offset) || 0, 0);
 
-    const groups = await getAccessibleGroups(db, user);
-    const role = groups.length >= 0 && user && user.role ? String(user.role).toLowerCase() : null;
-
-    const isAdmin = role === 'admin';
-
     const conditions = [];
 
     const params = [];
 
-    if (!isAdmin) {
-        params.push(groups.map((g) => g.id));
-        conditions.push(`group_ids && $${params.length}::bigint[]`);
-    }
 
+
+    if (role !== 'admin') {
+        const groups = await getAccessibleGroups(db, user);
+        params.push(groups.map((g) => g.id));
+        conditions.push(
+            `cardinality(group_ids) > 0 AND group_ids <@ $${params.length}::bigint[] AND NOT includes_unassigned`,
+        );
+    }
 
     if (scopeType) {
         params.push(scopeType);
         conditions.push(`scope_type = $${params.length}`);
     }
 
-
     if (periodType) {
         params.push(periodType);
         conditions.push(`period_type = $${params.length}`);
     }
-
-
 
     if (trigger) {
         params.push(trigger);
         conditions.push(`trigger_source = $${params.length}`);
     }
 
-
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
     params.push(safeLimit);
+
     params.push(safeOffset);
 
     const result = await db.query(
         `SELECT ${SUMMARY_COLUMNS}
          FROM fleet_reports
          ${where}
-         ORDER BY generated_at DESC
+         ORDER BY generated_at DESC, id DESC
          LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params,
     );
-
 
     return {
         reports: result.rows.map(toSummary),
@@ -171,8 +174,10 @@ async function listReports(db, user, options = {}){
 }
 
 async function getReport(db, user, id){
-    const reportId = Number(id);
+    
+    assertReportingUser(user);
 
+    const reportId = Number(id);
     if (!Number.isInteger(reportId) || reportId < 1) {
         throw new ScopeError('Invalid report id', 400);
     }
@@ -189,19 +194,21 @@ async function getReport(db, user, id){
         throw new ScopeError('Report not found or not authorized', 403);
     }
 
-
     const row = result.rows[0];
-
-    await assertCanReadReport(db, user, (row.group_ids || []).map(Number));
+    try {
+        await assertCanReadReport(db, user, row.group_ids || [], Boolean(row.includes_unassigned));
+    } catch (err) {
+        if (err instanceof ScopeError && err.statusCode === 403) {
+            throw new ScopeError('Report not found or not authorized', 403);
+        }
+        throw err;
+    }
 
     return {
         ...toSummary(row),
         dataset: row.dataset,
     };
-
-    
 }
-
 
 module.exports = {
     saveReport,
@@ -209,4 +216,6 @@ module.exports = {
     getReport,
     DEFAULT_LIMIT,
     MAX_LIMIT,
+    TRIGGERS,
+    _toSummary: toSummary,
 };

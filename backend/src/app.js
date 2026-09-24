@@ -44,6 +44,8 @@ const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 // added for report
 const reportRoutes = require('./routes/reports');
 
+const riskRoutes = require('./routes/risk');
+
 
 const app = express();
 
@@ -151,6 +153,7 @@ app.use('/api/notifications', notificationsRoutes)
 app.use('/api/reports', reportRoutes); // added for reporting
 
 
+app.use('/api/risk', riskRoutes);
 
 app.get('/api/health', (req, res) => {
 

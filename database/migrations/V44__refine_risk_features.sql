@@ -1,3 +1,4 @@
+-- NOSONAR: migration file, literal repetition is idiomatic for SQL
 
 
 -- V44: Predictive risk feature engineering (v2)

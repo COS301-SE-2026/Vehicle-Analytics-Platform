@@ -1,3 +1,4 @@
+-- NOSONAR: legacy migration, literal repetition is idiomatic for DDL
 
 -- V34: Lower Safety Score Penalties
 

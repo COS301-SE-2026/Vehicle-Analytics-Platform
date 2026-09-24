@@ -1,3 +1,4 @@
+-- NOSONAR: migration file, literal repetition is idiomatic for SQL
 
 -- V45: Cap distance_feature in vehicle_risk_features
 

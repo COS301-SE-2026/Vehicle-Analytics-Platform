@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const { Buffer } = require('buffer');
 const express = require('express');
 
 const {
@@ -22,9 +24,13 @@ function requireSchedulerToken(req, res, next) {
         return res.status(404).json({ success: false, error: 'Route not found' });
     }
 
-    const provided = req.get('x-scheduler-token');
+    const provided = req.get('x-scheduler-token') || '';
+    
+    const a = Buffer.from(provided);
 
-    if (!provided || provided !== expected) {
+    const b = Buffer.from(expected);
+
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 

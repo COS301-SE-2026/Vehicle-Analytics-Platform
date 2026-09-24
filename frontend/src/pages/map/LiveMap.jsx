@@ -36,20 +36,25 @@ export default function LiveMap() {
   const [locations, setLocations] = useState(null)
   const [loading, setLoading] = useState(true)
   const [initialView] = useState(() => readInitialViewFromQuery())
-  // Guards against overlapping requests.
+
+  // Read focus=<vehicleId> once on mount
+  const [focusVehicleId] = useState(() => searchParams.get('focus'))
+
   const bufferInFlight = useRef(false)
   const locationsInFlight = useRef(false)
   const cancelled = useRef(false)
 
-  // Clean URL params on mount
+  // Clean lat/lng/zoom params on mount, keep focus
   useEffect(() => {
     const url = new URL(window.location.href)
-    if (!url.searchParams.has('lat') && !url.searchParams.has('lng') && !url.searchParams.has('zoom')) {
-      return
+    let mutated = false
+    for (const k of ['lat', 'lng', 'zoom']) {
+      if (url.searchParams.has(k)) {
+        url.searchParams.delete(k)
+        mutated = true
+      }
     }
-    url.searchParams.delete('lat')
-    url.searchParams.delete('lng')
-    url.searchParams.delete('zoom')
+    if (!mutated) return
     const next = `${url.pathname}${url.search ? `?${url.searchParams.toString()}` : ''}${url.hash}`
     window.history.replaceState({}, '', next)
   }, [])
@@ -91,6 +96,7 @@ export default function LiveMap() {
     cancelled.current = false
     return () => { cancelled.current = true }
   }, [])
+
   useEffect(() => {
     let timer = null
     async function poll() {
@@ -98,7 +104,6 @@ export default function LiveMap() {
       if (cancelled.current) return
       timer = setTimeout(poll, BUFFER_POLL_MS)
     }
-
     poll()
     return () => { if (timer) clearTimeout(timer) }
   }, [fetchVehiclePositionBuffer])
@@ -137,6 +142,7 @@ export default function LiveMap() {
         buffer={buffer}
         initialView={initialView}
         onGeofenceClick={handleGeofenceClick}
+        focusVehicleId={focusVehicleId}
       />
     </div>
   )

@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import PropTypes from 'prop-types'
 import { getGeofencesGeoJSON } from '@/services/geofenceServices'
+import { useFleetRiskLookup, tierRing, tierLabel } from '@/components/risk/FleetRiskMarkers'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -58,7 +59,7 @@ function ensureAnimating(entry) {
   function step(ts) {
     if (!to) {
       if (entry.queue.length === 0) {
-        entry.raf = null;   
+        entry.raf = null;
         return;
       }
       const cur = entry.marker.getLngLat();
@@ -80,20 +81,34 @@ function ensureAnimating(entry) {
     ]);
     if (p >= 1) {
       entry.lastPlayedT = to.t;
-      to = null;          
+      to = null;
     }
     entry.raf = requestAnimationFrame(step);
   }
   entry.raf = requestAnimationFrame(step);
 }
 
-export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleClick, minimal = false, initialView = null, onGeofenceClick }) {
+export default function FleetMap({
+  vehicles = [],
+  buffer = EMPTY_FC,
+  onVehicleClick,
+  minimal = false,
+  initialView = null,
+  onGeofenceClick,
+  highlightVehicleId = null,
+}) {
   const mapContainer = useRef(null)
   const map = useRef(null)
   const markers = useRef({})
   const lastTrailStamp = useRef(null)
+  const riskLookup = useFleetRiskLookup()
+  const riskLookupRef = useRef(riskLookup)
 
-  // 1. Keep map layout synced with container changes
+  // Ensures fly-to fires exactly once per highlight ID
+  const lastFlewRef = useRef(null)
+
+  useEffect(() => { riskLookupRef.current = riskLookup; }, [riskLookup])
+
   useEffect(() => {
     if (!mapContainer.current) return;
     const observer = new ResizeObserver(() => {
@@ -103,16 +118,16 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     return () => observer.disconnect();
   }, []);
 
-  // 2. Map Initialization
   useEffect(() => {
     if (map.current) return
-    if (!mapboxgl.accessToken) return
+    if (!mapboxgl.accessToken) {
+      console.error('FleetMap: VITE_MAPBOX_TOKEN is not set - map disabled')
+      return
+    }
 
-    // Safely extract and validate the center
     let startCenter = DEFAULT_CENTER;
     if (initialView?.center?.length === 2) {
       const [lng, lat] = initialView.center;
-      // Only use the initial view if it's NOT [0, 0] and NOT NaN
       if (lng !== 0 && lat !== 0 && !Number.isNaN(lng) && !Number.isNaN(lat)) {
         startCenter = [lng, lat];
       }
@@ -147,7 +162,7 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
       getGeofencesGeoJSON()
         .then((fc) => map.current?.getSource(GEOFENCE_SOURCE_ID)?.setData(fc))
         .catch((err) => console.error('FleetMap: failed to load geofences', err));
-        
+
       map.current.addSource(TRAIL_SOURCE_ID, {
         type: 'geojson', lineMetrics: true, data: EMPTY_FC,
       });
@@ -164,10 +179,6 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
         },
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional:
-    // initialView is a starting position only, read once at map creation.
-    // The `if (map.current) return` guard above already prevents this
-    // effect from reacting to later initialView changes.
   }, [])
 
   useEffect(() => {
@@ -212,55 +223,117 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     for (const feature of buffer?.features ?? []) {
       const id = feature.properties?.vehicleId;
       const entry = markers.current[id];
-      if (!entry) continue;   
+      if (!entry) continue;
       enqueuePoints(entry, feature.geometry?.coordinates, feature.properties?.times);
       ensureAnimating(entry);
     }
   }, [buffer])
 
+ 
+  
   useEffect(() => {
     if (!map.current) return
     const seen = new Set()
-    
+
     vehicles.forEach(vehicle => {
       seen.add(vehicle.id);
       const existing = markers.current[vehicle.id];
+      const risk = riskLookupRef.current[vehicle.id];
+      const ringColour = risk ? tierRing(risk.tier) : null;
+      const isHighlighted = highlightVehicleId
+        && String(vehicle.id) === String(highlightVehicleId);
       let el;
 
       if (existing) {
         existing.vehicle = vehicle;
+        existing.risk = risk;
+        existing.highlighted = isHighlighted;
         el = existing.marker.getElement();
-        el.style.backgroundColor = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
+        const inner = el.querySelector('.vehicle-marker-inner');
+        if (inner) {
+          inner.style.backgroundColor = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
+          inner.style.boxShadow = ringColour ? `0 0 0 3px ${ringColour}` : '0 2px 4px rgba(0,0,0,0.4)';
+        }
+        el.classList.toggle('vehicle-marker-highlighted', !!isHighlighted)
+        const badge = el.querySelector('.risk-tier-badge');
+        if (badge) {
+          if (risk) {
+            badge.textContent = tierLabel(risk.tier);
+            badge.style.backgroundColor = ringColour;
+            badge.style.display = 'block';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
       } else {
         if (!Number.isFinite(vehicle.lng) || !Number.isFinite(vehicle.lat)) return;
         el = document.createElement('div')
         el.className = 'vehicle-marker'
+        if (isHighlighted) el.classList.add('vehicle-marker-highlighted')
         Object.assign(el.style, {
+          width: '40px', height: '48px', cursor: 'pointer',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'flex-start', position: 'relative',
+        })
+
+        const inner = document.createElement('div')
+        inner.className = 'vehicle-marker-inner'
+        Object.assign(inner.style, {
           width: '32px', height: '32px', borderRadius: '50%',
           backgroundColor: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
-          border: '2px solid white', cursor: 'pointer',
+          border: '2px solid white',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.4)', transition: 'box-shadow 0.2s',
+          boxShadow: ringColour ? `0 0 0 3px ${ringColour}` : '0 2px 4px rgba(0,0,0,0.4)',
+          transition: 'box-shadow 0.2s, background-color 0.2s',
         })
-        el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
-        el.addEventListener('mouseenter', () => { el.style.boxShadow = '0 0 0 4px rgba(255,255,255,0.3)' })
-        el.addEventListener('mouseleave', () => { el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)' })
-        
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        inner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
+
+        const badge = document.createElement('span')
+        badge.className = 'risk-tier-badge'
+        Object.assign(badge.style, {
+          display: risk ? 'block' : 'none',
+          marginTop: '2px',
+          padding: '1px 5px',
+          fontSize: '9px',
+          fontWeight: '700',
+          letterSpacing: '0.03em',
+          textTransform: 'uppercase',
+          color: 'white',
+          backgroundColor: ringColour || '#9ca3af',
+          borderRadius: '8px',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        })
+        if (risk) badge.textContent = tierLabel(risk.tier)
+
+        el.appendChild(inner)
+        el.appendChild(badge)
+
+        el.addEventListener('mouseenter', () => {
+          inner.style.boxShadow = `0 0 0 5px ${ringColour || 'rgba(255,255,255,0.3)'}`
+        })
+        el.addEventListener('mouseleave', () => {
+          if (!el.classList.contains('vehicle-marker-highlighted')) {
+            inner.style.boxShadow = ringColour ? `0 0 0 3px ${ringColour}` : '0 2px 4px rgba(0,0,0,0.4)'
+          }
+        })
+
+        const marker = new mapboxgl.Marker({ element: el, anchor: 'top' })
           .setLngLat([vehicle.lng, vehicle.lat])
           .addTo(map.current)
-          
+
         markers.current[vehicle.id] = {
           marker,
           vehicle,
+          risk,
+          highlighted: isHighlighted,
           queue: [],
-          lastEnqueuedT: null,   
-          lastPlayedT: null,     
+          lastEnqueuedT: null,
+          lastPlayedT: null,
           raf: null,
         };
       }
 
-      // Re-apply click binding on every sync
       if (!minimal && onVehicleClick) {
         el.onclick = (e) => {
           e.preventDefault(); e.stopPropagation();
@@ -278,7 +351,51 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
         delete markers.current[id];
       }
     });
-  }, [vehicles, minimal, onVehicleClick])
+  }, [vehicles, minimal, onVehicleClick, riskLookup, highlightVehicleId])
+
+  
+  
+  useEffect(() => {
+    if (!map.current) return
+
+   
+    
+    if (!highlightVehicleId) {
+      lastFlewRef.current = null
+      return
+    }
+
+    
+    if (lastFlewRef.current === highlightVehicleId) return
+
+    const target = (vehicles ?? []).find(
+      (v) => String(v.id) === String(highlightVehicleId)
+    )
+    if (!target) return
+    if (!Number.isFinite(target.lat) || !Number.isFinite(target.lng)) return
+
+    const doFly = () => {
+      if (!map.current) return
+      try {
+        map.current.flyTo({
+          center: [target.lng, target.lat],
+          zoom: 16,
+          duration: 1200,
+          essential: true,
+        })
+        lastFlewRef.current = highlightVehicleId
+      } catch (err) {
+        console.warn('FleetMap: flyTo failed', err)
+      }
+    }
+
+    const isReady = typeof map.current.loaded === 'function'
+      ? map.current.loaded()
+      : map.current.isStyleLoaded()
+
+    if (isReady) doFly()
+    else map.current.once('load', doFly)
+  }, [highlightVehicleId, vehicles])
 
   useEffect(() => () => {
     Object.values(markers.current).forEach((e) => {
@@ -288,31 +405,28 @@ export default function FleetMap({ vehicles = [], buffer = EMPTY_FC, onVehicleCl
     markers.current = {};
   }, [])
 
-const singleVehicleLat = minimal && vehicles.length === 1 ? vehicles[0]?.lat : undefined
-const singleVehicleLng = minimal && vehicles.length === 1 ? vehicles[0]?.lng : undefined
-useEffect(() => {
-  if (!map.current || !minimal || vehicles.length !== 1) {
-    return
-  }
-  const { lat, lng } = vehicles[0]
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return
-  }
-  const recenter = () => map.current.easeTo({ center: [lng, lat], zoom: 15, duration: 800 })
-  if (map.current.isStyleLoaded()) {
-    recenter()
-  } else {
-    map.current.once('load', recenter)
-  }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- vehicles is
-    // deliberately excluded: only this single vehicle's lat/lng should
-    // trigger a recenter, not every array reference change from polling.
-} , [minimal, singleVehicleLat, singleVehicleLng])
+  const singleVehicleLat = minimal && vehicles.length === 1 ? vehicles[0]?.lat : undefined
+  const singleVehicleLng = minimal && vehicles.length === 1 ? vehicles[0]?.lng : undefined
+  useEffect(() => {
+    if (!map.current || !minimal || vehicles.length !== 1) {
+      return
+    }
+    const { lat, lng } = vehicles[0]
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return
+    }
+    const recenter = () => map.current.easeTo({ center: [lng, lat], zoom: 15, duration: 800 })
+    if (map.current.isStyleLoaded()) {
+      recenter()
+    } else {
+      map.current.once('load', recenter)
+    }
+  }, [minimal, singleVehicleLat, singleVehicleLng])
 
   return (
-    <div 
-      ref={mapContainer} 
-      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} 
+    <div
+      ref={mapContainer}
+      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
     />
   )
 }
@@ -327,4 +441,5 @@ FleetMap.propTypes = {
     zoom: PropTypes.number,
   }),
   onGeofenceClick: PropTypes.func,
+  highlightVehicleId: PropTypes.string,
 }

@@ -32,15 +32,15 @@ jest.mock("mapbox-gl", () => {
     addLayer = jest.fn((layer) => this._layers.add(layer.id));
     getLayer = jest.fn((id) => this._layers.has(id));
     isStyleLoaded = jest.fn(() => false);
+    loaded = jest.fn(() => false);
     getCanvas = jest.fn(() => ({ style: {} }));
     easeTo = jest.fn();
+    flyTo = jest.fn();
     resize = jest.fn();
     remove = jest.fn();
     __fireLoad() {
       (this._handlers.load || []).forEach((cb) => cb());
     }
-    // Test helper: simulate a click event on the given layer with the
-    // given feature, the way mapboxgl would invoke a click:<layer> handler.
     __fireLayerClick(layer, feature) {
       (this._handlers[`click:${layer}`] || []).forEach((cb) =>
         cb({ features: feature ? [feature] : [] })
@@ -89,8 +89,25 @@ jest.mock("@/services/geofenceServices", () => ({
   getGeofencesGeoJSON: jest.fn(),
 }));
 
+
+
+jest.mock("@/services/riskService", () => ({
+  __esModule: true,
+  getFleetRisk: jest.fn().mockResolvedValue([]),
+  getVehicleRisk: jest.fn().mockResolvedValue(null),
+  getCoachingHistory: jest.fn().mockResolvedValue(null),
+  getSimilarVehicles: jest.fn().mockResolvedValue([]),
+  getRiskNotifications: jest.fn().mockResolvedValue({ notifications: [], checked_at: new Date().toISOString() }),
+}));
+
+jest.mock("@/components/risk/FleetRiskMarkers", () => ({
+  __esModule: true,
+  useFleetRiskLookup: () => ({}),
+  tierRing: () => null,
+  tierLabel: () => "",
+}));
+
 function latestMapInstance() {
-   
   const mapboxgl = require("mapbox-gl").default;
   return mapboxgl.__instances[mapboxgl.__instances.length - 1];
 }
@@ -172,7 +189,7 @@ describe("FleetMap: initialisation", () => {
       "fleetmap-trails",
       expect.objectContaining({ type: "geojson", lineMetrics: true })
     );
-    expect(mapInstance.addLayer).toHaveBeenCalledTimes(3); // fill, outline, trail line
+    expect(mapInstance.addLayer).toHaveBeenCalledTimes(3);
   });
 
   it("fetches geofences on load and populates the geofence source", async () => {
@@ -220,10 +237,6 @@ describe("FleetMap: geofence click handling", () => {
 
     act(() => mapInstance.__fireLoad());
 
-    // DIAGNOSTIC -- remove once the root cause is found.
-    console.log("registered click handlers:", mapInstance._handlers["click:fleetmap-geofences-fill"]);
-    console.log("all handler keys:", Object.keys(mapInstance._handlers));
-
     mapInstance.__fireLayerClick("fleetmap-geofences-fill", {
       properties: { id: "gf-1", name: "Depot" },
     });
@@ -269,7 +282,7 @@ describe("FleetMap: trail buffer", () => {
     act(() => mapInstance.__fireLoad());
 
     const callsAfterFirst = mapInstance.getSource("fleetmap-trails").setData.mock.calls.length;
-    rerender(<FleetMap buffer={{ ...buffer }} />); // same timestamp, new object identity
+    rerender(<FleetMap buffer={{ ...buffer }} />);
 
     expect(mapInstance.getSource("fleetmap-trails").setData.mock.calls.length).toBe(callsAfterFirst);
   });
@@ -308,7 +321,8 @@ describe("FleetMap: vehicle markers", () => {
     rerender(<FleetMap vehicles={[{ ...vehicle, status: "idle" }]} />);
 
     expect(markerInstances()).toHaveLength(1);
-    expect(markerInstances()[0].getElement().style.backgroundColor).toBe("rgb(245, 158, 11)"); // idle colour
+    const inner = markerInstances()[0].getElement().querySelector('.vehicle-marker-inner');
+    expect(inner.style.backgroundColor).toBe("rgb(245, 158, 11)");
   });
 
   it("removes the marker for a vehicle that drops out of the list", () => {
@@ -343,8 +357,6 @@ describe("FleetMap: vehicle markers", () => {
 
     expect(markerInstances()[0].getElement().onclick).toBeNull();
   });
-
-  
 });
 
 describe("FleetMap: minimal single-vehicle recenter", () => {

@@ -21,6 +21,13 @@ jest.mock('@/components/vehicles/SafetyScoreRing', () => ({
     default: ({ score }) => <div data-testid="safety-score-ring">{score}</div>,
 }))
 
+jest.mock('@/components/risk/RiskBadge', () => ({
+    __esModule: true,
+    default: ({ tier, score }) => (
+        <span data-testid="risk-badge" data-tier={tier}>{score}</span>
+    ),
+}))
+
 function makeDefaultProps() {
     return {
         vehicles: [
@@ -29,6 +36,9 @@ function makeDefaultProps() {
                 status: 'moving',
                 hasAlert: true,
                 safetyScore: 92,
+                avgSafetyScore: 88,
+                riskScore: 87,
+                riskTier: 'critical',
                 lastUpdated: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
                 stale: false,
             },
@@ -37,6 +47,9 @@ function makeDefaultProps() {
                 status: 'offline',
                 hasAlert: false,
                 safetyScore: 61,
+                avgSafetyScore: 65,
+                riskScore: 45,
+                riskTier: 'medium',
                 lastUpdated: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
                 stale: true,
             },
@@ -50,7 +63,7 @@ function makeDefaultProps() {
 }
 
 describe('VehiclesTable', () => {
-    beforeEach(() => { 
+    beforeEach(() => {
         jest.useFakeTimers()
         jest.setSystemTime(new Date('2026-08-15T12:00:00.000Z'))
         jest.clearAllMocks()
@@ -61,25 +74,58 @@ describe('VehiclesTable', () => {
     test('renders all column headers', () => {
         const defaultProps = makeDefaultProps()
         render(<VehiclesTable {...defaultProps} />)
-        const headers = ['VEHICLE ID', 'STATUS', 'SAFETY SCORE', 'LAST UPDATED', 'ACTIONS']
+        const headers = ['VEHICLE ID', 'STATUS', 'DAILY SAFETY', 'AVG SAFETY', 'RISK', 'LAST UPDATED', 'ACTIONS']
         headers.forEach((col) => { expect(screen.getByText(col)).toBeInTheDocument()})
     })
 
-    test('renders a row per vehicle with id and safety score', () => {
+    test('renders a row per vehicle with id and safety scores', () => {
         const defaultProps = makeDefaultProps()
         render(<VehiclesTable {...defaultProps} />)
 
         const row1 = within(screen.getByTestId('vehicle-row-VH-001'))
         expect(row1.getByText('VH-001')).toBeInTheDocument()
-        expect(row1.getByText('92')).toBeInTheDocument()
+        expect(row1.getByText('92')).toBeInTheDocument() // daily
+        expect(row1.getByText('88')).toBeInTheDocument() // avg
 
         const row2 = within(screen.getByTestId('vehicle-row-VH-002'))
         expect(row2.getByText('VH-002')).toBeInTheDocument()
-        expect(row2.getByText('61')).toBeInTheDocument()
+        expect(row2.getByText('61')).toBeInTheDocument() 
+        expect(row2.getByText('65')).toBeInTheDocument() 
 
-        expect(screen.getAllByTestId('safety-score-ring')).toHaveLength(2)
+        
+        
+        expect(screen.getAllByTestId('safety-score-ring')).toHaveLength(4)
     })
 
+    test('renders a risk badge per vehicle that has a risk score', () => {
+        const defaultProps = makeDefaultProps()
+        render(<VehiclesTable {...defaultProps} />)
+
+        const badges = screen.getAllByTestId('risk-badge')
+        expect(badges).toHaveLength(2)
+        expect(badges[0]).toHaveAttribute('data-tier', 'critical')
+        expect(badges[1]).toHaveAttribute('data-tier', 'medium')
+    })
+
+    test('renders a dash for vehicles without a risk score', () => {
+        const defaultProps = makeDefaultProps()
+        defaultProps.vehicles = [
+            {
+                id: 'VH-003',
+                status: 'offline',
+                hasAlert: false,
+                safetyScore: 75,
+                avgSafetyScore: 70,
+                lastUpdated: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+                stale: false,
+            },
+        ]
+        render(<VehiclesTable {...defaultProps} />)
+
+        expect(screen.queryByTestId('risk-badge')).not.toBeInTheDocument()
+        const row = screen.getByTestId('vehicle-row-VH-003')
+        expect(row.textContent).toContain('-')
+    })
 
     test('renders vehicle status badges', () => {
         const defaultProps = makeDefaultProps()

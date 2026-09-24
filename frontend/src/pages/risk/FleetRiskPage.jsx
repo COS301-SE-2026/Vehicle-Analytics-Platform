@@ -36,6 +36,13 @@ function pageNumbers(page, totalPages) {
   return [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
 }
 
+function tierRangeLabel(key) {
+  if (key === 'critical') return '>= 75';
+  if (key === 'high') return '50-74';
+  if (key === 'medium') return '25-49';
+  return '0-24';
+}
+
 function exportCSV(vehicles) {
   const header = ['rank', 'vehicle_id', 'risk_score', 'risk_tier', 'top_factor'];
   const rows = vehicles.map((v, i) => [
@@ -43,7 +50,7 @@ function exportCSV(vehicles) {
     v.vehicle_id,
     Math.round(Number(v.risk_score)),
     v.risk_tier,
-    (v.top_factors?.[0]?.name || '').replace(/,/g, ';'),
+    (v.top_factors?.[0]?.name || '').replaceAll(',', ';'),
   ]);
   const csv = [header, ...rows].map((r) => r.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -94,13 +101,12 @@ export default function FleetRiskPage() {
   // Auto-open the modal if ?focus=<id> is in the URL, then clean the URL.
   useEffect(() => {
     const focus = searchParams.get('focus');
-    if (!focus) return
-    setOpenVehicle(focus)
-    // Remove the query param so a refresh doesn't re-open the modal
-    const next = new URLSearchParams(searchParams)
-    next.delete('focus')
-    setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
+    if (!focus) return;
+    setOpenVehicle(focus);
+    const next = new URLSearchParams(searchParams);
+    next.delete('focus');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const live = useLivePulse(lastRefresh, REFRESH_MS);
 
@@ -217,12 +223,7 @@ export default function FleetRiskPage() {
               key={key}
               type="button"
               onClick={() => setTierFilter(active ? 'all' : key)}
-              title={`${meta.label} = risk score ${
-                key === 'critical' ? '>= 75' :
-                key === 'high'     ? '50-74' :
-                key === 'medium'   ? '25-49' :
-                                     '0-24'
-              }. Click to filter.`}
+              title={`${meta.label} = risk score ${tierRangeLabel(key)}. Click to filter.`}
               className={`text-left rounded-2xl p-5 border transition-all duration-150 ${
                 active
                   ? `${meta.bg} ${meta.ring} border-transparent ring-2 shadow-sm scale-[1.02]`

@@ -18,7 +18,6 @@ export default function SimilarVehiclesPanel({ vehicleId }) {
         setData(Array.isArray(d) ? d : []);
       })
       .catch((err) => {
-        // Never throw — the panel degrades to the empty state.
         console.warn('SimilarVehiclesPanel: failed to load neighbours', err?.message);
         if (!cancelled) setData([]);
       })
@@ -28,6 +27,10 @@ export default function SimilarVehiclesPanel({ vehicleId }) {
 
     return () => { cancelled = true; };
   }, [vehicleId]);
+
+  const openVehicle = (id) => {
+    navigate(`/risk?focus=${encodeURIComponent(id)}`);
+  };
 
   if (loading) return <div className="text-sm text-gray-400">Finding similar vehicles…</div>;
 
@@ -55,20 +58,22 @@ export default function SimilarVehiclesPanel({ vehicleId }) {
 
       <ul className="space-y-2">
         {data.map((v) => (
-          <li
-            key={v.vehicle_id}
-            onClick={() => navigate(`/risk?focus=${encodeURIComponent(v.vehicle_id)}`)}
-            className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="font-medium text-gray-900">{v.vehicle_id}</span>
-              <span className="text-xs text-gray-400">
-                distance {v.distance}
-              </span>
-            </div>
-            {v.risk_tier
-              ? <RiskBadge tier={v.risk_tier} score={v.risk_score} />
-              : <span className="text-xs text-gray-400">no prediction</span>}
+          <li key={v.vehicle_id}>
+            <button
+              type="button"
+              onClick={() => openVehicle(v.vehicle_id)}
+              className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="font-medium text-gray-900">{v.vehicle_id}</span>
+                <span className="text-xs text-gray-400">
+                  distance {v.distance}
+                </span>
+              </div>
+              {v.risk_tier
+                ? <RiskBadge tier={v.risk_tier} score={v.risk_score} />
+                : <span className="text-xs text-gray-400">no prediction</span>}
+            </button>
           </li>
         ))}
       </ul>

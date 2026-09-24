@@ -5,7 +5,8 @@ import CoachingPanel from './CoachingPanel';
 import SimilarVehiclesPanel from './SimilarVehiclesPanel';
 
 export default function RiskModal({ vehicleId, onClose }) {
-  // Close on ESC
+ 
+  
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -22,10 +23,14 @@ export default function RiskModal({ vehicleId, onClose }) {
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Predictive risk details for vehicle ${vehicleId}`}
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-4xl mx-4 my-8 bg-fleet-bg rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300"
       >

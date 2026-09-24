@@ -30,6 +30,16 @@ const RELIABILITY = {
 
 const STATUS_ORDER = ['above_fleet', 'in_line', 'below_fleet', 'insufficient_data', 'not_reported']
 
+const RETRY_DELAY_MS = 5000
+
+function isRetryable(err) {
+	// No status means the request never got a proper response,
+	// e.g. a gateway timeout without CORS headers.
+	return err.status === undefined || [502, 503, 504].includes(err.status)
+}
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 function fmt(value, digits = 1) {
 	if (value === null || value === undefined || Number.isNaN(Number(value))) return '—'
 	return Number(value).toLocaleString('en-US', { maximumFractionDigits: digits })
@@ -565,22 +575,36 @@ export default function WeatherAreaReport({ scopes, scopeValue, onScopeChange })
 
 	const options = useMemo(() => scopeOptions(scopes), [scopes])
 
+	const [retrying, setRetrying] = useState(false)
+
 	const handleGenerate = useCallback(async () => {
 		setLoading(true)
+		setRetrying(false)
 		setError(null)
 		const [scopeType, scopeId] = scopeValue.split(':')
+		const request = () => generateWeatherReport({
+			scopeType: scopeType === 'vehicles' ? 'fleet' : scopeType,
+			scopeId: scopeId || undefined,
+			days,
+		})
+
 		try {
-			const result = await generateWeatherReport({
-				scopeType: scopeType === 'vehicles' ? 'fleet' : scopeType,
-				scopeId: scopeId || undefined,
-				days,
-			})
+			let result
+			try {
+				result = await request()
+			} catch (err) {
+				if (!isRetryable(err)) throw err
+				setRetrying(true)
+				await wait(RETRY_DELAY_MS)
+				result = await request()
+			}
 			setReport(result)
 		} catch (err) {
 			setError(err.message || 'Failed to generate weather report')
 			setReport(null)
 		} finally {
 			setLoading(false)
+			setRetrying(false)
 		}
 	}, [scopeValue, days])
 
@@ -652,7 +676,7 @@ export default function WeatherAreaReport({ scopes, scopeValue, onScopeChange })
 					className="ml-auto flex items-center gap-2 rounded-lg bg-fleet-blue px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
 				>
 					{loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudRain className="w-4 h-4" />}
-					{loading ? 'Generating…' : 'Generate report'}
+					{loading ? (retrying ? 'Still working…' : 'Generating…') : 'Generate report'}
 				</button>
 			</div>
 

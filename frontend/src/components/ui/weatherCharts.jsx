@@ -69,7 +69,9 @@ function sqrtTicks(max, count = 5) {
 }
 
 function zeroSafeMax(dataMax) {
-	return dataMax === 0 || dataMax === null || dataMax === undefined || Number.isNaN(dataMax) ? 1 : dataMax
+	if (!Number.isFinite(dataMax) || dataMax <= 0) return 1
+	const mag = 10 ** Math.floor(Math.log10(dataMax))
+	return Math.ceil(dataMax / mag) * mag
 }
 
 function fmt(value, digits = 1) {
@@ -249,7 +251,7 @@ WetDryChart.propTypes = { impact: PropTypes.object.isRequired }
 
 // Wet vs dry ratios with 95% intervals (dot-and-whisker)
 
-const RATIO_TICKS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6]
+const RATIO_TICKS = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1, 2, 4, 10, 25, 50, 100]
 
 function ratioPoint(ev, comparison, index, offset, series) {
 	if (!comparison) return null
@@ -277,20 +279,19 @@ export function WeatherRatioChart({ impact }) {
 		return <p className="text-sm text-fleet-secondary py-10 text-center">Not enough wet and dry driving to compare.</p>
 	}
 
-	// A log-scale axis is undefined at (and breaks near) 0, so keep both
-	// bounds strictly positive and finite. `low` can legitimately be 0
-	// (e.g. zero wet-weather events), and `high` can legitimately be null
-	// (the backend's confidence interval overflowed to Infinity and got
-	// rounded away). Left unguarded, either collapses several ticks onto
-	// the same pixel, which is what caused the duplicate "tick-…" React
-	// key warning.
-	const MIN_RATIO = 0.1
-	const MAX_RATIO = 10
-	const finiteLows = all.map((p) => p.low).filter((v) => Number.isFinite(v) && v > 0)
-	const finiteHighs = all.map((p) => p.high).filter((v) => Number.isFinite(v) && v > 0)
-	const lo = Math.max(MIN_RATIO, Math.min(1, ...(finiteLows.length ? finiteLows : [1])) * 0.85)
-	const hi = Math.min(MAX_RATIO, Math.max(1, ...(finiteHighs.length ? finiteHighs : [1])) * 1.15)
+	const MIN_RATIO = 0.01
+	const MAX_RATIO = 100
+	const values = all.flatMap((p) => [p.x, p.low, p.high]).filter((v) => Number.isFinite(v) && v > 0)
+	const lo = Math.max(MIN_RATIO, Math.min(1, ...values) * 0.8)
+	const hi = Math.min(MAX_RATIO, Math.max(1, ...values) * 1.25)
 	const ticks = RATIO_TICKS.filter((t) => t >= lo && t <= hi)
+
+	const clip = (p) => ({
+		...p,
+		err: [p.x - Math.max(p.low, lo), Math.min(p.high, hi) - p.x],
+	})
+	const overallPlot = overall.map(clip)
+	const sameAreaPlot = sameArea.map(clip)
 
 	return (
 		<ChartFrame height={Math.max(240, events.length * 52 + 24)}>
@@ -343,10 +344,10 @@ export function WeatherRatioChart({ impact }) {
 					}}
 				/>
 				<Legend wrapperStyle={{ fontSize: 12 }} />
-				<Scatter name="All driving together" data={overall} fill={CHART_COLORS.inLine}>
+				<Scatter name="All driving together" data={overallPlot} fill={CHART_COLORS.inLine}>
 					<ErrorBar dataKey="err" direction="x" width={0} stroke={CHART_COLORS.inLine} strokeWidth={2} />
 				</Scatter>
-				<Scatter name="Within the same area" data={sameArea} fill={CHART_COLORS.wet}>
+				<Scatter name="Within the same area" data={sameAreaPlot} fill={CHART_COLORS.wet}>
 					<ErrorBar dataKey="err" direction="x" width={0} stroke={CHART_COLORS.wet} strokeWidth={2} />
 				</Scatter>
 			</ScatterChart>

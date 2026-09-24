@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchBacktestMock } from '../services/__mocks__/backtestMock';
+import { fetchBacktestMock } from '../../__mocks__/backtestMock';
 
 const DEBOUNCE_MS = 500;
 const DEFAULT_DAYS = 30;
@@ -13,7 +13,7 @@ const DEFAULT_DAYS = 30;
  * logic lives entirely server-side 
  *
  * A fleet group must be selected before this fires at all — a rule
- * can't be created without one, so there's nothing meaningful to
+ * can't be created without one so there's nothing meaningful to
  * preview until it's set.
  *
  * @param {object} args

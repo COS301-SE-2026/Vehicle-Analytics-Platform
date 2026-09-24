@@ -55,5 +55,29 @@ function trendFindings(trends, metrics = null){
             weeksWithData: t.weeksWithData,
             modelledChangePct: t.modelledChangePct,
         }))
+
         .sort(byImportance(TREND_CLASSES, 'modelledChangePct'));
+
 }
+
+
+function buildInsights({comparison = null, trends = null, metrics = null} = {}){
+    const changes = changeFindings(comparison, metrics);
+    const trendItems = trendFindings(trends, metrics);
+
+    return {
+        changes,
+        trends: trendItems,
+        deteriorations: changes.filter((c) => c.direction === DIRECTION.DETERIORATED).length,
+        improvements: changes.filter((c) => c.direction === DIRECTION.IMPROVED).length,
+    };
+
+}
+
+module.exports = { 
+    buildInsights,
+    _changeFindings: changeFindings,
+    _trendFindings: trendFindings,
+
+};
+

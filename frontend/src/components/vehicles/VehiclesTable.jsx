@@ -9,8 +9,9 @@ import {
 
 import VehicleStatusBadge from './VehicleStatusBadge'
 import SafetyScoreRing from './SafetyScoreRing'
+import RiskBadge from '@/components/risk/RiskBadge'
 
-const columns = ['VEHICLE ID', 'STATUS', 'DAILY SAFETY', 'AVG SAFETY', 'LAST UPDATED', 'ACTIONS']
+const columns = ['VEHICLE ID', 'STATUS', 'DAILY SAFETY', 'AVG SAFETY', 'RISK', 'LAST UPDATED', 'ACTIONS']
 
 function getPageNumbers(page, totalPages) {
     const pages = new Set([1, totalPages, page - 1, page, page + 1])
@@ -86,6 +87,11 @@ export default function VehiclesTable({ vehicles, page, totalPages, totalVehicle
                             <td className="px-4 py-3"><VehicleStatusBadge status={vehicle.status}></VehicleStatusBadge></td>
                             <td className="px-4 py-3"><SafetyScoreRing score={vehicle.safetyScore}></SafetyScoreRing></td>
                             <td className="px-4 py-3"><SafetyScoreRing score={vehicle.avgSafetyScore}></SafetyScoreRing></td>
+                            <td className="px-4 py-3">
+                                {vehicle.riskTier
+                                    ? <RiskBadge tier={vehicle.riskTier} score={vehicle.riskScore} />
+                                    : <span className="text-gray-400">-</span>}
+                            </td>
                             <td className={`px-4 py-3 ${vehicle.stale ? 'text-fleet-alert' : 'text-fleet-secondary'}`}>
                                 {formatRelativeTime(vehicle.lastUpdated, nowMs)}
                             </td>

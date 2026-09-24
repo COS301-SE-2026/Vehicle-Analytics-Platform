@@ -1,6 +1,17 @@
 'use strict';
 
-const PDFDocument = require('pdfkit');
+const { Buffer } = require('buffer');
+
+let PDFDocument = null;
+
+function loadPdfKit(){
+    if (!PDFDocument) {
+        PDFDocument = require('pdfkit');
+    }
+    return PDFDocument;
+
+}
+
 
 const COLOR = {
     text: '#1A1A16',
@@ -341,6 +352,51 @@ function drawVehicleTable(doc, vehicles){
     });
 }
 
+function describeChange(item){
+    const unit = item.unit && item.unit !== 'events' ? ` ${item.unit}` : '';
+    const move = `${formatValue(item.previous)} to ${formatValue(item.current)}${unit}`;
+    const pct = item.percentChange === null || item.percentChange === undefined
+        ? 'from zero'
+        : `${item.percentChange > 0 ? '+' : ''}${item.percentChange}%`;
+    return `${item.label}: ${move} (${pct})`;
+}
+
+function describeTrend(item){
+    return `${item.label}: ${formatValue(item.first)} to ${formatValue(item.last)} over ${item.weeksWithData} weeks`;
+}
+
+
+
+function drawInsights(doc, insights){
+    if (!insights) return;
+    const changes = insights.changes || [];
+
+    const trends = insights.trends || [];
+
+    if (!changes.length && !trends.length) return;
+
+    sectionHeading(doc, 'Key findings');
+
+    const lines = [
+        ...changes.map((c) => ({ text: describeChange(c), bad: c.direction === 'deteriorated' })),
+        ...trends.map((t) => ({ text: `Trend - ${describeTrend(t)}`, bad: t.direction === 'deteriorating' })),
+    ];
+
+
+    lines.forEach((line) => {
+        ensureSpace(doc, 14);
+        doc.x = doc.page.margins.left;
+        doc.fillColor(line.bad ? COLOR.red : COLOR.green).fontSize(8.5).font('Helvetica-Bold')
+            .text(line.bad ? 'Worse  ' : 'Better  ', { continued: true })
+            .fillColor(COLOR.text).font('Helvetica')
+            .text(line.text);
+    });
+
+
+    doc.moveDown(0.4);
+
+}
+
 function drawRanking(doc, title, ranking){
     doc.x = doc.page.margins.left;
     if (!ranking || ranking.status !== 'ok' || !ranking.entries.length) return;
@@ -447,6 +503,15 @@ function drawTrends(doc, trends){
         doc.y = y + 14;
     });
 
+    const cov = trends.coverage;
+    if (cov && (cov.leadInDays > 0 || cov.trailingDays > 0)) {
+        doc.x = doc.page.margins.left;
+        doc.moveDown(0.3);
+        doc.fillColor(COLOR.secondary).fontSize(7.5).font('Helvetica')
+            .text(`Only whole Monday-Sunday weeks are trended (${cov.firstDate} to ${cov.lastDate}). `
+                + `${cov.leadInDays + cov.trailingDays} day(s) at the start or end of the period ` + 'count in the totals above but not in this table.');
+    }
+
 }
 
 
@@ -469,6 +534,7 @@ function drawPageNumbers(doc){
         doc.page.margins.bottom = bottom;
         
     }
+
 }
 
 function buildReportPdf(report){
@@ -476,8 +542,10 @@ function buildReportPdf(report){
         throw new Error('buildReportPdf requires a report dataset');
     }
 
+    const PdfKit = loadPdfKit();
+
     return new Promise((resolve, reject) => {
-        const doc = new PDFDocument({ ...PAGE, bufferPages: true });
+        const doc = new PdfKit({ ...PAGE, bufferPages: true });
 
         const chunks = [];
         doc.on('data', (chunk) => chunks.push(chunk));
@@ -501,6 +569,7 @@ function buildReportPdf(report){
             drawCoverage(doc, report);
             drawSummaryCards(doc, summary);
 
+            drawInsights(doc, report.insights);
             if (report.previousPeriod) drawComparisonTable(doc, comparison);
 
             drawRankings(doc, report.rankings);
@@ -530,4 +599,6 @@ module.exports = {
     buildReportPdf,
     reportFilename,
     _formatValue: formatValue,
+    _describeChange: describeChange,
+    _describeTrend: describeTrend,
 };

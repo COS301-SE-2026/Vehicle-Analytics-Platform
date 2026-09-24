@@ -15,8 +15,15 @@ async function register(req, res) {
     return error(res, 'Name, email and password are required', 400);
   }
 
-  if (password.length < 8) {
-    return error(res, 'Password must be at least 8 characters', 400);
+  // Security Fix: Enforce maximum lengths and type checking to prevent buffer exhaustion/DoS
+  if (typeof name !== 'string' || name.length > 100) {
+    return error(res, 'Invalid name format or length', 400);
+  }
+  if (typeof email !== 'string' || email.length > 255) {
+    return error(res, 'Invalid email format or length', 400);
+  }
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    return error(res, 'Password must be between 8 and 128 characters', 400);
   }
 
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -46,16 +53,22 @@ async function register(req, res) {
 
     return success(res, { message: 'User registered successfully', userSub: cognitoResponse.UserSub }, 201);
   } catch (err) {
-    const errorMessage = err?.message || 'Registration failed';
     console.error('Cognito registration error:', err);
-    return error(res, 'Registration failed: ' + errorMessage, 500);
+    
+    if (err.name === 'UsernameExistsException') {
+      return error(res, 'An account with this email already exists', 409);
+    }
+    
+    // Security Fix: Prevent Information Leakage by masking raw AWS errors
+    return error(res, 'Registration failed due to an internal error', 500);
   }
 }
 
 async function login(req, res) {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  // Security Fix: Validate input types before interacting with external services
+  if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
     return error(res, 'Email and password are required', 400);
   }
 
@@ -76,8 +89,9 @@ async function login(req, res) {
       [email]
     );
 
+    // Security Fix: Standardized error messaging to prevent User Enumeration
     if (!userResult?.rows?.length) {
-      return error(res, 'User not found', 404);
+      return error(res, 'Invalid email or password', 401);
     }
 
     const user = userResult.rows[0];
@@ -98,15 +112,16 @@ async function login(req, res) {
       },
     }, 200);
   } catch (err) {
-    const errorMessage = err?.message || 'Login failed';
-    if (err?.name === 'NotAuthorizedException') {
+    console.error('Cognito login error:', err);
+    
+    // Security Fix: Consolidate auth errors (UserNotFound vs NotAuthorized) 
+    // to prevent malicious actors from verifying if an email exists in your pool.
+    if (err?.name === 'NotAuthorizedException' || err?.name === 'UserNotFoundException') {
       return error(res, 'Invalid email or password', 401);
     }
-    if (err?.name === 'UserNotFoundException') {
-      return error(res, 'User not found', 404);
-    }
-    console.error('Cognito login error:', err);
-    return error(res, 'Login failed: ' + errorMessage, 500);
+    
+    // Security Fix: Mask raw error traces
+    return error(res, 'Login failed due to an internal error', 500);
   }
 }
 

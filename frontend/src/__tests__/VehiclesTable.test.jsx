@@ -21,6 +21,13 @@ jest.mock('@/components/vehicles/SafetyScoreRing', () => ({
     default: ({ score }) => <div data-testid="safety-score-ring">{score}</div>,
 }))
 
+jest.mock('@/components/risk/RiskBadge', () => ({
+    __esModule: true,
+    default: ({ tier, score }) => (
+        <span data-testid="risk-badge" data-tier={tier}>{score}</span>
+    ),
+}))
+
 function makeDefaultProps() {
     return {
         vehicles: [
@@ -30,6 +37,8 @@ function makeDefaultProps() {
                 hasAlert: true,
                 safetyScore: 92,
                 avgSafetyScore: 88,
+                riskScore: 87,
+                riskTier: 'critical',
                 lastUpdated: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
                 stale: false,
             },
@@ -39,6 +48,8 @@ function makeDefaultProps() {
                 hasAlert: false,
                 safetyScore: 61,
                 avgSafetyScore: 65,
+                riskScore: 45,
+                riskTier: 'medium',
                 lastUpdated: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
                 stale: true,
             },
@@ -63,7 +74,7 @@ describe('VehiclesTable', () => {
     test('renders all column headers', () => {
         const defaultProps = makeDefaultProps()
         render(<VehiclesTable {...defaultProps} />)
-        const headers = ['VEHICLE ID', 'STATUS', 'DAILY SAFETY', 'AVG SAFETY', 'LAST UPDATED', 'ACTIONS']
+        const headers = ['VEHICLE ID', 'STATUS', 'DAILY SAFETY', 'AVG SAFETY', 'RISK', 'LAST UPDATED', 'ACTIONS']
         headers.forEach((col) => { expect(screen.getByText(col)).toBeInTheDocument()})
     })
 
@@ -78,13 +89,43 @@ describe('VehiclesTable', () => {
 
         const row2 = within(screen.getByTestId('vehicle-row-VH-002'))
         expect(row2.getByText('VH-002')).toBeInTheDocument()
-        expect(row2.getByText('61')).toBeInTheDocument() // daily
-        expect(row2.getByText('65')).toBeInTheDocument() // avg
+        expect(row2.getByText('61')).toBeInTheDocument() 
+        expect(row2.getByText('65')).toBeInTheDocument() 
 
-        // 2 rings per row (Daily + Avg) × 2 vehicles = 4
+        
+        
         expect(screen.getAllByTestId('safety-score-ring')).toHaveLength(4)
     })
 
+    test('renders a risk badge per vehicle that has a risk score', () => {
+        const defaultProps = makeDefaultProps()
+        render(<VehiclesTable {...defaultProps} />)
+
+        const badges = screen.getAllByTestId('risk-badge')
+        expect(badges).toHaveLength(2)
+        expect(badges[0]).toHaveAttribute('data-tier', 'critical')
+        expect(badges[1]).toHaveAttribute('data-tier', 'medium')
+    })
+
+    test('renders a dash for vehicles without a risk score', () => {
+        const defaultProps = makeDefaultProps()
+        defaultProps.vehicles = [
+            {
+                id: 'VH-003',
+                status: 'offline',
+                hasAlert: false,
+                safetyScore: 75,
+                avgSafetyScore: 70,
+                lastUpdated: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+                stale: false,
+            },
+        ]
+        render(<VehiclesTable {...defaultProps} />)
+
+        expect(screen.queryByTestId('risk-badge')).not.toBeInTheDocument()
+        const row = screen.getByTestId('vehicle-row-VH-003')
+        expect(row.textContent).toContain('-')
+    })
 
     test('renders vehicle status badges', () => {
         const defaultProps = makeDefaultProps()

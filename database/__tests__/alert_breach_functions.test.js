@@ -19,140 +19,61 @@ describe('Alert breach functions', () => {
   }
 
   describe('alert_speed_breach', () => {
-    test('returns true when speed is above the threshold', async () => {
+    test.each([
+      ['speed above the threshold', 95, 90, true],
+      ['speed below the threshold', 85, 90, false],
+      ['speed exactly equal to the threshold (must be strictly above)', 90, 90, false],
+    ])('%s', async (_label, speed, maxSpeedKmh, expected) => {
       const result = await breach(
-        `alert_speed_breach(95, '{"max_speed_kmh": 90}'::jsonb)`
+        `alert_speed_breach(${speed}, '{"max_speed_kmh": ${maxSpeedKmh}}'::jsonb)`
       );
-      expect(result).toBe(true);
-    });
-
-    test('returns false when speed is below the threshold', async () => {
-      const result = await breach(
-        `alert_speed_breach(85, '{"max_speed_kmh": 90}'::jsonb)`
-      );
-      expect(result).toBe(false);
-    });
-
-    test('returns false when speed exactly equals the threshold (must be strictly above)', async () => {
-      const result = await breach(
-        `alert_speed_breach(90, '{"max_speed_kmh": 90}'::jsonb)`
-      );
-      expect(result).toBe(false);
+      expect(result).toBe(expected);
     });
   });
 
   describe('alert_time_breach', () => {
-    test('returns true inside a normal (non-overnight) window', async () => {
+    test.each([
+      ['inside a normal (non-overnight) window', '2026-01-01 12:00:00', '09:00', '17:00', null, true],
+      ['outside a normal (non-overnight) window', '2026-01-01 20:00:00', '09:00', '17:00', null, false],
+      ['inside an overnight window (past midnight)', '2026-01-01 23:00:00', '22:00', '05:00', null, true],
+      ['inside an overnight window (before the wrap, early morning)', '2026-01-01 03:00:00', '22:00', '05:00', null, true],
+      ['outside an overnight window (midday)', '2026-01-01 12:00:00', '22:00', '05:00', null, false],
+      ['restricted_days includes the timestamp\'s day (Thursday)', '2026-01-01 23:00:00', '22:00', '05:00', '["Thu","Fri"]', true],
+      ['restricted_days excludes the timestamp\'s day (Thursday)', '2026-01-01 23:00:00', '22:00', '05:00', '["Sat","Sun"]', false],
+      ['restricted_days is not set at all', '2026-01-01 23:00:00', '22:00', '05:00', null, true],
+    ])('returns correctly when %s', async (_label, timestamp, startTime, endTime, restrictedDays, expected) => {
+      const restrictedDaysJson = restrictedDays ? `, "restricted_days": ${restrictedDays}` : '';
       const result = await breach(
-        `alert_time_breach('2026-01-01 12:00:00'::timestamptz, '{"start_time":"09:00","end_time":"17:00"}'::jsonb)`
+        `alert_time_breach('${timestamp}'::timestamptz, '{"start_time":"${startTime}","end_time":"${endTime}"${restrictedDaysJson}}'::jsonb)`
       );
-      expect(result).toBe(true);
-    });
-
-    test('returns false outside a normal (non-overnight) window', async () => {
-      const result = await breach(
-        `alert_time_breach('2026-01-01 20:00:00'::timestamptz, '{"start_time":"09:00","end_time":"17:00"}'::jsonb)`
-      );
-      expect(result).toBe(false);
-    });
-
-    test('returns true inside an overnight window (past midnight)', async () => {
-      const result = await breach(
-        `alert_time_breach('2026-01-01 23:00:00'::timestamptz, '{"start_time":"22:00","end_time":"05:00"}'::jsonb)`
-      );
-      expect(result).toBe(true);
-    });
-
-    test('returns true inside an overnight window (before the wrap, early morning)', async () => {
-      const result = await breach(
-        `alert_time_breach('2026-01-01 03:00:00'::timestamptz, '{"start_time":"22:00","end_time":"05:00"}'::jsonb)`
-      );
-      expect(result).toBe(true);
-    });
-
-    test('returns false outside an overnight window (midday)', async () => {
-      const result = await breach(
-        `alert_time_breach('2026-01-01 12:00:00'::timestamptz, '{"start_time":"22:00","end_time":"05:00"}'::jsonb)`
-      );
-      expect(result).toBe(false);
-    });
-
-    test('returns true when restricted_days includes the timestamp\'s day', async () => {
-      // 2026-01-01 is a Thursday
-      const result = await breach(
-        `alert_time_breach('2026-01-01 23:00:00'::timestamptz, '{"start_time":"22:00","end_time":"05:00","restricted_days":["Thu","Fri"]}'::jsonb)`
-      );
-      expect(result).toBe(true);
-    });
-
-    test('returns false when restricted_days excludes the timestamp\'s day', async () => {
-      // 2026-01-01 is a Thursday, not in the restricted list below
-      const result = await breach(
-        `alert_time_breach('2026-01-01 23:00:00'::timestamptz, '{"start_time":"22:00","end_time":"05:00","restricted_days":["Sat","Sun"]}'::jsonb)`
-      );
-      expect(result).toBe(false);
-    });
-
-    test('returns true regardless of day when restricted_days is not set', async () => {
-      const result = await breach(
-        `alert_time_breach('2026-01-01 23:00:00'::timestamptz, '{"start_time":"22:00","end_time":"05:00"}'::jsonb)`
-      );
-      expect(result).toBe(true);
+      expect(result).toBe(expected);
     });
   });
 
   describe('alert_score_breach', () => {
-    test('returns true when score is below the minimum', async () => {
+    test.each([
+      ['score below the minimum', 55, 60, true],
+      ['score above the minimum', 70, 60, false],
+      ['score exactly equal to the minimum (must be strictly below)', 60, 60, false],
+    ])('%s', async (_label, score, minScore, expected) => {
       const result = await breach(
-        `alert_score_breach(55, '{"min_score": 60}'::jsonb)`
+        `alert_score_breach(${score}, '{"min_score": ${minScore}}'::jsonb)`
       );
-      expect(result).toBe(true);
-    });
-
-    test('returns false when score is above the minimum', async () => {
-      const result = await breach(
-        `alert_score_breach(70, '{"min_score": 60}'::jsonb)`
-      );
-      expect(result).toBe(false);
-    });
-
-    test('returns false when score exactly equals the minimum (must be strictly below)', async () => {
-      const result = await breach(
-        `alert_score_breach(60, '{"min_score": 60}'::jsonb)`
-      );
-      expect(result).toBe(false);
+      expect(result).toBe(expected);
     });
   });
 
   describe('alert_trip_duration_breach', () => {
-    test('returns true when a single trip exceeds max_trip_minutes', async () => {
+    test.each([
+      ['a single trip exceeds max_trip_minutes', 150, 'max_trip_minutes', 120, 'max_trip_minutes', true],
+      ['a single trip is under max_trip_minutes', 90, 'max_trip_minutes', 120, 'max_trip_minutes', false],
+      ['cumulative daily duration exceeds max_daily_minutes', 250, 'max_daily_minutes', 200, 'max_daily_minutes', true],
+      ['the relevant key is missing from condition_params', 500, 'max_trip_minutes', 120, 'max_daily_minutes', false],
+    ])('returns correctly when %s', async (_label, duration, setKey, setValue, checkKey, expected) => {
       const result = await breach(
-        `alert_trip_duration_breach(150, '{"max_trip_minutes": 120}'::jsonb, 'max_trip_minutes')`
+        `alert_trip_duration_breach(${duration}, '{"${setKey}": ${setValue}}'::jsonb, '${checkKey}')`
       );
-      expect(result).toBe(true);
-    });
-
-    test('returns false when a single trip is under max_trip_minutes', async () => {
-      const result = await breach(
-        `alert_trip_duration_breach(90, '{"max_trip_minutes": 120}'::jsonb, 'max_trip_minutes')`
-      );
-      expect(result).toBe(false);
-    });
-
-    test('returns true when cumulative daily duration exceeds max_daily_minutes', async () => {
-      const result = await breach(
-        `alert_trip_duration_breach(250, '{"max_daily_minutes": 200}'::jsonb, 'max_daily_minutes')`
-      );
-      expect(result).toBe(true);
-    });
-
-    test('returns false when the relevant key is missing from condition_params', async () => {
-      // Only max_trip_minutes is set; asking about max_daily_minutes should
-      // not breach, since that cap was never configured on this rule.
-      const result = await breach(
-        `alert_trip_duration_breach(500, '{"max_trip_minutes": 120}'::jsonb, 'max_daily_minutes')`
-      );
-      expect(result).toBe(false);
+      expect(result).toBe(expected);
     });
 
     test('defaults to max_trip_minutes when p_key is omitted', async () => {
@@ -164,25 +85,15 @@ describe('Alert breach functions', () => {
   });
 
   describe('alert_unsafe_events_breach', () => {
-    test('returns true when event count meets the required count', async () => {
+    test.each([
+      ['event count meets the required count', 3, 3, true],
+      ['event count exceeds the required count', 5, 3, true],
+      ['event count is below the required count', 2, 3, false],
+    ])('returns correctly when %s', async (_label, eventCount, requiredCount, expected) => {
       const result = await breach(
-        `alert_unsafe_events_breach(3, '{"count": 3}'::jsonb)`
+        `alert_unsafe_events_breach(${eventCount}, '{"count": ${requiredCount}}'::jsonb)`
       );
-      expect(result).toBe(true);
-    });
-
-    test('returns true when event count exceeds the required count', async () => {
-      const result = await breach(
-        `alert_unsafe_events_breach(5, '{"count": 3}'::jsonb)`
-      );
-      expect(result).toBe(true);
-    });
-
-    test('returns false when event count is below the required count', async () => {
-      const result = await breach(
-        `alert_unsafe_events_breach(2, '{"count": 3}'::jsonb)`
-      );
-      expect(result).toBe(false);
+      expect(result).toBe(expected);
     });
 
     test('returns false when count is missing from condition_params', async () => {

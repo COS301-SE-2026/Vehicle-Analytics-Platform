@@ -5,6 +5,9 @@ import useAuthStore from '../../store/authStore';
 import { useToast } from './ToastProvider';
 import RuleConditionFields from './RuleConditionFields';
 import useRuleForm from '../../hooks/useRuleForm';
+import useBacktestPreview from '../../hooks/useBacktestPreview';
+import BacktestPreviewToggle from './BacktestPreviewToggle';
+import BacktestPreviewPanel from './BacktestPreviewPanel';
 import { EMPTY_PARAMS } from './ruleFormConstants';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
@@ -13,10 +16,19 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
   const toast = useToast();
   const form = useRuleForm();
   const [submitting, setSubmitting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const preview = useBacktestPreview({
+    conditionType: form.conditionType,
+    params: form.params,
+    fleetGroupId: form.fleetGroupId,
+    enabled: previewOpen,
+  });
 
   if (!isOpen) return null;
 
   function handleClose() {
+    setPreviewOpen(false);
     form.reset();
     onClose();
   }
@@ -56,7 +68,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
     }
   }
 
-    return (
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
@@ -67,55 +79,79 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
           if (e.key === 'Escape') handleClose();
         }}
       />
-      <div className="relative flex max-h-[85vh] w-full max-w-[520px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between rounded-t-xl border-b border-fleet-border px-6 py-5">
-          <h2 className="font-display text-xl font-semibold text-fleet-text">
-            Create New Custom Alert
-          </h2>
-          <button
-            type="button"
-            onClick={handleClose}
-            aria-label="Close"
-            className="text-fleet-secondary hover:text-fleet-text"
-          >
-            <X className="h-5 w-5" />
-          </button>
+
+      <div className="relative flex items-stretch rounded-xl bg-fleet-surface shadow-2xl overflow-visible max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
+        {/* form half */}
+        <div className="flex w-full max-w-[520px] flex-col">
+          <div className="flex items-center justify-between border-b border-fleet-border px-6 py-5">
+            <h2 className="font-display text-xl font-semibold text-fleet-text">
+              Create New Custom Alert
+            </h2>
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="Close"
+              className="text-fleet-secondary hover:text-fleet-text"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+            <RuleConditionFields
+              conditionType={form.conditionType}
+              params={form.params}
+              error={form.error}
+              name={form.name}
+              fleetGroupId={form.fleetGroupId}
+              fleetGroups={fleetGroups}
+              onSelectCondition={(type) => form.selectCondition(type, EMPTY_PARAMS[type])}
+              onNameChange={form.setName}
+              onFleetGroupChange={form.setFleetGroupId}
+              onUpdateParam={form.updateParam}
+              onToggleFromList={form.toggleFromList}
+            />
+          </form>
+
+          <div className="relative flex justify-end gap-3 border-t border-fleet-border px-6 py-4">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-md border border-fleet-border px-4 py-2 text-sm font-medium text-fleet-text hover:bg-fleet-panel"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="rounded-md bg-fleet-blue px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+            >
+              {submitting ? 'Creating…' : 'Create Alert Rule'}
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-          <RuleConditionFields
-            conditionType={form.conditionType}
-            params={form.params}
-            error={form.error}
-            name={form.name}
-            fleetGroupId={form.fleetGroupId}
-            fleetGroups={fleetGroups}
-            onSelectCondition={(type) => form.selectCondition(type, EMPTY_PARAMS[type])}
-            onNameChange={form.setName}
-            onFleetGroupChange={form.setFleetGroupId}
-            onUpdateParam={form.updateParam}
-            onToggleFromList={form.toggleFromList}
-          />
-        </form>
+        {!previewOpen && (
+              <BacktestPreviewToggle
+                onClick={() => setPreviewOpen(true)}
+                hasRequiredInputs={preview.hasRequiredInputs}
+                totalAlerts={preview.data?.total_alerts}
+                loading={preview.loading}
+              />
+        )}
 
-        <div className="flex justify-end gap-3 rounded-b-xl border-t border-fleet-border px-6 py-4">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-md border border-fleet-border px-4 py-2 text-sm font-medium text-fleet-text hover:bg-fleet-panel"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="rounded-md bg-fleet-blue px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-          >
-            {submitting ? 'Creating…' : 'Create Alert Rule'}
-          </button>
-        </div>
+        {previewOpen && (
+          <div className="border-l border-fleet-border">
+            <BacktestPreviewPanel
+              data={preview.data}
+              loading={preview.loading}
+              error={preview.error}
+              onClose={() => setPreviewOpen(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

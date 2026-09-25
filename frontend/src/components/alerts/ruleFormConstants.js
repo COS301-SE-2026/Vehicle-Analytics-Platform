@@ -3,10 +3,39 @@ import { Gauge, Clock, AlertTriangle, ShieldAlert, Timer } from 'lucide-react';
 export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const EVENT_TYPES = [
-  { value: 'harsh_braking', label: 'Harsh braking' },
-  { value: 'harsh_acceleration', label: 'Harsh acceleration' },
-  { value: 'harsh_cornering', label: 'Harsh cornering' },
+  { value: 'harsh_braking', label: 'Harsh braking', short: 'braking' },
+  { value: 'harsh_acceleration', label: 'Harsh acceleration', short: 'acceleration' },
+  { value: 'harsh_cornering', label: 'Harsh cornering', short: 'cornering' },
 ];
+
+function eventLabels(type) {
+  const known = EVENT_TYPES.find((ev) => ev.value === type);
+
+  if (known)
+    return { full: known.label.toLowerCase(), short: known.short };
+
+  const humanized = String(type).replace(/_/g, ' ').toLowerCase();
+
+  return { full: humanized, short: humanized };
+}
+
+
+export function describeEventTypes(eventTypes) {
+  const types = Array.isArray(eventTypes) ? eventTypes.filter(Boolean) : [];
+
+  if (types.length === 0)
+    return 'unsafe';
+
+  if (EVENT_TYPES.every((ev) => types.includes(ev.value)))
+    return 'unsafe';
+
+  const [first, ...rest] = types;
+
+  if (rest.length === 0)
+    return eventLabels(first).full;
+
+  return [eventLabels(first).full, ...rest.map((t) => eventLabels(t).short)].join('/');
+}
 
 export const CONDITIONS = [
   {

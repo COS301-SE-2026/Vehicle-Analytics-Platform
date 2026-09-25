@@ -191,8 +191,27 @@ describe('compare - zero and missing baselines', () => {
 
         expect(result.absoluteChange).toBe(500);
         expect(result.percentChange).toBeNull();
-        expect(result.direction).toBe(DIRECTION.NO_BASELINE);
+        expect(result.direction).toBe(DIRECTION.INCREASED);
         expect(Number.isFinite(result.percentChange)).toBe(false);
+    });
+
+    test('rising from a measured zero on a lower-is-better metric is a deterioration', () => {
+        const result = compareMetric('crashes', 1, 0);
+
+        expect(result.absoluteChange).toBe(1);
+        expect(result.percentChange).toBeNull();
+        expect(result.direction).toBe(DIRECTION.DETERIORATED);
+    });
+
+    test('rising from a measured zero on a higher-is-better metric is an improvement', () => {
+        expect(compareMetric('activeVehicles', 3, 0).direction).toBe(DIRECTION.IMPROVED);
+    });
+
+    test('a zero baseline still respects an insufficient baseline', () => {
+        const result = compareMetric('crashes', 2, 0, { baselineSufficient: false });
+
+        expect(result.absoluteChange).toBe(2);
+        expect(result.direction).toBe(DIRECTION.INSUFFICIENT_BASELINE);
     });
 
     test('zero to zero is stable, not a missing baseline', () => {
@@ -281,8 +300,25 @@ describe('isBaselineSufficient', () => {
 
     test('thresholds are configurable', () => {
         const baseline = { activeVehicles: 3, vehiclesInScope: 15 };
-        expect(isBaselineSufficient(baseline, { minCoverageRatio: 0.2 })).toBe(true);
-        expect(isBaselineSufficient(baseline, { minActiveVehicles: 5 })).toBe(false);
+        expect(isBaselineSufficient(baseline, null, { minCoverageRatio: 0.2 })).toBe(true);
+        expect(isBaselineSufficient(baseline, null, { minActiveVehicles: 5 })).toBe(false);
+    });
+
+    test('compares baseline activity with current activity when a current summary is given', () => {
+        const previous = { activeVehicles: 2, vehiclesInScope: 10 };
+
+        // 2 of 3 currently active vehicles were active in the baseline: 0.67 >= 0.5
+        expect(isBaselineSufficient(previous, { activeVehicles: 3 })).toBe(true);
+        // 2 of 10 currently active vehicles: 0.2 < 0.5
+        expect(isBaselineSufficient(previous, { activeVehicles: 10 })).toBe(false);
+    });
+
+    test('a current period with no activity cannot make the baseline insufficient', () => {
+        expect(isBaselineSufficient({ activeVehicles: 1 }, { activeVehicles: 0 })).toBe(true);
+    });
+
+    test('a baseline with no active vehicles is never sufficient', () => {
+        expect(isBaselineSufficient({ activeVehicles: 0 }, { activeVehicles: 5 })).toBe(false);
     });
 
     test('falls back to fuel coverage when distance coverage is absent', () => {

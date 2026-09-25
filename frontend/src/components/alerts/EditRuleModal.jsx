@@ -5,6 +5,9 @@ import useAuthStore from '../../store/authStore';
 import { useToast } from './ToastProvider';
 import RuleConditionFields from './RuleConditionFields';
 import useRuleForm from '../../hooks/useRuleForm';
+import useBacktestPreview from '../../hooks/useBacktestPreview';
+import BacktestPreviewToggle from './BacktestPreviewToggle';
+import BacktestPreviewPanel from './BacktestPreviewPanel';
 import { paramsFromRule } from './ruleFormConstants';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
@@ -19,10 +22,17 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
 
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
+  const [previewOpen, setPreviewOpen] = useState(false);
 
-    if(!rule) 
-      return;
+  const preview = useBacktestPreview({
+    conditionType: form.conditionType,
+    params: form.params,
+    fleetGroupId: form.fleetGroupId,
+    enabled: previewOpen,
+  });
+
+  useEffect(() => {
+    if (!rule) return;
 
     const type = rule.condition_type ?? 'speed_threshold';
 
@@ -37,18 +47,19 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
     });
 
     setStatus(rule.status ?? 'active');
-   
+
+    setPreviewOpen(false);
+    
   }, [rule]);
 
-  if(!isOpen)
-    return null;
+  if (!isOpen) return null;
 
   async function handleSubmit(e) {
     e.preventDefault();
 
     form.setError('');
 
-    if(!form.name.trim()) 
+    if(!form.name.trim())
       return form.setError('name is required');
 
     if(!form.fleetGroupId) 
@@ -96,7 +107,7 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
   }
 
   return (
-    
+
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
@@ -107,91 +118,117 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
           if (e.key === 'Escape') onClose();
         }}
       />
-      <div className="relative flex max-h-[85vh] w-full max-w-[520px] flex-col rounded-xl bg-fleet-surface shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between rounded-t-xl border-b border-fleet-border px-6 py-5">
-          <h2 className="font-display text-xl font-semibold text-fleet-text">
-            Edit Custom Alert
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-fleet-secondary hover:text-fleet-text"
-          >
-            <X className="h-5 w-5" />
-          </button>
+
+      <div className="relative flex items-stretch rounded-xl bg-fleet-surface shadow-2xl max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
+        {/* form half */}
+        <div className="flex w-full max-w-[520px] flex-col">
+          <div className="flex items-center justify-between border-b border-fleet-border px-6 py-5">
+            <h2 className="font-display text-xl font-semibold text-fleet-text">
+              Edit Custom Alert
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="text-fleet-secondary hover:text-fleet-text"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto px-6 py-5 [scrollbar-gutter:stable]">
+            <RuleConditionFields
+              conditionType={form.conditionType}
+              params={form.params}
+              error={form.error}
+              name={form.name}
+              fleetGroupId={form.fleetGroupId}
+              fleetGroups={fleetGroups}
+              onSelectCondition={(type) => form.selectCondition(type, paramsFromRule(rule, type))}
+              onNameChange={form.setName}
+              onFleetGroupChange={form.setFleetGroupId}
+              onUpdateParam={form.updateParam}
+              onToggleFromList={form.toggleFromList}
+            >
+              <div className="mb-1 flex items-center justify-between rounded-md border border-fleet-border px-3.5 py-3">
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-sm font-medium text-fleet-text">Rule Status</p>
+                  <p className="text-xs text-fleet-secondary">Inactive rules stop evaluating but keep their configuration.</p>
+                </div>
+
+                <div className="inline-flex overflow-hidden rounded-md border border-fleet-border">
+                  <button
+                    type="button"
+                    onClick={() => setStatus('active')}
+                    aria-pressed={status === 'active'}
+                    className={
+                      'px-4 py-1.5 text-sm font-medium transition-colors ' +
+                      (status === 'active'
+                        ? 'bg-fleet-green/30 text-fleet-green'
+                        : 'bg-fleet-surface text-fleet-secondary hover:bg-fleet-panel')
+                    }
+                  >
+                    Active
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatus('inactive')}
+                    aria-pressed={status === 'inactive'}
+                    className={
+                      'px-4 py-1.5 text-sm font-medium transition-colors border-l border-fleet-border ' +
+                      (status === 'inactive'
+                        ? 'bg-fleet-alert/30 text-fleet-alert'
+                        : 'bg-fleet-surface text-fleet-secondary hover:bg-fleet-panel')
+                    }
+                  >
+                    Inactive
+                  </button>
+                </div>
+              </div>
+            </RuleConditionFields>
+          </form>
+
+          <div className="flex justify-end gap-3 border-t border-fleet-border px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-fleet-border px-4 py-2 text-sm font-medium text-fleet-text hover:bg-fleet-panel"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="rounded-md bg-fleet-blue px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+            >
+              {submitting ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto px-6 py-5 [scrollbar-gutter:stable]">
-          <RuleConditionFields
-            conditionType={form.conditionType}
-            params={form.params}
-            error={form.error}
-            name={form.name}
-            fleetGroupId={form.fleetGroupId}
-            fleetGroups={fleetGroups}
-            onSelectCondition={(type) => form.selectCondition(type, paramsFromRule(rule, type))}
-            onNameChange={form.setName}
-            onFleetGroupChange={form.setFleetGroupId}
-            onUpdateParam={form.updateParam}
-            onToggleFromList={form.toggleFromList}
-          >
-            <div className="mb-1 flex items-center justify-between rounded-md border border-fleet-border px-3.5 py-3">
-              <div className="flex-1 min-w-0 pr-3">
-                <p className="text-sm font-medium text-fleet-text">Rule Status</p>
-                <p className="text-xs text-fleet-secondary">Inactive rules stop evaluating but keep their configuration.</p>
-              </div>
+        {!previewOpen && (
+          <BacktestPreviewToggle
+            onClick={() => setPreviewOpen(true)}
+            hasRequiredInputs={preview.hasRequiredInputs}
+            totalAlerts={preview.data?.total_alerts}
+            loading={preview.loading}
+          />
+        )}
 
-              <div className="inline-flex overflow-hidden rounded-md border border-fleet-border">
-                <button
-                  type="button"
-                  onClick={() => setStatus('active')}
-                  aria-pressed={status === 'active'}
-                  className={
-                    'px-4 py-1.5 text-sm font-medium transition-colors ' +
-                    (status === 'active'
-                      ? 'bg-fleet-green/30 text-fleet-green'
-                      : 'bg-fleet-surface text-fleet-secondary hover:bg-fleet-panel')
-                  }
-                >
-                  Active
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatus('inactive')}
-                  aria-pressed={status === 'inactive'}
-                  className={
-                    'px-4 py-1.5 text-sm font-medium transition-colors border-l border-fleet-border ' +
-                    (status === 'inactive'
-                      ? 'bg-fleet-alert/30 text-fleet-alert'
-                      : 'bg-fleet-surface text-fleet-secondary hover:bg-fleet-panel')
-                  }
-                >
-                  Inactive
-                </button>
-              </div>
-            </div>
-          </RuleConditionFields>
-        </form>
-
-        <div className="flex justify-end gap-3 rounded-b-xl border-t border-fleet-border px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-fleet-border px-4 py-2 text-sm font-medium text-fleet-text hover:bg-fleet-panel"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="rounded-md bg-fleet-blue px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-          >
-            {submitting ? 'Saving…' : 'Save Changes'}
-          </button>
-        </div>
+        {/* fused preview panel — flush against the form half, shares the
+            same outer shadow/rounded corners from the wrapper above */}
+        {previewOpen && (
+          <div className="border-l border-fleet-border">
+            <BacktestPreviewPanel
+              data={preview.data}
+              loading={preview.loading}
+              error={preview.error}
+              onClose={() => setPreviewOpen(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

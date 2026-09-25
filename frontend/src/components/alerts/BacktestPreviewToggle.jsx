@@ -16,6 +16,16 @@ export default function BacktestPreviewToggle({
     ? 'Click to preview simulated alert impact over the last 30 days'
     : 'Select a fleet group first to preview impact';
 
+    function getAlertCountLabel(loading, totalAlerts) {
+      if (loading)
+        return '…';
+
+      if (totalAlerts != null) 
+       return `${totalAlerts} alerts`;
+
+      return '—';
+    }
+
   return (
     <button
       type="button"
@@ -41,7 +51,7 @@ export default function BacktestPreviewToggle({
       </span>
       {hasRequiredInputs && (
         <span className="ml-1 rounded-full bg-fleet-blue/10 px-2 py-0.5 text-xs font-semibold text-fleet-blue">
-          {loading ? '…' : totalAlerts != null ? `${totalAlerts} alerts` : '—'}
+          {getAlertCountLabel(loading, totalAlerts)}
         </span>
       )}
       <ChevronRight className="h-4 w-4 text-fleet-secondary shrink-0" />

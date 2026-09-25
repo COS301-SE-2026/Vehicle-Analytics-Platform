@@ -388,25 +388,41 @@ describe('weeksInPeriod()', () => {
 			.toThrow('weeksInPeriod requires a resolved period with Date bounds');
 	});
 
-	test('splits a month into whole Monday-aligned weeks', () => {
+	test('splits a month into whole Monday-aligned weeks that stay inside the month', () => {
 		const period = resolvePeriod({ periodType: 'monthly', anchor: WEDNESDAY });
 		const weeks = weeksInPeriod(period);
 
+		// July 2026: 1-5 Jul (Wed-Sun) and 27-31 Jul (Mon-Fri) are partial weeks.
+		expect(weeks).toHaveLength(3);
+		expect(weeks.map((w) => w.fromDate)).toEqual(['2026-07-06', '2026-07-13', '2026-07-20']);
+		expect(weeks.map((w) => w.toDate)).toEqual(['2026-07-12', '2026-07-19', '2026-07-26']);
+	});
+
+	test('never includes days after the end of the period', () => {
+		// September 2026 ends on a Wednesday; the old behaviour spilled into 1-4 October.
+		const period = resolvePeriod({ periodType: 'monthly', anchor: new Date('2026-10-01T08:00:00Z') });
+		const weeks = weeksInPeriod(period);
+
+		expect(weeks.map((w) => w.fromDate)).toEqual(['2026-09-07', '2026-09-14', '2026-09-21']);
+		weeks.forEach((w) => expect(w.to.getTime()).toBeLessThanOrEqual(period.to.getTime()));
+	});
+
+	test('a month that starts on a Monday yields four full weeks', () => {
+		// February 2027 starts on Monday 1 Feb and has exactly 28 days.
+		const period = resolvePeriod({ periodType: 'monthly', anchor: new Date('2027-03-02T08:00:00Z') });
+		const weeks = weeksInPeriod(period);
+
 		expect(weeks).toHaveLength(4);
-		expect(weeks.map((w) => w.fromDate)).toEqual([
-			'2026-07-06', '2026-07-13', '2026-07-20', '2026-07-27',
-		]);
-		expect(weeks.map((w) => w.toDate)).toEqual([
-			'2026-07-12', '2026-07-19', '2026-07-26', '2026-08-02',
-		]);
+		expect(weeks[0].fromDate).toBe('2027-02-01');
+		expect(weeks[3].toDate).toBe('2027-02-28');
 	});
 
 	test('numbers and labels the weeks sequentially', () => {
 		const period = resolvePeriod({ periodType: 'monthly', anchor: WEDNESDAY });
 		const weeks = weeksInPeriod(period);
 
-		expect(weeks.map((w) => w.index)).toEqual([1, 2, 3, 4]);
-		expect(weeks.map((w) => w.label)).toEqual(['Week 1', 'Week 2', 'Week 3', 'Week 4']);
+		expect(weeks.map((w) => w.index)).toEqual([1, 2, 3]);
+		expect(weeks.map((w) => w.label)).toEqual(['Week 1', 'Week 2', 'Week 3']);
 		expect(weeks[0].dateLabel).toBe('6 - 12 Jul 2026');
 	});
 
@@ -448,7 +464,7 @@ describe('weeksInPeriod()', () => {
 });
 
 describe('trendCoverage()', () => {
-	test('reports lead-in and spill for a month of whole weeks', () => {
+	test('reports lead-in and trailing days left out of the weekly trend', () => {
 		const period = resolvePeriod({ periodType: 'monthly', anchor: WEDNESDAY });
 		const weeks = weeksInPeriod(period);
 		const coverage = trendCoverage(period, weeks);
@@ -456,10 +472,11 @@ describe('trendCoverage()', () => {
 		expect(coverage.covered).toBe(true);
 		expect(coverage.totalDays).toBe(31);
 		expect(coverage.leadInDays).toBe(5);
-		expect(coverage.coveredDays).toBe(26);
-		expect(coverage.spillDays).toBe(2);
+		expect(coverage.coveredDays).toBe(21);
+		expect(coverage.trailingDays).toBe(5);
+		expect(coverage.leadInDays + coverage.coveredDays + coverage.trailingDays).toBe(31);
 		expect(coverage.firstDate).toBe('2026-07-06');
-		expect(coverage.lastDate).toBe('2026-08-02');
+		expect(coverage.lastDate).toBe('2026-07-26');
 	});
 
 	test('reports no coverage when there are no whole weeks', () => {
@@ -475,16 +492,16 @@ describe('trendCoverage()', () => {
 			totalDays: 3,
 			coveredDays: 0,
 			leadInDays: 3,
-			spillDays: 0,
+			trailingDays: 0,
 		});
 	});
 
-	test('a weekly period is perfectly covered with no lead-in or spill', () => {
+	test('a weekly period is perfectly covered with no lead-in or trailing days', () => {
 		const period = resolvePeriod({ periodType: 'weekly', anchor: WEDNESDAY });
 		const coverage = trendCoverage(period, weeksInPeriod(period));
 
 		expect(coverage.leadInDays).toBe(0);
-		expect(coverage.spillDays).toBe(0);
+		expect(coverage.trailingDays).toBe(0);
 		expect(coverage.coveredDays).toBe(7);
 	});
 });

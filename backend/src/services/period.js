@@ -68,7 +68,9 @@ function buildRange(fromWallDate, toWallDate, label) {
 
 function weekLabel(startWall, endExclusiveWall) {
     const lastDay = new Date(endExclusiveWall.getTime() - MS_PER_DAY);
+    
     const sameMonth = startWall.getUTCMonth() === lastDay.getUTCMonth();
+
     const year = lastDay.getUTCFullYear();
 
     if (sameMonth) {
@@ -195,12 +197,14 @@ function resolvePeriod({ periodType, anchor, from, to, currentDays = 7 } = {}) {
     }
 }
 
+
 function weeksInPeriod(period) {
     if (!period || !(period.from instanceof Date) || !(period.to instanceof Date)) {
         throw new Error('weeksInPeriod requires a resolved period with Date bounds');
     }
 
     const startWall = toWall(period.from);
+
     const endWall = toWall(period.to);
     let cursor = startOfWeekWall(startWall);
 
@@ -211,7 +215,7 @@ function weeksInPeriod(period) {
     const weeks = [];
     let index = 1;
 
-    while (cursor.getTime() < endWall.getTime()) {
+    while (addDaysWall(cursor, 7).getTime() <= endWall.getTime()) {
         const weekEnd = addDaysWall(cursor, 7);
         weeks.push({
             index,
@@ -223,6 +227,7 @@ function weeksInPeriod(period) {
     }
 
     return weeks;
+
 }
 
 function trendCoverage(period, weeks) {
@@ -232,25 +237,24 @@ function trendCoverage(period, weeks) {
             totalDays: period.days,
             coveredDays: 0,
             leadInDays: period.days,
-            spillDays: 0,
+            trailingDays: 0,
         };
     }
 
     const first = weeks[0];
+
     const last = weeks[weeks.length - 1];
 
     const leadInDays = Math.round((first.from.getTime() - period.from.getTime()) / MS_PER_DAY);
-    const spillDays = Math.max(
-        0,
-        Math.round((last.to.getTime() - period.to.getTime()) / MS_PER_DAY),
-    );
+
+    const trailingDays = Math.round((period.to.getTime() - last.to.getTime()) / MS_PER_DAY);
 
     return {
         covered: true,
         totalDays: period.days,
-        coveredDays: period.days - leadInDays,
+        coveredDays: weeks.length * 7,
         leadInDays,
-        spillDays,
+        trailingDays,
         firstDate: first.fromDate,
         lastDate: last.toDate,
     };

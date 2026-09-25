@@ -21,6 +21,11 @@ const { compareSummaries, isBaselineSufficient } = require('../services/compare'
 const { topPerformers, requiresAttention, mergeEntities } = require('../services/rank');
 const { buildTrends, MIN_WEEKS_FOR_TREND } = require('../services/trend');
 
+const { buildInsights } = require('../services/insights');
+const { buildReportPdf, reportFilename } = require('../services/reportPdf');
+const { saveReport, listReports, getReport } = require('../services/reportStore');
+const { runScheduledReports } = require('../services/reportRunner');
+
 const COMPARED_METRICS = [
     'safetyScore',
     'totalEvents',
@@ -64,24 +69,42 @@ const TREND_METRICS = [
     'idlingEvents',
 ];
 
+
+
+
+const INSIGHT_METRICS = [
+    'safetyScore',
+    'totalEvents',
+    'harshBrakes',
+    'harshAccelerations',
+    'harshCornering',
+    'crashes',
+    'overspeedEvents',
+    'idlingEvents',
+    'utilisationPct',
+    'activeVehicles',
+    'avgEfficiencyKmPerL',
+];
+
 const DEFAULT_CURRENT_DAYS = 7;
 const MAX_TREND_WEEKS = 6;
+const OUTPUT_FORMATS = ['json', 'pdf'];
 
-function handleError(res, err, context){
+function handleError(res, err, context, message = 'Failed to generate report') {
     if (err instanceof ScopeError) {
         return error(res, err.message, err.statusCode);
     }
     console.error(`${context}:`, err);
-    return error(res, 'Failed to generate report', 500);
+    return error(res, message, 500);
 }
 
-function readParam(body, snake, camel){
+function readParam(body, snake, camel) {
     if (body[snake] !== undefined && body[snake] !== null) return body[snake];
     if (body[camel] !== undefined && body[camel] !== null) return body[camel];
     return undefined;
 }
 
-function parseDate(value, field){
+function parseDate(value, field) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
         throw new ScopeError(`Invalid ${field} date`, 400);
@@ -89,7 +112,15 @@ function parseDate(value, field){
     return date;
 }
 
-async function resolveRequestedPeriod(db, body){
+
+
+async function resolveAnchor(db, periodType, body, now) {
+    const rawAnchor = readParam(body, 'anchor', 'anchor');
+    if (rawAnchor) return parseDate(rawAnchor, 'anchor');
+    return periodType === 'current' ? getDataClock(db) : now();
+}
+
+async function resolveRequestedPeriod(db, body, now = () => new Date()) {
     const periodType = readParam(body, 'period_type', 'periodType') || 'weekly';
 
     if (!PERIOD_TYPES.includes(periodType)) {
@@ -108,25 +139,26 @@ async function resolveRequestedPeriod(db, body){
         }
 
         try {
-            return resolvePeriod({
+            const period = resolvePeriod({
                 periodType,
                 from: parseDate(from, 'from'),
                 to: parseDate(to, 'to'),
             });
+            return { ...period, anchor: null };
         } catch (err) {
             if (err instanceof ScopeError) throw err;
             throw new ScopeError(err.message, 400);
         }
     }
 
-    const rawAnchor = readParam(body, 'anchor', 'anchor');
-    const anchor = rawAnchor ? parseDate(rawAnchor, 'anchor') : await getDataClock(db);
+    const anchor = await resolveAnchor(db, periodType, body, now);
     const currentDays = Number(readParam(body, 'current_days', 'currentDays')) || DEFAULT_CURRENT_DAYS;
 
-    return resolvePeriod({ periodType, anchor, currentDays });
+    return { ...resolvePeriod({ periodType, anchor, currentDays }), anchor };
+
 }
 
-async function runAnalytics(db, vehicleIds, window){
+async function runAnalytics(db, vehicleIds, window) {
     const safety = await getSafetyAnalytics(db, vehicleIds, window);
     const distance = await getDistanceAnalytics(db, vehicleIds, window);
     const fuel = await getFuelAnalytics(db, vehicleIds, window);
@@ -134,14 +166,14 @@ async function runAnalytics(db, vehicleIds, window){
     return { safety, distance, fuel };
 }
 
-async function buildWeeklyTrends(db, vehicleIds, period){
+async function buildWeeklyTrends(db, vehicleIds, period) {
     const allWeeks = weeksInPeriod(period);
 
     if (allWeeks.length < MIN_WEEKS_FOR_TREND) return null;
 
     const weeks = allWeeks.slice(-MAX_TREND_WEEKS);
-    const weeklySummaries = [];
 
+    const weeklySummaries = [];
     for (const week of weeks) {
         const safety = await getSafetyAnalytics(db, vehicleIds, week);
         const distance = await getDistanceAnalytics(db, vehicleIds, week);
@@ -162,17 +194,24 @@ async function buildWeeklyTrends(db, vehicleIds, period){
     };
 }
 
-function buildRankings(current){
+
+
+const ATTENTION_CLASSES = ['Fair', 'Poor'];
+const SAFE_CLASSES = ['Excellent', 'Good'];
+
+function buildRankings(current) {
     const merged = mergeEntities([
         current.distance.vehicles,
         current.fuel.vehicles,
         current.safety.vehicles,
     ]);
 
+    const inClasses = (classes) => merged.filter((e) => classes.includes(e.classification));
+
     return {
         entities: merged,
-        safestVehicles: topPerformers(merged, 'safetyScore'),
-        vehiclesRequiringAttention: requiresAttention(merged, 'safetyScore'),
+        safestVehicles: topPerformers(inClasses(SAFE_CLASSES), 'safetyScore', { minEntities: 1 }),
+        vehiclesRequiringAttention: requiresAttention(inClasses(ATTENTION_CLASSES), 'safetyScore', { minEntities: 1 }),
         mostEvents: requiresAttention(merged, 'totalEvents'),
         highestUtilisation: topPerformers(merged, 'utilisationPct'),
         mostIdle: requiresAttention(merged, 'idleRatio'),
@@ -180,127 +219,242 @@ function buildRankings(current){
     };
 }
 
-async function generateReport(req, res){
+async function buildReportPayload(db, user, request, options = {}){
+    const { now = () => new Date() } = options;
+    const scopeType = readParam(request, 'scope_type', 'scopeType') || 'fleet';
+    const scopeId = readParam(request, 'scope_id', 'scopeId') || null;
+
+    const scope = await resolveScope(db, user, { scopeType, scopeId });
+    const period = await resolveRequestedPeriod(db, request, now);
+
+    const current = await runAnalytics(db, scope.vehicleIds, period);
+
+    const previous = period.previous
+        ? await runAnalytics(db, scope.vehicleIds, period.previous)
+        : null;
+
+    const baselineSufficient = previous
+        ? isBaselineSufficient(previous.distance.summary, current.distance.summary)
+        : false;
+
+    const compareOptions = { baselineSufficient };
+
+    const trends = await buildWeeklyTrends(db, scope.vehicleIds, period);
+    const rankings = buildRankings(current);
+
+    const comparisons = previous
+        ? {
+            safety: compareSummaries(
+                current.safety.summary,
+                previous.safety.summary,
+                { ...compareOptions, metrics: COMPARED_METRICS },
+            ),
+            distance: compareSummaries(
+                current.distance.summary,
+                previous.distance.summary,
+                { ...compareOptions, metrics: DISTANCE_COMPARED_METRICS },
+            ),
+            fuel: compareSummaries(
+                current.fuel.summary,
+                previous.fuel.summary,
+                { ...compareOptions, metrics: FUEL_COMPARED_METRICS },
+            ),
+        }
+        : { safety: null, distance: null, fuel: null };
+
+    const insights = buildInsights({
+        comparison: { ...comparisons.distance, ...comparisons.fuel, ...comparisons.safety },
+        trends,
+        metrics: INSIGHT_METRICS,
+    });
+
+    return {
+        report: {
+            generatedAt: new Date().toISOString(),
+            scope: {
+                type: scope.scopeType,
+                id: scope.scopeId,
+                label: scope.label,
+                vehicleCount: scope.vehicleCount,
+                groupIds: scope.groupIds,
+                includesUnassigned: Boolean(scope.includesUnassigned),
+                unassignedVehicleCount: scope.unassignedVehicleCount,
+            },
+            requestedBy: { role: scope.role },
+        },
+
+        period: {
+            type: period.type,
+            label: period.label,
+            fromDate: period.fromDate,
+            toDate: period.toDate,
+            days: period.days,
+            anchor: period.anchor ? period.anchor.toISOString() : null,
+        },
+
+        previousPeriod: period.previous
+            ? {
+                label: period.previous.label,
+                fromDate: period.previous.fromDate,
+                toDate: period.previous.toDate,
+                days: period.previous.days,
+            }
+            : null,
+
+        coverage: {
+            hasTelemetry: current.safety.summary.hasTelemetry,
+            vehiclesInScope: scope.vehicleCount,
+            vehiclesWithEvents: current.safety.summary.vehiclesWithEvents,
+            activeVehicles: current.distance.summary.activeVehicles,
+            inactiveVehicles: current.distance.summary.inactiveVehicles,
+            vehiclesWithFuelData: current.fuel.summary.vehiclesWithFuelData,
+            fuelIsEstimated: true,
+            baselineSufficient,
+        },
+
+        safety: {
+            summary: current.safety.summary,
+            vehicles: current.safety.vehicles,
+            comparison: comparisons.safety,
+        },
+
+        distance: {
+            summary: current.distance.summary,
+            vehicles: current.distance.vehicles,
+            comparison: comparisons.distance,
+        },
+
+        fuel: {
+            summary: current.fuel.summary,
+            vehicles: current.fuel.vehicles,
+            comparison: comparisons.fuel,
+        },
+
+        rankings,
+        trends,
+        insights,
+    };
+}
+
+async function sendPdf(res, payload){
+    const pdf = await buildReportPdf(payload);
+
+    return success(res, {
+        filename: reportFilename(payload),
+        contentType: 'application/pdf',
+        encoding: 'base64',
+        sizeBytes: pdf.length,
+        content: pdf.toString('base64'),
+    }, 200);
+}
+
+async function generateReport(req, res) {
     try {
         const body = req.body || {};
 
-        const scopeType = readParam(body, 'scope_type', 'scopeType') || 'fleet';
-        const scopeId = readParam(body, 'scope_id', 'scopeId') || null;
+        const format = String(readParam(body, 'format', 'format') || 'json').toLowerCase();
+        if (!OUTPUT_FORMATS.includes(format)) {
+            throw new ScopeError(
+                `Invalid format. Expected one of: ${OUTPUT_FORMATS.join(', ')}`,
+                400,
+            );
+        }
 
-        const scope = await resolveScope(pool, req.user, { scopeType, scopeId });
-        const period = await resolveRequestedPeriod(pool, body);
+        const payload = await buildReportPayload(pool, req.user, body);
 
-        const current = await runAnalytics(pool, scope.vehicleIds, period);
+        const persist = readParam(body, 'save', 'save') === true;
+        let stored = null;
 
-        const previous = period.previous
-            ? await runAnalytics(pool, scope.vehicleIds, period.previous)
-            : null;
+        if (persist) {
+            stored = await saveReport(pool, {
+                payload,
+                trigger: 'manual',
+                generatedBy: String(req.user?.id ?? 'unknown'),
+            });
+        }
 
-        const baselineSufficient = previous
-            ? isBaselineSufficient(previous.distance.summary, current.distance.summary)
-            : false;
+        if (format === 'pdf') return await sendPdf(res, payload);
 
-        const compareOptions = { baselineSufficient };
-
-        const trends = await buildWeeklyTrends(pool, scope.vehicleIds, period);
-        const rankings = buildRankings(current);
-
-        return success(res, {
-            report: {
-                generatedAt: new Date().toISOString(),
-                scope: {
-                    type: scope.scopeType,
-                    id: scope.scopeId,
-                    label: scope.label,
-                    vehicleCount: scope.vehicleCount,
-                    groupIds: scope.groupIds,
-                    unassignedVehicleCount: scope.unassignedVehicleCount,
-                },
-                requestedBy: { role: scope.role },
-            },
-
-            period: {
-                type: period.type,
-                label: period.label,
-                fromDate: period.fromDate,
-                toDate: period.toDate,
-                days: period.days,
-            },
-
-            previousPeriod: period.previous
-                ? {
-                    label: period.previous.label,
-                    fromDate: period.previous.fromDate,
-                    toDate: period.previous.toDate,
-                    days: period.previous.days,
-                }
-                : null,
-
-            coverage: {
-                hasTelemetry: current.safety.summary.hasTelemetry,
-                vehiclesInScope: scope.vehicleCount,
-                vehiclesWithEvents: current.safety.summary.vehiclesWithEvents,
-                activeVehicles: current.distance.summary.activeVehicles,
-                inactiveVehicles: current.distance.summary.inactiveVehicles,
-                vehiclesWithFuelData: current.fuel.summary.vehiclesWithFuelData,
-                fuelIsEstimated: true,
-                baselineSufficient,
-            },
-
-            safety: {
-                summary: current.safety.summary,
-                vehicles: current.safety.vehicles,
-                comparison: previous
-                    ? compareSummaries(
-                        current.safety.summary,
-                        previous.safety.summary,
-                        { ...compareOptions, metrics: COMPARED_METRICS },
-                    )
-                    : null,
-            },
-
-            distance: {
-                summary: current.distance.summary,
-                vehicles: current.distance.vehicles,
-                comparison: previous
-                    ? compareSummaries(
-                        current.distance.summary,
-                        previous.distance.summary,
-                        { ...compareOptions, metrics: DISTANCE_COMPARED_METRICS },
-                    )
-                    : null,
-            },
-
-            fuel: {
-                summary: current.fuel.summary,
-                vehicles: current.fuel.vehicles,
-                comparison: previous
-                    ? compareSummaries(
-                        current.fuel.summary,
-                        previous.fuel.summary,
-                        { ...compareOptions, metrics: FUEL_COMPARED_METRICS },
-                    )
-                    : null,
-            },
-
-            rankings,
-            trends,
-        }, 200);
+        return success(res, stored ? { ...payload, storedReportId: stored.id } : payload, 200);
     } catch (err) {
         return handleError(res, err, 'Generate report error');
     }
 }
 
-async function getReportScopes(req, res){
+async function getReportScopes(req, res) {
     try {
         const scopes = await listAvailableScopes(pool, req.user);
         return success(res, scopes, 200);
     } catch (err) {
-        return handleError(res, err, 'Get report scopes error');
+        return handleError(res, err, 'Get report scopes error', 'Failed to load reporting scopes');
     }
 }
+
+
+async function listReportHistory(req, res) {
+    try {
+        const result = await listReports(pool, req.user, {
+            limit: req.query.limit,
+            offset: req.query.offset,
+            scopeType: req.query.scope_type || null,
+            periodType: req.query.period_type || null,
+            trigger: req.query.trigger || null,
+        });
+
+        return success(res, result, 200);
+    } catch (err) {
+        return handleError(res, err, 'List report history error', 'Failed to load report history');
+    }
+}
+
+async function getStoredReport(req, res){
+    try {
+        const stored = await getReport(pool, req.user, req.params.id);
+        return success(res, stored, 200);
+    } catch (err) {
+        return handleError(res, err, 'Get stored report error', 'Failed to load report');
+    }
+}
+
+async function getStoredReportPdf(req, res){
+    try {
+        const stored = await getReport(pool, req.user, req.params.id);
+        return await sendPdf(res, stored.dataset);
+    } catch (err) {
+        return handleError(res, err, 'Get stored report PDF error', 'Failed to build report PDF');
+    }
+}
+
+async function runScheduled({ periodType = 'weekly', anchor = null } = {}){
+    return runScheduledReports(pool, { buildReportPayload }, { periodType, anchor });
+}
+
+
+
+async function runScheduledHttp(req, res){
+    try {
+        const body = req.body || {};
+        const summary = await runScheduled({
+            periodType: readParam(body, 'period_type', 'periodType') || 'weekly',
+            anchor: readParam(body, 'anchor', 'anchor') || null,
+        });
+
+        return success(res, summary, 200);
+    } catch (err) {
+        return handleError(res, err, 'Scheduled report run error', 'Scheduled report run failed');
+    }
+}
+
 
 module.exports = {
     generateReport,
     getReportScopes,
+    listReportHistory,
+    getStoredReport,
+    getStoredReportPdf,
+    runScheduledHttp,
+
+    buildReportPayload,
+    runScheduled,
+    INSIGHT_METRICS,
 };

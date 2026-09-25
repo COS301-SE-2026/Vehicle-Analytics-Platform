@@ -67,17 +67,21 @@ function round(value, dp){
     return (sign * Math.round(Math.abs(value) * factor)) / factor;
 }
 
-function directionFor(percentChange, higherIsBetter, threshold){
-    if (percentChange === null) return null;
-    if (Math.abs(percentChange) < threshold) return DIRECTION.STABLE;
-
-    const rising = percentChange > 0;
-    if (higherIsBetter === null) {
+function directionForMove(rising, higherIsBetter){
+    if (higherIsBetter === null || higherIsBetter === undefined) {
         return rising ? DIRECTION.INCREASED : DIRECTION.DECREASED;
     }
 
     const better = higherIsBetter ? rising : !rising;
     return better ? DIRECTION.IMPROVED : DIRECTION.DETERIORATED;
+}
+
+function directionFor(percentChange, higherIsBetter, threshold){
+    if (percentChange === null) return null;
+    if (Math.abs(percentChange) < threshold) return DIRECTION.STABLE;
+
+    return directionForMove(percentChange > 0, higherIsBetter);
+    
 }
 
 function compareMetric(metric, current, previous, options = {}){
@@ -110,11 +114,18 @@ function compareMetric(metric, current, previous, options = {}){
 
     const absoluteChange = round(current - previous, precision);
 
+
+
     if (previous === 0) {
+        if (current === 0) {
+            return { ...base, absoluteChange, direction: DIRECTION.STABLE };
+        }
         return {
             ...base,
             absoluteChange,
-            direction: current === 0 ? DIRECTION.STABLE : DIRECTION.NO_BASELINE,
+            direction: baselineSufficient
+                ? directionForMove(current > 0, higherIsBetter)
+                : DIRECTION.INSUFFICIENT_BASELINE,
         };
     }
 
@@ -162,18 +173,25 @@ function compareSummaries(current, previous, options = {}){
     return result;
 }
 
-function isBaselineSufficient(previousSummary, options = {}){
+
+function isBaselineSufficient(previousSummary, currentSummary = null, options = {}){
     const { minActiveVehicles = 1, minCoverageRatio = 0.5 } = options;
 
     if (!previousSummary || typeof previousSummary !== 'object') return false;
 
-    const active = previousSummary.activeVehicles ?? previousSummary.vehiclesWithFuelData;
-    const inScope = previousSummary.vehiclesInScope;
+    const previousActive = previousSummary.activeVehicles ?? previousSummary.vehiclesWithFuelData;
+    if (!isNumber(previousActive) || previousActive < minActiveVehicles) return false;
 
-    if (!isNumber(active) || active < minActiveVehicles) return false;
-    if (!isNumber(inScope) || inScope === 0) return false;
+    if (!currentSummary || typeof currentSummary !== 'object') {
+        const inScope = previousSummary.vehiclesInScope;
+        if (!isNumber(inScope) || inScope === 0) return false;
+        return (previousActive / inScope) >= minCoverageRatio;
+    }
 
-    return (active / inScope) >= minCoverageRatio;
+    const currentActive = currentSummary.activeVehicles ?? currentSummary.vehiclesWithFuelData;
+    if (!isNumber(currentActive) || currentActive === 0) return true;
+
+    return (previousActive / currentActive) >= minCoverageRatio;
 }
 
 module.exports = {

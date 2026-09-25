@@ -4,6 +4,7 @@ const {
     resolveScope,
     getAccessibleGroups,
     assertCanReadReport,
+    canReadReport,
     listAvailableScopes,
     ScopeError,
     SCOPE_TYPES,
@@ -522,8 +523,22 @@ describe('assertCanReadReport()', () => {
 		await expect(assertCanReadReport(makeDb(), MANAGER, [1])).resolves.toBeUndefined();
 	});
 
-	test('a partial overlap is enough to authorise a read', async () => {
-		await expect(assertCanReadReport(makeDb(), MANAGER, [1, 3])).resolves.toBeUndefined();
+	test('a partial overlap is NOT enough: the report also holds another manager\'s vehicles', async () => {
+		await expect(assertCanReadReport(makeDb(), MANAGER, [1, 3]))
+			.rejects.toMatchObject({ statusCode: 403 });
+	});
+
+	test('a report covering only assigned groups is readable', async () => {
+		await expect(assertCanReadReport(makeDb(), MANAGER, [1, 2])).resolves.toBeUndefined();
+	});
+
+	test('a report holding unassigned vehicles is blocked for a manager', async () => {
+		await expect(assertCanReadReport(makeDb(), MANAGER, [1], true))
+			.rejects.toMatchObject({ statusCode: 403 });
+	});
+
+	test('an admin may read a report holding unassigned vehicles', async () => {
+		await expect(assertCanReadReport(makeDb(), ADMIN, [1], true)).resolves.toBeUndefined();
 	});
 
 	test('blocks a manager when no group overlaps', async () => {
@@ -644,5 +659,76 @@ describe('scopeResolver - authorisation is enforced at the data layer', () => {
 			expect(typeof scope.label).toBe('string');
 			expect(scope.role).toBe('fleet_manager');
 		}
+	});
+});
+describe('canReadReport() - pure read rule', () => {
+	test.each([
+		['admin reads anything', 'admin', [], [3], true, true],
+		['manager: every group assigned', 'fleet_manager', [1, 2], [1, 2], false, true],
+		['manager: subset of assigned groups', 'fleet_manager', [1, 2], [2], false, true],
+		['manager: one foreign group', 'fleet_manager', [1, 2], [1, 3], false, false],
+		['manager: unassigned vehicles', 'fleet_manager', [1, 2], [1], true, false],
+		['manager: report with no groups', 'fleet_manager', [1, 2], [], false, false],
+		['manager: null group list', 'fleet_manager', [1, 2], null, false, false],
+		['manager: string ids are parsed', 'fleet_manager', [1, 2], ['1', '2'], false, true],
+		['manager: an unparseable id fails closed', 'fleet_manager', [1, 2], [1, 'abc'], false, false],
+		['manager: no assignments', 'fleet_manager', [], [1], false, false],
+	])('%s', (_name, role, accessible, reportGroups, unassigned, expected) => {
+		expect(canReadReport(role, accessible, reportGroups, unassigned)).toBe(expected);
+	});
+});
+
+describe('scopeResolver - soft-deleted fleet groups', () => {
+	test('the admin group query excludes soft-deleted groups', async () => {
+		const db = makeDb();
+		await getAccessibleGroups(db, ADMIN);
+		expect(db.calls[0].sql).toContain('deleted_at is null');
+	});
+
+	test('the manager group query excludes soft-deleted groups', async () => {
+		const db = makeDb();
+		await getAccessibleGroups(db, MANAGER);
+		expect(db.calls[0].sql).toContain('fleet_manager_assignments');
+		expect(db.calls[0].sql).toContain('deleted_at is null');
+	});
+});
+
+describe('resolveScope() - includesUnassigned flag', () => {
+	test('an admin fleet scope includes unassigned vehicles when any exist', async () => {
+		const scope = await resolveScope(makeDb({ unassignedCount: 1 }), ADMIN, { scopeType: 'fleet' });
+		expect(scope.includesUnassigned).toBe(true);
+	});
+
+	test('an admin fleet scope with no unassigned vehicles is not flagged', async () => {
+		const scope = await resolveScope(makeDb({ unassignedCount: 0 }), ADMIN, { scopeType: 'fleet' });
+		expect(scope.includesUnassigned).toBe(false);
+	});
+
+	test('a manager fleet scope never includes unassigned vehicles', async () => {
+		const scope = await resolveScope(makeDb({ unassignedCount: 1 }), MANAGER, { scopeType: 'fleet' });
+		expect(scope.includesUnassigned).toBe(false);
+		expect(scope.vehicleIds).not.toContain('V005');
+	});
+
+	test('a group scope is never flagged', async () => {
+		const scope = await resolveScope(makeDb(), MANAGER, { scopeType: 'group', scopeId: 1 });
+		expect(scope.includesUnassigned).toBe(false);
+	});
+
+	test('an admin single-vehicle scope on an unassigned vehicle is flagged', async () => {
+		const scope = await resolveScope(makeDb(), ADMIN, { scopeType: 'vehicle', scopeId: 'V005' });
+		expect(scope.includesUnassigned).toBe(true);
+		expect(scope.groupIds).toEqual([]);
+	});
+
+	test('an admin comparison mixing grouped and unassigned vehicles is flagged', async () => {
+		const scope = await resolveScope(makeDb(), ADMIN, { scopeType: 'vehicles', scopeId: ['V001', 'V005'] });
+		expect(scope.includesUnassigned).toBe(true);
+		expect(scope.groupIds).toEqual([1]);
+	});
+
+	test('a comparison of grouped vehicles only is not flagged', async () => {
+		const scope = await resolveScope(makeDb(), MANAGER, { scopeType: 'vehicles', scopeId: ['V001', 'V003'] });
+		expect(scope.includesUnassigned).toBe(false);
 	});
 });

@@ -1,12 +1,27 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { FileBarChart, AlertCircle, Loader2, Download } from 'lucide-react'
+import {
+	FileBarChart, AlertCircle, Loader2, Download, FileDown, Save, Archive, X,
+} from 'lucide-react'
 import SafetySummaryCards from '../../components/reports/SafetySummaryCards'
 import SafetyVehicleTable from '../../components/reports/SafetyVehicleTable'
 import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
-import { getReportScopes, generateReport } from '../../services/reportServices'
+import ReportHistory from '../../components/reports/ReportHistory'
+import ReportAnalysis from '../../components/reports/ReportAnalysis'
+import {getReportScopes, generateReport, downloadReportPdf, getStoredReport, downloadStoredReportPdf,} from '../../services/reportServices'
 
 const AUTO_PLOT_LIMIT = 12
+
+function reportEntities(report){
+	return report?.rankings?.entities || report?.safety?.vehicles || []
+}
+
+
+
+function defaultPlotted(report){
+	const ids = reportEntities(report).map((e) => e.vehicleId)
+	return ids.length <= AUTO_PLOT_LIMIT ? ids : []
+}
 
 function toISODate(date){
 	if (!date) return undefined
@@ -14,6 +29,34 @@ function toISODate(date){
 	const month = String(d.getMonth() + 1).padStart(2, '0')
 	const day = String(d.getDate()).padStart(2, '0')
 	return `${d.getFullYear()}-${month}-${day}`
+}
+
+// The PDF and the saved copy must describe exactly the window on screen, so
+// the request echoes the report's own anchor (or dates, for a custom range)
+// instead of letting the server resolve "now" again.
+function requestFromReport(r){
+	const custom = r.period.type === 'custom'
+	return {
+		scopeType: r.report.scope.type,
+		scopeId: r.report.scope.id ?? undefined,
+		periodType: r.period.type,
+		anchor: custom ? undefined : (r.period.anchor || undefined),
+		from: custom ? r.period.fromDate : undefined,
+		to: custom ? r.period.toDate : undefined,
+	}
+}
+
+function withoutStoredId(result){
+	const dataset = { ...result }
+	delete dataset.storedReportId
+	return dataset
+}
+
+function formatGeneratedAt(iso){
+	if (!iso) return ''
+	return new Date(iso).toLocaleString('en-ZA', {
+		day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+	})
 }
 
 const CSV_COLUMNS = [
@@ -58,21 +101,23 @@ export default function Reports(){
 	const [scopes, setScopes] = useState({ groups: [], vehicles: [], unassignedVehicleCount: 0 })
 	const [scopeValue, setScopeValue] = useState('fleet')
 	const [periodType, setPeriodType] = useState('weekly')
-
 	const [dateRange, setDateRange] = useState({ from: undefined, to: undefined })
 
 	const [compareMode, setCompareMode] = useState(false)
-
 	const [scopeVehicleIds, setScopeVehicleIds] = useState([])
-
 	const [plottedVehicleIds, setPlottedVehicleIds] = useState([])
 
 	const [report, setReport] = useState(null)
-
 	const [loading, setLoading] = useState(false)
-
 	const [error, setError] = useState(null)
 
+
+
+	const [busy, setBusy] = useState(null) // 'pdf' | 'save' | null
+	const [historyKey, setHistoryKey] = useState(0)
+
+
+	const [storedReport, setStoredReport] = useState(null)
 
 	useEffect(() => {
 		let cancelled = false
@@ -102,25 +147,19 @@ export default function Reports(){
 			: [...prev, vehicleId]))
 	}
 
-
-
 	function togglePlottedVehicle(vehicleId){
 		setPlottedVehicleIds((prev) => (prev.includes(vehicleId)
 			? prev.filter((id) => id !== vehicleId)
 			: [...prev, vehicleId]))
 	}
 
-
 	const handleGenerate = useCallback(async () => {
 		setLoading(true)
 		setError(null)
 
 		const comparing = compareMode && scopeVehicleIds.length > 0
-
 		const [dropdownType, dropdownId] = scopeValue.split(':')
-		
 		const scopeType = comparing ? 'vehicles' : dropdownType
-
 		const scopeId = comparing ? scopeVehicleIds : (dropdownId || undefined)
 
 		try {
@@ -132,27 +171,72 @@ export default function Reports(){
 				to: periodType === 'custom' ? toISODate(dateRange?.to) : undefined,
 			})
 			setReport(result)
+			setStoredReport(null)
+			setPlottedVehicleIds(defaultPlotted(result))
 		} catch (err) {
 			setError(err.message || 'Failed to generate report')
 			setReport(null)
+			setStoredReport(null)
+			setPlottedVehicleIds([])
 		} finally {
 			setLoading(false)
 		}
 	}, [scopeValue, periodType, dateRange, compareMode, scopeVehicleIds])
 
-	const entities = useMemo(
-		() => report?.rankings?.entities || report?.safety?.vehicles || [],
-		[report],
-	)
-
-	useEffect(() => {
-		if (!report) {
-			setPlottedVehicleIds([])
-			return
+	async function runAction(kind, fn){
+		setBusy(kind)
+		setError(null)
+		try {
+			await fn()
+		} catch (err) {
+			setError(err.message || 'Action failed')
+		} finally {
+			setBusy(null)
 		}
-		const ids = entities.map((e) => e.vehicleId)
-		setPlottedVehicleIds(ids.length <= AUTO_PLOT_LIMIT ? ids : [])
-	}, [report, entities])
+	}
+
+	function handleDownloadPdf(){
+		if (storedReport) {
+			return runAction('pdf', () => downloadStoredReportPdf(storedReport.id))
+		}
+		return runAction('pdf', () => downloadReportPdf(requestFromReport(report)))
+	}
+
+	function handleSave(){
+		return runAction('save', async () => {
+			const result = await generateReport({ ...requestFromReport(report), save: true })
+			setReport(withoutStoredId(result))
+			setStoredReport({
+				id: result.storedReportId,
+				trigger: 'manual',
+				generatedAt: result.report?.generatedAt,
+			})
+			setHistoryKey((k) => k + 1)
+		})
+	}
+
+	async function handleViewStored(reportId){
+		setLoading(true)
+		setError(null)
+		try {
+			const stored = await getStoredReport(reportId)
+			setReport(stored.dataset)
+			setStoredReport({ id: stored.id, trigger: stored.trigger, generatedAt: stored.generatedAt })
+			setPlottedVehicleIds(defaultPlotted(stored.dataset))
+		} catch (err) {
+			setError(err.message || 'Failed to open stored report')
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	function closeStored(){
+		setReport(null)
+		setStoredReport(null)
+		setPlottedVehicleIds([])
+	}
+
+	const entities = useMemo(() => reportEntities(report), [report])
 
 	const chartVehicles = useMemo(
 		() => entities.filter((e) => plottedVehicleIds.includes(e.vehicleId)),
@@ -185,15 +269,45 @@ export default function Reports(){
 				</div>
 
 				{report && (
-					<button
-						type="button"
-						onClick={() => downloadCsv(report, entities)}
-						className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2
-							text-sm text-fleet-text bg-white hover:border-fleet-blue"
-					>
-						<Download className="w-4 h-4 text-fleet-secondary" />
-						Export CSV
-					</button>
+					<div className="flex flex-wrap items-center gap-2">
+						<button
+							type="button"
+							onClick={() => downloadCsv(report, entities)}
+							className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2
+								text-sm text-fleet-text bg-white hover:border-fleet-blue"
+						>
+							<Download className="w-4 h-4 text-fleet-secondary" />
+							Export CSV
+						</button>
+
+						{!storedReport && (
+							<button
+								type="button"
+								onClick={handleSave}
+								disabled={busy !== null}
+								className="flex items-center gap-2 border border-fleet-border rounded-lg px-3 py-2
+									text-sm text-fleet-text bg-white hover:border-fleet-blue disabled:opacity-60"
+							>
+								{busy === 'save'
+									? <Loader2 className="w-4 h-4 animate-spin" />
+									: <Save className="w-4 h-4 text-fleet-secondary" />}
+								{busy === 'save' ? 'Saving...' : 'Save to history'}
+							</button>
+						)}
+
+						<button
+							type="button"
+							onClick={handleDownloadPdf}
+							disabled={busy !== null}
+							className="flex items-center gap-2 bg-fleet-blue text-white rounded-lg px-3 py-2
+								text-sm hover:bg-fleet-blue/90 disabled:opacity-60"
+						>
+							{busy === 'pdf'
+								? <Loader2 className="w-4 h-4 animate-spin" />
+								: <FileDown className="w-4 h-4" />}
+							{busy === 'pdf' ? 'Preparing...' : 'Download PDF'}
+						</button>
+					</div>
 				)}
 			</div>
 
@@ -234,8 +348,29 @@ export default function Reports(){
 				</p>
 			)}
 
-			{report && (
-				<div className="space-y-5">
+            {report && (
+                <div className="space-y-5">
+					{storedReport && (
+						<div
+							data-testid="stored-report-banner"
+							className="flex flex-wrap items-center justify-between gap-3 bg-fleet-blue/5 border border-fleet-blue/20 rounded-2xl px-4 py-3"
+						>
+							<p className="flex items-center gap-2 text-sm text-fleet-text">
+								<Archive className="w-4 h-4 text-fleet-blue shrink-0" />
+								Stored {storedReport.trigger === 'scheduled' ? 'automated' : 'manual'} report,
+								generated {formatGeneratedAt(storedReport.generatedAt)}. Figures are as calculated at that time.
+							</p>
+							<button
+								type="button"
+								onClick={closeStored}
+								className="inline-flex items-center gap-1 text-xs font-medium text-fleet-secondary hover:text-fleet-text"
+							>
+								<X className="w-3.5 h-3.5" />
+								Close
+							</button>
+						</div>
+					)}
+
 					<div className="flex flex-wrap items-baseline justify-between gap-2">
 						<div>
 							<h2 className="text-lg font-semibold text-fleet-text">
@@ -265,6 +400,10 @@ export default function Reports(){
 					) : (
 						<>
 							<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
+
+							<Panel label={report.previousPeriod ? `Analysis against ${report.previousPeriod.label}` : 'Analysis'}>
+								<ReportAnalysis report={report} />
+							</Panel>
 
 							<Panel
 								label="Vehicle comparison"
@@ -320,6 +459,15 @@ export default function Reports(){
 					)}
 				</div>
 			)}
+
+			{/* Outside the report block so history is visible before anything has been generated in this session. */}
+			<Panel label="Report history">
+				<ReportHistory
+					refreshKey={historyKey}
+					onView={handleViewStored}
+					activeReportId={storedReport?.id ?? null}
+				/>
+			</Panel>
 		</div>
 	)
 }

@@ -80,7 +80,12 @@ function formatTime(value) {
   if (!value) {
     return null;
   }
-  return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return new Date(value).toLocaleTimeString([], { 
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function authHeaders(){

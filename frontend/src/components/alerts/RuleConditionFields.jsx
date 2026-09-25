@@ -53,7 +53,7 @@ export default function RuleConditionFields({
           })}
         </div>
 
-        <div className='mb-3 flex items-center gap-2 text-sm font-semibold text-fleet-text'>
+        <div className='mb-3 mt-2 flex items-center gap-2 text-sm font-semibold text-fleet-text'>
           <span className='flex h-5 w-5 items-center justify-center rounded-full bg-fleet-blue text-xs text-white'>2</span>
           Configure Parameters
         </div>

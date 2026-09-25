@@ -1,27 +1,61 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchBacktestMock } from '../../__mocks__/backtestMock';
+import axios from 'axios';
+import useAuthStore from '../store/authStore';
 
 const DEBOUNCE_MS = 500;
 const DEFAULT_DAYS = 30;
+const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
+
+/**
+ * Checks whether the rule's own required fields are actually filled
+ * in for its condition_type, before we ever send it to the backtest
+ * endpoint. Prevents sending e.g. an empty start_time/end_time for a
+ * time_based_restriction rule, which the backend can't parse and
+ * currently 500s on.
+ */
+function isParamsComplete(conditionType, params) {
+  if (!params) return false;
+
+  switch (conditionType) {
+    case 'speed_threshold':
+      return params.max_speed_kmh !== '' && params.max_speed_kmh != null;
+
+    case 'time_based_restriction':
+      return Boolean(params.start_time) && Boolean(params.end_time);
+
+    case 'repeated_unsafe_events':
+      return (
+        Array.isArray(params.event_types) &&
+        params.event_types.length > 0 &&
+        params.count !== '' &&
+        params.count != null &&
+        params.window_minutes !== '' &&
+        params.window_minutes != null
+      );
+
+    case 'safety_score_drop':
+      return params.min_score !== '' && params.min_score != null;
+
+    case 'trip_duration_exceeded':
+      return (
+        (params.max_trip_minutes !== '' && params.max_trip_minutes != null) ||
+        (params.max_daily_minutes !== '' && params.max_daily_minutes != null)
+      );
+
+    default:
+      return false;
+  }
+}
 
 /**
  * Owns the "fetch a backtest preview whenever the rule's settings
  * change" logic in one place. Works for every condition_type without
- * branching, since the backtest API takes the exact same
- * { condition_type, condition_params, fleet_group_id, days } shape
- * regardless of which rule type is selected — the type-specific
- * logic lives entirely server-side 
+ * branching on the fetch itself — only isParamsComplete varies per
+ * type, since each rule type has different required fields.
  *
- * A fleet group must be selected before this fires at all — a rule
- * can't be created without one so there's nothing meaningful to
- * preview until it's set.
- *
- * @param {object} args
- * @param {string} args.conditionType
- * @param {object} args.params 
- * @param {string|number} args.fleetGroupId
- * @param {number} [args.days]  - defaults to 30 days
- * @param {boolean} [args.enabled] 
+ * A fleet group and a fully-configured set of params must both be
+ * present before this fires at all, so we never send an incomplete
+ * request the backend can't handle.
  */
 export default function useBacktestPreview({
   conditionType,
@@ -37,10 +71,15 @@ export default function useBacktestPreview({
   const abortRef = useRef(null);
   const debounceRef = useRef(null);
 
-  const hasRequiredInputs = Boolean(fleetGroupId) && Boolean(conditionType);
+  const paramsComplete = isParamsComplete(conditionType, params);
+  const hasRequiredInputs = Boolean(fleetGroupId) && Boolean(conditionType) && paramsComplete;
 
   useEffect(() => {
     if (!enabled || !hasRequiredInputs) {
+     
+      setData(null);
+      setError('');
+      setLoading(false);
       return undefined;
     }
 
@@ -55,19 +94,27 @@ export default function useBacktestPreview({
       setError('');
 
       try {
-        const result = await fetchBacktestMock(
+        const token = useAuthStore.getState().token;
+
+        const res = await axios.post(
+          `${API_BASE}/api/custom-alerts/backtest`,
           {
             condition_type: conditionType,
             condition_params: params,
             fleet_group_id: fleetGroupId,
             days,
           },
-          { signal: controller.signal }
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            signal: controller.signal,
+          }
         );
-        setData(result);
+
+        setData(res.data.data ?? res.data);
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || 'Failed to load preview');
+        if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') {
+          const message = err.response?.data?.message || err.message || 'Failed to load preview';
+          setError(message);
         }
       } finally {
         setLoading(false);
@@ -77,12 +124,12 @@ export default function useBacktestPreview({
     return () => {
       clearTimeout(debounceRef.current);
     };
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conditionType, JSON.stringify(params), fleetGroupId, days, enabled, hasRequiredInputs]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
 
-  return { data, loading, error, hasRequiredInputs };
+  return { data, loading, error, hasRequiredInputs, paramsComplete };
 }

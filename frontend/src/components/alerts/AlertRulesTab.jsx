@@ -16,6 +16,7 @@ import CreateAlertRuleModal from './CreateRuleModal';
 import EditAlertRuleModal from './EditRuleModal';
 import DeleteAlertRuleModal from './DeleteRuleModal';
 import { Pencil, Trash2 } from 'lucide-react';
+import { describeEventTypes } from './ruleFormConstants';
 
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
@@ -32,6 +33,14 @@ const CONDITION_LABELS = {
   trip_duration_exceeded: 'Trip Duration Exceeded'
 };
 
+function formatDuration(minutes) {
+  const total = Math.round(minutes);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
 function formatThreshold(rule) {
   const params = rule.condition_params ?? {};
 
@@ -46,16 +55,18 @@ function formatThreshold(rule) {
 
     case 'repeated_unsafe_events':
       return params.count != null && params.window_minutes != null
-        ? `${params.count}x in ${params.window_minutes}m`
+        ? `${params.count}x ${describeEventTypes(params.event_types)} in ${params.window_minutes}m`
         : '—';
 
     case 'safety_score_drop':
       return params.min_score != null ? `< ${params.min_score}` : '—';
 
-    case 'trip_duration_exceeded':
-      if (params.max_trip_minutes != null) return `${params.max_trip_minutes} min/trip`;
-      if (params.max_daily_minutes != null) return `${params.max_daily_minutes} min/day`;
-      return '—';
+    case 'trip_duration_exceeded': {
+      const parts = [];
+      if (params.max_trip_minutes != null) parts.push(`${formatDuration(params.max_trip_minutes)}/trip`);
+      if (params.max_daily_minutes != null) parts.push(`${formatDuration(params.max_daily_minutes)}/day`);
+      return parts.length ? parts.join(' · ') : '—';
+    }
 
     default:
       return rule.threshold_value ?? '—';

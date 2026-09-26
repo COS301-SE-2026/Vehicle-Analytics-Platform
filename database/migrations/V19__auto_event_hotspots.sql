@@ -1,33 +1,14 @@
-DROP TRIGGER IF EXISTS trigger_detect_event_hotspots ON vehicle_events;
-
--- Automatic event-hotspot geofences.
---
--- When 100 monitored safety INCIDENTS accumulate within R of each other, a
--- circular geofence is created so the hotspot shows on the map, and an
--- alert row is written to geofence_events for the Zone Alerts panel.
-
-CREATE OR REPLACE FUNCTION monitored_event_categories()
-RETURNS TEXT[]
-LANGUAGE sql IMMUTABLE AS $$
-    SELECT ARRAY['green_driving_type', 'crash_detection'];
-$$;
-
--- Gap above which two events from the same vehicle are separate incidents.
 CREATE OR REPLACE FUNCTION incident_burst_window()
-RETURNS INTERVAL LANGUAGE sql IMMUTABLE AS $$ SELECT INTERVAL '60 seconds'; $$;
+RETURNS INTERVAL
+LANGUAGE sql
+IMMUTABLE
+AS $$ SELECT INTERVAL '60 seconds'; $$;
 
--- Speed below which repeated impacts look like surface roughness or yard
--- maneuvering rather than a defect struck at road speed.
-CREATE OR REPLACE FUNCTION hotspot_low_speed_kmh()
-RETURNS INTEGER LANGUAGE sql IMMUTABLE AS $$ SELECT 20; $$;
-
--- Best available human label for a point: road name, else suburb, city
-CREATE OR REPLACE FUNCTION describe_point_area(
-    p_lat DOUBLE PRECISION,
-    p_lon DOUBLE PRECISION
-)
+CREATE OR REPLACE FUNCTION describe_point_area(p_lat DOUBLE PRECISION, p_lon DOUBLE PRECISION)
 RETURNS TEXT
-LANGUAGE plpgsql STABLE AS $$
+LANGUAGE plpgsql
+STABLE
+AS $$
 DECLARE
     v_loc  location_details;
     v_road TEXT;

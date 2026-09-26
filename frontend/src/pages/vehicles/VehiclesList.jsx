@@ -13,16 +13,53 @@ import FleetvsFleetAnalytics from '@/components/vehicles/FleetvsFleetAnalytics'
 
 const PAGE_SIZE = 10
 
-const SCOPED_ROLES = ['manager', 'fleet_manager']
+const SCOPED_ROLES = new Set(['manager', 'fleet_manager'])
+
+const SELECTED_GROUP_KEY = 'vehiclesSelectedGroup'
+
+function readSavedGroup() {
+    try {
+        const saved = sessionStorage.getItem(SELECTED_GROUP_KEY)
+        return saved ? JSON.parse(saved) : null
+    } catch {
+        return null
+    }
+}
+
+function saveGroup(group) {
+    try {
+        if (group) {
+            sessionStorage.setItem(SELECTED_GROUP_KEY, JSON.stringify(group))
+        } else {
+            sessionStorage.removeItem(SELECTED_GROUP_KEY)
+        }
+    } catch {
+        // storage unavailable, fall back to in-memory only
+    }
+}
+
+function calculateDelta(current, previous) {
+    if(current == null || previous == null){
+        return null
+    }
+
+    const prev = Number(previous)
+
+    if(prev === 0){
+        return null
+    }
+
+    return Math.round(((Number(current) - prev) / prev) * 1000) / 10
+}
 
 export default function VehiclesList(){
     const {role} = useAuthStore()
-    const isScoped = SCOPED_ROLES.includes(role)
+    const isScoped = SCOPED_ROLES.has(role)
 
     const [myGroups, setMyGroups] = useState([])
     const [groupsLoading, setGroupsLoading] = useState(isScoped)
     const [groupsError, setGroupsError] = useState(null)
-    const [selectedGroup, setSelectedGroup] = useState(null)
+    const [selectedGroup, setSelectedGroup] = useState(() => readSavedGroup())
 
 
     const [vehicles, setVehicles] = useState([])
@@ -50,6 +87,19 @@ useEffect(() => {
 
                 setMyGroups(groups)
                 setGroupsError(null)
+
+                const saved = readSavedGroup()
+
+
+                if (saved && !groups.some((g) => String(g.id) === String(saved.id))) {
+
+                    saveGroup(null)
+
+
+
+                    setSelectedGroup(null)
+
+                }
 
         }catch(err) {
             if(cancelled){
@@ -102,10 +152,11 @@ useEffect(() => {
 
             setVehicles(merged)
             setSummary({
-                totalVehicles: result.stats.total ?? 0,
+                totalVehicles: Number(result.stats.total ?? 0),
+                filteredTotal: Number(result.pagination?.total ?? result.stats.total ?? 0),
                 avgSafetyScore: result.stats.avg_safety_score != null ? Number(result.stats.avg_safety_score) : null,
-                avgSafetyScoreDelta: null, //No endpoint i found for this yet. no historical comparison endpoint yet
-                activeTripsToday: result.stats.moving ?? 0,
+                avgSafetyScoreDelta: calculateDelta(result.stats.avg_safety_score, result.stats.prev_avg_safety_score), 
+                activeTripsToday: Number(result.stats.moving ?? 0),
                 lowestScoringVehicle: result.stats.lowest_scoring_vehicle
                     ? { id: result.stats.lowest_scoring_vehicle, score: result.stats.lowest_score}
                     : null,
@@ -134,7 +185,10 @@ useEffect(() => {
 
 
 function handleSelectGroup(group) {
+    saveGroup(group)
+
     setSelectedGroup(group)
+
     setPage(1)
     setStatusFilter('all')
     setLoading(true)
@@ -182,7 +236,7 @@ function handleSelectGroup(group) {
             )
         }
 
-        if(loading) {
+        if(loading && !summary) {
             return (
                 <div className="flex items-center justify-center h-64">
                 <RefreshCw className="w-6 h-6 text-fleet-secondary animate-spin"></RefreshCw>
@@ -206,7 +260,7 @@ function handleSelectGroup(group) {
             )
         }
 
-    const totalPages = Math.max(1, Math.ceil((summary.totalVehicles ?? 0) / PAGE_SIZE))
+    const totalPages = Math.max(1, Math.ceil((summary.filteredTotal ?? 0) / PAGE_SIZE))
 
     return(
         <div className="space-y-4">
@@ -215,7 +269,7 @@ function handleSelectGroup(group) {
             {isScoped && (
                 <button 
                     type="button"
-                    onClick={() => setSelectedGroup(null)}
+                    onClick={() => { saveGroup(null); setSelectedGroup(null) }}
                     className="inline-flex items-center gap-1 text-xs text-fleet-secondary hover:text-fleet-text mb-1">
                         <ArrowLeft className="w-3.5 h-3.5"></ArrowLeft>
                         Switch group
@@ -261,14 +315,16 @@ function handleSelectGroup(group) {
 
         <VehicleSummaryCards summary={summary}/>
 
+        <div className={`transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
         <VehiclesTable
             vehicles={vehicles}
             page={page}
             totalPages={totalPages}
-            totalVehicles={summary.totalVehicles}
+            totalVehicles={summary.filteredTotal}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             />
+            </div>
             </div>
     )
 }

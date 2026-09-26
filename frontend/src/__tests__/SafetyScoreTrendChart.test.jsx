@@ -55,8 +55,11 @@ const baseSeverity = {
 // Pass the full ISO timestamp so there is zero offset ambiguity.
 // This ensures entry.date evaluates to exactly the moment the test starts.
 const today = new Date()
-const isoToday = today.toISOString()
-const isoOldDate = '2020-01-01T12:00:00.000Z'
+const pad = (n) => String(n).padStart(2, '0')
+const localDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+const isoToday = `${localDay(today)}T12:00:00`
+const isoOldDate = '2020-01-01T12:00:00'
 
 const dailyScores = [
     {date: isoToday, score: 85},

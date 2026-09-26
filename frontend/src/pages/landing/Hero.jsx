@@ -23,14 +23,14 @@ const painPoints = [
   },
 ];
 
-/* Timeline: where each move starts and ends, as a fraction of total scroll */
+
 const EXPAND = [0, 0.45];
 const FLY_APART = [0, 0.32];
 const DIM = [0.18, 0.45];
 const REVEAL = [0.45, 0.65];
 
-const CARD_RADIUS = 24; // px, matches rounded-3xl
-const SMOOTHING = 0.12; // lower = more lag behind the scrollbar
+const CARD_RADIUS = 24; 
+const SMOOTHING = 0.12; 
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const phase = (p, [start, end]) => clamp01((p - start) / (end - start));
@@ -53,11 +53,11 @@ export default function Hero({ mapImage = cityNight }) {
     const content = expandedContentRef.current;
     const overlay = overlayRef.current;
 
-    if (!container || !media) return;
+    if(!container || !media) 
+      return;
 
-    // The card's resting size comes from its CSS class. Clear anything we set
-    // inline so we can read that size back, then let the loop take over again.
     const base = { w: 0, h: 0 };
+
     const measure = () => {
       media.style.width = '';
       media.style.height = '';
@@ -92,7 +92,7 @@ export default function Hero({ mapImage = cityNight }) {
       content.style.pointerEvents = reveal > 0.9 ? 'auto' : 'none';
     };
 
-    // Reduced motion: show the finished state, skip the ride entirely.
+  
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (reduced.matches) {
       measure();
@@ -130,7 +130,7 @@ export default function Hero({ mapImage = cityNight }) {
     const onResize = () => {
       measure();
       state.target = readProgress();
-      state.value = state.target; // snap rather than animate through a resize
+      state.value = state.target; 
       apply(state.value);
     };
 
@@ -199,13 +199,13 @@ export default function Hero({ mapImage = cityNight }) {
                 ref={titleTopRef}
                 className="font-display text-7xl font-extrabold uppercase leading-[0.85] tracking-tighter text-fleet-bg [mix-blend-mode:difference] [will-change:transform]"
               >
-                Vehicle Analytics &amp;
+                Vehicle Analytics, Processing &
               </span>
               <span
                 ref={titleBottomRef}
                 className="font-display text-7xl font-extrabold uppercase leading-[0.85] tracking-tighter text-fleet-bg [mix-blend-mode:difference] [will-change:transform]"
               >
-                Processing in Real-time
+                 Operations in Real-time
               </span>
             </h1>
           </div>
@@ -243,21 +243,9 @@ export default function Hero({ mapImage = cityNight }) {
 
       
       <section className="bg-fleet-surface">
-        {/* TRUST BAR */}
-      <div className='mt-20 flex flex-wrap justify-center gap-10 text-sm text-slate-500'>
-        <div className='flex items-center gap-2'>
-          <Database className='w-4 h-4 text-fleet-blue'/> Built on AWS
-        </div>
-        <div className='flex items-center gap-2'>
-          <Zap className='w-4 h-4 text-fleet-blue'/> Updates every 5-10 seconds
-        </div>
-        <div className='flex items-center gap-2'>
-          <ShieldCheck className='w-4 h-4 text-fleet-blue'/> 15+ vehicles supported
-        </div>
-      </div> 
-
+       
           {/* PAIN POINTS */}
-        <div className="max-w-7xl mx-auto px-6 py-24">
+        <div className="max-w-7xl mx-auto px-6 py-16">
           <div className="grid md:grid-cols-3 gap-12">
             {painPoints.map(({ icon: Icon, title, description }) => (
               <div
@@ -273,6 +261,19 @@ export default function Hero({ mapImage = cityNight }) {
             ))}
           </div>
         </div>
+
+     {/* TRUST BAR */}
+      <div className='mt-10 flex flex-wrap justify-center gap-12 text-sm text-slate-500'>
+        <div className='flex items-center gap-2'>
+          <Database className='w-4 h-4 text-fleet-blue'/> Built on AWS
+        </div>
+        <div className='flex items-center gap-2'>
+          <Zap className='w-4 h-4 text-fleet-blue'/> Updates every 5-10 seconds
+        </div>
+        <div className='flex items-center gap-2'>
+          <ShieldCheck className='w-4 h-4 text-fleet-blue'/> 100+ vehicles supported
+        </div>
+      </div>     
       </section>
     </>
   );

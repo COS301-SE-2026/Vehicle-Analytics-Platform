@@ -44,7 +44,7 @@ export function WhatYouGet() {
         <div className="flex flex-col gap-6">
             {features.map(({icon: Icon, title, description}) => (
                 <div key={title} className="flex gap-3">
-                    <Icon className="w-5 h-5 text-fleet-green shrink-0 mt-1" />
+                    <Icon className="w-5 h-5 text-fleet-blue shrink-0 mt-1" />
                     <div>
                         <h3 className="font-bold text-slate-900 mb-3">{title}</h3>
                         <p className="text-sm text-slate-500 mt-1">{description}</p>
@@ -83,21 +83,45 @@ export function MoreCapabilities() {
 
     return (
         <section className="max-w-7xl mx-auto px-6 py-20">
-            <h2 className="text-3xl font-bold text-slate-900 mb-10">
+            <h2 className="text-3xl font-bold text-fleet-text mb-10">
                 Built for How Fleets Actually Run
             </h2>
-
+ 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {capabilities.map(({ icon: Icon, title, description }) => (
                     <div
                         key={title}
-                        className="bg-fleet-bg rounded-xl border border-slate-100 shadow-sm p-6
-                                   hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:z-10 relative
-                                   transition-all duration-200"
+                        tabIndex={0}
+                        className="group h-48 rounded-xl [perspective:1200px] outline-none
+                                   transition-transform duration-200 hover:-translate-y-1
+                                   focus-visible:ring-2 focus-visible:ring-fleet-blue focus-visible:ring-offset-2"
                     >
-                        <Icon className="w-5 h-5 text-fleet-green mb-3" />
-                        <h3 className="font-bold text-fleet-blue text-slate-900 mb-1">{title}</h3>
-                        <p className="text-sm text-slate-500">{description}</p>
+                        {/* The piece that actually rotates */}
+                        <div
+                            className="relative h-full w-full transition-transform duration-500 ease-out
+                                       [transform-style:preserve-3d]
+                                       group-hover:[transform:rotateY(180deg)]
+                                       group-focus-visible:[transform:rotateY(180deg)]
+                                       motion-reduce:transition-none"
+                        >
+                            {/* FRONT — icon and title */}
+                            <div
+                                className="absolute inset-0 flex flex-col justify-center rounded-xl
+                                           border border-fleet-border bg-fleet-bg p-6 shadow-sm
+                                           [backface-visibility:hidden]"
+                            >
+                                <Icon className="w-6 h-6 text-fleet-blue mb-3" />
+                                <h3 className="font-bold text-fleet-text text-lg leading-snug">{title}</h3>
+                            </div>
+ 
+                            {/* BACK — the description */}
+                            <div
+                                className="absolute inset-0 flex items-center rounded-xl bg-fleet-bg p-6 shadow-lg
+                                           [backface-visibility:hidden] [transform:rotateY(180deg)]"
+                            >
+                                <p className="text-sm leading-relaxed text-fleet-text">{description}</p>
+                            </div>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -139,8 +163,8 @@ export function HowItWorks(){
                         transition={{ duration: 0.5, delay: i * 0.15 }}
                     >
                         <div className="max-w-[220px]">
-                         <Icon className="w-6 h-6 text-fleet-green mx-auto mb-3"/>
-                         <h3 className="font-bold text-slate-900">{title}</h3>
+                         <Icon className="w-6 h-6 text-fleet-blue mx-auto mb-3"/>
+                         <h3 className="font-bold text-slate-900 text-fleet-text">{title}</h3>
                          <p className="text-sm text-slate-500 mt-1">{description}</p>
                         </div>
 

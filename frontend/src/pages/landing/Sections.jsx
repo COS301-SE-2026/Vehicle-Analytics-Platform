@@ -3,8 +3,9 @@ import {
     Radio, CloudCog, Gauge, ArrowRight,
     Tags, BellRing, Fuel, BarChart3
 } from "lucide-react";
+import ProductShowcase from './Productshowcase';
 import Dashboard from "./img/dashboard.png"
-import Vehicle from "./img/vehicles.png"
+
 import{ motion } from "framer-motion";
 
 export function WhatYouGet() {
@@ -38,9 +39,10 @@ export function WhatYouGet() {
         What You Get, Every Day
       </h2>
 
-      <div className="grid md:grid-cols-2 gap-12 items-stretch">
-        {/* ADD IMAGE HERE */}
-        <img src={Vehicle} alt="Fleet of trucks" className="rounded-2xl w-full h-full object-contain" />
+      <div className="grid md:grid-cols-2 gap-12 items-center">
+       
+        <ProductShowcase />
+
         <div className="flex flex-col gap-6">
             {features.map(({icon: Icon, title, description}) => (
                 <div key={title} className="flex gap-3">

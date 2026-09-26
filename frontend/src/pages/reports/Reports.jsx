@@ -4,9 +4,15 @@ import SafetySummaryCards from '../../components/reports/SafetySummaryCards'
 import SafetyVehicleTable from '../../components/reports/SafetyVehicleTable'
 import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
+import WeatherAreaReport from '../../components/reports/WeatherAreaReport'
 import { getReportScopes, generateReport } from '../../services/reportServices'
 
 const AUTO_PLOT_LIMIT = 12
+
+const REPORT_TABS = [
+	{ key: 'performance', label: 'Fleet performance' },
+	{ key: 'weather', label: 'Weather and areas' },
+]
 
 function toISODate(date){
 	if (!date) return undefined
@@ -55,6 +61,8 @@ function Panel({ label, action, children }){
 }
 
 export default function Reports(){
+	const [reportType, setReportType] = useState('performance')
+
 	const [scopes, setScopes] = useState({ groups: [], vehicles: [], unassignedVehicleCount: 0 })
 	const [scopeValue, setScopeValue] = useState('fleet')
 	const [periodType, setPeriodType] = useState('weekly')
@@ -173,18 +181,22 @@ export default function Reports(){
 
 	const noTelemetry = report && report.coverage && !report.coverage.hasTelemetry
 
+	const isPerformance = reportType === 'performance'
+
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-wrap items-start justify-between gap-3">
 				<div className="flex items-start gap-3">
 					<div>
 						<p className="text-sm text-fleet-secondary mt-1">
-							Analyse fleet performance and driving behaviour over a reporting period.
+							{isPerformance
+								? 'Analyse fleet performance and driving behaviour over a reporting period.'
+								: 'See how weather and location relate to driving events, and which vehicles differ from the fleet.'}
 						</p>
 					</div>
 				</div>
 
-				{report && (
+				{isPerformance && report && (
 					<button
 						type="button"
 						onClick={() => downloadCsv(report, entities)}
@@ -197,128 +209,162 @@ export default function Reports(){
 				)}
 			</div>
 
-			<ReportToolbar
-				scopes={scopes}
-				scopeValue={scopeValue}
-				onScopeChange={setScopeValue}
-				periodType={periodType}
-				onPeriodTypeChange={setPeriodType}
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-				compareMode={compareMode}
-				onCompareModeChange={setCompareMode}
-				candidateVehicles={candidateVehicles}
-				selectedVehicleIds={scopeVehicleIds}
-				onToggleVehicle={toggleScopeVehicle}
-				onGenerate={handleGenerate}
-				loading={loading}
-			/>
+			<div role="tablist" aria-label="Report type" className="flex gap-1 border-b border-fleet-border">
+				{REPORT_TABS.map((tab) => {
+					const active = reportType === tab.key
+					return (
+						<button
+							key={tab.key}
+							type="button"
+							role="tab"
+							aria-selected={active}
+							onClick={() => setReportType(tab.key)}
+							className={`-mb-px px-4 py-2 text-sm font-medium border-b-2 ${
+								active
+									? 'border-fleet-blue text-fleet-blue'
+									: 'border-transparent text-fleet-secondary hover:text-fleet-text'
+							}`}
+						>
+							{tab.label}
+						</button>
+					)
+				})}
+			</div>
 
-			{error && (
-				<div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
-					<AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-					<p className="text-sm font-medium text-red-700">{error}</p>
-				</div>
+			{!isPerformance && (
+				<WeatherAreaReport
+					scopes={scopes}
+					scopeValue={scopeValue}
+					onScopeChange={setScopeValue}
+				/>
 			)}
 
-			{loading && !report && (
-				<div className="flex items-center gap-3 text-fleet-secondary text-sm py-10 justify-center">
-					<Loader2 className="w-5 h-5 animate-spin" />
-					Calculating analytics from telemetry&hellip;
-				</div>
-			)}
+			{isPerformance && (
+				<>
+					<ReportToolbar
+						scopes={scopes}
+						scopeValue={scopeValue}
+						onScopeChange={setScopeValue}
+						periodType={periodType}
+						onPeriodTypeChange={setPeriodType}
+						dateRange={dateRange}
+						onDateRangeChange={setDateRange}
+						compareMode={compareMode}
+						onCompareModeChange={setCompareMode}
+						candidateVehicles={candidateVehicles}
+						selectedVehicleIds={scopeVehicleIds}
+						onToggleVehicle={toggleScopeVehicle}
+						onGenerate={handleGenerate}
+						loading={loading}
+					/>
 
-			{!report && !loading && !error && (
-				<p className="text-sm text-fleet-secondary py-10 text-center">
-					Choose a timeframe and a scope, then generate a report.
-				</p>
-			)}
-
-			{report && (
-				<div className="space-y-5">
-					<div className="flex flex-wrap items-baseline justify-between gap-2">
-						<div>
-							<h2 className="text-lg font-semibold text-fleet-text">
-								{report.report.scope.label}
-							</h2>
-							<p className="text-sm text-fleet-secondary">
-								{report.period.label}
-							</p>
+					{error && (
+						<div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
+							<AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+							<p className="text-sm font-medium text-red-700">{error}</p>
 						</div>
-						<p className="text-xs text-fleet-secondary">
-							{report.coverage.vehiclesWithEvents} of {report.coverage.vehiclesInScope} vehicles
-							reported events{' - '} {report.coverage.activeVehicles} active
-						</p>
-					</div>
-
-					{noTelemetry ? (
-						<div className="border border-fleet-border rounded-2xl bg-white p-10 text-center">
-							<AlertCircle className="w-8 h-8 text-fleet-secondary mx-auto mb-3" />
-							<p className="text-base font-semibold text-fleet-text">
-								No telemetry available for this reporting period.
-							</p>
-							<p className="text-sm text-fleet-secondary mt-2 max-w-lg mx-auto">
-								No vehicle data was recorded between {report.period.fromDate} and{' '}
-								{report.period.toDate}, so no safety score can be calculated.
-							</p>
-						</div>
-					) : (
-						<>
-							<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
-
-							<Panel
-								label="Vehicle comparison"
-								action={entities.length > 0 && (
-									<div className="flex items-center gap-3">
-										<span className="text-xs text-fleet-secondary">
-											{plottedVehicleIds.length} of {entities.length} plotted
-										</span>
-										<button
-											type="button"
-											onClick={() => setPlottedVehicleIds(
-												plottedVehicleIds.length === entities.length
-													? []
-													: entities.map((e) => e.vehicleId),
-											)}
-											className="text-xs font-medium text-fleet-blue hover:underline"
-										>
-											{plottedVehicleIds.length === entities.length ? 'Clear' : 'Select all'}
-										</button>
-									</div>
-								)}
-							>
-								{entities.length > 0 && (
-									<div className="flex flex-wrap gap-2 mb-5 max-h-32 overflow-y-auto">
-										{entities.map((entity) => {
-											const active = plottedVehicleIds.includes(entity.vehicleId)
-											return (
-												<button
-													key={entity.vehicleId}
-													type="button"
-													onClick={() => togglePlottedVehicle(entity.vehicleId)}
-													aria-pressed={active}
-													className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
-														active
-															? 'border-fleet-blue text-fleet-blue bg-fleet-blue/5'
-															: 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
-													}`}
-												>
-													{entity.vehicleId}
-												</button>
-											)
-										})}
-									</div>
-								)}
-
-								<VehicleComparisonChart vehicles={chartVehicles} />
-							</Panel>
-
-							<Panel label="Critical safety metrics">
-								<SafetyVehicleTable vehicles={report.safety.vehicles} />
-							</Panel>
-						</>
 					)}
-				</div>
+
+					{loading && !report && (
+						<div className="flex items-center gap-3 text-fleet-secondary text-sm py-10 justify-center">
+							<Loader2 className="w-5 h-5 animate-spin" />
+							Calculating analytics from telemetry&hellip;
+						</div>
+					)}
+
+					{!report && !loading && !error && (
+						<p className="text-sm text-fleet-secondary py-10 text-center">
+							Choose a timeframe and a scope, then generate a report.
+						</p>
+					)}
+
+					{report && (
+						<div className="space-y-5">
+							<div className="flex flex-wrap items-baseline justify-between gap-2">
+								<div>
+									<h2 className="text-lg font-semibold text-fleet-text">
+										{report.report.scope.label}
+									</h2>
+									<p className="text-sm text-fleet-secondary">
+										{report.period.label}
+									</p>
+								</div>
+								<p className="text-xs text-fleet-secondary">
+									{report.coverage.vehiclesWithEvents} of {report.coverage.vehiclesInScope} vehicles
+									reported events{' - '} {report.coverage.activeVehicles} active
+								</p>
+							</div>
+
+							{noTelemetry ? (
+								<div className="border border-fleet-border rounded-2xl bg-white p-10 text-center">
+									<AlertCircle className="w-8 h-8 text-fleet-secondary mx-auto mb-3" />
+									<p className="text-base font-semibold text-fleet-text">
+										No telemetry available for this reporting period.
+									</p>
+									<p className="text-sm text-fleet-secondary mt-2 max-w-lg mx-auto">
+										No vehicle data was recorded between {report.period.fromDate} and{' '}
+										{report.period.toDate}, so no safety score can be calculated.
+									</p>
+								</div>
+							) : (
+								<>
+									<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
+
+									<Panel
+										label="Vehicle comparison"
+										action={entities.length > 0 && (
+											<div className="flex items-center gap-3">
+												<span className="text-xs text-fleet-secondary">
+													{plottedVehicleIds.length} of {entities.length} plotted
+												</span>
+												<button
+													type="button"
+													onClick={() => setPlottedVehicleIds(
+														plottedVehicleIds.length === entities.length
+															? []
+															: entities.map((e) => e.vehicleId),
+													)}
+													className="text-xs font-medium text-fleet-blue hover:underline"
+												>
+													{plottedVehicleIds.length === entities.length ? 'Clear' : 'Select all'}
+												</button>
+											</div>
+										)}
+									>
+										{entities.length > 0 && (
+											<div className="flex flex-wrap gap-2 mb-5 max-h-32 overflow-y-auto">
+												{entities.map((entity) => {
+													const active = plottedVehicleIds.includes(entity.vehicleId)
+													return (
+														<button
+															key={entity.vehicleId}
+															type="button"
+															onClick={() => togglePlottedVehicle(entity.vehicleId)}
+															aria-pressed={active}
+															className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
+																active
+																	? 'border-fleet-blue text-fleet-blue bg-fleet-blue/5'
+																	: 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
+															}`}
+														>
+															{entity.vehicleId}
+														</button>
+													)
+												})}
+											</div>
+										)}
+
+										<VehicleComparisonChart vehicles={chartVehicles} />
+									</Panel>
+
+									<Panel label="Critical safety metrics">
+										<SafetyVehicleTable vehicles={report.safety.vehicles} />
+									</Panel>
+								</>
+							)}
+						</div>
+					)}
+				</>
 			)}
 		</div>
 	)

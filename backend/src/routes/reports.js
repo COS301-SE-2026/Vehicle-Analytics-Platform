@@ -4,6 +4,8 @@ const { generateReport, getReportScopes } = require('../controllers/reportContro
 
 const { authenticate, requireRole } = require('../middleware/auth');
 
+const { generateWeatherReport } = require('../controllers/weatherReportController');
+
 const router = express.Router();
 
 // nothing for a viewer to see because why would a viewer need to see reports ya know
@@ -12,5 +14,7 @@ const REPORTING_ROLES = ['admin', 'fleet_manager', 'manager'];
 router.get('/scopes', authenticate, requireRole(REPORTING_ROLES), getReportScopes);
 
 router.post('/generate', authenticate, requireRole(REPORTING_ROLES), generateReport);
+
+router.post('/weather', authenticate, requireRole(REPORTING_ROLES), generateWeatherReport);
 
 module.exports = router;

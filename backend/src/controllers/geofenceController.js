@@ -47,7 +47,6 @@ async function getGeofences(req, res) {
                 id,
                 name,
                 vehicle_id,
-                ST_AsGeoJSON(boundary)::json AS boundary,
                 trigger_type,
                 source,
                 hotspot_kind,
@@ -56,6 +55,7 @@ async function getGeofences(req, res) {
             FROM geofences
             ${where}
             ORDER BY created_at DESC
+            LIMIT 500
         `, params);
 
         return success(res, {

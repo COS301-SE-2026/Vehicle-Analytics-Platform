@@ -1,3 +1,32 @@
+CREATE OR REPLACE FUNCTION incident_burst_window()
+RETURNS INTERVAL
+LANGUAGE sql
+IMMUTABLE
+AS $$ SELECT INTERVAL '60 seconds'; $$;
+
+CREATE OR REPLACE FUNCTION describe_point_area(p_lat DOUBLE PRECISION, p_lon DOUBLE PRECISION)
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+    v_loc  location_details;
+    v_road TEXT;
+BEGIN
+    SELECT * INTO v_loc FROM get_location_details(p_lat, p_lon);
+    v_road := NULLIF(v_loc.road, '');
+
+    IF v_road IS NULL OR v_road = 'Unnamed Road' THEN
+        RETURN COALESCE(NULLIF(v_loc.suburb, ''), NULLIF(v_loc.city, ''), 'Unnamed area');
+    END IF;
+
+    RETURN v_road;
+EXCEPTION WHEN OTHERS THEN
+    -- Geocoding failure downgrades the label
+    RETURN NULL;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION evaluate_event_hotspot(
     p_point         GEOMETRY(POINT, 4326),
     p_radius_km     DOUBLE PRECISION DEFAULT 0.25,

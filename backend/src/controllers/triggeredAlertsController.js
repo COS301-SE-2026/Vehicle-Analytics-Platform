@@ -2,12 +2,6 @@
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
 
-// Helper to validate date inputs
-function isValidDate(dateStr) {
-    if (!dateStr) return false;
-    const d = new Date(dateStr);
-    return !Number.isNaN(d.getTime());
-}
 
 async function findAlertForUpdate(client, id) {
     const result = await client.query(
@@ -26,6 +20,7 @@ async function managerHasFleetAccess(client, managerId, fleetGroupId) {
     return result.rows.length > 0;
 }
 
+
 /**
  * List triggered alerts with filtering and pagination
  * GET /api/alerts/triggered
@@ -43,11 +38,8 @@ async function listTriggeredAlerts(req, res) {
         end_date
     } = req.query;
 
-    // Sanitize and clamp pagination inputs to prevent DoS or SQL errors
-    const parsedLimit = Number.parseInt(limit, 10);
-    const parsedOffset = Number.parseInt(offset, 10);
-    const limitInt = Number.isNaN(parsedLimit) ? 50 : Math.max(1, Math.min(parsedLimit, 100));
-    const offsetInt = Number.isNaN(parsedOffset) ? 0 : Math.max(0, parsedOffset);
+    const limitInt = Number.parseInt(limit, 10);
+    const offsetInt = Number.parseInt(offset, 10);
 
     try {
         // Get all fleet groups this manager has access to
@@ -73,12 +65,11 @@ async function listTriggeredAlerts(req, res) {
         let paramIndex = 2;
 
         if (fleet_group_id) {
-            const parsedFleetId = Number.parseInt(fleet_group_id, 10);
-            if (!accessibleFleetIds.includes(parsedFleetId)) {
+            if (!accessibleFleetIds.includes(Number.parseInt(fleet_group_id, 10))) {
                 return error(res, 'Access denied to this fleet group', 403);
             }
             whereConditions.push(`ta.fleet_group_id = $${paramIndex}`);
-            queryParams.push(parsedFleetId);
+            queryParams.push(fleet_group_id);
             paramIndex++;
         }
 
@@ -101,18 +92,12 @@ async function listTriggeredAlerts(req, res) {
         }
 
         if (start_date) {
-            if (!isValidDate(start_date)) {
-                return error(res, 'Invalid start_date parameter format', 400);
-            }
             whereConditions.push(`ta.created_at >= $${paramIndex}`);
             queryParams.push(start_date);
             paramIndex++;
         }
 
         if (end_date) {
-            if (!isValidDate(end_date)) {
-                return error(res, 'Invalid end_date parameter format', 400);
-            }
             whereConditions.push(`ta.created_at <= $${paramIndex}`);
             queryParams.push(end_date);
             paramIndex++;
@@ -161,12 +146,15 @@ async function listTriggeredAlerts(req, res) {
                 total,
                 limit: limitInt,
                 offset: offsetInt,
+                // limit/offset come from req.query as strings; use the
+                // parsed ints here or this silently does string
+                // concatenation instead of arithmetic on later pages.
                 hasMore: offsetInt + limitInt < total
             }
         });
     } catch (err) {
         console.error('List triggered alerts error:', err);
-        return error(res, 'Failed to fetch triggered alerts', 500);
+        return error(res, 'Failed to fetch triggered alerts: ' + err.message, 500);
     }
 }
 
@@ -179,6 +167,7 @@ async function getAlertDetails(req, res) {
     const { id } = req.params;
 
     try {
+        // Verify manager has access before returning any alert data
         const alertResult = await pool.query(
             `SELECT
                 ta.*,
@@ -198,6 +187,8 @@ async function getAlertDetails(req, res) {
         );
 
         if (alertResult.rows.length === 0) {
+            // Covers both "doesn't exist" and "exists but manager has no
+            // access to its fleet group" without leaking which case it is.
             return error(res, 'Alert not found', 404);
         }
 
@@ -209,7 +200,7 @@ async function getAlertDetails(req, res) {
         });
     } catch (err) {
         console.error('Get alert details error:', err);
-        return error(res, 'Failed to fetch alert details', 500);
+        return error(res, 'Failed to fetch alert details: ' + err.message, 500);
     }
 }
 
@@ -220,11 +211,14 @@ async function getAlertDetails(req, res) {
 async function acknowledgeAlert(req, res) {
     const managerId = req.user.id;
     const { id } = req.params;
-
+   
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
+        // Lock the row for the duration of the transaction so two
+        // concurrent acknowledge requests can't both pass the status
+        // check before either writes.
         const alert = await findAlertForUpdate(client, id);
 
         if (!alert) {
@@ -232,7 +226,7 @@ async function acknowledgeAlert(req, res) {
             return error(res, 'Alert not found', 404);
         }
 
-        if (!(await managerHasFleetAccess(client, managerId, alert.fleet_group_id))) {
+        if(!(await managerHasFleetAccess(client, managerId, alert.fleet_group_id))) {
             await client.query('ROLLBACK');
             return error(res, 'Access denied', 403);
         }
@@ -260,7 +254,7 @@ async function acknowledgeAlert(req, res) {
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Acknowledge alert error:', err);
-        return error(res, 'Failed to acknowledge alert', 500);
+        return error(res, 'Failed to acknowledge alert: ' + err.message, 500);
     } finally {
         client.release();
     }
@@ -279,16 +273,17 @@ async function resolveAlert(req, res) {
         await client.query('BEGIN');
 
         const alert = await findAlertForUpdate(client, id);
-        if (!alert) {
+        if(!alert) {
             await client.query('ROLLBACK');
             return error(res, 'Alert not found', 404);
         }
 
-        if (!(await managerHasFleetAccess(client, managerId, alert.fleet_group_id))) {
+        if(!(await managerHasFleetAccess(client, managerId, alert.fleet_group_id))) {
             await client.query('ROLLBACK');
             return error(res, 'Access denied', 403);
         }
 
+        // IMPORTANT: Only resolve if acknowledged
         if (alert.status === 'new') {
             await client.query('ROLLBACK');
             return error(res, 'Alert must be acknowledged before it can be resolved', 400);
@@ -317,7 +312,7 @@ async function resolveAlert(req, res) {
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Resolve alert error:', err);
-        return error(res, 'Failed to resolve alert', 500);
+        return error(res, 'Failed to resolve alert: ' + err.message, 500);
     } finally {
         client.release();
     }
@@ -345,12 +340,8 @@ async function getNewAlertCount(req, res) {
         let params = [managerId];
 
         if (fleet_group_id) {
-            const parsedFleetId = Number.parseInt(fleet_group_id, 10);
-            if (Number.isNaN(parsedFleetId)) {
-                return error(res, 'Invalid fleet_group_id parameter', 400);
-            }
             query += ` AND ta.fleet_group_id = $2`;
-            params.push(parsedFleetId);
+            params.push(fleet_group_id);
         }
 
         const result = await pool.query(query, params);
@@ -360,26 +351,21 @@ async function getNewAlertCount(req, res) {
         });
     } catch (err) {
         console.error('Get new alert count error:', err);
-        return error(res, 'Failed to get alert count', 500);
+        return error(res, 'Failed to get alert count: ' + err.message, 500);
     }
 }
 
-/**
- * Polling endpoint for newly triggered alerts
- * GET /api/alerts/new
- */
 async function getNewTriggeredAlerts(req, res) {
     const managerId = req.user.id;
     const sinceParam = req.query.since;
     const since = sinceParam ? new Date(sinceParam) : new Date(Date.now() - 60000); // default: last 60s
 
     if (Number.isNaN(since.getTime())) {
-        return error(res, 'Invalid since parameter format', 400);
+        return error(res, 'Invalid since parameter', 400);
     }
 
     try {
-        const result = await pool.query(
-            `
+        const result = await pool.query(`
             SELECT ta.id, ta.vehicle_id, ta.condition_type, ta.breach_value,
                    ta.threshold_value, ta.created_at, ta.rule_snapshot,
                    fg.name AS fleet_group_name
@@ -390,9 +376,7 @@ async function getNewTriggeredAlerts(req, res) {
               AND ta.status = 'new'
               AND ta.created_at > $2
             ORDER BY ta.created_at ASC
-            `,
-            [managerId, since]
-        );
+        `, [managerId, since]);
 
         return success(res, {
             alerts: result.rows,
@@ -400,9 +384,10 @@ async function getNewTriggeredAlerts(req, res) {
         }, 200);
     } catch (err) {
         console.error('Get new triggered alerts error:', err);
-        return error(res, 'Failed to fetch new alerts', 500);
+        return error(res, 'Failed to fetch new alerts: ' + err.message, 500);
     }
 }
+
 
 module.exports = {
     listTriggeredAlerts,

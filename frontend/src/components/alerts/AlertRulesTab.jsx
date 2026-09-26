@@ -138,9 +138,6 @@ export default function AlertRulesTab() {
 
         });      
 
-        console.log('fleet groups raw response:', res.data);
-
-
         setFleetGroups(res.data.data.groups);
 
       } catch (err) {

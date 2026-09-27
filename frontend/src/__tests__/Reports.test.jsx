@@ -2,11 +2,22 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import Reports from '../pages/reports/Reports'
-import { getReportScopes, generateReport } from '../services/reportServices'
+import {
+  getReportScopes, generateReport, downloadReportPdf, getStoredReport, downloadStoredReportPdf,
+} from '../services/reportServices'
 
 jest.mock('../services/reportServices')
 jest.mock('../components/reports/SafetySummaryCards', () => ({ __esModule: true, default: ({ summary }) => <div data-testid="summary-cards" data-score={String(summary.safetyScore)} /> }))
 jest.mock('../components/reports/SafetyVehicleTable', () => ({ __esModule: true, default: ({ vehicles }) => <div data-testid="safety-table">{vehicles.map(v => v.vehicleId).join(',')}</div> }))
+jest.mock('../components/reports/ReportHistory', () => ({
+  __esModule: true,
+  default: ({ refreshKey, onView, activeReportId }) => (
+    <div data-testid="report-history" data-refresh={String(refreshKey)} data-active={String(activeReportId)}>
+      <button onClick={() => onView(4)}>view-4</button>
+    </div>
+  ),
+}))
+jest.mock('../components/reports/ReportAnalysis', () => ({ __esModule: true, default: ({ report }) => <div data-testid="report-analysis">{report.period.label}</div> }))
 jest.mock('../components/reports/VehicleComparisonChart', () => ({ __esModule: true, default: ({ vehicles }) => <div data-testid="comparison-chart">{vehicles.map(v => v.vehicleId).join(',')}</div> }))
 jest.mock('../components/reports/ReportToolbar', () => ({
   __esModule: true,
@@ -68,7 +79,7 @@ describe('Reports - initial load', () => {
     expect(screen.getByTestId('toolbar-period')).toHaveTextContent('weekly')
     expect(screen.getByTestId('toolbar-scope')).toHaveTextContent('fleet')
     await waitFor(() => expect(getReportScopes).toHaveBeenCalledTimes(1))
-    expect(screen.getByTestId('toolbar-candidates')).toHaveTextContent('V001,V002,V005')
+    await waitFor(() => expect(screen.getByTestId('toolbar-candidates')).toHaveTextContent('V001,V002,V005'))
     expect(screen.queryByText('Export CSV')).not.toBeInTheDocument()
   })
 
@@ -193,5 +204,153 @@ describe('Reports - CSV export', () => {
     expect(clickSpy).toHaveBeenCalledTimes(1)
     expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:report')
     clickSpy.mockRestore()
+  })
+})
+describe('Reports - analysis, PDF and history', () => {
+  test('shows report history before anything is generated', async () => {
+    render(<Reports />)
+    expect(screen.getByTestId('report-history')).toHaveAttribute('data-refresh', '0')
+    await waitFor(() => expect(getReportScopes).toHaveBeenCalled())
+  })
+
+  test('renders the analysis panel labelled with the comparison period', async () => {
+    generateReport.mockResolvedValue(buildReport({ previousPeriod: { label: '27 Jul - 2 Aug 2026' } }))
+    await setupAndGenerate()
+    expect(screen.getByText('Analysis against 27 Jul - 2 Aug 2026')).toBeInTheDocument()
+    expect(screen.getByTestId('report-analysis')).toHaveTextContent('3 - 9 Aug 2026')
+  })
+
+  test('downloads the PDF for exactly the report on screen, echoing its anchor', async () => {
+    generateReport.mockResolvedValue(buildReport({
+      report: { scope: { type: 'group', id: '1', label: 'Delivery' } },
+      period: {
+        type: 'weekly', label: '3 - 9 Aug 2026', fromDate: '2026-08-03', toDate: '2026-08-09',
+        anchor: '2026-08-12T08:00:00.000Z',
+      },
+    }))
+    downloadReportPdf.mockResolvedValue('file.pdf')
+    const user = await setupAndGenerate()
+
+    await user.click(screen.getByText('Download PDF'))
+    await waitFor(() => expect(downloadReportPdf).toHaveBeenCalledWith({
+      scopeType: 'group', scopeId: '1', periodType: 'weekly', anchor: '2026-08-12T08:00:00.000Z',
+      from: undefined, to: undefined,
+    }))
+  })
+
+  test('a custom report PDF keeps its dates', async () => {
+    generateReport.mockResolvedValue(buildReport({
+      report: { scope: { type: 'fleet', id: null, label: 'Assigned fleet' } },
+      period: { type: 'custom', label: '3 - 9 Aug 2026', fromDate: '2026-08-03', toDate: '2026-08-09' },
+    }))
+    downloadReportPdf.mockResolvedValue('file.pdf')
+    const user = await setupAndGenerate()
+
+    await user.click(screen.getByText('Download PDF'))
+    await waitFor(() => expect(downloadReportPdf).toHaveBeenCalledWith({
+      scopeType: 'fleet', scopeId: undefined, periodType: 'custom', from: '2026-08-03', to: '2026-08-09',
+    }))
+  })
+
+  test('a failed PDF download is reported to the user', async () => {
+    generateReport.mockResolvedValue(buildReport({ report: { scope: { type: 'fleet', id: null, label: 'Fleet' } }, period: { type: 'weekly', label: 'w', fromDate: 'a', toDate: 'b' } }))
+    downloadReportPdf.mockRejectedValue(new Error('Request failed (504)'))
+    const user = await setupAndGenerate()
+
+    await user.click(screen.getByText('Download PDF'))
+    expect(await screen.findByText('Request failed (504)')).toBeInTheDocument()
+  })
+
+  test('saving stores the report server-side, shows the stored copy and refreshes history', async () => {
+    const onScreen = buildReport({
+      report: { scope: { type: 'group', id: '1', label: 'Delivery' } },
+      period: { type: 'current', label: 'Last 7 days', fromDate: 'a', toDate: 'b', anchor: '2026-09-23T08:00:00.000Z' },
+    })
+    generateReport.mockResolvedValueOnce(onScreen)
+    generateReport.mockResolvedValueOnce({
+      ...onScreen,
+      report: { ...onScreen.report, generatedAt: '2026-09-23T08:05:00.000Z' },
+      safety: { ...onScreen.safety, summary: { safetyScore: 81 } },
+      storedReportId: 12,
+    })
+    const user = await setupAndGenerate()
+
+    await user.click(screen.getByText('Save to history'))
+    await waitFor(() => expect(generateReport).toHaveBeenLastCalledWith({
+      scopeType: 'group', scopeId: '1', periodType: 'current', anchor: '2026-09-23T08:00:00.000Z',
+      from: undefined, to: undefined, save: true,
+    }))
+    await waitFor(() => expect(screen.getByTestId('report-history')).toHaveAttribute('data-refresh', '1'))
+
+    // The saved result replaces the screen, so what is shown is what was stored.
+    expect(screen.getByTestId('summary-cards')).toHaveAttribute('data-score', '81')
+    expect(screen.getByTestId('stored-report-banner')).toHaveTextContent('Stored manual report')
+    expect(screen.getByTestId('report-history')).toHaveAttribute('data-active', '12')
+    expect(screen.queryByText('Save to history')).not.toBeInTheDocument()
+  })
+})
+
+describe('Reports - stored reports from history', () => {
+  const storedDataset = buildReport({
+    report: { scope: { type: 'group', id: '1', label: 'Delivery' } },
+    period: { type: 'weekly', label: '14 - 20 Sep 2026', fromDate: '2026-09-14', toDate: '2026-09-20' },
+    safety: { summary: { safetyScore: 66 }, vehicles: [{ vehicleId: 'V009' }], comparison: {} },
+  })
+
+  beforeEach(() => {
+    getStoredReport.mockResolvedValue({
+      id: 4, trigger: 'scheduled', generatedAt: '2026-09-20T22:30:05.000Z', dataset: storedDataset,
+    })
+  })
+
+  test('opening a stored report renders its dataset without recalculating', async () => {
+    const user = await setupAndGenerate({ skipGenerate: true })
+    await user.click(screen.getByText('view-4'))
+
+    await waitFor(() => expect(screen.getByTestId('stored-report-banner')).toHaveTextContent('Stored automated report'))
+    expect(getStoredReport).toHaveBeenCalledWith(4)
+    expect(generateReport).not.toHaveBeenCalled()
+    expect(screen.getByText('14 - 20 Sep 2026', { selector: 'p' })).toBeInTheDocument()
+    expect(screen.getByTestId('safety-table')).toHaveTextContent('V009')
+    expect(screen.getByTestId('report-history')).toHaveAttribute('data-active', '4')
+    expect(screen.queryByText('Save to history')).not.toBeInTheDocument()
+  })
+
+  test('the PDF of a stored report is rebuilt from the stored copy', async () => {
+    downloadStoredReportPdf.mockResolvedValue('stored.pdf')
+    const user = await setupAndGenerate({ skipGenerate: true })
+    await user.click(screen.getByText('view-4'))
+    await screen.findByTestId('stored-report-banner')
+
+    await user.click(screen.getByText('Download PDF'))
+    await waitFor(() => expect(downloadStoredReportPdf).toHaveBeenCalledWith(4))
+    expect(downloadReportPdf).not.toHaveBeenCalled()
+  })
+
+  test('generating a new report leaves the stored view', async () => {
+    const user = await setupAndGenerate({ skipGenerate: true })
+    await user.click(screen.getByText('view-4'))
+    await screen.findByTestId('stored-report-banner')
+
+    await user.click(screen.getByText('generate'))
+    await waitFor(() => expect(screen.queryByTestId('stored-report-banner')).not.toBeInTheDocument())
+    expect(screen.getByText('Save to history')).toBeInTheDocument()
+  })
+
+  test('closing the stored view clears the report', async () => {
+    const user = await setupAndGenerate({ skipGenerate: true })
+    await user.click(screen.getByText('view-4'))
+    await screen.findByTestId('stored-report-banner')
+
+    await user.click(screen.getByText('Close'))
+    expect(screen.queryByTestId('stored-report-banner')).not.toBeInTheDocument()
+    expect(screen.getByText(/Choose a timeframe and a scope/i)).toBeInTheDocument()
+  })
+
+  test('a stored report the user may not read shows the server message', async () => {
+    getStoredReport.mockRejectedValue(new Error('Report not found or not authorized'))
+    const user = await setupAndGenerate({ skipGenerate: true })
+    await user.click(screen.getByText('view-4'))
+    expect(await screen.findByText('Report not found or not authorized')).toBeInTheDocument()
   })
 })

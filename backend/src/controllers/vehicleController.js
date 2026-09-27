@@ -24,8 +24,6 @@ async function getLiveLocations(req, res) {
       FROM vehicles v
       LEFT JOIN current_vehicle_position cvp ON cvp.vehicle_id = v.vehicle_id
       LEFT JOIN vehicle_location_cache vlc   ON vlc.vehicle_id = v.vehicle_id
-      -- vehicle_daily_distance is already one row per vehicle per day, so
-      -- this is a direct join rather than a SUM-grouped subquery.
       LEFT JOIN vehicle_daily_distance daily
              ON daily.vehicle_id = v.vehicle_id
             AND daily.day = data_today()
@@ -70,9 +68,6 @@ async function getVehicleById(req, res) {
         cvp.ignition,
         cvp.movement,
         cvp.last_update,
-        -- CurrentTripTab compares speed against speedLimit to flag speeding.
-        -- This is the real OSM limit for the road the vehicle is on, rather
-        -- than a hardcoded number.
         vlc.speed_limit,
         vlc.road,
         vlc.display_name
@@ -146,11 +141,6 @@ async function getVehicleById(req, res) {
  
 async function getVehiclePositionBuffer(req, res) {
   try {
-    // get_position_buffer (V28) anchors the window PER VEHICLE to that
-    // vehicle's own newest reading. NOW() cannot be used here: telemetry is
-    // stamped ~3 days in the future, so `time >= NOW() - 30s` matched every
-    // row ever recorded and returned 4000+ points for a single vehicle --
-    // which is what hung the map. p_max_points is a second guard.
     const result = await pool.query(
       `SELECT * FROM get_position_buffer($1::interval, $2::int)`,
       ['30 seconds', 60]
@@ -184,7 +174,6 @@ async function getVehiclePositionBuffer(req, res) {
         type: 'Feature',
         geometry: {
           type: 'LineString',
-          // GeoJSON order is [longitude, latitude].
           coordinates: points.map(p => [Number(p.longitude), Number(p.latitude)]),
         },
         properties: {
@@ -196,8 +185,6 @@ async function getVehiclePositionBuffer(req, res) {
           movement: latest.movement,
           odometer: Number(latest.total_odometer),
           timestamp: latest.time,
-          // Parallel to coordinates. FleetMap's playback queue uses these
-          // real gaps to time each segment, so motion matches actual speed.
           times: points.map(p => p.time),
           road: latest.road,
           speedLimit: latest.speed_limit,
@@ -244,6 +231,7 @@ async function getVehiclesList(req, res) {
     let query = `
     SELECT 
       v.vehicle_id as id,
+      COUNT(*) OVER() AS filtered_total,
       v.fleet_group_id,
       fg.name as fleet_group_name,
       CASE
@@ -345,6 +333,17 @@ async function getVehiclesList(req, res) {
           0
         ) as avg_safety_score,
 
+        (SELECT ROUND(AVG(CAST(safety_score AS numeric)), 1)
+          FROM driver_daily_safety_scores dss
+          JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
+          WHERE dss.score_date = CURRENT_DATE - 1
+            AND (
+              $1::bigint[] IS NULL
+              OR v2.fleet_group_id IS NULL
+              OR v2.fleet_group_id = ANY($1::bigint[])
+            )
+        ) as prev_avg_safety_score,
+
         COALESCE(
           (SELECT SUM(harsh_brakes + harsh_accelerations + harsh_cornering)
           FROM driver_daily_safety_scores dss
@@ -428,7 +427,10 @@ async function getVehiclesList(req, res) {
       stats: stats,
       pagination: {
         page: Number.parseInt(page),
-        limit: Number.parseInt(limit)
+        limit: Number.parseInt(limit),
+        total: result.rows.length > 0 && result.rows[0].filtered_total
+          ? Number.parseInt(result.rows[0].filtered_total, 10)
+          : 0
       }
     }, 200);
   } catch (err) {

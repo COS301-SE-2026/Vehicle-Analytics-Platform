@@ -15,9 +15,9 @@ function FleetGroupCard({ group, onSelect}) {
                 const result = await getVehiclesList({ fleetGroupId: group.id, limit: 1})
                 if(!cancelled){
                     setStats({
-                        moving: result.stats.moving ?? 0,
-                        idle: result.stats.idle ?? 0,
-                        offline: result.stats.offline ?? 0,
+                        moving: Number(result.stats.moving ?? 0),
+                        idle: Number(result.stats.idle ?? 0),
+                        offline: Number(result.stats.offline ?? 0),
                     })
                 }
             }catch(err){

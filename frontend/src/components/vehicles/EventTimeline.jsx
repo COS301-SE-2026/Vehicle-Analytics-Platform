@@ -8,6 +8,7 @@ function formatTime(timestamp) {
 }
 
 function formatCoords(lat,lng) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return 'Location unknown'
     return `${lat.toFixed(4)}\u00B0 N, ${lng.toFixed(4)}\u00B0 W`
 }
 

@@ -1,32 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Truck, Waypoints, Activity, RefreshCw } from 'lucide-react'
-import { getKPIs, getVehicleLocations, getAlerts, getActivityHistory } from '../../services/vehicleService'
+import { getKPIs, getVehicleLocations, getAlerts } from '../../services/vehicleService'
 import StatCard from '../../components/dashboard/StatCard'
 import FleetStatusCard from '../../components/dashboard/FleetStatusCard'
 import MostActiveVehiclesTable from '../../components/dashboard/MostActiveVehiclesTable'
-import FleetActivityChart from '../../components/dashboard/FleetActivityChart'
 import RecentVehicleEvents from '../../components/dashboard/RecentVehicleEvents'
 import FleetAnalytics from '../../components/dashboard/FleetAnalytics'
 import LeaderboardWelcomeModal from '@/components/dashboard/LeaderboardWelcomeModal'
 
-function formatActivityPoints(points, range) {
-  return points.map((point) => {
-    const date = new Date(point.bucket)
-    const timeLabel = range === 'week'
-      ? date.toLocaleDateString('en-US', { weekday: 'short' })
-      : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-    return {
-      time: timeLabel,
-      vehicles: point.active_vehicles ?? 0,
-    }
-  })
-}
-
 export default function ManagerDashboard() {
   const [kpis, setKpis] = useState(null)
   const [locations, setLocations] = useState(null)
-  const [activityRange, setActivityRange] = useState('week')
-  const [activityData, setActivityData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [events, setEvents] = useState([])
@@ -50,8 +34,6 @@ export default function ManagerDashboard() {
         timestamp: alert.timestamp,
       })) ?? [])
 
-      const activityPoints = await getActivityHistory(activityRange).catch(() => [])
-      setActivityData(formatActivityPoints(activityPoints, activityRange))
       setError(null)
     } catch (err) {
       console.error('ManagerDashboard fetch error:', err)
@@ -65,7 +47,7 @@ export default function ManagerDashboard() {
     void Promise.resolve().then(fetchAll)
     const interval = setInterval(() => { void fetchAll() }, 5000)
     return () => clearInterval(interval)
-  }, [activityRange])
+  }, [])
 
   if (loading) {
     return (
@@ -103,13 +85,6 @@ export default function ManagerDashboard() {
     .sort((a, b) => (b.distanceToday ?? 0) - (a.distanceToday ?? 0))
     .slice(0, 5)
 
-  const chartTitle = activityRange === 'week'
-    ? 'Fleet Activity This Week'
-    : 'Fleet Activity Today'
-
-  const chartXLabel = activityRange === 'week'
-    ? 'Day of Week'
-    : 'Time of Day'
 
   return (
     <div className="space-y-4">
@@ -138,9 +113,11 @@ export default function ManagerDashboard() {
         />
       </div>
 
-      {/* Row 2 - Fleet Status + Most Active */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1">
+      {/* Row 2 - Fleet Status + Most Active.
+          items-stretch + h-full so both cards match height rather than
+          leaving a gap under the shorter one. */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+        <div className="lg:col-span-1 h-full">
           <FleetStatusCard
             active={active}
             idle={idle}
@@ -148,7 +125,7 @@ export default function ManagerDashboard() {
             total={total}
           />
         </div>
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 h-full">
           <MostActiveVehiclesTable vehicles={mostActive} />
         </div>
       </div>
@@ -156,40 +133,8 @@ export default function ManagerDashboard() {
       {/* Row 3 - Recent Vehicle Events */}
       <RecentVehicleEvents events={events} limit={10} />
 
-      {/* Row 4 - Fleet Activity Chart */}
-      <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => setActivityRange('day')}
-          className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
-            activityRange === 'day'
-              ? 'border-fleet-green text-fleet-green'
-              : 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
-          }`}
-        >
-          Today
-        </button>
-        <button
-          type="button"
-          onClick={() => setActivityRange('week')}
-          className={`text-xs font-medium px-2.5 py-1 rounded-md border ${
-            activityRange === 'week'
-              ? 'border-fleet-green text-fleet-green'
-              : 'border-fleet-border text-fleet-secondary hover:text-fleet-text'
-          }`}
-        >
-          This Week
-        </button>
-      </div>
-      <FleetActivityChart
-        data={activityData}
-        title={chartTitle}
-        xLabel={chartXLabel}
-        yDomain={[0, 'dataMax']}
-        useFallback={false}
-      />
-
-          <FleetAnalytics/>
+      {/* Row 4 - Fleet Analytics (was Row 5) */}
+      <FleetAnalytics />
     </div>
   )
 }

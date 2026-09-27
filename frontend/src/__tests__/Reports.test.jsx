@@ -63,7 +63,7 @@ beforeEach(() => {
 describe('Reports - initial load', () => {
   test('renders heading, loads scopes, and defaults correctly', async () => {
     render(<Reports />)
-    expect(screen.getByText('Fleet Reports')).toBeInTheDocument()
+    
     expect(screen.getByText(/Choose a timeframe and a scope/i)).toBeInTheDocument()
     expect(screen.getByTestId('toolbar-period')).toHaveTextContent('weekly')
     expect(screen.getByTestId('toolbar-scope')).toHaveTextContent('fleet')

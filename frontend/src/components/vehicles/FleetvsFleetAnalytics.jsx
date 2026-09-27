@@ -87,7 +87,7 @@ export default function FleetvsFleetAnalytics({ groups}) {
                                 score: result.stats?.avg_safety_score != null
                                     ? Number(result.stats.avg_safety_score)
                                     : null,
-                                vehicles: result.stats?.total ?? 0,
+                                vehicles: Number(result.stats?.total ?? 0),
                                 harshEvents: Number(result.stats?.harsh_events_today ?? 0),
                                 crashes: Number(result.stats?.crashes_today ?? 0),
                             }
@@ -105,8 +105,12 @@ export default function FleetvsFleetAnalytics({ groups}) {
             }
         }
 
-        if(showAll ? groups.length > 0 : (groupAId && groupBId)) fetchAll()
-            return () => {cancelled = true}
+        if (showAll ? groups.length > 0 : (groupAId && groupBId)) {
+            fetchAll()
+        }
+
+        return () => {cancelled = true}
+
     }, [groupAId, groupBId, showAll, groups])
 
     if(groups.length < 2){

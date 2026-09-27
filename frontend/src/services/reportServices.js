@@ -80,3 +80,42 @@ export async function generateReport({
     const data = await res.json()
     return data.data
 }
+
+// POST /api/reports/weather
+export async function generateWeatherReport({
+    scopeType = 'fleet',
+    scopeId,
+    days = 7,
+    endDate,
+} = {}) {
+    const headers = await getAuthHeaders()
+
+    const body = {
+        scope_type: scopeType,
+        scope_id: scopeId,
+        days,
+    }
+    if (endDate) body.end_date = endDate
+
+    const res = await fetch(`${API_BASE_URL}/api/reports/weather`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+        let message = 'Failed to generate weather report'
+        try {
+            const payload = await res.json()
+            if (payload && payload.error) message = payload.error
+        } catch {
+            // Keep default message on non-JSON response body
+        }
+        const err = new Error(message)
+        err.status = res.status
+        throw err
+    }
+
+    const data = await res.json()
+    return data.data
+}

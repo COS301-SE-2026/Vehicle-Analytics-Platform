@@ -24,10 +24,16 @@ async function getLiveLocations(req, res) {
       FROM vehicles v
       LEFT JOIN current_vehicle_position cvp ON cvp.vehicle_id = v.vehicle_id
       LEFT JOIN vehicle_location_cache vlc   ON vlc.vehicle_id = v.vehicle_id
+      -- vehicle_daily_distance is already one row per vehicle per day, so
+      -- this is a direct join rather than a SUM-grouped subquery.
       LEFT JOIN vehicle_daily_distance daily
              ON daily.vehicle_id = v.vehicle_id
             AND daily.day = data_today()
-      WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
+      WHERE (
+        $1::bigint[] IS NULL
+        OR v.fleet_group_id IS NULL
+        OR v.fleet_group_id = ANY($1::bigint[])
+      )
       ORDER BY v.vehicle_id
     `, [req.fleetGroupIds]);
  
@@ -64,13 +70,21 @@ async function getVehicleById(req, res) {
         cvp.ignition,
         cvp.movement,
         cvp.last_update,
+        -- CurrentTripTab compares speed against speedLimit to flag speeding.
+        -- This is the real OSM limit for the road the vehicle is on, rather
+        -- than a hardcoded number.
         vlc.speed_limit,
         vlc.road,
         vlc.display_name
       FROM vehicles v
       LEFT JOIN current_vehicle_position cvp ON cvp.vehicle_id = v.vehicle_id
       LEFT JOIN vehicle_location_cache vlc   ON vlc.vehicle_id = v.vehicle_id
-      WHERE v.vehicle_id = $1 AND ($2::bigint[] IS NULL OR v.fleet_group_id = ANY($2::bigint[]))
+      WHERE v.vehicle_id = $1
+        AND (
+          $2::bigint[] IS NULL
+          OR v.fleet_group_id IS NULL
+          OR v.fleet_group_id = ANY($2::bigint[])
+        )
     `, [vehicleId, req.fleetGroupIds]);
  
     if (vehicleResult.rows.length === 0) {
@@ -132,6 +146,11 @@ async function getVehicleById(req, res) {
  
 async function getVehiclePositionBuffer(req, res) {
   try {
+    // get_position_buffer (V28) anchors the window PER VEHICLE to that
+    // vehicle's own newest reading. NOW() cannot be used here: telemetry is
+    // stamped ~3 days in the future, so `time >= NOW() - 30s` matched every
+    // row ever recorded and returned 4000+ points for a single vehicle --
+    // which is what hung the map. p_max_points is a second guard.
     const result = await pool.query(
       `SELECT * FROM get_position_buffer($1::interval, $2::int)`,
       ['30 seconds', 60]
@@ -165,6 +184,7 @@ async function getVehiclePositionBuffer(req, res) {
         type: 'Feature',
         geometry: {
           type: 'LineString',
+          // GeoJSON order is [longitude, latitude].
           coordinates: points.map(p => [Number(p.longitude), Number(p.latitude)]),
         },
         properties: {
@@ -176,6 +196,8 @@ async function getVehiclePositionBuffer(req, res) {
           movement: latest.movement,
           odometer: Number(latest.total_odometer),
           timestamp: latest.time,
+          // Parallel to coordinates. FleetMap's playback queue uses these
+          // real gaps to time each segment, so motion matches actual speed.
           times: points.map(p => p.time),
           road: latest.road,
           speedLimit: latest.speed_limit,
@@ -198,7 +220,7 @@ async function getVehiclePositionBuffer(req, res) {
 
 async function getVehiclesList(req, res) {
 
-  const {status, min_score, max_score, fleet_group_id, page = 1, limit = 20} = req.query;
+  const {status, min_score, max_score, alerts, fleet_group_id, page = 1, limit = 20} = req.query;
 
   const offset = (Number.parseInt(page) - 1) * Number.parseInt(limit);
 
@@ -219,81 +241,58 @@ async function getVehiclesList(req, res) {
   }
 
   try {
-
     let query = `
-
     SELECT 
-
       v.vehicle_id as id,
-      COUNT(*) OVER() AS filtered_total,
       v.fleet_group_id,
       fg.name as fleet_group_name,
-
       CASE
-
         WHEN pos.last_update IS NULL THEN 'offline'
-
         WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
-
         WHEN COALESCE(pos.speed, 0) > 0 THEN 'moving'
-
         ELSE 'idle'
-
       END as status,
-
       pos.speed as current_speed,
-
       pos.latitude,
-
       pos.longitude,
-
       pos.last_update as last_updated,
-
-      -- Today's safety score
-      COALESCE(s.safety_score, 100) as safety_score,
-
-      -- Lifetime average safety score for this vehicle
-      COALESCE((
-        SELECT ROUND(AVG(CAST(dss.safety_score AS numeric)), 1)
-        FROM driver_daily_safety_scores dss
-        WHERE dss.vehicle_id = v.vehicle_id
-      ), 0) as avg_safety_score,
-
+      s.safety_score,
       COALESCE(ds.distance_today, 0) as distance_today,
-
       CASE 
-
+        WHEN ve.vehicle_id IS NOT NULL THEN true 
+        ELSE false 
+      END as has_alert,
+      CASE 
         WHEN pos.speed > 80 THEN true 
         ELSE false 
-
       END as is_speeding
-
     FROM vehicles v
     LEFT JOIN fleet_groups fg ON fg.id = v.fleet_group_id
     LEFT JOIN current_vehicle_position pos ON v.vehicle_id = pos.vehicle_id
-
     LEFT JOIN driver_daily_safety_scores s ON v.vehicle_id = s.vehicle_id AND s.score_date = CURRENT_DATE
-
     LEFT JOIN (
-
       SELECT vehicle_id, SUM(distance_km) as distance_today
-
       FROM vehicle_daily_distance
-
       WHERE day = date_trunc('day', NOW())
-
       GROUP BY vehicle_id
-
     ) ds ON v.vehicle_id = ds.vehicle_id
-
-    WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
+    LEFT JOIN (
+      SELECT DISTINCT vehicle_id 
+      FROM vehicle_events 
+      WHERE time > NOW() - INTERVAL '1 hour'
+        AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
+    ) ve ON v.vehicle_id = ve.vehicle_id
+    WHERE (
+      $1::bigint[] IS NULL
+      OR v.fleet_group_id IS NULL
+      OR v.fleet_group_id = ANY($1::bigint[])
+    )
     `;
 
     const params = [scopedGroupIds];
     let paramCount = 2;
 
     if(status){
-
       query += ` AND (CASE
       WHEN pos.last_update IS NULL THEN 'offline'
       WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
@@ -305,66 +304,57 @@ async function getVehiclesList(req, res) {
     }
 
     if(min_score){
-
       query += ` AND s.safety_score >= $${paramCount}`;
-
       params.push(min_score);
-
       paramCount++;
-
     }
 
     if(max_score){
-
       query += ` AND s.safety_score <= $${paramCount}`;
-
       params.push(max_score);
-
       paramCount++;
+    }
 
+    if(alerts === 'true'){
+      query += ` AND ve.vehicle_id IS NOT NULL`;
     }
 
     query += ` ORDER BY v.vehicle_id LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
-
     params.push(Number.parseInt(limit), offset);
 
     const result = await pool.query(query, params);
 
     const statsResult = await pool.query(`
-
       SELECT 
-
         COUNT(*) as total,
-
         COUNT(*) FILTER (WHERE status = 'moving') as moving,
-
         COUNT(*) FILTER (WHERE status = 'idle') as idle,
-
         COUNT(*) FILTER (WHERE status = 'offline') as offline,
-
+        COUNT(*) FILTER (WHERE has_alert) as alerts,
         COUNT(*) FILTER (WHERE is_speeding) as speeding,
-
+        COALESCE(
           (SELECT ROUND(AVG(CAST(safety_score AS numeric)), 1)
-
           FROM driver_daily_safety_scores dss
           JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
           WHERE dss.score_date = CURRENT_DATE
-            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))
+            AND (
+              $1::bigint[] IS NULL
+              OR v2.fleet_group_id IS NULL
+              OR v2.fleet_group_id = ANY($1::bigint[])
+            )),
+          0
         ) as avg_safety_score,
-
-        (SELECT ROUND(AVG(CAST(safety_score AS numeric)), 1)
-          FROM driver_daily_safety_scores dss
-          JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
-          WHERE dss.score_date = CURRENT_DATE - 1
-            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))
-        ) as prev_avg_safety_score,
 
         COALESCE(
           (SELECT SUM(harsh_brakes + harsh_accelerations + harsh_cornering)
           FROM driver_daily_safety_scores dss
           JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
           WHERE dss.score_date = CURRENT_DATE
-            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))),
+            AND (
+              $1::bigint[] IS NULL
+              OR v2.fleet_group_id IS NULL
+              OR v2.fleet_group_id = ANY($1::bigint[])
+            )),
           0
         ) as harsh_events_today,
 
@@ -373,94 +363,81 @@ async function getVehiclesList(req, res) {
           FROM driver_daily_safety_scores dss
           JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
           WHERE dss.score_date = CURRENT_DATE
-            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))),
+            AND (
+              $1::bigint[] IS NULL
+              OR v2.fleet_group_id IS NULL
+              OR v2.fleet_group_id = ANY($1::bigint[])
+            )),
           0
         ) as crashes_today
-
       FROM (
         SELECT 
-
           v.vehicle_id,
-
           CASE
-
             WHEN pos.last_update IS NULL THEN 'offline'
-
             WHEN pos.last_update < NOW() - INTERVAL '5 minutes' THEN 'offline'
-
             WHEN COALESCE(pos.speed, 0) > 0 THEN 'moving'
-
             ELSE 'idle'
-
           END as status,
-
           CASE 
-
+            WHEN ve.vehicle_id IS NOT NULL THEN true 
+            ELSE false 
+          END as has_alert,
+          CASE 
             WHEN pos.speed > 80 THEN true 
             ELSE false 
-
           END as is_speeding
-
         FROM vehicles v
-
         LEFT JOIN current_vehicle_position pos ON v.vehicle_id = pos.vehicle_id
-
-      WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
+        LEFT JOIN (
+          SELECT DISTINCT vehicle_id 
+          FROM vehicle_events 
+          WHERE time > NOW() - INTERVAL '1 hour'
+            AND event_category IN ('green_driving_type', 'crash_detection', 'speeding')
+        ) ve ON v.vehicle_id = ve.vehicle_id
+      WHERE (
+        $1::bigint[] IS NULL
+        OR v.fleet_group_id IS NULL
+        OR v.fleet_group_id = ANY($1::bigint[])
+      )
       ) stats
-
     `, [scopedGroupIds]);
 
     const lowestScoreResult = await pool.query(`
-
       SELECT 
-
         v.vehicle_id as id,
-        s.safety_score
+        COALESCE(s.safety_score, 0) as safety_score
       FROM vehicles v
-
       LEFT JOIN driver_daily_safety_scores s ON v.vehicle_id = s.vehicle_id AND s.score_date = CURRENT_DATE
-      WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
-        AND s.safety_score IS NOT NULL
-      ORDER BY s.safety_score ASC
-
+      WHERE (
+        $1::bigint[] IS NULL
+        OR v.fleet_group_id IS NULL
+        OR v.fleet_group_id = ANY($1::bigint[])
+      )
+      ORDER BY s.safety_score ASC NULLS LAST
       LIMIT 1
     `, [scopedGroupIds]);
 
     const stats = statsResult.rows[0];
 
     stats.lowest_scoring_vehicle = lowestScoreResult.rows.length > 0 ? lowestScoreResult.rows[0].id : null;
-
     stats.lowest_score = lowestScoreResult.rows.length > 0 ? Number.parseFloat(lowestScoreResult.rows[0].safety_score) : null;
 
     return success(res, {
-
       vehicles: result.rows,
-
       stats: stats,
-
       pagination: {
-
         page: Number.parseInt(page),
-
-        limit: Number.parseInt(limit),
-        total: result.rows.length > 0 && result.rows[0].filtered_total
-          ? Number.parseInt(result.rows[0].filtered_total, 10)
-          : 0
+        limit: Number.parseInt(limit)
       }
-
     }, 200);
-
   } catch (err) {
     console.error('Get vehicles list error:', err);
-
     return error(res, 'Failed to fetch vehicles: ' + err.message, 500);
-
   }
-
 }
 
 async function assignVehicleToFleetGroup(req, res) {
-
   const {vehicleId} = req.params;
   const {fleetGroupId} = req.body;
 

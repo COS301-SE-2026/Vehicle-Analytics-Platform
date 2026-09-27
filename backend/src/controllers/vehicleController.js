@@ -225,7 +225,6 @@ async function getVehiclesList(req, res) {
     SELECT 
 
       v.vehicle_id as id,
-      COUNT(*) OVER() AS filtered_total,
       v.fleet_group_id,
       fg.name as fleet_group_name,
 
@@ -344,20 +343,18 @@ async function getVehiclesList(req, res) {
 
         COUNT(*) FILTER (WHERE is_speeding) as speeding,
 
+
+        COALESCE(
           (SELECT ROUND(AVG(CAST(safety_score AS numeric)), 1)
 
           FROM driver_daily_safety_scores dss
           JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
           WHERE dss.score_date = CURRENT_DATE
-            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))
-        ) as avg_safety_score,
+            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))),
 
-        (SELECT ROUND(AVG(CAST(safety_score AS numeric)), 1)
-          FROM driver_daily_safety_scores dss
-          JOIN vehicles v2 ON v2.vehicle_id = dss.vehicle_id
-          WHERE dss.score_date = CURRENT_DATE - 1
-            AND ($1::bigint[] IS NULL OR v2.fleet_group_id = ANY($1::bigint[]))
-        ) as prev_avg_safety_score,
+          0
+
+        ) as avg_safety_score,
 
         COALESCE(
           (SELECT SUM(harsh_brakes + harsh_accelerations + harsh_cornering)
@@ -415,13 +412,13 @@ async function getVehiclesList(req, res) {
       SELECT 
 
         v.vehicle_id as id,
-        s.safety_score
+        COALESCE(s.safety_score, 0) as safety_score
+
       FROM vehicles v
 
       LEFT JOIN driver_daily_safety_scores s ON v.vehicle_id = s.vehicle_id AND s.score_date = CURRENT_DATE
       WHERE ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
-        AND s.safety_score IS NOT NULL
-      ORDER BY s.safety_score ASC
+      ORDER BY s.safety_score ASC NULLS LAST
 
       LIMIT 1
     `, [scopedGroupIds]);
@@ -442,10 +439,8 @@ async function getVehiclesList(req, res) {
 
         page: Number.parseInt(page),
 
-        limit: Number.parseInt(limit),
-        total: result.rows.length > 0 && result.rows[0].filtered_total
-          ? Number.parseInt(result.rows[0].filtered_total, 10)
-          : 0
+        limit: Number.parseInt(limit)
+
       }
 
     }, 200);

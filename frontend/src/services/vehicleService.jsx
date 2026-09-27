@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 import useAuthStore from '../store/authStore';
- 
+
 async function getAuthHeaders() {
   try {
     const token = useAuthStore.getState().token;
@@ -15,22 +15,34 @@ async function getAuthHeaders() {
   }
   return { 'Content-Type': 'application/json' };
 }
- 
+
+// South Africa bounding box — reject coordinates that fall outside
+// or land in the ocean due to GPS noise on coastal roads.
+function isValidLandCoord(lat, lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false
+  if (lat === 0 && lng === 0) return false
+  if (lat < -90 || lat > 90) return false
+  if (lng < -180 || lng > 180) return false
+  if (lat < -35.0 || lat > -22.0) return false
+  if (lng < 16.0 || lng > 33.0) return false
+  return true
+}
+
 // GET /api/dashboard/kpis
 export async function getKPIs() {
   const headers = await getAuthHeaders();
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
- 
+
     const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, {
       headers,
       signal: controller.signal
     });
- 
+
     clearTimeout(timeout);
     if (!res.ok) throw new Error('Failed to fetch KPIs');
- 
+
     const data = await res.json();
     return {
       totalVehicles: data.data.total_vehicles,
@@ -53,7 +65,7 @@ export async function getKPIs() {
     throw err;
   }
 }
- 
+
 // GET /api/vehicles/locations
 export async function getVehicleLocations() {
   const headers = await getAuthHeaders()
@@ -82,14 +94,14 @@ export async function getVehicleLocations() {
       country: v.country,
       displayName: v.display_name,
     }))
-    .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
- 
+    .filter(v => isValidLandCoord(v.lat, v.lng))
+
   return {
     timestamp: data.data.timestamp,
     vehicles,
   }
 }
- 
+
 // GET /api/dashboard/alerts
 export async function getAlerts(limit = 50) {
   const headers = await getAuthHeaders()
@@ -101,7 +113,7 @@ export async function getAlerts(limit = 50) {
     alerts: data.data.alerts,
   }
 }
- 
+
 // GET /api/dashboard/activity
 export async function getActivityHistory(range = 'day') {
   const headers = await getAuthHeaders()
@@ -110,7 +122,7 @@ export async function getActivityHistory(range = 'day') {
   const data = await res.json()
   return data.data.points || []
 }
- 
+
 // GET /api/vehicles/:vehicleId
 export async function getVehicleById(vehicleId) {
   const headers = await getAuthHeaders()
@@ -138,7 +150,7 @@ export async function getVehicleById(vehicleId) {
     })),
   }
 }
- 
+
 // GET /api/users (admin only)
 export async function getUsers() {
   const headers = await getAuthHeaders()
@@ -147,7 +159,7 @@ export async function getUsers() {
   const data = await res.json()
   return data.data
 }
- 
+
 // PATCH /api/admin/users/:userId/role
 export async function updateUserRole(userId, role) {
   const headers = await getAuthHeaders()
@@ -159,7 +171,7 @@ export async function updateUserRole(userId, role) {
   if (!res.ok) throw new Error('Failed to update user role')
   return await res.json()
 }
- 
+
 // DELETE /api/admin/users/:userId
 export async function deleteUser(userId) {
   const headers = await getAuthHeaders()
@@ -173,7 +185,7 @@ export async function deleteUser(userId) {
 
 export async function getVehiclePositionBuffer() {
   const headers = await getAuthHeaders();
- 
+
   const res = await fetch(`${API_BASE_URL}/api/vehicles/buffer`, {
     headers
   });
@@ -181,7 +193,7 @@ export async function getVehiclePositionBuffer() {
   if (!res.ok) {
     throw new Error('Failed to fetch playback buffer')
   }
- 
+
   const data = await res.json();
 
   return data.data;
@@ -302,13 +314,13 @@ const EVENT_TYPE_LABELS = {
   harsh_cornering: 'Harsh Cornering',
   speeding: 'Speeding',
 }
- 
+
 function classifyScore(score) {
   if (score >= 80) return 'GOOD'
   if (score >= 50) return 'WARNING'
   return 'POOR'
 }
- 
+
 export async function getFleetAnalytics(range = 'day') {
   const headers = await getAuthHeaders()
   try {
@@ -318,7 +330,7 @@ export async function getFleetAnalytics(range = 'day') {
     if (!res.ok) throw new Error('Failed to fetch fleet analytics')
     const data = await res.json()
     const body = data.data
- 
+
     
     const safetyTrend = (body.trend ?? []).map(row => {
       let label;
@@ -339,12 +351,12 @@ export async function getFleetAnalytics(range = 'day') {
         score: Math.round(row.avg_score),
       };
     })
- 
+
     const eventBreakdown = (body.event_breakdown ?? []).map(row => ({
       type: EVENT_TYPE_LABELS[row.type] ?? row.type,
       count: row.count,
     }))
- 
+
     const totalEvents = (body.vehicle_contributions ?? [])
       .reduce((sum, row) => sum + (row.total_events || 0), 0) || 1
     const topContributors = (body.vehicle_contributions ?? [])
@@ -353,7 +365,7 @@ export async function getFleetAnalytics(range = 'day') {
         vehicleId: row.vehicle_id,
         percentage: Math.round((row.total_events / totalEvents) * 100),
       }))
- 
+
     const lowestSafetyScores = (body.ranked_vehicles ?? [])
       .slice(0, 5)
       .map(row => ({
@@ -362,7 +374,7 @@ export async function getFleetAnalytics(range = 'day') {
         status: classifyScore(row.avg_score),
         daysTracked: row.days_count,
       }))
- 
+
     return { safetyTrend, eventBreakdown, topContributors, lowestSafetyScores }
   } catch (err) {
     console.error('Fleet analytics fetch failed:', err.message)

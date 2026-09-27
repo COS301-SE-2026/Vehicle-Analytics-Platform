@@ -89,8 +89,6 @@ jest.mock("@/services/geofenceServices", () => ({
   getGeofencesGeoJSON: jest.fn(),
 }));
 
-
-
 jest.mock("@/services/riskService", () => ({
   __esModule: true,
   getFleetRisk: jest.fn().mockResolvedValue([]),
@@ -321,8 +319,9 @@ describe("FleetMap: vehicle markers", () => {
     rerender(<FleetMap vehicles={[{ ...vehicle, status: "idle" }]} />);
 
     expect(markerInstances()).toHaveLength(1);
-    const inner = markerInstances()[0].getElement().querySelector('.vehicle-marker-inner');
-    expect(inner.style.backgroundColor).toBe("rgb(245, 158, 11)");
+    // The marker element itself carries .vehicle-marker-inner (single-element marker).
+    const el = markerInstances()[0].getElement();
+    expect(el.style.backgroundColor).toBe("rgb(245, 158, 11)");
   });
 
   it("removes the marker for a vehicle that drops out of the list", () => {

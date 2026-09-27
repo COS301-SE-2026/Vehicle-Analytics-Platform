@@ -197,13 +197,13 @@ export default function Hero({ mapImage = cityNight }) {
             <h1 className="flex flex-col items-center gap-1 px-4 text-center">
               <span
                 ref={titleTopRef}
-                className="font-display text-7xl font-extrabold uppercase leading-[0.85] tracking-tighter text-fleet-bg [mix-blend-mode:difference] [will-change:transform]"
+                className="font-display text-5xl font-extrabold uppercase leading-[0.85] tracking-tighter text-fleet-bg [mix-blend-mode:difference] [will-change:transform]"
               >
                 Vehicle Analytics, Processing &
               </span>
               <span
                 ref={titleBottomRef}
-                className="font-display text-7xl font-extrabold uppercase leading-[0.85] tracking-tighter text-fleet-bg [mix-blend-mode:difference] [will-change:transform]"
+                className="font-display text-5xl font-extrabold uppercase leading-[0.85] tracking-tighter text-fleet-bg [mix-blend-mode:difference] [will-change:transform]"
               >
                  Operations in Real-time
               </span>
@@ -238,6 +238,11 @@ export default function Hero({ mapImage = cityNight }) {
               </div>
             </div>
           </div>
+
+            <div className="pointer-events-none absolute bottom-8 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 opacity-80">
+              <span className="text-sm text-fleet-bg">Scroll</span>
+            <div className="h-12 w-px animate-pulse bg-gradient-to-b from-fleet-bg to-transparent" />
+        </div>
         </div>
       </section>
 

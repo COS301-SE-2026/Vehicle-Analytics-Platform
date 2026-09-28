@@ -40,6 +40,24 @@ SELECT COUNT(*) AS total_alerts
 FROM triggered_alerts
 WHERE rule_id = :score_rule_id AND vehicle_id = :'vehicle_id';
 
+-- Simulate 24+ hours passing by backdating the existing alert's
+-- created_at. This is only valid inside this test transaction —
+-- nothing outside it is affected.
+UPDATE triggered_alerts
+SET created_at = created_at - INTERVAL '25 hours'
+WHERE rule_id = :score_rule_id AND vehicle_id = :'vehicle_id';
+
+-- A new breaching update after the cooldown has "expired" SHOULD
+-- create a second alert
+UPDATE driver_daily_safety_scores
+SET safety_score = 40
+WHERE vehicle_id = :'vehicle_id' AND score_date = CURRENT_DATE;
+
+\echo '--- Expect 2 rows: cooldown window has passed, a new breach should alert again ---'
+SELECT COUNT(*) AS total_alerts
+FROM triggered_alerts
+WHERE rule_id = :score_rule_id AND vehicle_id = :'vehicle_id';
+
 ROLLBACK;
 \echo '--- Verification complete, all test data rolled back ---'
 \i verify_common_cleanup.sql

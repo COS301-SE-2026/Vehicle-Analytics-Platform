@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import {
   AlertTriangle,
@@ -19,10 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { describeEventTypes } from './ruleFormConstants';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
 
 const LIMIT = 10;
+
+const RESOLVED_WINDOW_HOURS = 48;
+const RESOLVED_WINDOW_MS = RESOLVED_WINDOW_HOURS * 60 * 60 * 1000;
+
+const EXPIRY_TICK_MS = 60 * 1000;
 
 const STATUS_TABS = [
   { label: 'All', value: 'all' },
@@ -52,6 +58,20 @@ const CONDITION_LABELS = {
   trip_duration_exceeded: 'Trip Duration Exceeded',
 };
 
+function snapshotParams(alert) {
+  let snapshot = alert.rule_snapshot ?? {};
+
+  if (typeof snapshot === 'string') {
+    try {
+      snapshot = JSON.parse(snapshot);
+    } catch {
+      return {};
+    }
+  }
+
+  return snapshot?.condition_params ?? snapshot ?? {};
+}
+
 function formatBreach(alert) {
   const { condition_type, breach_value, threshold_value } = alert;
 
@@ -62,8 +82,15 @@ function formatBreach(alert) {
     case 'time_based_restriction':
       return `Vehicle ${alert.vehicle_id} active outside permitted window`;
 
-    case 'repeated_unsafe_events':
-      return `Vehicle ${alert.vehicle_id} recorded ${breach_value} unsafe events (limit ${threshold_value})`;
+    case 'repeated_unsafe_events': {
+      const params = snapshotParams(alert);
+
+      const kind = describeEventTypes(params.event_types);
+
+      const window = params.window_minutes ? ` in ${params.window_minutes} min` : '';
+
+      return `Vehicle ${alert.vehicle_id} recorded ${breach_value} ${kind} events${window} - rule fires at ${threshold_value}`;
+    }
 
     case 'safety_score_drop':
       return `Vehicle ${alert.vehicle_id} safety score dropped to ${breach_value} (min ${threshold_value})`;
@@ -92,6 +119,23 @@ function authHeaders(){
   const token = useAuthStore.getState().token;
 
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function isExpiredResolved(alert, now) {
+  if (alert.status !== 'resolved')
+    return false;
+
+  const timestamp = alert.resolved_at ?? alert.updated_at;
+
+  if (!timestamp)
+    return false;
+
+  const resolvedAt = new Date(timestamp).getTime();
+
+  if (Number.isNaN(resolvedAt))
+    return false;
+
+  return now - resolvedAt > RESOLVED_WINDOW_MS;
 }
 
 function getAlertCardStateClass(isResolved, isNew) {
@@ -123,6 +167,8 @@ export default function TriggeredAlertsTab() {
 
   const [actioningId, setActioningId] = useState(null);
 
+  const [now, setNow] = useState(() => Date.now());
+
   const fetchAlerts = useCallback(async () => {
 
     setLoading(true);
@@ -130,7 +176,11 @@ export default function TriggeredAlertsTab() {
     setError(null);
 
     try {
-      const params = { limit: LIMIT, offset };
+      const params = {
+        limit: LIMIT,
+        offset,
+        resolved_within_hours: RESOLVED_WINDOW_HOURS,
+      };
       if (activeStatus !== 'all') 
         params.status = activeStatus;
 
@@ -166,6 +216,19 @@ export default function TriggeredAlertsTab() {
   useEffect(() => {
     setOffset(0);
   }, [activeStatus, conditionType, vehicleSearch]);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), EXPIRY_TICK_MS);
+
+    return () => clearInterval(id);
+  }, []);
+
+  const visibleAlerts = useMemo(
+    () => alerts.filter((alert) => !isExpiredResolved(alert, now)),
+    [alerts, now]
+  );
+
+  const expiredCount = alerts.length - visibleAlerts.length;
 
   async function handleAcknowledge(alertId){
 
@@ -264,7 +327,11 @@ export default function TriggeredAlertsTab() {
     
       <div className="flex items-start gap-2 rounded-lg border border-fleet-green/30 bg-fleet-green/10 px-4 py-3 text-sm text-fleet-text">
         <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-fleet-green" />
-        <p>Acknowledge an alert to confirm you've seen it, then Resolve once it's been fully dealt with.</p>
+        <p>
+          Acknowledge an alert to confirm you've seen it, then Resolve once it's been fully dealt
+          with. Resolved alerts drop off this list {RESOLVED_WINDOW_HOURS} hours after they're
+          resolved.
+        </p>
       </div>
 
       {error && <p className="text-sm text-fleet-alert px-1">{error}</p>}
@@ -277,14 +344,16 @@ export default function TriggeredAlertsTab() {
           </div>
         )}
 
-        {!loading && alerts.length === 0 && (
+        {!loading && visibleAlerts.length === 0 && (
           <div className="text-center text-fleet-secondary py-12 bg-fleet-surface border border-fleet-border rounded-lg">
-            No alerts match these filters.
+            {expiredCount > 0
+              ? `Every alert on this page was resolved more than ${RESOLVED_WINDOW_HOURS} hours ago. Use Next to keep looking.`
+              : 'No alerts match these filters.'}
           </div>
         )}
 
         {!loading &&
-          alerts.map((alert) => {
+          visibleAlerts.map((alert) => {
             const isNew = alert.status === 'new';
 
             const isAcknowledged = alert.status === 'acknowledged';
@@ -381,7 +450,10 @@ export default function TriggeredAlertsTab() {
         <div className="flex items-center justify-between border-t border-fleet-border pt-3">
 
           <p className="text-xs text-fleet-secondary">
-            Showing {offset + 1}–{Math.min(offset + LIMIT, pagination.total)} of {pagination.total}
+            Showing {visibleAlerts.length} of {pagination.total}
+            {expiredCount > 0 && (
+              <span> · {expiredCount} resolved over {RESOLVED_WINDOW_HOURS}h ago hidden</span>
+            )}
           </p>
 
           <div className="flex items-center gap-2">

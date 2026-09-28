@@ -36,7 +36,6 @@ const PLAYBACK = {
   catchUpAt: 12,
 }
 
-// Reject coordinates that fall in the ocean or off the South African map.
 function isLikelyLand(lat, lng) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false
   if (lat === 0 && lng === 0) return false
@@ -51,8 +50,6 @@ function enqueuePoints(entry, coordinates, times) {
     const t = new Date(times[i]).getTime();
     if (Number.isNaN(t)) continue;
     if (entry.lastEnqueuedT !== null && t <= entry.lastEnqueuedT) continue;
-    // Advance the watermark even if we reject the point below, so a bad
-    // point doesn't get reprocessed on every future buffer update.
     entry.lastEnqueuedT = t;
 
     const [lng, lat] = coordinates[i];
@@ -107,6 +104,110 @@ function ensureAnimating(entry) {
     entry.raf = requestAnimationFrame(step);
   }
   entry.raf = requestAnimationFrame(step);
+}
+
+// ---------- Marker helpers (extracted for cognitive complexity) ----------
+
+function applyMarkerStyle(el, vehicle, ringColour) {
+  el.style.backgroundColor = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
+  el.style.boxShadow = ringColour
+    ? `0 0 0 3px ${ringColour}`
+    : '0 2px 4px rgba(0,0,0,0.4)';
+}
+
+function applyMarkerBadge(el, risk, ringColour) {
+  const badge = el.querySelector('.risk-tier-badge');
+  if (!badge) return;
+  if (!risk) {
+    badge.style.display = 'none';
+    return;
+  }
+  badge.textContent = tierLabel(risk.tier);
+  badge.style.backgroundColor = ringColour;
+  badge.style.display = 'block';
+}
+
+function selfHealPosition(entry, vehicle) {
+  if (entry.queue.length > 0 || entry.raf) return;
+  if (!Number.isFinite(vehicle.lat) || !Number.isFinite(vehicle.lng)) return;
+  if (!isLikelyLand(vehicle.lat, vehicle.lng)) return;
+
+  const current = entry.marker.getLngLat();
+  const drifted =
+    Math.abs(current.lat - vehicle.lat) > 0.0005 ||
+    Math.abs(current.lng - vehicle.lng) > 0.0005;
+  if (drifted) {
+    entry.marker.setLngLat([vehicle.lng, vehicle.lat]);
+  }
+}
+
+function updateExistingMarker(existing, vehicle, risk, ringColour, isHighlighted) {
+  existing.vehicle = vehicle;
+  existing.risk = risk;
+  existing.highlighted = isHighlighted;
+
+  selfHealPosition(existing, vehicle);
+
+  const el = existing.marker.getElement();
+  applyMarkerStyle(el, vehicle, ringColour);
+  el.classList.toggle('vehicle-marker-highlighted', !!isHighlighted);
+  applyMarkerBadge(el, risk, ringColour);
+  return el;
+}
+
+function buildMarkerElement(vehicle, risk, ringColour, isHighlighted) {
+  const el = document.createElement('div');
+  el.className = 'vehicle-marker vehicle-marker-inner';
+  if (isHighlighted) el.classList.add('vehicle-marker-highlighted');
+  Object.assign(el.style, {
+    width: '32px', height: '32px', borderRadius: '50%',
+    backgroundColor: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
+    border: '2px solid white',
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: ringColour ? `0 0 0 3px ${ringColour}` : '0 2px 4px rgba(0,0,0,0.4)',
+    transition: 'box-shadow 0.2s, background-color 0.2s',
+    position: 'relative',
+    overflow: 'visible',
+  });
+  el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`;
+
+  const badge = document.createElement('span');
+  badge.className = 'risk-tier-badge';
+  Object.assign(badge.style, {
+    display: risk ? 'block' : 'none',
+    position: 'absolute',
+    top: '100%',
+    left: '50%',
+    transform: 'translate(-50%, 4px)',
+    padding: '1px 5px',
+    fontSize: '9px',
+    fontWeight: '700',
+    letterSpacing: '0.03em',
+    textTransform: 'uppercase',
+    color: 'white',
+    backgroundColor: ringColour || '#9ca3af',
+    borderRadius: '8px',
+    whiteSpace: 'nowrap',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    pointerEvents: 'none',
+  });
+  if (risk) badge.textContent = tierLabel(risk.tier);
+
+  el.appendChild(badge);
+
+  el.addEventListener('mouseenter', () => {
+    el.style.boxShadow = `0 0 0 5px ${ringColour || 'rgba(255,255,255,0.3)'}`;
+  });
+  el.addEventListener('mouseleave', () => {
+    if (!el.classList.contains('vehicle-marker-highlighted')) {
+      el.style.boxShadow = ringColour
+        ? `0 0 0 3px ${ringColour}`
+        : '0 2px 4px rgba(0,0,0,0.4)';
+    }
+  });
+
+  return el;
 }
 
 export default function FleetMap({
@@ -248,6 +349,7 @@ export default function FleetMap({
     }
   }, [buffer])
 
+  // Marker sync — cognitive complexity reduced by extracting helpers above
   useEffect(() => {
     if (!map.current) return
     const seen = new Set()
@@ -262,43 +364,7 @@ export default function FleetMap({
       let el;
 
       if (existing) {
-        existing.vehicle = vehicle;
-        existing.risk = risk;
-        existing.highlighted = isHighlighted;
-
-        // Self-heal: only touch position when the marker isn't currently
-        // being driven by live trail playback (so we don't fight the
-        // animation), and only when we have a fresh, valid position.
-        const notAnimating = existing.queue.length === 0 && !existing.raf;
-        if (
-          notAnimating &&
-          Number.isFinite(vehicle.lat) &&
-          Number.isFinite(vehicle.lng) &&
-          isLikelyLand(vehicle.lat, vehicle.lng)
-        ) {
-          const current = existing.marker.getLngLat();
-          const drifted =
-            Math.abs(current.lat - vehicle.lat) > 0.0005 ||
-            Math.abs(current.lng - vehicle.lng) > 0.0005;
-          if (drifted) {
-            existing.marker.setLngLat([vehicle.lng, vehicle.lat]);
-          }
-        }
-
-        el = existing.marker.getElement();
-        el.style.backgroundColor = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
-        el.style.boxShadow = ringColour ? `0 0 0 3px ${ringColour}` : '0 2px 4px rgba(0,0,0,0.4)';
-        el.classList.toggle('vehicle-marker-highlighted', !!isHighlighted)
-        const badge = el.querySelector('.risk-tier-badge');
-        if (badge) {
-          if (risk) {
-            badge.textContent = tierLabel(risk.tier);
-            badge.style.backgroundColor = ringColour;
-            badge.style.display = 'block';
-          } else {
-            badge.style.display = 'none';
-          }
-        }
+        el = updateExistingMarker(existing, vehicle, risk, ringColour, isHighlighted);
       } else {
         if (!Number.isFinite(vehicle.lng) || !Number.isFinite(vehicle.lat)) return;
         if (!isLikelyLand(vehicle.lat, vehicle.lng)) {
@@ -306,64 +372,10 @@ export default function FleetMap({
           return;
         }
 
-        // Single 32x32 element IS the icon. Both the `vehicle-marker`
-        // and `vehicle-marker-inner` classes live on the same element so
-        // status-update code (and tests) that query for the inner class
-        // still find it. Badge is absolutely positioned below and does
-        // not affect the anchor box, so Mapbox's anchor: 'center' places
-        // the icon exactly on the vehicle coordinate at any zoom.
-        el = document.createElement('div')
-        el.className = 'vehicle-marker vehicle-marker-inner'
-        if (isHighlighted) el.classList.add('vehicle-marker-highlighted')
-        Object.assign(el.style, {
-          width: '32px', height: '32px', borderRadius: '50%',
-          backgroundColor: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
-          border: '2px solid white',
-          cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: ringColour ? `0 0 0 3px ${ringColour}` : '0 2px 4px rgba(0,0,0,0.4)',
-          transition: 'box-shadow 0.2s, background-color 0.2s',
-          position: 'relative',
-          overflow: 'visible',
-        })
-        el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 8h-3L14.5 3h-5L7 8H4c-1.1 0-2 .9-2 2v6h2v2h2v-2h8v2h2v-2h2v-6c0-1.1-.9-2-2-2zm-9.5-3h3l1.5 3h-6l1.5-3zM6 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>`
-
-        const badge = document.createElement('span')
-        badge.className = 'risk-tier-badge'
-        Object.assign(badge.style, {
-          display: risk ? 'block' : 'none',
-          position: 'absolute',
-          top: '100%',
-          left: '50%',
-          transform: 'translate(-50%, 4px)',
-          padding: '1px 5px',
-          fontSize: '9px',
-          fontWeight: '700',
-          letterSpacing: '0.03em',
-          textTransform: 'uppercase',
-          color: 'white',
-          backgroundColor: ringColour || '#9ca3af',
-          borderRadius: '8px',
-          whiteSpace: 'nowrap',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-          pointerEvents: 'none',
-        })
-        if (risk) badge.textContent = tierLabel(risk.tier)
-
-        el.appendChild(badge)
-
-        el.addEventListener('mouseenter', () => {
-          el.style.boxShadow = `0 0 0 5px ${ringColour || 'rgba(255,255,255,0.3)'}`
-        })
-        el.addEventListener('mouseleave', () => {
-          if (!el.classList.contains('vehicle-marker-highlighted')) {
-            el.style.boxShadow = ringColour ? `0 0 0 3px ${ringColour}` : '0 2px 4px rgba(0,0,0,0.4)'
-          }
-        })
-
+        el = buildMarkerElement(vehicle, risk, ringColour, isHighlighted);
         const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat([vehicle.lng, vehicle.lat])
-          .addTo(map.current)
+          .addTo(map.current);
 
         markers.current[vehicle.id] = {
           marker,

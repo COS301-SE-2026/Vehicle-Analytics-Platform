@@ -21,9 +21,6 @@ describe('Risk Endpoints (integration)', () => {
 
   const auth = (token) => ({ Authorization: `Bearer ${token}` });
 
-
-  
-
   describe('GET /api/risk/fleet', () => {
     test('returns 200 with vehicles ranked by risk score', async () => {
       const res = await request(app).get('/api/risk/fleet').set(auth(managerToken));
@@ -54,20 +51,34 @@ describe('Risk Endpoints (integration)', () => {
     });
   });
 
- 
-  
-
   describe('GET /api/risk/vehicle/:vehicleId', () => {
     test('returns 200 with latest + trend for a vehicle that has predictions', async () => {
-      const { rows } = await pool.query(`
-        SELECT vehicle_id FROM vehicle_risk_predictions
-        ORDER BY prediction_date DESC LIMIT 1
-      `);
-      if (!rows.length) {
-        expect(true).toBe(true);
-        return;
-      }
-      const vid = rows[0].vehicle_id;
+      // Guarantee data: use a real vehicle and seed a prediction for today.
+      const { rows: vRows } = await pool.query(
+        `SELECT vehicle_id FROM vehicles ORDER BY vehicle_id LIMIT 1`
+      );
+      expect(vRows.length).toBeGreaterThan(0);
+      const vid = vRows[0].vehicle_id;
+
+      await pool.query(
+        `
+        INSERT INTO vehicle_risk_predictions
+          (vehicle_id, prediction_date, risk_score, risk_tier,
+           feature_safety, feature_harsh, feature_crashes,
+           feature_speeding, feature_weekend, top_factors,
+           feature_distance, feature_recency)
+        VALUES
+          ($1, CURRENT_DATE, 45, 'medium',
+           80, 1, 0,
+           0.1, 0.2, '[]'::jsonb,
+           100, 1)
+        ON CONFLICT (vehicle_id, prediction_date) DO UPDATE
+          SET risk_score  = EXCLUDED.risk_score,
+              risk_tier   = EXCLUDED.risk_tier,
+              top_factors = EXCLUDED.top_factors
+        `,
+        [vid]
+      );
 
       const res = await request(app)
         .get(`/api/risk/vehicle/${vid}`)
@@ -104,9 +115,6 @@ describe('Risk Endpoints (integration)', () => {
     });
   });
 
- 
-  
-
   describe('GET /api/risk/vehicle/:vehicleId/coaching', () => {
     test('returns 200 with interventions array', async () => {
       const res = await request(app)
@@ -117,9 +125,6 @@ describe('Risk Endpoints (integration)', () => {
       expect(Array.isArray(res.body.data.interventions)).toBe(true);
     });
   });
-
-
-  
 
   describe('GET /api/risk/vehicle/:vehicleId/similar', () => {
     test('returns 200 with up to 5 similar vehicles', async () => {
@@ -159,9 +164,6 @@ describe('Risk Endpoints (integration)', () => {
     });
   });
 
-
-  
-
   describe('GET /api/risk/notifications', () => {
     test('returns 200 with notifications array and checked_at', async () => {
       const res = await request(app)
@@ -173,9 +175,6 @@ describe('Risk Endpoints (integration)', () => {
     });
   });
 
-
-  
-
   describe('POST /api/risk/run', () => {
     let modelExists = false;
 
@@ -186,19 +185,12 @@ describe('Risk Endpoints (integration)', () => {
         );
         modelExists = rows.length > 0;
       } catch (err) {
-       
-        
         modelExists = false;
       }
     });
 
     test('admin can trigger a manual prediction run', async () => {
-      if (!modelExists) {
-    
-        
-
-        return;
-      }
+      if (!modelExists) return;
 
       const res = await request(app)
         .post('/api/risk/run')
@@ -231,12 +223,7 @@ describe('Risk Endpoints (integration)', () => {
     }, 180000);
 
     test('returns 500 when no model is trained', async () => {
-      if (modelExists) {
-     
-        
-        
-        return;
-      }
+      if (modelExists) return;
 
       const res = await request(app)
         .post('/api/risk/run')

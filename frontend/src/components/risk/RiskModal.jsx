@@ -5,8 +5,6 @@ import CoachingPanel from './CoachingPanel';
 import SimilarVehiclesPanel from './SimilarVehiclesPanel';
 
 export default function RiskModal({ vehicleId, onClose }) {
- 
-  
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -21,11 +19,25 @@ export default function RiskModal({ vehicleId, onClose }) {
 
   if (!vehicleId) return null;
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  const handleBackdropKeyDown = (e) => {
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   return (
     <div
-      role="presentation"
+      role="button"
+      tabIndex={0}
+      aria-label="Close risk details"
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={onClose}
+      onClick={handleBackdropClick}
+      onKeyDown={handleBackdropKeyDown}
     >
       <div
         role="dialog"
@@ -34,7 +46,6 @@ export default function RiskModal({ vehicleId, onClose }) {
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-4xl mx-4 my-8 bg-fleet-bg rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300"
       >
-        {/* Close button */}
         <button
           type="button"
           onClick={onClose}
@@ -44,7 +55,6 @@ export default function RiskModal({ vehicleId, onClose }) {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-fleet-border">
           <h2 className="text-xl font-bold text-fleet-text">
             Vehicle {vehicleId} - Predictive Risk
@@ -54,7 +64,6 @@ export default function RiskModal({ vehicleId, onClose }) {
           </p>
         </div>
 
-        {/* Content */}
         <div className="p-6 space-y-4">
           <RiskPredictionCard vehicleId={vehicleId} />
 

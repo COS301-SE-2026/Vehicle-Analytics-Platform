@@ -33,7 +33,7 @@ const TIER_ACCENT = {
 }
 
 function RiskPrompt({ vehicleId, risk, onDismiss, onSeeRisk }) {
-  if (!risk || !risk.tier) return null
+  if (!risk?.tier) return null
 
   const tier = risk.tier
   const label = TIER_LABEL[tier] || tier
@@ -97,8 +97,6 @@ function RiskPrompt({ vehicleId, risk, onDismiss, onSeeRisk }) {
 function VehiclePanel({ vehicle, risk, onClose, onSeeRisk }) {
   const [promptDismissed, setPromptDismissed] = useState(false)
 
- 
-  
   useEffect(() => {
     setPromptDismissed(false)
   }, [vehicle?.id])
@@ -166,7 +164,7 @@ function VehiclePanel({ vehicle, risk, onClose, onSeeRisk }) {
         </div>
       </div>
 
-      {!promptDismissed && risk && risk.tier && (
+      {!promptDismissed && risk?.tier && (
         <RiskPrompt
           vehicleId={v.id}
           risk={risk}
@@ -189,8 +187,6 @@ export default function FleetMapPlaceholder({
   const [fallbackVehicle, setFallbackVehicle] = useState(null)
   const [riskLookup, setRiskLookup] = useState({})
 
- 
-  
   useEffect(() => {
     let cancelled = false
     getFleetRisk()
@@ -198,7 +194,7 @@ export default function FleetMapPlaceholder({
         if (cancelled || !Array.isArray(rows)) return
         const map = {}
         rows.forEach((r) => {
-          if (!r || !r.vehicle_id) return
+          if (!r?.vehicle_id) return
           map[r.vehicle_id] = { score: Number(r.risk_score) || 0, tier: r.risk_tier || 'low' }
         })
         setRiskLookup(map)
@@ -207,8 +203,6 @@ export default function FleetMapPlaceholder({
     return () => { cancelled = true }
   }, [])
 
-  
-  
   useEffect(() => {
     if (!focusVehicleId) return
     const inLive = (vehicles ?? []).some(
@@ -223,8 +217,8 @@ export default function FleetMapPlaceholder({
       .then((result) => {
         if (cancelled || !result) return
         const v = result.vehicle || result
-        const lat = Number(v.last_latitude ?? v.lat)
-        const lng = Number(v.last_longitude ?? v.lng)
+        const lat = Number(v.lat ?? v.latitude)
+        const lng = Number(v.lng ?? v.longitude)
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
         setFallbackVehicle({
           id: String(focusVehicleId),

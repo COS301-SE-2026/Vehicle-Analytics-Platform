@@ -13,8 +13,8 @@ BEGIN
         SELECT
             vehicle_id,
             event_time::DATE AS score_date,
-            COUNT(*) FILTER (WHERE event_type = 'harsh_brake')        AS d_brakes,
-            COUNT(*) FILTER (WHERE event_type = 'harsh_acceleration') AS d_accel,
+            COUNT(*) FILTER (WHERE event_type = 'harsh_brake')        AS d_brakes,        -- NOSONAR
+            COUNT(*) FILTER (WHERE event_type = 'harsh_acceleration') AS d_accel,         -- NOSONAR
             COUNT(*) FILTER (WHERE event_type = 'harsh_cornering')    AS d_corner,
             COUNT(*) FILTER (WHERE event_type = 'crash')              AS d_crash,
             COUNT(*)                                                  AS d_total
@@ -120,6 +120,3 @@ BEGIN
     RETURN v_count;
 END;
 $function$;
-
-
-

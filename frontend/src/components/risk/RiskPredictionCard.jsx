@@ -16,6 +16,12 @@ function scoreColor(score) {
   return '#10B981';
 }
 
+function deltaMeta(delta) {
+  if (delta > 3) return { Icon: TrendingUp, cls: 'text-rose-500' };
+  if (delta < -3) return { Icon: TrendingDown, cls: 'text-emerald-500' };
+  return { Icon: Minus, cls: 'text-gray-400' };
+}
+
 export default function RiskPredictionCard({ vehicleId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +32,6 @@ export default function RiskPredictionCard({ vehicleId }) {
     getVehicleRisk(vehicleId, 30)
       .then((d) => {
         if (cancelled) return;
-        // null means "no prediction available" - the empty state handles it
         setData(d || null);
       })
       .catch((err) => {
@@ -63,8 +68,7 @@ export default function RiskPredictionCard({ vehicleId }) {
   const { latest, trend } = data;
   const prev = trend.length > 1 ? trend[trend.length - 2].risk_score : latest.risk_score;
   const delta = latest.risk_score - prev;
-  const DeltaIcon = delta > 3 ? TrendingUp : delta < -3 ? TrendingDown : Minus;
-  const deltaColor = delta > 3 ? 'text-rose-500' : delta < -3 ? 'text-emerald-500' : 'text-gray-400';
+  const { Icon: DeltaIcon, cls: deltaColor } = deltaMeta(delta);
 
   const maxWeight = Math.max(
     0.01,
@@ -139,8 +143,8 @@ export default function RiskPredictionCard({ vehicleId }) {
         </div>
         {latest.top_factors && latest.top_factors.length > 0 ? (
           <ul className="space-y-2.5 mb-5">
-            {latest.top_factors.map((f, i) => (
-              <li key={i} className="flex items-center gap-3">
+            {latest.top_factors.map((f) => (
+              <li key={f.name} className="flex items-center gap-3">
                 <span className="text-sm text-gray-700 flex-1">{f.name}</span>
                 <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div

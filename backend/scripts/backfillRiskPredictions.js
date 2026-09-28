@@ -1,5 +1,3 @@
-
-
 require('dotenv').config({ path: require('node:path').resolve(__dirname, '../.env') });
 const { Pool } = require('pg');
 
@@ -58,7 +56,7 @@ function buildTopFactors(model, f) {
     { name: 'Long trip recency',      weight: Math.abs(Number(f.recency_feature)  * 0.01),                                                        value: Number(f.recency_feature)  },
   ];
   return contributions
-    .sort((a, b) => b.weight - a.weight)
+    .toSorted((a, b) => b.weight - a.weight)
     .slice(0, 3)
     .map((c) => ({
       name: c.name,

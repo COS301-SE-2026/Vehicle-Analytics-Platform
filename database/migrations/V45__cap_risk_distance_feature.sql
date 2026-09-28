@@ -11,7 +11,7 @@ WITH
     SELECT vehicle_id,
            AVG(safety_score)::numeric AS avg_safety
     FROM driver_daily_safety_scores
-    WHERE score_date >= CURRENT_DATE - INTERVAL '30 days'
+    WHERE score_date >= CURRENT_DATE - INTERVAL '30 days'  -- NOSONAR
     GROUP BY vehicle_id
   ),
   harsh_30 AS (

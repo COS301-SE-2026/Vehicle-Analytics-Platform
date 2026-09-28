@@ -4,7 +4,7 @@ const { error } = require('../utils/response');
 
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
-  const hasAuthHeader = authHeader && authHeader.startsWith('Bearer ');
+  const hasAuthHeader = authHeader?.startsWith('Bearer ');
 
   // Dev bypass — only when no token at all AND explicitly enabled
   if (
@@ -42,7 +42,6 @@ async function authenticate(req, res, next) {
     }
   }
 
-  // Decode first — anything wrong with the token itself is a true 401
   let payload;
   try {
     payload = jwt.decode(token);
@@ -50,11 +49,10 @@ async function authenticate(req, res, next) {
     return error(res, 'Invalid or expired token', 401);
   }
 
-  if (!payload || !payload.sub) {
+  if (!payload?.sub) {
     return error(res, 'Invalid token payload', 401);
   }
 
-  // Now hit the DB — a failure here is NOT a 401, it's a transient error
   let userResult;
   try {
     userResult = await pool.query(
@@ -67,7 +65,6 @@ async function authenticate(req, res, next) {
   }
 
   if (!userResult?.rows?.length) {
-    // User has a valid token but no DB row — treat as unauthorized
     return error(res, 'User not found', 401);
   }
 

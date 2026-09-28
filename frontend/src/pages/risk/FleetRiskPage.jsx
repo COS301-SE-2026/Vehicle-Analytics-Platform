@@ -359,9 +359,13 @@ export default function FleetRiskPage() {
         {filtered.length > 0 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-fleet-border bg-gray-50/50">
             <span className="text-xs text-fleet-secondary">
-              Showing <strong className="text-fleet-text">{start + 1}</strong>-
-              <strong className="text-fleet-text">{end}</strong> of{' '}
-              <strong className="text-fleet-text">{filtered.length}</strong> vehicles
+              Showing{' '}
+              <strong className="text-fleet-text">{start + 1}</strong>
+              {'-'}
+              <strong className="text-fleet-text">{end}</strong>
+              {' of '}
+              <strong className="text-fleet-text">{filtered.length}</strong>
+              {' vehicles'}
             </span>
             <div className="flex items-center gap-1">
               <button

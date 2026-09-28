@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react';
 import { getCoachingHistory } from '@/services/riskService';
 
+function outcomeMeta(item) {
+  if (item.outcome_delta === null) {
+    return { text: 'Outcome pending', cls: 'text-gray-500' };
+  }
+  if (item.outcome_delta < 0) {
+    return {
+      text: `Risk fell ${Math.abs(Math.round(item.outcome_delta))} pts`,
+      cls: 'text-emerald-600',
+    };
+  }
+  return {
+    text: `Risk rose ${Math.round(item.outcome_delta)} pts`,
+    cls: 'text-rose-600',
+  };
+}
+
 export default function CoachingPanel({ vehicleId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +48,7 @@ export default function CoachingPanel({ vehicleId }) {
 
   if (loading) return <div className="text-sm text-gray-500">Loading coaching history…</div>;
 
-  if (!data || !data.interventions || data.interventions.length === 0) {
+  if (!data?.interventions || data.interventions.length === 0) {
     return (
       <div className="text-sm text-gray-500">
         No coaching interventions recorded — this vehicle has stayed below the HIGH threshold.
@@ -50,24 +66,15 @@ export default function CoachingPanel({ vehicleId }) {
       )}
       <ul className="space-y-3">
         {data.interventions.map((item) => {
-          const improved = item.outcome_delta !== null && item.outcome_delta < 0;
-          const pending  = item.outcome_delta === null;
+          const outcome = outcomeMeta(item);
           return (
             <li key={item.id} className="border border-gray-100 rounded-lg p-3">
               <div className="flex justify-between items-baseline mb-1">
                 <span className="text-xs text-gray-500">
                   {new Date(item.created_at).toLocaleDateString()} · {item.primary_factor}
                 </span>
-                <span
-                  className={`text-xs font-semibold ${
-                    pending ? 'text-gray-500' : improved ? 'text-emerald-600' : 'text-rose-600'
-                  }`}
-                >
-                  {pending
-                    ? 'Outcome pending'
-                    : improved
-                    ? `Risk fell ${Math.abs(Math.round(item.outcome_delta))} pts`
-                    : `Risk rose ${Math.round(item.outcome_delta)} pts`}
+                <span className={`text-xs font-semibold ${outcome.cls}`}>
+                  {outcome.text}
                 </span>
               </div>
               <p className="text-sm text-gray-800 m-0">{item.recommendation}</p>

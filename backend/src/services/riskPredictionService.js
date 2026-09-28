@@ -1,5 +1,3 @@
-
-
 const { Pool } = require('pg');
 
 class RiskPredictionService {
@@ -22,8 +20,6 @@ class RiskPredictionService {
   }
 
   scoreFeatures(model, f) {
-
-    
     const num = (v) => {
       const n = Number(v);
       return Number.isFinite(n) ? n : 0;
@@ -103,7 +99,7 @@ class RiskPredictionService {
     ];
 
     return contributions
-      .sort((a, b) => b.weight - a.weight)
+      .toSorted((a, b) => b.weight - a.weight)
       .slice(0, 3)
       .map((c) => ({
         name: c.name,

@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import InfoHint, { HowCalculated, Formula } from "../components/reports/InfoHint";
 
+// Radix positions the popover with floating-ui, which needs ResizeObserver.
+// jsdom doesn't provide one.
 beforeAll(() => {
   if (!global.ResizeObserver) {
     global.ResizeObserver = class {
@@ -71,9 +73,11 @@ describe("InfoHint: opening and closing", () => {
     fireEvent.click(getTrigger());
     const content = await screen.findByRole("dialog");
 
-    // Radix attaches its Escape listener a tick after opening.
+    // findByRole resolves after Radix's effects have run, so its Escape
+    // listener is already attached. The key press bubbles up to the document.
+    fireEvent.keyDown(content, { key: "Escape" });
+
     await waitFor(() => {
-      fireEvent.keyDown(content, { key: "Escape" });
       expect(screen.queryByText(HINT_TEXT)).not.toBeInTheDocument();
     });
     expect(getTrigger()).toHaveFocus();

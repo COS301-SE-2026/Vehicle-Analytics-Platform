@@ -19,32 +19,21 @@ export default function RiskModal({ vehicleId, onClose }) {
 
   if (!vehicleId) return null;
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
-  const handleBackdropKeyDown = (e) => {
-    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClose();
-    }
-  };
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label="Close risk details"
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={handleBackdropClick}
-      onKeyDown={handleBackdropKeyDown}
-    >
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Full-screen button acts as the backdrop click target */}
+      <button
+        type="button"
+        aria-label="Close risk details"
+        onClick={onClose}
+        className="absolute inset-0 w-full h-full cursor-default focus:outline-none"
+      />
+
       <div
         role="dialog"
         aria-modal="true"
         aria-label={`Predictive risk details for vehicle ${vehicleId}`}
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-4xl mx-4 my-8 bg-fleet-bg rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300"
+        className="relative z-10 w-full max-w-4xl mx-4 my-8 bg-fleet-bg rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-300"
       >
         <button
           type="button"

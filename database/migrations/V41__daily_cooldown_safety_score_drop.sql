@@ -24,7 +24,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    cooldown_hours INT := 1;
+    cooldown_hours INT := 24;
     v_fleet_group_id BIGINT;
 
 BEGIN

@@ -16,7 +16,7 @@ import CreateAlertRuleModal from './CreateRuleModal';
 import EditAlertRuleModal from './EditRuleModal';
 import DeleteAlertRuleModal from './DeleteRuleModal';
 import { Pencil, Trash2 } from 'lucide-react';
-import { describeEventTypes } from './ruleFormConstants';
+import { describeEventTypes } from '../../utils/ruleFormConstants';
 
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';

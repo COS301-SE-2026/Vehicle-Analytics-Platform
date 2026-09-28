@@ -1,4 +1,4 @@
-import { CONDITIONS, EVENT_TYPES, DAYS, inputClasses, labelClasses } from './ruleFormConstants';
+import { CONDITIONS, EVENT_TYPES, DAYS, inputClasses, labelClasses } from '../../utils/ruleFormConstants';
 
 
 export default function RuleConditionFields({

@@ -67,13 +67,20 @@ describe('BacktestPreviewPanel', () => {
     expect(screen.getByText(/9 vehicles affected/i)).toBeInTheDocument();
   });
 
-  test('renders one bar per day in by_day', () => {
-    const { container } = render(
-      <BacktestPreviewPanel data={SAMPLE_DATA} loading={false} error="" onClose={jest.fn()} />
+  test('renders one row per sample with vehicle id and breach value', () => {
+    render(
+      <BacktestPreviewPanel
+        data={SAMPLE_DATA}
+        loading={false}
+        error=""
+        conditionType="speed_threshold"
+        onClose={jest.fn()}
+      />
     );
 
-    // each bar carries a title attribute of "<date>: <count> alerts"
-    expect(container.querySelectorAll('[title$="alerts"]').length).toBe(SAMPLE_DATA.by_day.length);
+    expect(screen.getByText('VP-7411')).toBeInTheDocument();
+    expect(screen.getByText('VH-0042')).toBeInTheDocument();
+    expect(screen.getByText(/124 km\/h \(\+19\)/)).toBeInTheDocument();
   });
 
   test('shows the peak day count', () => {
@@ -82,12 +89,21 @@ describe('BacktestPreviewPanel', () => {
     expect(screen.getByText(/Peak: 18 alerts/i)).toBeInTheDocument();
   });
 
-  test('renders one row per sample with vehicle id and breach value', () => {
-    render(<BacktestPreviewPanel data={SAMPLE_DATA} loading={false} error="" onClose={jest.fn()} />);
+  test('renders an empty-looking state gracefully when samples is an empty array', () => {
+    render(
+      <BacktestPreviewPanel
+        data={{ ...SAMPLE_DATA, samples: [] }}
+        loading={false}
+        error=""
+        conditionType="speed_threshold"
+        onClose={jest.fn()}
+      />
+    );
 
-    expect(screen.getByText('VP-7411')).toBeInTheDocument();
-    expect(screen.getByText('VH-0042')).toBeInTheDocument();
-    expect(screen.getByText(/124 km\/h \(\+19\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Sample Qualifying Breach Events/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Most Severe/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('VP-7411')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vehicle')).not.toBeInTheDocument();
   });
 
   test('shows skeleton placeholders for samples while loading', () => {
@@ -97,18 +113,5 @@ describe('BacktestPreviewPanel', () => {
 
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
     expect(screen.queryByText('VP-7411')).not.toBeInTheDocument();
-  });
-
-  test('renders an empty-looking state gracefully when samples is an empty array', () => {
-    render(
-      <BacktestPreviewPanel
-        data={{ ...SAMPLE_DATA, samples: [] }}
-        loading={false}
-        error=""
-        onClose={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText(/Sample Qualifying Breach Events \(0 Most Severe\)/i)).toBeInTheDocument();
   });
 });

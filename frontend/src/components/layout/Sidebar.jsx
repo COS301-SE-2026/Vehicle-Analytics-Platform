@@ -1,37 +1,36 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, BellRing, FileBarChart, UsersRound, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
-import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, UsersRound, FileBarChart } from 'lucide-react'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000'
 
-
-
 export default function Sidebar({ role, collapsed, onToggle }) {
   const navigate = useNavigate()
   const { user, role: storeRole } = useAuthStore()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  
+
   const displayRole = storeRole ?? role
-const dashboardPath = useAuthStore.getState().getDashboardPath();
+  const dashboardPath = useAuthStore.getState().getDashboardPath()
 
+  const navItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
+    { icon: Map, label: 'Live Map', path: '/map' },
+    { icon: Globe, label: 'Geofence', path: '/geofence' },
+    { icon: Truck, label: 'Vehicles', path: '/vehicles' },
+    { icon: ShieldAlert, label: 'Fleet Risk', path: '/risk' },
+    { icon: BellRing, label: 'Custom Alerts', path: '/custom-alerts' },
+    { icon: FileBarChart, label: 'Reports', path: '/reports' },
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
-  { icon: Map, label: 'Live Map', path: '/map' },
-  { icon: Globe, label: 'Geofence', path: '/geofence'},
-  { icon: Truck, label: 'Vehicles', path: '/vehicles'},
-  { icon: FileBarChart, label: 'Reports', path: '/reports'},
+    ...(displayRole === 'admin' ? [{ icon: UsersRound, label: 'FleetGroups', path: '/fleet-groups' }] : []),
+  ]
 
-  ...(displayRole === 'admin' ? [{icon: UsersRound, label: 'FleetGroups', path: '/fleet-groups'}] : []),
-]
   const name = user?.name ?? 'User Name'
-  
-  // Safe extraction of initials
+
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -75,17 +74,16 @@ const navItems = [
               <span className="text-fleet-blue font-bold text-2xl">V.A.P.O.R</span>
             </div>
           )}
-          {/* Toggle Button */}
           <button
             type="button"
             onClick={onToggle}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-fleet-blue hover:bg-fleet-blue/80 transition-colors ml-auto"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-fleet-surface hover:bg-fleet-blue/20 transition-colors ml-auto"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? (
-              <ChevronRight className="w-4 h-4 text-white" />
+              <ChevronRight className="w-4 h-4 text-fleet-blue" />
             ) : (
-              <ChevronLeft className="w-4 h-4 text-white" />
+              <ChevronLeft className="w-4 h-4 text-fleet-blue" />
             )}
           </button>
         </div>
@@ -120,7 +118,7 @@ const navItems = [
           <div className="w-8 h-8 rounded-full bg-fleet-blue flex items-center justify-center shrink-0">
             <span className="text-white text-xs font-bold">{initials}</span>
           </div>
-          
+
           {!collapsed && (
             <div className="flex flex-col min-w-0">
               <p className="text-fleet-blue text-xs font-medium truncate">{name}</p>

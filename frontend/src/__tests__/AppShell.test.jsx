@@ -194,7 +194,7 @@ describe('AppShell – collapse toggle', () => {
     renderShellAtRoute('/dashboard/viewer')
 
     const wrapper = screen.getByTestId('header').parentElement
-    expect(wrapper).toHaveClass('transition-all')
+    expect(wrapper).toHaveClass('transition-[margin]')
     expect(wrapper).toHaveClass('duration-300')
   })
 })

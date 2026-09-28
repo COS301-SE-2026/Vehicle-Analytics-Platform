@@ -37,3 +37,21 @@
   flex: 1 1 auto;
   height: auto;
 }
+
+/* ── Risk marker highlight ──────────────────────────────────────────────── */
+
+@keyframes risk-pulse {
+  0%   { box-shadow: 0 0 0 0    rgba(225, 29, 72, 0.55); }
+  70%  { box-shadow: 0 0 0 18px rgba(225, 29, 72, 0);    }
+  100% { box-shadow: 0 0 0 0    rgba(225, 29, 72, 0);    }
+}
+
+.vehicle-marker.vehicle-marker-highlighted {
+  z-index: 10;
+}
+
+.vehicle-marker.vehicle-marker-highlighted .vehicle-marker-inner {
+  animation: risk-pulse 1.6s infinite;
+  transform: scale(1.15);
+  transition: transform 0.2s, box-shadow 0.2s;
+}

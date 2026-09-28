@@ -1,213 +1,110 @@
-//import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import '@testing-library/jest-dom'
-import AppShell from '../components/layout/AppShell'
+import Header from '../components/layout/Header'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
-// Paths must match the imports used inside AppShell, not the test file location.
 
-jest.mock('../components/layout/Sidebar', () =>
-  function MockSidebar({ role, collapsed, onToggle }) {
-    return (
-      <div
-        data-testid="sidebar"
-        data-role={role}
-        data-collapsed={String(collapsed)} // coerce boolean → string for attribute assertions
-      >
-        <button onClick={onToggle} data-testid="toggle-btn">
-          Toggle
-        </button>
+// Mock the auth store so we control the user object
+const mockUser = { name: 'Matthew Stevens', role: 'viewer' }
+jest.mock('../store/authStore', () => ({
+  __esModule: true,
+  default: () => ({ user: mockUser }),
+}))
+
+// Mock HelpPanel — we only care that Header toggles it correctly
+jest.mock('@/components/help/HelpPanel', () => ({
+  __esModule: true,
+  HelpPanel: ({ isOpen, onClose, role }) =>
+    isOpen ? (
+      <div data-testid="help-panel" data-role={role}>
+        <button onClick={onClose} data-testid="help-close">Close</button>
       </div>
-    )
-  }
-)
+    ) : null,
+}))
 
-jest.mock('../components/layout/Header', () =>
-  function MockHeader({ title, collapsed }) {
-    return (
-      <div
-        data-testid="header"
-        data-title={title}
-        data-collapsed={String(collapsed)}
-      >
-        Header Content
-      </div>
-    )
-  }
-)
+// Mock NotificationBell — we only care that Header wires its props correctly
+jest.mock('../components/layout/NotificationBell', () => ({
+  __esModule: true,
+  default: ({ isOpen, onOpen, onClose }) => (
+    <div data-testid="notification-bell" data-open={String(isOpen)}>
+      <button onClick={onOpen} data-testid="notif-open">Open</button>
+      <button onClick={onClose} data-testid="notif-close">Close</button>
+    </div>
+  ),
+}))
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
-const renderShellAtRoute = (initialRoute, role = 'viewer') =>
-  render(
-    <MemoryRouter initialEntries={[initialRoute]}>
-      <Routes>
-        <Route path="/" element={<AppShell role={role} />}>
-          <Route path="dashboard/viewer"  element={<div data-testid="outlet">Viewer Page</div>} />
-          <Route path="dashboard/manager" element={<div data-testid="outlet">Manager Page</div>} />
-          <Route path="dashboard/admin"   element={<div data-testid="outlet">Admin Page</div>} />
-          <Route path="map"               element={<div data-testid="outlet">Map Page</div>} />
-          <Route path="login"             element={<div data-testid="outlet">Login Page</div>} />
-          <Route path="register"          element={<div data-testid="outlet">Register Page</div>} />
-          <Route path="unknown"           element={<div data-testid="outlet">Unknown Page</div>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>
-  )
-
-// ─── Test Suites ──────────────────────────────────────────────────────────────
-
-describe('AppShell – rendering', () => {
-  test('renders Sidebar, Header, and Outlet for a known route', () => {
-    renderShellAtRoute('/dashboard/viewer')
-
-    expect(screen.getByTestId('sidebar')).toBeInTheDocument()
-    expect(screen.getByTestId('header')).toBeInTheDocument()
-    expect(screen.getByTestId('outlet')).toBeInTheDocument()
+describe('Header – rendering', () => {
+  test('renders the provided page title', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
   })
 
-  test('passes the role prop down to Sidebar', () => {
-    renderShellAtRoute('/dashboard/viewer', 'admin')
-
-    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-role', 'admin')
+  test('derives initials from the user name', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    // "Matthew Stevens" → "MS"
+    expect(screen.getByText('MS')).toBeInTheDocument()
   })
 
-  test('defaults role to "viewer" when no role prop is supplied', () => {
-    render(
-      <MemoryRouter initialEntries={['/dashboard/viewer']}>
-        <Routes>
-          <Route path="/" element={<AppShell />}>
-            <Route path="dashboard/viewer" element={<div data-testid="outlet" />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    )
+  test('applies the expanded left offset when collapsed is false', () => {
+    const { container } = render(<Header title="Dashboard" collapsed={false} />)
+    const header = container.querySelector('header')
+    expect(header).toHaveClass('left-[220px]')
+    expect(header).not.toHaveClass('left-[64px]')
+  })
 
-    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-role', 'viewer')
+  test('applies the collapsed left offset when collapsed is true', () => {
+    const { container } = render(<Header title="Dashboard" collapsed={true} />)
+    const header = container.querySelector('header')
+    expect(header).toHaveClass('left-[64px]')
+    expect(header).not.toHaveClass('left-[220px]')
   })
 })
 
-// ─── Page titles ──────────────────────────────────────────────────────────────
+describe('Header – help panel', () => {
+  test('help panel is closed initially', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    expect(screen.queryByTestId('help-panel')).not.toBeInTheDocument()
+  })
 
-describe('AppShell – page titles', () => {
-  const cases = [
-    { path: '/dashboard/viewer',  expected: 'Dashboard' },
-    { path: '/dashboard/manager', expected: 'Dashboard' },
-    { path: '/dashboard/admin',   expected: 'Admin Dashboard' },
-    { path: '/map',               expected: 'Live Map' },
-  ]
+  test('clicking the help button opens the help panel', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    fireEvent.click(screen.getByLabelText('Open help'))
+    expect(screen.getByTestId('help-panel')).toBeInTheDocument()
+  })
 
-  test.each(cases)(
-    'sets Header title to "$expected" for route "$path"',
-    ({ path, expected }) => {
-      renderShellAtRoute(path)
-      expect(screen.getByTestId('header')).toHaveAttribute('data-title', expected)
-    }
-  )
+  test('help panel receives the user role', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    fireEvent.click(screen.getByLabelText('Open help'))
+    expect(screen.getByTestId('help-panel')).toHaveAttribute('data-role', 'viewer')
+  })
 
-  test('falls back to "FleetTracker" for an unknown route', () => {
-    renderShellAtRoute('/unknown')
-    expect(screen.getByTestId('header')).toHaveAttribute('data-title', 'FleetTracker')
+  test('closing the help panel hides it', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    fireEvent.click(screen.getByLabelText('Open help'))
+    fireEvent.click(screen.getByTestId('help-close'))
+    expect(screen.queryByTestId('help-panel')).not.toBeInTheDocument()
   })
 })
 
-// ─── Header suppression ───────────────────────────────────────────────────────
-
-describe('AppShell – header suppression', () => {
-  test('hides Header on /login', () => {
-    renderShellAtRoute('/login')
-
-    expect(screen.queryByTestId('header')).not.toBeInTheDocument()
-    expect(screen.getByTestId('sidebar')).toBeInTheDocument()
-    expect(screen.getByTestId('outlet')).toBeInTheDocument()
+describe('Header – notification bell', () => {
+  test('notification bell starts closed', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    expect(screen.getByTestId('notification-bell')).toHaveAttribute('data-open', 'false')
   })
 
-  test('hides Header on /register', () => {
-    renderShellAtRoute('/register')
-
-    expect(screen.queryByTestId('header')).not.toBeInTheDocument()
+  test('opening the bell sets it open', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    fireEvent.click(screen.getByTestId('notif-open'))
+    expect(screen.getByTestId('notification-bell')).toHaveAttribute('data-open', 'true')
   })
 
-  test('shows Header on routes that are NOT in the noHeader set', () => {
-    renderShellAtRoute('/map')
-
-    expect(screen.getByTestId('header')).toBeInTheDocument()
-  })
-})
-
-// ─── Collapse / layout ────────────────────────────────────────────────────────
-
-describe('AppShell – collapse toggle', () => {
-  test('starts expanded: sidebar data-collapsed is "false", content offset is ml-[220px]', () => {
-    renderShellAtRoute('/dashboard/viewer')
-
-    const sidebar = screen.getByTestId('sidebar')
-    const header  = screen.getByTestId('header')
-
-    expect(sidebar).toHaveAttribute('data-collapsed', 'false')
-    expect(header.parentElement).toHaveClass('ml-[220px]')
-  })
-
-  test('after toggle: sidebar data-collapsed is "true", content offset is ml-[64px]', () => {
-    renderShellAtRoute('/dashboard/viewer')
-
-    fireEvent.click(screen.getByTestId('toggle-btn'))
-
-    const sidebar = screen.getByTestId('sidebar')
-    const header  = screen.getByTestId('header')
-
-    expect(sidebar).toHaveAttribute('data-collapsed', 'true')
-    expect(header.parentElement).toHaveClass('ml-[64px]')
-  })
-
-  test('toggling twice returns to the expanded state', () => {
-    renderShellAtRoute('/dashboard/viewer')
-
-    const toggleBtn = screen.getByTestId('toggle-btn')
-    fireEvent.click(toggleBtn) // collapse
-    fireEvent.click(toggleBtn) // expand again
-
-    expect(screen.getByTestId('sidebar')).toHaveAttribute('data-collapsed', 'false')
-    expect(screen.getByTestId('header').parentElement).toHaveClass('ml-[220px]')
-  })
-
-  test('passes collapsed state to Header', () => {
-    renderShellAtRoute('/dashboard/viewer')
-
-    expect(screen.getByTestId('header')).toHaveAttribute('data-collapsed', 'false')
-
-    fireEvent.click(screen.getByTestId('toggle-btn'))
-
-    expect(screen.getByTestId('header')).toHaveAttribute('data-collapsed', 'true')
-  })
-
-  test('content wrapper always carries the transition utility class', () => {
-    renderShellAtRoute('/dashboard/viewer')
-
-    const wrapper = screen.getByTestId('header').parentElement
-    expect(wrapper).toHaveClass('transition-all')
-    expect(wrapper).toHaveClass('duration-300')
-  })
-})
-
-// ─── Main padding ─────────────────────────────────────────────────────────────
-
-describe('AppShell – main element padding', () => {
-  test('adds top padding when Header is visible', () => {
-    renderShellAtRoute('/dashboard/viewer')
-
-    // The <main> element is the parent of the outlet content
-    const outlet = screen.getByTestId('outlet')
-    expect(outlet.parentElement).toHaveClass('pt-[60px]')
-    expect(outlet.parentElement).toHaveClass('p-6')
-  })
-
-  test('removes padding when Header is hidden (login)', () => {
-    renderShellAtRoute('/login')
-
-    const outlet = screen.getByTestId('outlet')
-    expect(outlet.parentElement).toHaveClass('pt-0')
-    expect(outlet.parentElement).toHaveClass('p-0')
+  test('opening help closes the notification panel (mutually exclusive panels)', () => {
+    render(<Header title="Dashboard" collapsed={false} />)
+    fireEvent.click(screen.getByTestId('notif-open'))
+    fireEvent.click(screen.getByLabelText('Open help'))
+    expect(screen.getByTestId('notification-bell')).toHaveAttribute('data-open', 'false')
+    expect(screen.getByTestId('help-panel')).toBeInTheDocument()
   })
 })

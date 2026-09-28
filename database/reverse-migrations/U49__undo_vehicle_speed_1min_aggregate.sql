@@ -1,0 +1,1 @@
+DROP MATERIALIZED VIEW IF EXISTS vehicle_speed_1min;

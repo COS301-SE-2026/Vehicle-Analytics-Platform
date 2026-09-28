@@ -9,6 +9,10 @@ const pageTitles = {
   '/dashboard/manager': 'Dashboard',
   '/dashboard/admin':   'Admin Dashboard',
   '/map':               'Live Map',
+  '/vehicles':          'Vehicles',
+  '/geofence':          'Geofence',
+  '/custom-alerts':     'Custom Alerts',
+  '/reports':           'Reports'
 }
 
 const noHeader = new Set(['/login', '/register'])
@@ -16,7 +20,7 @@ const noHeader = new Set(['/login', '/register'])
 export default function AppShell({ role = 'viewer' }) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
-  const title = pageTitles[location.pathname] || 'FleetTracker'
+  const title = pageTitles[location.pathname]  || 'FleetTracker'
   const hideHeader = noHeader.has(location.pathname)
 
   return (
@@ -27,9 +31,9 @@ export default function AppShell({ role = 'viewer' }) {
         onToggle={() => setCollapsed(prev => !prev)}
       />
 
-      <div className={`${collapsed ? 'ml-[64px]' : 'ml-[220px]'} transition-all duration-300`}>
+      <div className={`${collapsed ? 'ml-[64px]' : 'ml-[220px]'} transition-[margin] duration-300`}>
         {!hideHeader && <Header title={title} collapsed={collapsed} />}
-        <main className={`${hideHeader ? 'pt-0 p-0' : 'pt-[60px] p-6'}`}>
+        <main className={`${hideHeader ? 'pt-0 p-0' : 'pt-[60px] p-6'} relative z-0`}>
           <Outlet />
         </main>
       </div>

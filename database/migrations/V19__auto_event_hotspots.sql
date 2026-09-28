@@ -1,32 +1,14 @@
--- Automatic event-hotspot geofences.
---
--- When 5 monitored safety INCIDENTS accumulate within R of each other, a
--- circular geofence is created so the hotspot shows on the map, and an
--- alert row is written to geofence_events for the Zone Alerts panel.
-
-
-CREATE OR REPLACE FUNCTION monitored_event_categories()
-RETURNS TEXT[]
-LANGUAGE sql IMMUTABLE AS $$
-    SELECT ARRAY['green_driving_type', 'crash_detection'];
-$$;
-
--- Gap above which two events from the same vehicle are separate incidents.
 CREATE OR REPLACE FUNCTION incident_burst_window()
-RETURNS INTERVAL LANGUAGE sql IMMUTABLE AS $$ SELECT INTERVAL '60 seconds'; $$;
+RETURNS INTERVAL
+LANGUAGE sql
+IMMUTABLE
+AS $$ SELECT INTERVAL '60 seconds'; $$;
 
--- Speed below which repeated impacts look like surface roughness or yard
--- maneuvering rather than a defect struck at road speed.
-CREATE OR REPLACE FUNCTION hotspot_low_speed_kmh()
-RETURNS INTEGER LANGUAGE sql IMMUTABLE AS $$ SELECT 20; $$;
-
--- Best available human label for a point: road name, else suburb, city
-CREATE OR REPLACE FUNCTION describe_point_area(
-    p_lat DOUBLE PRECISION,
-    p_lon DOUBLE PRECISION
-)
+CREATE OR REPLACE FUNCTION describe_point_area(p_lat DOUBLE PRECISION, p_lon DOUBLE PRECISION)
 RETURNS TEXT
-LANGUAGE plpgsql STABLE AS $$
+LANGUAGE plpgsql
+STABLE
+AS $$
 DECLARE
     v_loc  location_details;
     v_road TEXT;
@@ -48,7 +30,7 @@ $$;
 CREATE OR REPLACE FUNCTION evaluate_event_hotspot(
     p_point         GEOMETRY(POINT, 4326),
     p_radius_km     DOUBLE PRECISION DEFAULT 0.25,
-    p_min_incidents INTEGER          DEFAULT 5,
+    p_min_incidents INTEGER          DEFAULT 100,
     p_window        INTERVAL         DEFAULT INTERVAL '14 days'
 )
 RETURNS BIGINT
@@ -123,11 +105,10 @@ BEGIN
 
     v_area := describe_point_area(ST_Y(v_centroid), ST_X(v_centroid));
 
-    
     -- Readable name for the zone, shown on the map and in the Zone Alerts panel.
     v_name := COALESCE(NULLIF(v_area, '') || ' - ', '')
-              || v_label
-              || ' (' || v_incidents || ' incidents / ' || v_events || ' events, '
+              || COALESCE(v_label, 'Hotspot')
+              || ' (' || v_incidents || ' incidents / '
               || v_days || ' days, '
               || v_vehicles || ' vehicle' || CASE WHEN v_vehicles = 1 THEN '' ELSE 's' END
               || ', ~' || COALESCE(v_avg_speed, 0) || ' km/h)';
@@ -188,7 +169,7 @@ EXECUTE FUNCTION detect_event_hotspots_batch();
 CREATE OR REPLACE FUNCTION backfill_event_hotspots(
     p_days          INTEGER          DEFAULT 14,
     p_radius_km     DOUBLE PRECISION DEFAULT 0.25,
-    p_min_incidents INTEGER          DEFAULT 5
+    p_min_incidents INTEGER          DEFAULT 100
 )
 RETURNS INTEGER
 LANGUAGE plpgsql

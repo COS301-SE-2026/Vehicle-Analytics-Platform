@@ -109,3 +109,201 @@ function scoreAgainstPeers(value, peerValues){
         score: null,
     };
 }
+
+
+function severityFromScore(score){
+    if (score >= 8) return SEVERITY.HIGH;
+    if (score >= 5.5) return SEVERITY.MODERATE;
+    return SEVERITY.LOW;
+}
+ 
+function severityFromCount(count){
+    if (count >= 10) return SEVERITY.HIGH;
+    if (count >= 5) return SEVERITY.MODERATE;
+    return SEVERITY.LOW;
+}
+
+
+ 
+function supportingCount(vehicle, definition){
+    if (!definition.supportingCountKey) return null;
+    const counts = vehicle.counts || {};
+    const raw = counts[definition.supportingCountKey];
+    return isNumber(raw) ? raw : 0;
+}
+
+ 
+function isEligible(vehicle){
+    return isNumber(vehicle.distanceKm) && vehicle.distanceKm >= MIN_EXPOSURE_KM;
+}
+
+
+ 
+function featureValue(vehicle, featureKey){
+    const features = vehicle.features || {};
+    const value = features[featureKey];
+    return isNumber(value) ? value : null;
+}
+ 
+function buildFlag(featureKey, definition, vehicle, value, scored){
+    const count = supportingCount(vehicle, definition);
+
+    const uniformPeers = scored.method === METHOD.PEERS_UNIFORM;
+
+
+
+    if (count !== null && count < MIN_SUPPORTING_EVENTS) return null;
+ 
+    if (uniformPeers) {
+        if (!(value > scored.peerMedian)) return null;
+    } else if (!(scored.score > Z_THRESHOLD)) {
+        return null;
+    }
+
+ 
+    const severity = uniformPeers
+        ? (count === null ? SEVERITY.LOW : severityFromCount(count))
+        : severityFromScore(scored.score);
+ 
+    return {
+        feature: featureKey,
+        label: definition.label,
+        unit: definition.unit,
+        value: round(value, 3),
+        peerMedian: round(scored.peerMedian, 3),
+        peerMad: round(scored.peerMad, 3),
+        ratio: scored.peerMedian > 0 ? round(value / scored.peerMedian, 2) : null,
+        score: round(scored.score, 2),
+        method: scored.method,
+        severity,
+        supportingCount: count,
+    };
+
+}
+ 
+function worstSeverity(flags){
+    if (flags.some((f) => f.severity === SEVERITY.HIGH)) return SEVERITY.HIGH;
+    if (flags.some((f) => f.severity === SEVERITY.MODERATE)) return SEVERITY.MODERATE;
+    return flags.length ? SEVERITY.LOW : null;
+
+}
+ 
+const SEVERITY_ORDER = [SEVERITY.HIGH, SEVERITY.MODERATE, SEVERITY.LOW];
+ 
+function byImportance(a, b){
+    const severity = SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
+    if (severity !== 0) return severity;
+    if (b.flagCount !== a.flagCount) return b.flagCount - a.flagCount;
+    return a.vehicleId.localeCompare(b.vehicleId);
+}
+
+ 
+
+function detectFleetAnomalies(vehicles = []){
+
+    const eligible = vehicles.filter(isEligible);
+ 
+    const featureSummary = {};
+    const flagsByVehicle = new Map();
+    vehicles.forEach((v) => flagsByVehicle.set(v.vehicleId, []));
+ 
+    FEATURE_KEYS.forEach((featureKey) => {
+        const definition = FEATURE_DEFINITIONS[featureKey];
+ 
+        const measured = eligible
+            .map((vehicle) => ({ vehicle, value: featureValue(vehicle, featureKey) }))
+            .filter((entry) => entry.value !== null);
+ 
+        if (measured.length < MIN_PEER_VEHICLES) {
+            featureSummary[featureKey] = {
+                feature: featureKey,
+                label: definition.label,
+                unit: definition.unit,
+                status: measured.length === 0 ? STATUS.NOT_MEASURABLE : STATUS.INSUFFICIENT_PEERS,
+                vehiclesMeasured: measured.length,
+                fleetMedian: round(median(measured.map((m) => m.value)), 3),
+            };
+            return;
+        }
+ 
+        featureSummary[featureKey] = {
+            feature: featureKey,
+            label: definition.label,
+            unit: definition.unit,
+            status: STATUS.SCORED,
+            vehiclesMeasured: measured.length,
+            fleetMedian: round(median(measured.map((m) => m.value)), 3),
+        };
+
+ 
+        measured.forEach((entry, index) => {
+            const peerValues = measured
+                .filter((_, i) => i !== index)
+                .map((m) => m.value);
+ 
+            const scored = scoreAgainstPeers(entry.value, peerValues);
+            if (!scored) return;
+ 
+            const flag = buildFlag(featureKey, definition, entry.vehicle, entry.value, scored);
+            if (flag) flagsByVehicle.get(entry.vehicle.vehicleId).push(flag);
+        });
+        
+    });
+
+ 
+    const results = vehicles.map((vehicle) => {
+        const flags = (flagsByVehicle.get(vehicle.vehicleId) || [])
+            .sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity));
+ 
+        return {
+            vehicleId: vehicle.vehicleId,
+            distanceKm: round(vehicle.distanceKm, 2),
+            activeDays: vehicle.activeDays ?? 0,
+            status: isEligible(vehicle) ? STATUS.SCORED : STATUS.INSUFFICIENT_EXPOSURE,
+            severity: worstSeverity(flags),
+            flagCount: flags.length,
+            flags,
+        };
+    });
+ 
+    const flagged = results.filter((r) => r.flagCount > 0).sort(byImportance);
+ 
+    return {
+        method: 'fleet_relative',
+        parameters: {
+            minPeerVehicles: MIN_PEER_VEHICLES,
+            minExposureKm: MIN_EXPOSURE_KM,
+            minSupportingEvents: MIN_SUPPORTING_EVENTS,
+            zThreshold: Z_THRESHOLD,
+        },
+        summary: {
+            vehiclesInScope: vehicles.length,
+            vehiclesEvaluated: eligible.length,
+            vehiclesExcludedForExposure: vehicles.length - eligible.length,
+            vehiclesFlagged: flagged.length,
+            featuresScored: Object.values(featureSummary)
+                .filter((f) => f.status === STATUS.SCORED).length,
+        },
+        features: featureSummary,
+        vehicles: results,
+        flagged,
+    };
+
+}
+ 
+module.exports = {
+    detectFleetAnomalies,
+    FEATURE_DEFINITIONS,
+    FEATURE_KEYS,
+    METHOD,
+    STATUS,
+    SEVERITY,
+    MIN_PEER_VEHICLES,
+    MIN_EXPOSURE_KM,
+    MIN_SUPPORTING_EVENTS,
+    Z_THRESHOLD,
+    _median: median,
+    _medianAbsoluteDeviation: medianAbsoluteDeviation,
+    _scoreAgainstPeers: scoreAgainstPeers,
+    _round: round,
+};

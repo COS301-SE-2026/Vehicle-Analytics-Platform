@@ -3,27 +3,25 @@ const { pool } = require('../db/pool');
 const { error } = require('../utils/response');
 
 async function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const hasAuthHeader = authHeader?.startsWith('Bearer ');
 
-
-  
-
-  const hasAuthHeader = req.headers.authorization && req.headers.authorization.startsWith('Bearer ');
-  if (process.env.NODE_ENV === "development" && !hasAuthHeader) {
-  
+  // Dev bypass — only when no token at all AND explicitly enabled
+  if (
+    process.env.NODE_ENV === 'development' &&
+    !hasAuthHeader &&
+    process.env.DEV_BYPASS_AUTH === 'true'
+  ) {
     req.user = {
-  
       id: 1,
-      sub: "local-dev",
-      email: "dev@localhost",
-      password: "dev-password",
-      role: "manager",
+      sub: 'local-dev',
+      email: 'dev@localhost',
+      role: 'manager',
     };
-
     return next();
   }
-  const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!hasAuthHeader) {
     return error(res, 'No token provided', 401);
   }
 
@@ -44,49 +42,53 @@ async function authenticate(req, res, next) {
     }
   }
 
+  let payload;
   try {
-    // API Gateway already validates the Cognito JWT signature and expiration.
-    // We only need to decode the payload to identify the user in our database.
-    const payload = jwt.decode(token);
+    payload = jwt.decode(token);
+  } catch (err) {
+    return error(res, 'Invalid or expired token', 401);
+  }
 
-    if (!payload || !payload.sub) {
-      return error(res, 'Invalid token payload', 401);
-    }
+  if (!payload?.sub) {
+    return error(res, 'Invalid token payload', 401);
+  }
 
-    const userResult = await pool.query(
+  let userResult;
+  try {
+    userResult = await pool.query(
       'SELECT id, name, email, role, is_active FROM users WHERE cognito_sub = $1',
       [payload.sub]
     );
-
-    if (!userResult?.rows?.length) {
-      return error(res, 'User not found', 401);
-    }
-
-    const user = userResult.rows[0];
-    if (!user?.is_active) {
-      return error(res, 'Account deactivated', 403);
-    }
-
-    req.user = {
-      id: user.id,
-      sub: payload.sub,
-      email: payload.email,
-      role: user.role,
-    };
-
-    next();
   } catch (err) {
-    const errorMsg = err?.message || 'Invalid or expired token';
-    console.error('Auth error:', errorMsg);
-    return error(res, 'Invalid or expired token', 401);
+    console.error('Auth DB error:', err.message);
+    return error(res, 'Authentication temporarily unavailable', 503);
   }
+
+  if (!userResult?.rows?.length) {
+    return error(res, 'User not found', 401);
+  }
+
+  const user = userResult.rows[0];
+  if (!user?.is_active) {
+    return error(res, 'Account deactivated', 403);
+  }
+
+  req.user = {
+    id: user.id,
+    sub: payload.sub,
+    email: user.email,
+    role: user.role,
+  };
+
+  return next();
 }
 
 function requireRole(allowedRoles) {
   return (req, res, next) => {
-
-    if (process.env.NODE_ENV === "development") {
-      console.log("Development mode: Bypassing role check");
+    if (
+      process.env.NODE_ENV === 'development' &&
+      process.env.DEV_BYPASS_ROLES === 'true'
+    ) {
       return next();
     }
 

@@ -3,7 +3,7 @@ import axios from 'axios';
 import useAuthStore from '../store/authStore';
 
 const DEBOUNCE_MS = 500;
-const DEFAULT_DAYS = 30; 
+const DEFAULT_DAYS = 30;
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
 
 /**

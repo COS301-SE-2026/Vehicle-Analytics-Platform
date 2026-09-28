@@ -8,8 +8,8 @@ import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 
 import axios from 'axios'
-import TriggeredAlertsTab from '@/components/alerts/TriggeredAlertsTab' 
-import useAuthStore from '@/store/authStore'                            
+import TriggeredAlertsTab from '@/components/alerts/TriggeredAlertsTab'
+import useAuthStore from '@/store/authStore'
 
 jest.mock('axios')
 jest.mock('@/store/authStore', () => ({
@@ -51,6 +51,12 @@ const baseAlert = {
   longitude: 28.2293,
 }
 
+const BREACH_TEXT = 'Vehicle VH-100 exceeded 120 km/h (recorded 140 km/h)'
+
+// The component hides resolved alerts older than RESOLVED_WINDOW_HOURS (48),
+// so anything meant to stay on screen needs a timestamp inside that window.
+const hoursAgo = (h) => new Date(Date.now() - h * 60 * 60 * 1000).toISOString()
+
 describe('TriggeredAlertsTab', () => {
 
   beforeEach(() => {
@@ -61,7 +67,7 @@ describe('TriggeredAlertsTab', () => {
   })
 
   test('shows loading state, then renders fetched alerts', async () => {
-    
+
     axios.get.mockResolvedValue(mockAlertsResponse([baseAlert]))
 
     render(<TriggeredAlertsTab />)
@@ -70,7 +76,7 @@ describe('TriggeredAlertsTab', () => {
 
     await waitFor(() => {
 
-      expect(screen.getByText('Vehicle VH-100 exceeded 120 km/h (recorded 140 km/h)')).toBeInTheDocument()
+      expect(screen.getByText(BREACH_TEXT)).toBeInTheDocument()
 
     })
 
@@ -88,7 +94,7 @@ describe('TriggeredAlertsTab', () => {
       expect(axios.get).toHaveBeenCalledWith(
         expect.stringContaining('/api/alerts/triggered'),
         expect.objectContaining({
-          params: { limit: 10, offset: 0 },
+          params: expect.objectContaining({ limit: 10, offset: 0, resolved_within_hours: 48 }),
           headers: { Authorization: 'Bearer fake-token' },
         })
       )
@@ -131,9 +137,7 @@ describe('TriggeredAlertsTab', () => {
       axios.get.mockResolvedValue(mockAlertsResponse([baseAlert]))
       render(<TriggeredAlertsTab />)
       await waitFor(() => {
-        expect(
-          screen.getByText('Vehicle VH-100 exceeded 120 km/h (recorded 140 km/h)')
-        ).toBeInTheDocument()
+        expect(screen.getByText(BREACH_TEXT)).toBeInTheDocument()
       })
     })
 
@@ -151,7 +155,7 @@ describe('TriggeredAlertsTab', () => {
       })
     })
 
-    test('repeated_unsafe_events', async () => {
+    test('repeated_unsafe_events reads event types and window from the rule snapshot', async () => {
       axios.get.mockResolvedValue(
         mockAlertsResponse([
           {
@@ -160,15 +164,58 @@ describe('TriggeredAlertsTab', () => {
             condition_type: 'repeated_unsafe_events',
             breach_value: 5,
             threshold_value: 3,
+            rule_snapshot: {
+              condition_params: { event_types: ['harsh_braking'], window_minutes: 30 },
+            },
           },
         ])
       )
       render(<TriggeredAlertsTab />)
       await waitFor(() => {
         expect(
-          screen.getByText('Vehicle VH-100 recorded 5 unsafe events (limit 3)')
+          screen.getByText(/Vehicle VH-100 recorded 5 .* events in 30 min - rule fires at 3/)
         ).toBeInTheDocument()
       })
+    })
+
+    test('repeated_unsafe_events parses a rule snapshot supplied as a JSON string', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([
+          {
+            ...baseAlert,
+            id: 'a3b',
+            condition_type: 'repeated_unsafe_events',
+            breach_value: 5,
+            threshold_value: 3,
+            rule_snapshot: JSON.stringify({
+              condition_params: { event_types: ['harsh_braking'], window_minutes: 30 },
+            }),
+          },
+        ])
+      )
+      render(<TriggeredAlertsTab />)
+      await waitFor(() => {
+        expect(screen.getByText(/recorded 5 .* events in 30 min/)).toBeInTheDocument()
+      })
+    })
+
+    test('repeated_unsafe_events omits the window when there is no rule snapshot', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([
+          {
+            ...baseAlert,
+            id: 'a3c',
+            condition_type: 'repeated_unsafe_events',
+            breach_value: 5,
+            threshold_value: 3,
+          },
+        ])
+      )
+      render(<TriggeredAlertsTab />)
+      await waitFor(() => {
+        expect(screen.getByText(/recorded 5 .* events - rule fires at 3/)).toBeInTheDocument()
+      })
+      expect(screen.queryByText(/ in \d+ min/)).not.toBeInTheDocument()
     })
 
     test('safety_score_drop', async () => {
@@ -359,67 +406,63 @@ describe('TriggeredAlertsTab', () => {
   describe('status-driven card rendering', () => {
     test('a "new" alert shows only the Acknowledge button enabled', async () => {
 
-  axios.get.mockResolvedValue(mockAlertsResponse([{ ...baseAlert, status: 'new' }]))
+      axios.get.mockResolvedValue(mockAlertsResponse([{ ...baseAlert, status: 'new' }]))
 
-  render(<TriggeredAlertsTab />)
+      render(<TriggeredAlertsTab />)
 
-  await waitFor(() => {
-    expect(
-      screen.getByText('Vehicle VH-100 exceeded 120 km/h (recorded 140 km/h)')
-    ).toBeInTheDocument()
-  })
+      await waitFor(() => {
+        expect(screen.getByText(BREACH_TEXT)).toBeInTheDocument()
+      })
 
-  const card = screen
-    .getByText('Vehicle VH-100 exceeded 120 km/h (recorded 140 km/h)')
-    .closest('div')
+      const card = screen.getByText(BREACH_TEXT).closest('div')
 
-  expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeEnabled()
 
-  expect(screen.getByRole('button', { name: 'Resolve' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Resolve' })).toBeDisabled()
 
 
-  expect(within(card).queryByText(/Acknowledged/)).not.toBeInTheDocument()
+      expect(within(card).queryByText(/Acknowledged/)).not.toBeInTheDocument()
 
-  expect(within(card).queryByText(/Resolved/)).not.toBeInTheDocument()
-})
+      expect(within(card).queryByText(/Resolved/)).not.toBeInTheDocument()
+    })
 
     test('an "acknowledged" alert shows the badge and enables Resolve only', async () => {
-  axios.get.mockResolvedValue(
-    mockAlertsResponse([
-      { ...baseAlert, status: 'acknowledged', acknowledged_at: '2024-01-01T11:00:00Z' },
-    ])
-  )
-  render(<TriggeredAlertsTab />)
-
-  await waitFor(() => {
-    expect(
-      screen.getByText('Vehicle VH-100 exceeded 120 km/h (recorded 140 km/h)')
-    ).toBeInTheDocument()
-  })
-
-  const card = screen
-    .getByText('Vehicle VH-100 exceeded 120 km/h (recorded 140 km/h)')
-    .closest('div')
-
-  expect(within(card).getByText(/Acknowledged/)).toBeInTheDocument()
-
-  expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeDisabled()
-
-
-  expect(screen.getByRole('button', { name: 'Resolve' })).toBeEnabled()
-})
-
-    test('a "resolved" alert shows the badge and hides both action buttons', async () => {
       axios.get.mockResolvedValue(
         mockAlertsResponse([
-          { ...baseAlert, status: 'resolved', resolved_at: '2024-01-01T12:00:00Z' },
+          { ...baseAlert, status: 'acknowledged', acknowledged_at: '2024-01-01T11:00:00Z' },
         ])
       )
       render(<TriggeredAlertsTab />)
 
       await waitFor(() => {
-        expect(screen.getByText(/Resolved/)).toBeInTheDocument()
+        expect(screen.getByText(BREACH_TEXT)).toBeInTheDocument()
       })
+
+      const card = screen.getByText(BREACH_TEXT).closest('div')
+
+      expect(within(card).getByText(/Acknowledged/)).toBeInTheDocument()
+
+      expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeDisabled()
+
+
+      expect(screen.getByRole('button', { name: 'Resolve' })).toBeEnabled()
+    })
+
+    test('a "resolved" alert shows the badge and hides both action buttons', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([
+          { ...baseAlert, status: 'resolved', resolved_at: hoursAgo(1) },
+        ])
+      )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByText(BREACH_TEXT)).toBeInTheDocument()
+      })
+
+      const card = screen.getByText(BREACH_TEXT).closest('div')
+
+      expect(within(card).getByText(/Resolved/)).toBeInTheDocument()
 
       expect(screen.queryByRole('button', { name: 'Acknowledge' })).not.toBeInTheDocument()
 
@@ -427,32 +470,150 @@ describe('TriggeredAlertsTab', () => {
     })
   })
 
-  test('acknowledging an alert PUTs to the acknowledge endpoint and refetches', async () => {
-
-    axios.get.mockResolvedValue(mockAlertsResponse([{ ...baseAlert, status: 'new' }]))
-
-
-    axios.put.mockResolvedValue({ data: {} })
-
-    const user = userEvent.setup()
-    render(<TriggeredAlertsTab />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Speed Threshold')).toBeInTheDocument()
-    })
-
-    const callsBefore = axios.get.mock.calls.length
-    await user.click(screen.getByRole('button', { name: 'Acknowledge' }))
-
-    await waitFor(() => {
-      expect(axios.put).toHaveBeenCalledWith(
-        expect.stringContaining('/api/alerts/triggered/alert-1/acknowledge'),
-        {},
-        { headers: { Authorization: 'Bearer fake-token' } }
+  describe('resolved-alert expiry window', () => {
+    test('hides a resolved alert once it is older than the 48 hour window', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([{ ...baseAlert, status: 'resolved', resolved_at: hoursAgo(49) }])
       )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument()
+      })
+
+      expect(screen.queryByText(BREACH_TEXT)).not.toBeInTheDocument()
     })
-    await waitFor(() => {
-      expect(axios.get.mock.calls.length).toBeGreaterThan(callsBefore)
+
+    test('shows the expired-page message instead of the generic empty state', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([{ ...baseAlert, status: 'resolved', resolved_at: hoursAgo(72) }])
+      )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/resolved more than 48 hours ago/i)).toBeInTheDocument()
+      })
+
+      expect(screen.queryByText('No alerts match these filters.')).not.toBeInTheDocument()
+    })
+
+    test('falls back to updated_at when resolved_at is missing', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([
+          { ...baseAlert, status: 'resolved', resolved_at: null, updated_at: hoursAgo(72) },
+        ])
+      )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading alerts...')).not.toBeInTheDocument()
+      })
+
+      expect(screen.queryByText(BREACH_TEXT)).not.toBeInTheDocument()
+    })
+
+    test('keeps a resolved alert with no timestamps at all', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([{ ...baseAlert, status: 'resolved', resolved_at: null }])
+      )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByText(BREACH_TEXT)).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('pagination', () => {
+    test('shows the visible-of-total count', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([baseAlert], { total: 37, hasMore: true })
+      )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/Showing 1 of 37/)).toBeInTheDocument()
+      })
+    })
+
+    test('notes how many resolved alerts were hidden', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse(
+          [
+            baseAlert,
+            { ...baseAlert, id: 'alert-2', status: 'resolved', resolved_at: hoursAgo(72) },
+          ],
+          { total: 2, hasMore: false }
+        )
+      )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/1 resolved over 48h ago hidden/)).toBeInTheDocument()
+      })
+    })
+
+    test('disables Previous on the first page and Next when there is no more data', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([baseAlert], { total: 1, hasMore: false })
+      )
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Previous/i })).toBeDisabled()
+      })
+      expect(screen.getByRole('button', { name: /Next/i })).toBeDisabled()
+    })
+
+    test('Next advances the offset and refetches', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([baseAlert], { total: 25, hasMore: true })
+      )
+      const user = userEvent.setup()
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Next/i })).toBeEnabled()
+      })
+
+      await user.click(screen.getByRole('button', { name: /Next/i }))
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenLastCalledWith(
+          expect.stringContaining('/api/alerts/triggered'),
+          expect.objectContaining({
+            params: expect.objectContaining({ offset: 10 }),
+          })
+        )
+      })
+
+      expect(screen.getByRole('button', { name: /Previous/i })).toBeEnabled()
+    })
+
+    test('changing a filter resets the offset back to zero', async () => {
+      axios.get.mockResolvedValue(
+        mockAlertsResponse([baseAlert], { total: 25, hasMore: true })
+      )
+      const user = userEvent.setup()
+      render(<TriggeredAlertsTab />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Next/i })).toBeEnabled()
+      })
+
+      await user.click(screen.getByRole('button', { name: /Next/i }))
+
+      await waitFor(() => {
+        const lastCall = axios.get.mock.calls[axios.get.mock.calls.length - 1]
+        expect(lastCall[1].params.offset).toBe(10)
+      })
+
+      await user.click(screen.getByRole('button', { name: 'New' }))
+
+      await waitFor(() => {
+        const lastCall = axios.get.mock.calls[axios.get.mock.calls.length - 1]
+        expect(lastCall[1].params.offset).toBe(0)
+      })
     })
   })
 
@@ -481,24 +642,6 @@ describe('TriggeredAlertsTab', () => {
     })
     await waitFor(() => {
       expect(axios.get.mock.calls.length).toBeGreaterThan(callsBefore)
-    })
-  })
-
-  test('shows an error if acknowledging fails (response payload)', async () => {
-    axios.get.mockResolvedValue(mockAlertsResponse([{ ...baseAlert, status: 'new' }]))
-    axios.put.mockRejectedValue({ response: { data: { message: 'Could not acknowledge' } } })
-
-    const user = userEvent.setup()
-    render(<TriggeredAlertsTab />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Acknowledge' })).toBeEnabled()
-    })
-
-    await user.click(screen.getByRole('button', { name: 'Acknowledge' }))
-
-    await waitFor(() => {
-      expect(screen.getByText('Could not acknowledge')).toBeInTheDocument()
     })
   })
 

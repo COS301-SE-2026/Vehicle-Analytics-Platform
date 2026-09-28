@@ -8,7 +8,7 @@ const TABS = [
 ];
 
 export default function CustomAlerts() {
-    const [activeTab, setActiveTab ] = useState('triggered');
+    const [activeTab, setActiveTab ] = useState('rules');
 
     return(
         <div className='p-6 space-y-4'>

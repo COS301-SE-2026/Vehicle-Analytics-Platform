@@ -1,7 +1,9 @@
 'use strict';
 
 const { pool } = require('../db/pool');
+
 const { success, error } = require('../utils/response');
+
 const { resolvePeriod, getDataClock, PERIOD_TYPES } = require('../services/period');
 const { resolveScope, ScopeError } = require('../services/scopeResolver');
 const { getAnomalyFeatures } = require('../services/anomalyAnalytics');
@@ -14,8 +16,15 @@ function handleError(res, err, context) {
     if (err instanceof ScopeError) {
         return error(res, err.message, err.statusCode);
     }
+
     console.error(`${context}:`, err);
-    return error(res, 'Failed to detect anomalies', 500);
+
+
+    const message = process.env.NODE_ENV === 'production'
+        ? 'Failed to detect anomalies'
+        : `Anomaly detection failed: ${err.message}`;
+
+    return error(res, message, 500);
 }
 
 function readParam(input, snake, camel) {
@@ -74,16 +83,12 @@ async function getAnomalies(req, res) {
         const input = { ...(req.query || {}), ...(req.body || {}) };
 
         const scopeType = readParam(input, 'scope_type', 'scopeType') || 'fleet';
-
         const scopeId = readParam(input, 'scope_id', 'scopeId') || null;
 
-
         const scope = await resolveScope(pool, req.user, { scopeType, scopeId });
-
         const period = await resolveRequestedPeriod(pool, input);
 
         const features = await getAnomalyFeatures(pool, scope.vehicleIds, period);
-        
         const detection = detectFleetAnomalies(features);
 
         return success(res, {

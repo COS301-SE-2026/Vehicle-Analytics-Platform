@@ -6,6 +6,8 @@ import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
 import WeatherAreaReport from '../../components/reports/WeatherAreaReport'
 import { getReportScopes, generateReport } from '../../services/reportServices'
+import AnomalyPanel from '../../components/reports/AnomalyPanel'
+import { getAnomalies } from '../../services/anomalyService'
 
 const AUTO_PLOT_LIMIT = 12
 
@@ -81,6 +83,10 @@ export default function Reports(){
 
 	const [error, setError] = useState(null)
 
+	const [anomalies, setAnomalies] = useState(null)
+
+	const [anomalyError, setAnomalyError] = useState(null)
+
 
 	useEffect(() => {
 		let cancelled = false
@@ -140,9 +146,27 @@ export default function Reports(){
 				to: periodType === 'custom' ? toISODate(dateRange?.to) : undefined,
 			})
 			setReport(result)
+
+			// Detection runs on the same scope and period as the report, in its
+			// own try/catch so a detection failure never blocks the report.
+			try {
+				const detection = await getAnomalies({
+					scopeType,
+					scopeId,
+					periodType,
+					from: periodType === 'custom' ? toISODate(dateRange?.from) : undefined,
+					to: periodType === 'custom' ? toISODate(dateRange?.to) : undefined,
+				})
+				setAnomalies(detection.anomalies)
+				setAnomalyError(null)
+			} catch (err) {
+				setAnomalies(null)
+				setAnomalyError(err.message || 'Failed to detect anomalies')
+			}
 		} catch (err) {
 			setError(err.message || 'Failed to generate report')
 			setReport(null)
+			setAnomalies(null)
 		} finally {
 			setLoading(false)
 		}
@@ -309,6 +333,13 @@ export default function Reports(){
 							) : (
 								<>
 									<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
+
+									<AnomalyPanel
+										anomalies={anomalies}
+										loading={loading}
+										error={anomalyError}
+										scopeLabel={report.report.scope.label}
+									/>
 
 									<Panel
 										label="Vehicle comparison"

@@ -1,25 +1,26 @@
 'use strict';
 
+
 const { _EVENT_FILTER: EVENT_FILTER, REPORT_TIMEZONE } = require('./safetyAnalytics');
-
-const KM_NORMALISER = 100;
-
-const MIN_SPEED_SAMPLES = 30;
 
 const EXPOSURE_SQL = `
 SELECT
     vehicle_id,
-    COALESCE(SUM(distance_km), 0)                            AS distance_km,
-    COUNT(*)                                                 AS trip_count,
-    COUNT(DISTINCT (start_time AT TIME ZONE $4)::date)       AS active_days
+    COALESCE(SUM(distance_km) FILTER (
+        WHERE end_odometer IS NULL OR start_odometer IS NULL OR end_odometer >= start_odometer
+    ), 0)                                                        AS distance_km,
+    COUNT(*)                                                     AS trip_count,
+    COUNT(DISTINCT (start_time AT TIME ZONE $4)::date)           AS active_days,
+    percentile_cont(0.9) WITHIN GROUP (ORDER BY max_speed_kmh)   AS p90_trip_max_speed_kmh,
+    MAX(max_speed_kmh)                                           AS max_speed_kmh
 FROM trips
 WHERE vehicle_id = ANY($1::text[])
     AND start_time >= $2
     AND start_time <  $3
     AND status = 'completed'
-    AND (end_odometer IS NULL OR start_odometer IS NULL OR end_odometer >= start_odometer)
 GROUP BY vehicle_id
 `;
+
 
 const INCIDENT_SQL = `
 WITH flagged AS (
@@ -56,20 +57,23 @@ WHERE starts_incident = 1
 GROUP BY vehicle_id
 `;
 
-const SPEED_SQL = `
-SELECT
-    vehicle_id,
-    percentile_cont(0.95) WITHIN GROUP (ORDER BY speed)::numeric AS p95_speed_kmh,
-    COUNT(*)                                                     AS moving_samples
-FROM clean_telemetry
-WHERE vehicle_id = ANY($1::text[])
-    AND time >= $2
-    AND time <  $3
-    AND measurement = 'avl'
-    AND speed > 0
-GROUP BY vehicle_id
-`;
+async function runQuery(db, label, sql, params){
+    const startedAt = Date.now();
 
+    try {
+        const result = await db.query(sql, params);
+        console.log(`[anomalies] ${label} query: ${result.rows.length} rows in ${Date.now() - startedAt}ms`);
+        return result;
+    } catch (err) {
+        const elapsed = Date.now() - startedAt;
+        const code = err.code ? ` [${err.code}]` : '';
+        const wrapped = new Error(`${label} query failed after ${elapsed}ms${code}: ${err.message}`);
+        wrapped.cause = err;
+        wrapped.queryLabel = label;
+        wrapped.pgCode = err.code;
+        throw wrapped;
+    }
+}
 
 function toNumber(value, fallback = 0){
     if (value === null || value === undefined) return fallback;
@@ -77,14 +81,10 @@ function toNumber(value, fallback = 0){
     return Number.isFinite(n) ? n : fallback;
 }
 
-function ratePer100Km(count, distanceKm){
-    if (!distanceKm) return null;
-    return (count * KM_NORMALISER) / distanceKm;
-}
-
-function ratePerDay(count, days){
-    if (!days) return null;
-    return count / days;
+function toNullableNumber(value){
+    if (value === null || value === undefined) return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
 }
 
 function indexByVehicle(rows){
@@ -93,13 +93,7 @@ function indexByVehicle(rows){
     return map;
 }
 
-function buildVehicle(vehicleId, exposureRow, incidentRow, speedRow){
-    const distanceKm = toNumber(exposureRow && exposureRow.distance_km);
-
-    const activeDays = toNumber(exposureRow && exposureRow.active_days);
-
-    const movingSamples = toNumber(speedRow && speedRow.moving_samples);
-
+function buildVehicle(vehicleId, exposureRow, incidentRow){
     const counts = {
         harshBrakes: toNumber(incidentRow && incidentRow.harsh_brakes),
         harshAccelerations: toNumber(incidentRow && incidentRow.harsh_accelerations),
@@ -110,27 +104,15 @@ function buildVehicle(vehicleId, exposureRow, incidentRow, speedRow){
         totalEvents: toNumber(incidentRow && incidentRow.total_events),
     };
 
-    const p95 = speedRow && speedRow.p95_speed_kmh !== null && speedRow.p95_speed_kmh !== undefined
-        ? toNumber(speedRow.p95_speed_kmh, null)
-        : null;
-
     return {
         vehicleId,
-        distanceKm,
-        activeDays,
+        distanceKm: toNumber(exposureRow && exposureRow.distance_km),
         tripCount: toNumber(exposureRow && exposureRow.trip_count),
-        movingSamples,
+        activeDays: toNumber(exposureRow && exposureRow.active_days),
+        p90TripMaxSpeedKmh: toNullableNumber(exposureRow && exposureRow.p90_trip_max_speed_kmh),
+        maxSpeedKmh: toNullableNumber(exposureRow && exposureRow.max_speed_kmh),
         counts,
-        features: {
-            harshBrakingPer100Km: ratePer100Km(counts.harshBrakes, distanceKm),
-            harshAccelerationPer100Km: ratePer100Km(counts.harshAccelerations, distanceKm),
-            harshCorneringPer100Km: ratePer100Km(counts.harshCornering, distanceKm),
-            overspeedPer100Km: ratePer100Km(counts.overspeedEvents, distanceKm),
-            idlingPerActiveDay: ratePerDay(counts.idlingEvents, activeDays),
-            p95SpeedKmh: movingSamples >= MIN_SPEED_SAMPLES ? p95 : null,
-        },
     };
-
 }
 
 async function getAnomalyFeatures(db, vehicleIds, period){
@@ -144,37 +126,35 @@ async function getAnomalyFeatures(db, vehicleIds, period){
         throw new Error('getAnomalyFeatures requires a resolved period with Date bounds');
     }
 
+    if (!EVENT_FILTER) {
+        throw new Error(
+            'safetyAnalytics does not export _EVENT_FILTER. Add "_EVENT_FILTER: EVENT_FILTER" '
+            + 'to its module.exports, otherwise the incident query is built with an undefined filter.',
+        );
+    }
+
     if (!vehicleIds.length) return [];
 
     const params = [vehicleIds, period.from, period.to, REPORT_TIMEZONE];
 
-    const [exposure, incidents, speed] = await Promise.all([
-        db.query(EXPOSURE_SQL, params),
-        db.query(INCIDENT_SQL, params.slice(0, 3)),
-        db.query(SPEED_SQL, params.slice(0, 3)),
-    ]);
+    const exposure = await runQuery(db, 'exposure', EXPOSURE_SQL, params);
+    
+    const incidents = await runQuery(db, 'incidents', INCIDENT_SQL, params.slice(0, 3));
 
     const exposureByVehicle = indexByVehicle(exposure.rows || []);
     const incidentsByVehicle = indexByVehicle(incidents.rows || []);
-    const speedByVehicle = indexByVehicle(speed.rows || []);
 
     return vehicleIds.map((vehicleId) => buildVehicle(
         vehicleId,
         exposureByVehicle.get(vehicleId),
         incidentsByVehicle.get(vehicleId),
-        speedByVehicle.get(vehicleId),
     ));
-    
 }
 
 module.exports = {
     getAnomalyFeatures,
     REPORT_TIMEZONE,
-    MIN_SPEED_SAMPLES,
     _buildVehicle: buildVehicle,
-    _ratePer100Km: ratePer100Km,
-    _ratePerDay: ratePerDay,
     _EXPOSURE_SQL: EXPOSURE_SQL,
     _INCIDENT_SQL: INCIDENT_SQL,
-    _SPEED_SQL: SPEED_SQL,
 };

@@ -8,7 +8,7 @@ import useRuleForm from '../../hooks/useRuleForm';
 import useBacktestPreview from '../../hooks/useBacktestPreview';
 import BacktestPreviewToggle from './BacktestPreviewToggle';
 import BacktestPreviewPanel from './BacktestPreviewPanel';
-import { EMPTY_PARAMS } from './ruleFormConstants';
+import { EMPTY_PARAMS } from '../../utils/ruleFormConstants';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
 

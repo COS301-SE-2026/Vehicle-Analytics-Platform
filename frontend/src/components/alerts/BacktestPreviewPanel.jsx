@@ -3,6 +3,9 @@ import { Sparkles, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const SAMPLES_PER_PAGE = 4;
 
+const SKELETON_KEYS = ['skeleton-1', 'skeleton-2', 'skeleton-3'];
+
+
 function timeAgo(isoString) {
   const diffMs = Date.now() - new Date(isoString).getTime();
   const mins = Math.round(diffMs / 60000);
@@ -100,15 +103,14 @@ function TrendSparkline({ byDay }) {
           strokeLinejoin="round"
           strokeLinecap="round"
         />
-        {coords.map((c, i) => (
-          <circle
-            key={i}
-            cx={c.x}
-            cy={c.y}
-            r={hoverIndex === i ? 4 : c.count === maxCount && maxCount > 0 ? 3 : 0}
-            fill="currentColor"
-          />
-        ))}
+        {coords.map((c, i) => {
+          const isPeak = c.count === maxCount && maxCount > 0;
+          let radius = 0;
+          if (hoverIndex === i) radius = 4;
+          else if (isPeak) radius = 3;
+
+          return <circle key={c.date} cx={c.x} cy={c.y} r={radius} fill="currentColor" />;
+        })}
         {hovered && (
           <line
             x1={hovered.x}
@@ -150,6 +152,7 @@ export default function BacktestPreviewPanel({ data, loading, error, conditionTy
 
   const samples = data?.samples ?? [];
   const pageCount = Math.max(1, Math.ceil(samples.length / SAMPLES_PER_PAGE));
+  const pageNumbers = Array.from({ length: pageCount }, (_, i) => i);
   const pagedSamples = samples.slice(page * SAMPLES_PER_PAGE, page * SAMPLES_PER_PAGE + SAMPLES_PER_PAGE);
 
   return (
@@ -229,12 +232,12 @@ export default function BacktestPreviewPanel({ data, loading, error, conditionTy
 
           <div className="space-y-2">
             {loading || !data?.samples
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-10 rounded-md bg-fleet-border animate-pulse" />
+              ? SKELETON_KEYS.map((k) => (
+                  <div key={k} className="h-10 rounded-md bg-fleet-border animate-pulse" />
                 ))
-              : pagedSamples.map((s, i) => (
+                : pagedSamples.map((s) => (
                   <div
-                    key={`${s.vehicle_id}-${page}-${i}`}
+                    key={`${s.vehicle_id}-${s.time}`}
                     className="grid grid-cols-[70px_1fr_60px] items-center gap-2 rounded-md border border-fleet-border px-3 py-2"
                   >
                     <span className="rounded bg-fleet-blue/10 px-2 py-0.5 text-xs font-mono font-semibold text-fleet-blue w-fit">
@@ -261,19 +264,19 @@ export default function BacktestPreviewPanel({ data, loading, error, conditionTy
               </button>
 
               <div className="flex gap-1">
-                {Array.from({ length: pageCount }).map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setPage(i)}
-                    aria-label={`Page ${i + 1}`}
-                    aria-current={page === i ? 'page' : undefined}
-                    className={
-                      'h-1.5 w-1.5 rounded-full transition-colors ' +
-                      (page === i ? 'bg-fleet-blue' : 'bg-fleet-border hover:bg-fleet-secondary')
-                    }
-                  />
-                ))}
+                {pageNumbers.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => setPage(pageNumber)}
+                  aria-label={`Page ${pageNumber + 1}`}
+                  aria-current={page === pageNumber ? 'page' : undefined}
+                  className={
+                    'h-1.5 w-1.5 rounded-full transition-colors ' +
+                    (page === pageNumber ? 'bg-fleet-blue' : 'bg-fleet-border hover:bg-fleet-secondary')
+                  }
+                />
+              ))}
               </div>
 
               <button

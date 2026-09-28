@@ -4,8 +4,7 @@
 -- per vehicle per rule per day, instead of once per update while the
 -- score is below threshold.
 --
--- Decision (per team sync, resolving the open question in the Alert
--- Rule Backtesting meeting plan section 5.5): safety score drop uses
+-- safety score drop uses
 -- a once-per-day cooldown, not edge-crossing. This keeps the same
 -- "debounce window" mechanism already used for speed/time (just a
 -- 24h window instead of 5 minutes), so the backtest query only needs

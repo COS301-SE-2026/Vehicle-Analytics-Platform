@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EMPTY_PARAMS, buildConditionParams as buildParams } from '@/components/alerts/ruleFormConstants';
+import { EMPTY_PARAMS, buildConditionParams as buildParams } from '@/utils/ruleFormConstants';
 
 export default function useRuleForm() {
   const [conditionType, setConditionType] = useState('speed_threshold');

@@ -5,6 +5,7 @@ import SafetyVehicleTable from '../../components/reports/SafetyVehicleTable'
 import ReportToolbar from '../../components/reports/ReportToolbar'
 import VehicleComparisonChart from '../../components/reports/VehicleComparisonChart'
 import WeatherAreaReport from '../../components/reports/WeatherAreaReport'
+import InfoHint from '../../components/reports/InfoHint'
 import { getReportScopes, generateReport } from '../../services/reportServices'
 
 const AUTO_PLOT_LIMIT = 12
@@ -46,13 +47,16 @@ function downloadCsv(report, entities){
 	URL.revokeObjectURL(url)
 }
 
-function Panel({ label, action, children }){
+function Panel({ label, info, action, children }){
 	return (
 		<div className="bg-white rounded-2xl border border-fleet-border shadow-sm">
 			<div className="flex items-center justify-between px-5 py-4 border-b border-fleet-border">
-				<p className="text-xs font-semibold uppercase tracking-widest text-fleet-secondary">
-					{label}
-				</p>
+				<div className="flex items-center gap-1.5">
+					<p className="text-xs font-semibold uppercase tracking-widest text-fleet-secondary">
+						{label}
+					</p>
+					{info && <InfoHint label={label}>{info}</InfoHint>}
+				</div>
 				{action}
 			</div>
 			<div className="p-5">{children}</div>
@@ -308,10 +312,46 @@ export default function Reports(){
 								</div>
 							) : (
 								<>
-									<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
+									<div className="space-y-3">
+										<div className="flex items-center gap-1.5">
+											<p className="text-sm font-medium text-fleet-text">Period summary</p>
+											<InfoHint label="Period summary">
+												<p>
+													Each card is a total or average for the vehicles and period you chose.
+												</p>
+												<p>
+													The change shown on a card compares with the previous period of the same
+													length. If the previous period had too little driving to compare fairly, no
+													change is shown.
+												</p>
+												<p>
+													Safety score is out of 100: a clean record scores 100, and harsh driving
+													events and crashes take points off.
+												</p>
+												<p>
+													Fuel figures are estimates from distance, speed and road type, not readings
+													from a fuel sensor.
+												</p>
+											</InfoHint>
+										</div>
+										<SafetySummaryCards summary={cardSummary} comparison={cardComparison} />
+									</div>
 
 									<Panel
 										label="Vehicle comparison"
+										info={
+											<>
+												<p>
+													Use the buttons above the chart to choose which vehicles to plot. Up to{' '}
+													{AUTO_PLOT_LIMIT} are plotted automatically; with more, pick the ones
+													you want to compare.
+												</p>
+												<p>
+													Look for the vehicles that stand apart from the rest, then find them in
+													&quot;Critical safety metrics&quot; below to see which events are behind it.
+												</p>
+											</>
+										}
 										action={entities.length > 0 && (
 											<div className="flex items-center gap-3">
 												<span className="text-xs text-fleet-secondary">
@@ -357,7 +397,22 @@ export default function Reports(){
 										<VehicleComparisonChart vehicles={chartVehicles} />
 									</Panel>
 
-									<Panel label="Critical safety metrics">
+									<Panel
+										label="Critical safety metrics"
+										info={
+											<>
+												<p>
+													One row per vehicle, with its safety score and the events that lowered it
+													during the period.
+												</p>
+												<p>
+													Start with the lowest scores. A few crashes weigh far more than many
+													harsh-driving events, so check which column is driving a low score before
+													acting on it.
+												</p>
+											</>
+										}
+									>
 										<SafetyVehicleTable vehicles={report.safety.vehicles} />
 									</Panel>
 								</>

@@ -1,12 +1,5 @@
 -- V51: Create driver_safety_score_history if it does not exist
---
--- This table was previously created by hand on the shared database
--- and never committed as a migration. Adding it here so fresh DBs
--- (CI, new dev environments) get it automatically.
---
--- The V47 trigger `trg_log_safety_score_change` writes to this table
--- on every score change. Without it, the trigger fails and breaks
--- integration tests that touch driver_daily_safety_scores.
+
 
 CREATE TABLE IF NOT EXISTS driver_safety_score_history (
     id                  BIGSERIAL PRIMARY KEY,

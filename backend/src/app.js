@@ -17,6 +17,11 @@ const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 // added for report
 const reportRoutes = require('./routes/reports');
+
+
+//added for anomaly detection 
+const anomalyRoutes = require('./routes/anomalies');
+
 const app = express();
 
 app.set('trust proxy', true);
@@ -54,6 +59,9 @@ app.use('/api/fuel', fuelHistoryRoutes);
 app.use('/api/fleet-groups', fleetGroupsRoutes);
 app.use('/api/notifications', notificationsRoutes)
 app.use('/api/reports', reportRoutes); // added for reporting
+
+app.use('/api/anomalies', anomalyRoutes); // added for anomaly detection
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });

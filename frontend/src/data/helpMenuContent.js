@@ -396,13 +396,30 @@ export const helpMenuData = [
                 ],
             },
             {
-                id: "zone-level-event-tallies",
-                title: "Zone-Level Event Tallies",
-                preview: "Spotting high-risk locations",
+                id: "hazard-zones",
+                title: "Hazard Zones",
+                preview: "Risky spots the system finds on its own",
                 roles: ALL_ROLES,
                 content: [
                     text(
-                        "Every unsafe event that happens inside a zone gets added to that zone's own event count. Over time, this lets you compare zones side by side and spot which locations produce the most risky driving."
+                        "Alongside the zones you draw, the system marks places where risky driving keeps happening. When enough unsafe events pile up in a small area over the last 7 days, it creates a 250 m hazard zone centred on them. These appear in amber on the map and as type Hazard in the zone table, and a \"New hazard detected\" alert goes to Zone Alerts."
+                    ),
+                    callout(
+                        "Hazard zones are found automatically, so they cannot be edited or deleted. They also do not send entry or exit alerts the way your own zones do."
+                    ),
+                ],
+            },
+            {
+                id: "reading-a-hazard-zone",
+                title: "Reading a Hazard Zone",
+                preview: "What the name and details tell you",
+                roles: ALL_ROLES,
+                content: [
+                    text(
+                        "The zone name is built to answer the obvious questions at a glance: the road or area, the most common event type there, how many incidents were counted, how many vehicles were involved, and the average speed."
+                    ),
+                    text(
+                     "If one vehicle caused all of it, the name names that vehicle. If several did, you get the count and the worst offender. That distinction matters, because a hazard caused by one vehicle is usually a driver to talk to, while a hazard caused by many is usually a road or junction to warn people about."
                     ),
                 ],
             },

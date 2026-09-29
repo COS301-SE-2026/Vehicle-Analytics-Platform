@@ -1,61 +1,62 @@
-import { useState } from 'react'
-import PropTypes from 'prop-types'
-import { AlertTriangle } from 'lucide-react'
-import { formatChance, formatNumber, plural } from './anomalyFormat'
+import { useState } from 'react';
+import PropTypes from 'prop-types';
+import { AlertTriangle } from 'lucide-react';
+import { formatChance, formatNumber, plural } from './anomalyFormat';
 
 const SEVERITY_STYLES = {
     high: 'bg-red-50 text-red-700 border-red-200',
-    moderate: 'bg-amber-50 text-amber-800 border-amber-200',
-    low: 'bg-slate-50 text-slate-700 border-fleet-border',
-}
+    moderate: 'bg-amber-50 text-amber-700 border-amber-200',
+    low: 'bg-gray-50 text-fleet-secondary border-fleet-border',
+};
 
-const SEVERITY_LABELS = { high: 'High', moderate: 'Moderate', low: 'Low' }
-const ICON_TONE = { high: 'text-red-600', moderate: 'text-amber-600', low: 'text-slate-500' }
-const INITIALLY_VISIBLE = 6
+const SEVERITY_LABELS = { high: 'High', moderate: 'Moderate', low: 'Low' };
+const ICON_TONE = { high: 'text-red-600', moderate: 'text-amber-600', low: 'text-slate-500' };
+const INITIALLY_VISIBLE = 6;
 
-
-export function evidenceChips(flag, peerNoun) {
-    const chips = []
+function evidenceChips(flag, peerNoun){
+    const chips = [];
 
     if (flag.ratio !== null && flag.ratio !== undefined) {
-        chips.push(`${flag.ratio}x the ${peerNoun} median`)
+        chips.push(`${flag.ratio}× the ${peerNoun} median`);
     } else if (flag.kind === 'rate') {
-        chips.push(`The ${peerNoun} median is zero`)
+        chips.push(`The ${peerNoun} median is zero`);
     }
 
-    const evidence = flag.evidence
+    const evidence = flag.evidence;
     if (evidence && evidence.expected > 0) {
-        chips.push(`${formatNumber(evidence.observed, 0)} recorded, about ${formatNumber(evidence.expected)} expected`)
+        chips.push(`${formatNumber(evidence.observed, 0)} recorded, about ${formatNumber(evidence.expected)} expected`);
     }
 
-    const chance = evidence ? formatChance(evidence.pValue) : null
-    if (chance) chips.push(`Chance: ${chance}`)
+    const chance = evidence ? formatChance(evidence.pValue) : null;
+    if (chance) chips.push(`Chance: ${chance}`);
 
     if (flag.method === 'peers_uniform') {
-        chips.push('Above every other vehicle')
+        chips.push('Above every other vehicle');
     } else if (flag.score !== null && flag.score !== undefined) {
-        chips.push(`Modified z = ${formatNumber(flag.score, 1)}`)
+        chips.push(`Modified z = ${formatNumber(flag.score, 1)}`);
     }
 
-    return chips
+    return chips;
 }
 
-function SeverityBadge({ severity }) {
+
+function SeverityBadge({ severity }){
     return (
-        <span className={`text-xs font-medium border rounded-full px-2.5 py-0.5 ${SEVERITY_STYLES[severity] || SEVERITY_STYLES.low}`}>
+        <span className={`inline-flex items-center whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium ${SEVERITY_STYLES[severity] || SEVERITY_STYLES.low}`}>
             {SEVERITY_LABELS[severity] || severity}
         </span>
-    )
+    );
 }
 
-SeverityBadge.propTypes = { severity: PropTypes.string.isRequired }
+SeverityBadge.propTypes = { severity: PropTypes.string.isRequired };
 
-function FindingCard({ vehicle, selected, onSelectVehicle, peerNoun }) {
+
+function FindingCard({ vehicle, selected, onSelectVehicle, onShowOnChart, peerNoun }){
     const meta = [
         plural(vehicle.flagCount, 'behaviour'),
         `${formatNumber(vehicle.totalIncidents, 0)} incidents`,
         vehicle.distanceKm > 0 ? `${formatNumber(vehicle.distanceKm, 0)} km` : null,
-    ].filter(Boolean).join(', ')
+    ].filter(Boolean).join(', ');
 
     return (
         <article
@@ -88,6 +89,13 @@ function FindingCard({ vehicle, selected, onSelectVehicle, peerNoun }) {
                                 </span>
                             ))}
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => onShowOnChart(vehicle.vehicleId, flag.feature)}
+                            className="mt-2 text-xs font-medium text-fleet-blue hover:underline rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-fleet-blue"
+                        >
+                            Show on chart
+                        </button>
                         {flag.caution && (
                             <p className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
                                 {flag.caution.message}
@@ -97,31 +105,34 @@ function FindingCard({ vehicle, selected, onSelectVehicle, peerNoun }) {
                 ))}
             </ul>
         </article>
-    )
+    );
 }
 
 FindingCard.propTypes = {
     vehicle: PropTypes.object.isRequired,
     selected: PropTypes.bool.isRequired,
     onSelectVehicle: PropTypes.func.isRequired,
+    onShowOnChart: PropTypes.func.isRequired,
     peerNoun: PropTypes.string.isRequired,
-}
+};
+
 
 export default function AnomalyFindings({
     flagged = [],
     selectedVehicleId = null,
     onSelectVehicle = () => {},
+    onShowOnChart = () => {},
     peerNoun = 'fleet',
-}) {
-    const [showAll, setShowAll] = useState(false)
+}){
+    const [showAll, setShowAll] = useState(false);
 
     if (!flagged.length) {
-        return <p className="text-sm text-fleet-secondary">No vehicle stood out clearly from the {peerNoun} in this period.</p>
+        return <p className="text-sm text-fleet-secondary">No vehicle stood out clearly from the {peerNoun} in this period.</p>;
     }
 
     const visible = showAll
         ? flagged
-        : flagged.filter((v, i) => i < INITIALLY_VISIBLE || v.vehicleId === selectedVehicleId)
+        : flagged.filter((v, i) => i < INITIALLY_VISIBLE || v.vehicleId === selectedVehicleId);
 
     return (
         <div className="space-y-3">
@@ -131,6 +142,7 @@ export default function AnomalyFindings({
                     vehicle={vehicle}
                     selected={vehicle.vehicleId === selectedVehicleId}
                     onSelectVehicle={onSelectVehicle}
+                    onShowOnChart={onShowOnChart}
                     peerNoun={peerNoun}
                 />
             ))}
@@ -145,12 +157,15 @@ export default function AnomalyFindings({
                 </button>
             )}
         </div>
-    )
+    );
 }
 
 AnomalyFindings.propTypes = {
     flagged: PropTypes.array,
     selectedVehicleId: PropTypes.string,
     onSelectVehicle: PropTypes.func,
+    onShowOnChart: PropTypes.func,
     peerNoun: PropTypes.string,
-}
+};
+
+export { evidenceChips };

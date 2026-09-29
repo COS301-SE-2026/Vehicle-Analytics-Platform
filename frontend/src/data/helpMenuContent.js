@@ -389,6 +389,58 @@ export const helpMenuData = [
         ],
     },
     {
+        id: "fuel-efficiency",
+        title: "Fuel Efficiency",
+        icon: "fuel",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+        {
+            id: "how-fuel-is-estimated",
+            title: "How Fuel Use Is Estimated",
+            preview: "Why the numbers are estimates, not readings",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Fuel figures are not read from the vehicle's tank. They are estimated from each completed trip's distance and average speed, using a standard consumption rate for each speed band."
+                ),
+                table(
+                    ["Average speed", "Fuel use"],
+                    [
+                        ["Under 20 km/h", "14 L/100km (stop-start)"],
+                        ["20 to 40 km/h", "11 L/100km (city)"],
+                        ["40 to 60 km/h", "8.5 L/100km (mixed)"],
+                        ["60 to 80 km/h", "7 L/100km (most efficient)"],
+                        ["80 to 100 km/h", "7.5 L/100km"],
+                        ["Over 100 km/h", "9 L/100km"],
+                    ]
+                ),
+                callout(
+                    "Because the estimate is speed based, a vehicle doing steady highway runs will always look more efficient than one doing town deliveries. Compare like with like."
+                ),
+                text(
+                    "Two units appear in the system. Consumption is shown as L/100km, where lower is better. Efficiency is shown as km/L, where higher is better."
+                ),
+            ],
+        },
+        {
+            id: "where-to-find-fuel-data",
+            title: "Where to Find Fuel Data",
+            preview: "Per vehicle, per trip, and fleet wide",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                list([
+                    "Vehicle profile - fuel used, distance, average speed and a trend chart for today, this week or this month.",
+                    "Each trip - its own estimated fuel consumed and efficiency.",
+                    "Fuel Analytics dashboard - fleet average efficiency, total fuel, total distance, and vehicles ranked best to worst.",
+                ]),
+                callout(
+                     "Fuel efficiency is only calculated once a trip finishes. If a vehicle is mid-trip you will see \"No data available\" for it until that trip ends."
+                ),
+            ],
+        },
+      ],
+    },
+    {
         id: "predictive-risk",
         title: "Predictive Risk",
         icon: "trending-up",

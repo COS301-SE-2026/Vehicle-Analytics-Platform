@@ -247,7 +247,7 @@ export const helpMenuData = [
     {
         id: "fleet-groups",
         title: "Fleet Groups",
-        icon: "layers",
+        icon: "groups",
         roles: MANAGER_AND_ADMIN,
         articles: [
             {

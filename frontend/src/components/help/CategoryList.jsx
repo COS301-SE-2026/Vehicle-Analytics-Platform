@@ -7,12 +7,16 @@ import {
   Globe,
   PlayCircle,
   Compass,
+  Rocket,
+  UsersRound
  } from 'lucide-react';
 import { ArticleView } from './ArticleView';
 
 const ICONS = {
+  rocket: Rocket,
   "bar-chart": ChartLine,
   car: Car,
+  groups: UsersRound,
   "map-pin": Globe,
   "play-circle": PlayCircle,
 };

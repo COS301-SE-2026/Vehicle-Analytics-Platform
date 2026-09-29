@@ -10,6 +10,7 @@ const pageTitles = {
   '/dashboard/admin':   'Admin Dashboard',
   '/map':               'Live Map',
   '/vehicles':          'Vehicles',
+  '/risk':               'Fleet Risk Forecast',
   '/geofence':          'Geofence',
   '/custom-alerts':     'Custom Alerts',
   '/reports':           'Reports'

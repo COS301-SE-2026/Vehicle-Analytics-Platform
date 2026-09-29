@@ -493,23 +493,6 @@ export const helpMenuData = [
             ],
         },
         {
-            id: "coaching-recommendations",
-            title: "Coaching Recommendations",
-            preview: "What to do about a flagged vehicle",
-            roles: MANAGER_AND_ADMIN,
-            content: [
-                text(
-                    "When a vehicle lands in High or Critical, the system writes a coaching recommendation for you automatically. You do not need to request one."
-                ),
-                text(
-                    "The recommendation is derived from the vehicle's top reason, so a vehicle flagged for harsh cornering gets different advice from one flagged for sustained speeding. You will find it in the Coaching History panel on the vehicle's Predictive Risk tab, alongside the date it was raised and the reason behind it."
-                ),
-                callout(
-                    "Recommendations are suggestions for your conversation with the driver. The system does not contact drivers directly and does not take any action on the vehicle."
-                ),
-            ],
-        },
-        {
             id: "unexpected-risk-scores",
             title: "When a Score Looks Wrong",
             preview: "Quiet vehicles, new vehicles and missing data",
@@ -564,6 +547,68 @@ export const helpMenuData = [
                 ]),
                 callout(
                     "If you see an error saying no trained model is available, the model needs to be trained before predictions can run. Contact whoever maintains your deployment."
+                ),
+            ],
+        },
+      ],
+    },
+    {
+        id: "custom-alerts",
+        title: "Custom Alerts",
+        icon: "bell",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+        {
+            id: "creating-a-custom-alert",
+            title: "Creating an Alert",
+            preview: "Set a rule and start monitoring",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Go to the Custom Alerts tab, click Create Alert, pick one condition type, set its values, choose the fleet group it applies to, and give it a name. Monitoring starts as soon as you save."
+                ),
+                list([
+                    "Speed threshold - a vehicle goes above a set speed",
+                    "Time restriction - a vehicle runs outside your allowed hours or days",
+                    "Repeated unsafe events - a set number of harsh events within a rolling time window",
+                    "Safety score drop - a vehicle's score falls below a set value",
+                    "Trip duration - a single trip or a day's total driving runs too long",
+                ]),
+                callout(
+                    "You can only scope an alert to a fleet group you manage, and it will only ever fire for vehicles in that group."
+                ),
+            ],
+        },
+        {
+            id: "when-an-alert-fires",
+            title: "When an Alert Fires",
+            preview: "Acknowledging and resolving",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A triggered alert shows the vehicle, what was breached, the recorded value against your threshold, and the time. Acknowledge it to mark it as seen, then open Details for the location, the rule that fired, and a link to the vehicle. Mark it Resolved once you have acted."
+                ),
+                callout(
+                    "Resolved alerts stay in the feed in a muted state rather than disappearing, so you keep the history."
+                ),
+                text(
+                    "If the same vehicle breaches the same rule repeatedly in a few minutes, you get one alert rather than a stream of them." 
+                ),
+            ],
+        },
+        {
+            id: "managing-your-alerts",
+            title: "Editing, Pausing & Deleting",
+            preview: "Changing a rule after you have made it",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                list([
+                    "Edit - opens the rule pre-filled. Changes apply to data received after you save, not backwards.",
+                    "Deactivate - stops monitoring but keeps the rule in your list to switch back on later.",
+                    "Delete - removes the rule permanently. Alerts it already triggered stay in your history.",
+                ]),
+                callout(
+                    "If a save is rejected, check for a missing threshold, an end time earlier than the start time, or no fleet group selected."
                 ),
             ],
         },

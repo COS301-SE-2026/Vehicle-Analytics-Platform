@@ -242,3 +242,76 @@ Strip.propTypes = {
 
 
 
+function Swatch({ fill, stroke = 'none', label }) {
+    return (
+        <span className="inline-flex items-center gap-1.5">
+            <svg width="12" height="12" aria-hidden="true">
+                <circle cx="6" cy="6" r="4.5" fill={fill} stroke={stroke} strokeWidth="1.5" />
+            </svg>
+            {label}
+        </span>
+    )
+}
+
+Swatch.propTypes = { fill: PropTypes.string.isRequired, stroke: PropTypes.string, label: PropTypes.string.isRequired }
+
+function nameList(features) {
+    return features.map((f) => behaviourName(f).toLowerCase()).join(', ')
+}
+
+export default function AnomalyDistribution({
+    features = {},
+    selectedVehicleId = null,
+    onSelectVehicle = () => {},
+    highlightFocus = false,
+}) {
+    const entries = Object.values(features)
+    const scored = entries.filter((f) => f.status === 'scored' && f.distribution && f.distribution.points.length)
+    const noEvents = entries.filter((f) => f.status === 'no_events')
+    const tooFew = entries.filter((f) => f.status === 'insufficient_peers')
+
+    return (
+        <div className="space-y-6">
+            {scored.length === 0 ? (
+                <p className="text-sm text-fleet-secondary">No behaviour had enough vehicles with data to draw.</p>
+            ) : (
+                scored.map((feature) => (
+                    <Strip
+                        key={feature.feature}
+                        feature={feature}
+                        selectedVehicleId={selectedVehicleId}
+                        onSelectVehicle={onSelectVehicle}
+                        highlightFocus={highlightFocus}
+                    />
+                ))
+            )}
+
+            {scored.length > 0 && (
+                <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-fleet-secondary">
+                    <Swatch fill={DOT_COLORS.high} label="Flagged" />
+                    <Swatch fill="#FFFFFF" stroke={DOT_COLORS.unconfirmed} label="Beyond the line, too little driving to be sure" />
+                    <Swatch fill={DOT_COLORS.normal} label="Within the normal range" />
+                    <Swatch fill="#FFFFFF" stroke={DOT_COLORS.selected} label="Selected" />
+                </div>
+            )}
+
+            {noEvents.length > 0 && (
+                <p className="text-xs text-fleet-secondary">
+                    No vehicle recorded any {nameList(noEvents)} incidents in this period.
+                </p>
+            )}
+            {tooFew.length > 0 && (
+                <p className="text-xs text-fleet-secondary">
+                    Too few vehicles had data to compare {nameList(tooFew)}.
+                </p>
+            )}
+        </div>
+    )
+}
+
+AnomalyDistribution.propTypes = {
+    features: PropTypes.object,
+    selectedVehicleId: PropTypes.string,
+    onSelectVehicle: PropTypes.func,
+    highlightFocus: PropTypes.bool,
+}

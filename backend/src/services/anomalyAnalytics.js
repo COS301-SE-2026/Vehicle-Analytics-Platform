@@ -3,16 +3,26 @@
 
 const { _EVENT_FILTER: EVENT_FILTER, REPORT_TIMEZONE } = require('./safetyAnalytics');
 
+const COUNT_KEYS = [
+    'harshBrakes',
+    'harshAccelerations',
+    'harshCornering',
+    'overspeedEvents',
+    'idlingEvents',
+    'crashes',
+    'totalEvents',
+];
+
 const EXPOSURE_SQL = `
 SELECT
     vehicle_id,
     COALESCE(SUM(distance_km) FILTER (
         WHERE end_odometer IS NULL OR start_odometer IS NULL OR end_odometer >= start_odometer
-    ), 0)                                                        AS distance_km,
-    COUNT(*)                                                     AS trip_count,
+    ), 0)                                                       AS distance_km,
+    COUNT(*)                                                    AS trip_count,
     COUNT(DISTINCT (start_time AT TIME ZONE $4)::date)           AS active_days,
     percentile_cont(0.9) WITHIN GROUP (ORDER BY max_speed_kmh)   AS p90_trip_max_speed_kmh,
-    MAX(max_speed_kmh)                                           AS max_speed_kmh
+    MAX(max_speed_kmh)                                          AS max_speed_kmh
 FROM trips
 WHERE vehicle_id = ANY($1::text[])
     AND start_time >= $2
@@ -21,6 +31,16 @@ WHERE vehicle_id = ANY($1::text[])
 GROUP BY vehicle_id
 `;
 
+const DISTANCE_SQL = `
+SELECT
+    vehicle_id,
+    (day::date)::text        AS day,
+    SUM(distance_km)::float8 AS km
+FROM vehicle_daily_distance
+WHERE vehicle_id = ANY($1::text[])
+    AND day::date BETWEEN ($2::date - 1) AND $3::date
+GROUP BY vehicle_id, day::date
+`;
 
 const INCIDENT_SQL = `
 WITH flagged AS (
@@ -28,6 +48,7 @@ WITH flagged AS (
         e.vehicle_id,
         e.event_category,
         e.event_detail,
+        ((e.time AT TIME ZONE 'UTC')::date)::text AS day,
         CASE
             WHEN LAG(e.time) OVER w IS NULL
                 OR e.time - LAG(e.time) OVER w > incident_burst_window()
@@ -45,6 +66,7 @@ WITH flagged AS (
 )
 SELECT
     vehicle_id,
+    day,
     COUNT(*) FILTER (WHERE event_detail = 'harsh_braking')      AS harsh_brakes,
     COUNT(*) FILTER (WHERE event_detail = 'harsh_acceleration') AS harsh_accelerations,
     COUNT(*) FILTER (WHERE event_detail = 'harsh_cornering')    AS harsh_cornering,
@@ -54,7 +76,7 @@ SELECT
     COUNT(*)                                                    AS total_events
 FROM flagged
 WHERE starts_incident = 1
-GROUP BY vehicle_id
+GROUP BY vehicle_id, day
 `;
 
 async function runQuery(db, label, sql, params){
@@ -87,32 +109,90 @@ function toNullableNumber(value){
     return Number.isFinite(n) ? n : null;
 }
 
-function indexByVehicle(rows){
-    const map = new Map();
-    rows.forEach((row) => map.set(row.vehicle_id, row));
-    return map;
+function emptyCounts(){
+    return COUNT_KEYS.reduce((acc, key) => ({ ...acc, [key]: 0 }), {});
 }
 
-function buildVehicle(vehicleId, exposureRow, incidentRow){
-    const counts = {
-        harshBrakes: toNumber(incidentRow && incidentRow.harsh_brakes),
-        harshAccelerations: toNumber(incidentRow && incidentRow.harsh_accelerations),
-        harshCornering: toNumber(incidentRow && incidentRow.harsh_cornering),
-        overspeedEvents: toNumber(incidentRow && incidentRow.overspeed_events),
-        idlingEvents: toNumber(incidentRow && incidentRow.idling_events),
-        crashes: toNumber(incidentRow && incidentRow.crashes),
-        totalEvents: toNumber(incidentRow && incidentRow.total_events),
+function rowCounts(row){
+    return {
+        harshBrakes: toNumber(row.harsh_brakes),
+        harshAccelerations: toNumber(row.harsh_accelerations),
+        harshCornering: toNumber(row.harsh_cornering),
+        overspeedEvents: toNumber(row.overspeed_events),
+        idlingEvents: toNumber(row.idling_events),
+        crashes: toNumber(row.crashes),
+        totalEvents: toNumber(row.total_events),
     };
+}
+
+function addCounts(target, source){
+    COUNT_KEYS.forEach((key) => { target[key] += source[key]; });
+    return target;
+}
+
+
+async function readTelemetryDistance(db, vehicleIds, period){
+    if (!period.fromDate || !period.toDate) {
+        return { available: false, reason: 'period has no local dates', rows: [] };
+    }
+
+    try {
+        const result = await runQuery(db, 'distance', DISTANCE_SQL, [vehicleIds, period.fromDate, period.toDate]);
+        return { available: true, reason: null, rows: result.rows || [] };
+    } catch (err) {
+        console.warn(`[anomalies] telemetry distance unavailable, using trip distance: ${err.message}`);
+        return { available: false, reason: err.pgCode || 'query_failed', rows: [] };
+    }
+}
+
+
+function buildVehicle(vehicleId, exposureRow, incidentRows, distanceByDay, telemetry, period){
+    const counts = emptyCounts();
+    const alignedCounts = telemetry.available ? emptyCounts() : null;
+
+    (incidentRows || []).forEach((row) => {
+        const dayCounts = rowCounts(row);
+        addCounts(counts, dayCounts);
+        if (alignedCounts && (distanceByDay.get(row.day) || 0) > 0) {
+            addCounts(alignedCounts, dayCounts);
+        }
+    });
+
+    let telemetryDistanceKm = null;
+    let telemetryDays = null;
+
+    if (telemetry.available) {
+        telemetryDistanceKm = 0;
+        telemetryDays = 0;
+        distanceByDay.forEach((km, day) => {
+            if (day >= period.fromDate && day <= period.toDate) {
+                telemetryDistanceKm += km;
+                if (km > 0) telemetryDays += 1;
+            }
+        });
+    }
 
     return {
         vehicleId,
-        distanceKm: toNumber(exposureRow && exposureRow.distance_km),
+        tripDistanceKm: toNumber(exposureRow && exposureRow.distance_km),
+        telemetryDistanceKm,
+        telemetryDays,
         tripCount: toNumber(exposureRow && exposureRow.trip_count),
         activeDays: toNumber(exposureRow && exposureRow.active_days),
         p90TripMaxSpeedKmh: toNullableNumber(exposureRow && exposureRow.p90_trip_max_speed_kmh),
         maxSpeedKmh: toNullableNumber(exposureRow && exposureRow.max_speed_kmh),
         counts,
+        alignedCounts,
     };
+}
+
+function groupBy(rows, key){
+    const map = new Map();
+    rows.forEach((row) => {
+        if (!map.has(row[key])) map.set(row[key], []);
+        map.get(row[key]).push(row);
+    });
+    return map;
 }
 
 async function getAnomalyFeatures(db, vehicleIds, period){
@@ -135,19 +215,26 @@ async function getAnomalyFeatures(db, vehicleIds, period){
 
     if (!vehicleIds.length) return [];
 
-    const params = [vehicleIds, period.from, period.to, REPORT_TIMEZONE];
+    const exposure = await runQuery(db, 'exposure', EXPOSURE_SQL, [vehicleIds, period.from, period.to, REPORT_TIMEZONE]);
+    const telemetry = await readTelemetryDistance(db, vehicleIds, period);
+    const incidents = await runQuery(db, 'incidents', INCIDENT_SQL, [vehicleIds, period.from, period.to]);
 
-    const exposure = await runQuery(db, 'exposure', EXPOSURE_SQL, params);
-    
-    const incidents = await runQuery(db, 'incidents', INCIDENT_SQL, params.slice(0, 3));
+    const exposureByVehicle = new Map((exposure.rows || []).map((row) => [row.vehicle_id, row]));
+    const incidentsByVehicle = groupBy(incidents.rows || [], 'vehicle_id');
 
-    const exposureByVehicle = indexByVehicle(exposure.rows || []);
-    const incidentsByVehicle = indexByVehicle(incidents.rows || []);
+    const distanceByVehicle = new Map();
+    telemetry.rows.forEach((row) => {
+        if (!distanceByVehicle.has(row.vehicle_id)) distanceByVehicle.set(row.vehicle_id, new Map());
+        distanceByVehicle.get(row.vehicle_id).set(row.day, toNumber(row.km));
+    });
 
     return vehicleIds.map((vehicleId) => buildVehicle(
         vehicleId,
         exposureByVehicle.get(vehicleId),
         incidentsByVehicle.get(vehicleId),
+        distanceByVehicle.get(vehicleId) || new Map(),
+        telemetry,
+        period,
     ));
 }
 
@@ -156,5 +243,6 @@ module.exports = {
     REPORT_TIMEZONE,
     _buildVehicle: buildVehicle,
     _EXPOSURE_SQL: EXPOSURE_SQL,
+    _DISTANCE_SQL: DISTANCE_SQL,
     _INCIDENT_SQL: INCIDENT_SQL,
 };

@@ -8,7 +8,7 @@ const MIN_SUPPORTING_EVENTS = 3;
 const MIN_EVENTS_FOR_MIX = 20;
 const Z_THRESHOLD = 3.5;
 const MAD_SCALE = 0.6745;
-const MEAN_AD_SCALE = 1.253314; // sqrt(pi / 2): mean absolute deviation to standard deviation
+const MEAN_AD_SCALE = 1.253314;
 
 const ALPHA = 0.001;
 
@@ -27,12 +27,17 @@ const STATUS = {
     INSUFFICIENT_PEERS: 'insufficient_peers',
     INSUFFICIENT_EXPOSURE: 'insufficient_exposure',
     NOT_MEASURABLE: 'not_measurable',
+    NO_EVENTS: 'no_events',
 };
 
-// Where a vehicle sits on one behaviour.
+const DISTANCE_SOURCE = {
+    TELEMETRY: 'telemetry',
+    TRIPS: 'trips',
+};
+
 const POINT_STATUS = {
     FLAGGED: 'flagged',
-    UNCONFIRMED: 'unconfirmed', // beyond the threshold, but too little evidence
+    UNCONFIRMED: 'unconfirmed',
     NORMAL: 'normal',
 };
 
@@ -41,10 +46,9 @@ const UNCONFIRMED_REASON = {
     NOT_SIGNIFICANT: 'not_significant',
 };
 
-// Which rate the Poisson expectation was built from.
 const BASELINE = {
     MEDIAN: 'median',
-    POOLED: 'pooled', 
+    POOLED: 'pooled',
     NONE: 'none',
 };
 
@@ -56,6 +60,7 @@ const EXPOSURE_BASES = [
         unit: 'events/100km',
         label: 'per 100 km driven',
         rateLabel: 'per 100 km',
+        requirement: `at least ${MIN_EXPOSURE_KM} km of recorded distance`,
         minimum: MIN_EXPOSURE_KM,
         amount: (v) => v.distanceKm,
         denominator: (v) => v.distanceKm / 100,
@@ -66,6 +71,7 @@ const EXPOSURE_BASES = [
         unit: 'events/10 trips',
         label: 'per 10 completed trips',
         rateLabel: 'per 10 trips',
+        requirement: `at least ${MIN_EXPOSURE_TRIPS} completed trips`,
         minimum: MIN_EXPOSURE_TRIPS,
         amount: (v) => v.tripCount,
         denominator: (v) => v.tripCount / 10,
@@ -76,6 +82,7 @@ const EXPOSURE_BASES = [
         unit: 'events/day',
         label: 'per active day',
         rateLabel: 'per active day',
+        requirement: `at least ${MIN_EXPOSURE_DAYS} active day`,
         minimum: MIN_EXPOSURE_DAYS,
         amount: (v) => v.activeDays,
         denominator: (v) => v.activeDays,
@@ -132,6 +139,53 @@ function meanAbsoluteDeviation(values, centre){
     return values.reduce((sum, v) => sum + Math.abs(v - centre), 0) / values.length;
 }
 
+function tripDistance(vehicle){
+    if (isNumber(vehicle.tripDistanceKm)) return vehicle.tripDistanceKm;
+    return isNumber(vehicle.distanceKm) ? vehicle.distanceKm : 0;
+}
+
+
+function selectDistanceSource(vehicles){
+    const qualifies = (km) => isNumber(km) && km >= MIN_EXPOSURE_KM;
+    const telemetryAvailable = vehicles.some((v) => isNumber(v.telemetryDistanceKm));
+
+    const byTrips = vehicles.filter((v) => qualifies(tripDistance(v))).length;
+    const byTelemetry = telemetryAvailable
+        ? vehicles.filter((v) => qualifies(v.telemetryDistanceKm)).length
+        : null;
+
+    return {
+        source: telemetryAvailable && byTelemetry >= byTrips ? DISTANCE_SOURCE.TELEMETRY : DISTANCE_SOURCE.TRIPS,
+        telemetryAvailable,
+        vehiclesWithDistance: { trips: byTrips, telemetry: byTelemetry },
+    };
+}
+
+
+function prepareVehicles(vehicles, distance){
+    const withDistance = vehicles.map((v) => ({
+        ...v,
+        distanceKm: distance.source === DISTANCE_SOURCE.TELEMETRY
+            ? (isNumber(v.telemetryDistanceKm) ? v.telemetryDistanceKm : 0)
+            : tripDistance(v),
+    }));
+
+    const basis = chooseExposureBasis(withDistance);
+    const aligned = Boolean(basis && basis.id === 'distance' && distance.source === DISTANCE_SOURCE.TELEMETRY);
+
+    const prepared = withDistance.map((v) => {
+        const total = v.counts || {};
+        if (!aligned || !v.alignedCounts) return { ...v, counts: total, unmatchedIncidents: 0 };
+        return {
+            ...v,
+            counts: v.alignedCounts,
+            unmatchedIncidents: Math.max(0, (total.totalEvents || 0) - (v.alignedCounts.totalEvents || 0)),
+        };
+    });
+
+    return { vehicles: prepared, basis, aligned };
+}
+
 
 function chooseExposureBasis(vehicles){
     for (let i = 0; i < EXPOSURE_BASES.length; i += 1) {
@@ -148,12 +202,7 @@ function chooseExposureBasis(vehicles){
     return null;
 }
 
-/*
- * One feature per behaviour. When an exposure basis exists, behaviours are
- * compared as rates (plus the speed profile). The incident mix is only a
- * fallback for when no basis exists: using both would count the same
- * behaviour twice.
- */
+
 function buildFeatureDefinitions(basis) {
     const definitions = {};
 
@@ -291,8 +340,6 @@ function supportingCount(vehicle, definition){
 }
 
 
-
-
 function assessEvidence(definition, entry, scored, peerEntries){
     if (definition.kind !== 'rate') return null;
 
@@ -333,7 +380,6 @@ function assessEvidence(definition, entry, scored, peerEntries){
         significant: pValue < ALPHA,
     };
 }
-
 
 
 function evaluate(definition, entry, scored, peerEntries){
@@ -457,13 +503,11 @@ function worstSeverity(flags){
 }
 
 
-
 function bySeverityThenScore(a, b) {
     const severity = SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
     if (severity !== 0) return severity;
     return (b.score ?? -Infinity) - (a.score ?? -Infinity);
 }
-
 
 
 function byImportance(a, b) {
@@ -497,11 +541,50 @@ function describeExposure(basis){
     };
 }
 
+
+function buildDataQuality({ vehicles, evaluatedCount, basis, distance }) {
+    const notes = [];
+    const total = vehicles.length;
+    const incidentsWithoutDistance = vehicles.reduce((sum, v) => sum + (v.unmatchedIncidents || 0), 0);
+
+    if (total > 0 && evaluatedCount < total / 2) {
+        const requirement = basis ? basis.requirement : `at least ${MIN_EVENTS_FOR_MIX} incidents`;
+        notes.push(`Only ${evaluatedCount} of ${total} vehicles had enough data in this period to be compared `
+            + `(${requirement}). The other ${total - evaluatedCount} were not assessed.`);
+    }
+
+    if (incidentsWithoutDistance > 0) {
+        notes.push(`${incidentsWithoutDistance} incident${incidentsWithoutDistance === 1 ? '' : 's'} happened on days `
+            + 'with no recorded distance, so they are left out of the rates.');
+    }
+
+    if (basis && basis.id === 'distance' && !distance.telemetryAvailable) {
+        notes.push('Telemetry distance could not be read, so distance comes from completed trips only.');
+    }
+
+    return {
+        distanceSource: basis && basis.id === 'distance' ? distance.source : null,
+        vehiclesWithDistance: distance.vehiclesWithDistance,
+        incidentsWithoutDistance,
+        notes,
+    };
+}
+
 function plural(n, word){
     return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
-function buildHeadline({ results, flagged, featuresScored, peerEvaluated, peerNoun, focused }){
+function buildHeadline({
+    results, flagged, featuresScored, peerEvaluated, peerNoun, focused, featuresWithoutEvents = 0, peerCount = 0,
+}){
+    if (peerCount === 0) {
+        return 'There are no vehicles in this selection.';
+    }
+
+    if (featuresScored === 0 && featuresWithoutEvents > 0 && peerEvaluated >= MIN_PEER_VEHICLES) {
+        return 'The vehicles that drove in this period recorded no incidents, so no driving stands out.';
+    }
+
     if (featuresScored === 0) {
         return `Not enough vehicles drove enough in this period to compare them. At least ${MIN_PEER_VEHICLES} `
             + `need to qualify, and ${peerEvaluated} did.`;
@@ -538,13 +621,13 @@ function buildHeadline({ results, flagged, featuresScored, peerEvaluated, peerNo
 }
 
 
-
-function detectFleetAnomalies(vehicles = [], options = {}){
+function detectFleetAnomalies(input = [], options = {}){
     const { focusIds = null, peerNoun = 'fleet' } = options;
     const focusSet = Array.isArray(focusIds) ? new Set(focusIds) : null;
     const inFocus = (id) => !focusSet || focusSet.has(id);
 
-    const basis = chooseExposureBasis(vehicles);
+    const distance = selectDistanceSource(input);
+    const { vehicles, basis } = prepareVehicles(input, distance);
     const definitions = buildFeatureDefinitions(basis);
     const definitionList = Object.values(definitions);
 
@@ -581,6 +664,12 @@ function detectFleetAnomalies(vehicles = [], options = {}){
                 status: measured.length === 0 ? STATUS.NOT_MEASURABLE : STATUS.INSUFFICIENT_PEERS,
                 distribution: null,
             };
+            return;
+        }
+
+        if (definition.supportingCountKey
+            && measured.every((entry) => supportingCount(entry.vehicle, definition) === 0)) {
+            featureSummary[featureKey] = { ...base, status: STATUS.NO_EVENTS, distribution: null };
             return;
         }
 
@@ -642,6 +731,7 @@ function detectFleetAnomalies(vehicles = [], options = {}){
                 tripCount: vehicle.tripCount ?? 0,
                 activeDays: vehicle.activeDays ?? 0,
                 totalIncidents: (vehicle.counts || {}).totalEvents ?? 0,
+                unmatchedIncidents: vehicle.unmatchedIncidents || 0,
                 status: evaluatedIds.has(vehicle.vehicleId)
                     ? STATUS.SCORED
                     : STATUS.INSUFFICIENT_EXPOSURE,
@@ -659,6 +749,9 @@ function detectFleetAnomalies(vehicles = [], options = {}){
 
     const vehiclesEvaluated = results.filter((r) => r.status === STATUS.SCORED).length;
 
+    const featuresWithoutEvents = Object.keys(featureSummary)
+        .filter((key) => featureSummary[key].status === STATUS.NO_EVENTS).length;
+
     return {
         method: 'fleet_relative',
         headline: buildHeadline({
@@ -668,6 +761,8 @@ function detectFleetAnomalies(vehicles = [], options = {}){
             peerEvaluated: evaluatedIds.size,
             peerNoun,
             focused: Boolean(focusSet),
+            featuresWithoutEvents,
+            peerCount: vehicles.length,
         }),
         parameters: {
             minPeerVehicles: MIN_PEER_VEHICLES,
@@ -676,7 +771,16 @@ function detectFleetAnomalies(vehicles = [], options = {}){
             zThreshold: Z_THRESHOLD,
             alpha: ALPHA,
         },
-        exposure: describeExposure(basis),
+        exposure: {
+            ...describeExposure(basis),
+            distanceSource: basis && basis.id === 'distance' ? distance.source : null,
+        },
+        dataQuality: buildDataQuality({
+            vehicles,
+            evaluatedCount: evaluatedIds.size,
+            basis,
+            distance,
+        }),
         peers: {
             noun: peerNoun,
             vehicles: vehicles.length,
@@ -701,6 +805,7 @@ module.exports = {
     INCIDENT_TYPES,
     METHOD,
     STATUS,
+    DISTANCE_SOURCE,
     POINT_STATUS,
     UNCONFIRMED_REASON,
     BASELINE,
@@ -718,6 +823,8 @@ module.exports = {
     _chooseExposureBasis: chooseExposureBasis,
     _buildFeatureDefinitions: buildFeatureDefinitions,
     _assessEvidence: assessEvidence,
+    _selectDistanceSource: selectDistanceSource,
+    _prepareVehicles: prepareVehicles,
     _groupThreshold: groupThreshold,
     _round: round,
 };

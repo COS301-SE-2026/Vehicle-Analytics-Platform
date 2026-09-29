@@ -172,13 +172,14 @@ function selectDistanceSource(vehicles){
 }
 
 
+function vehicleDistance(vehicle, distance){
+    if (distance.source !== DISTANCE_SOURCE.TELEMETRY) return tripDistance(vehicle);
+    return isNumber(vehicle.telemetryDistanceKm) ? vehicle.telemetryDistanceKm : 0;
+}
+
+
 function prepareVehicles(vehicles, distance){
-    const withDistance = vehicles.map((v) => ({
-        ...v,
-        distanceKm: distance.source === DISTANCE_SOURCE.TELEMETRY
-            ? (isNumber(v.telemetryDistanceKm) ? v.telemetryDistanceKm : 0)
-            : tripDistance(v),
-    }));
+    const withDistance = vehicles.map((v) => ({ ...v, distanceKm: vehicleDistance(v, distance) }));
 
     const basis = chooseExposureBasis(withDistance);
     const aligned = Boolean(basis && basis.id === 'distance' && distance.source === DISTANCE_SOURCE.TELEMETRY);
@@ -292,10 +293,7 @@ function buildFeatureDefinitions(basis) {
 }
 
 
-// A device "reports" an incident type when it logged that type at least once in
-// the lookback window read by anomalyAnalytics. When the history could not be
-// read, or the caller did not supply it, every type is assumed to be reported,
-// which is how the detection behaved before the check existed.
+
 function isReportingVerified(vehicle){
     const reporting = vehicle.reporting;
     return Boolean(reporting && reporting.checked === true && reporting.types);
@@ -459,7 +457,8 @@ const CAUTION = {
     SPARSE_TYPE: 'sparse_type',
 };
 
-// One wording for a single behaviour and for several merged on one vehicle.
+
+
 function cautionMessage(variant, nouns){
     const several = nouns.length > 1;
     const list = joinOr(nouns);
@@ -486,9 +485,6 @@ function buildCaution(definition, scored, evidence, reportingVerified = false){
     const noPeerIncidents = Boolean(evidence && evidence.baseline === BASELINE.NONE);
 
     if (reportingVerified) {
-        // Every peer's device is known to report this type, so a zero median is
-        // real. The Poisson test covers the pooled case; only a finding with no
-        // rate to test against needs a caution.
         if (!noPeerIncidents) return null;
         return { code: CAUTION.COUNT_ONLY, message: cautionMessage('count_only', [definition.noun]) };
     }
@@ -518,8 +514,6 @@ function mergeCautions(flags){
 }
 
 function explainFlag(definition, vehicle, value, scored, evidence, peerNoun){
-    // Each vehicle is judged against the other vehicles without itself, so the
-    // wording names that median rather than the whole-group median on the chart.
     const median = formatNumber(scored.peerMedian);
     const others = `for the other vehicles in the ${peerNoun}`;
 
@@ -562,13 +556,17 @@ function shortFinding(flag){
     return `${flag.supportingCount} ${flag.noun} incidents where the other vehicles' median is zero`;
 }
 
-function buildFlag(featureKey, definition, vehicle, value, scored, evidence, peerNoun, reportingVerified = false) {
-    const count = supportingCount(vehicle, definition);
-    const uniformPeers = scored.method === METHOD.PEERS_UNIFORM;
+function flagSeverity(scored, count){
+    if (scored.method !== METHOD.PEERS_UNIFORM) return severityFromScore(scored.score);
+    if (count === null) return SEVERITY.LOW;
+    return severityFromCount(count);
+}
 
-    const severity = uniformPeers
-        ? (count === null ? SEVERITY.LOW : severityFromCount(count))
-        : severityFromScore(scored.score);
+function buildFlag({
+    featureKey, definition, vehicle, value, scored, evidence, peerNoun, reportingVerified = false,
+}) {
+    const count = supportingCount(vehicle, definition);
+    const severity = flagSeverity(scored, count);
 
     return {
         feature: featureKey,
@@ -614,9 +612,8 @@ function bySeverityThenScore(a, b) {
 }
 
 
-// Worst severity first, then the strongest single finding, so the headline's
-// "strongest" is the vehicle furthest from the others. Ties go to the vehicle
-// with more flagged behaviours.
+
+
 function byImportance(a, b) {
     const severity = SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
     if (severity !== 0) return severity;
@@ -704,6 +701,23 @@ function plural(n, word){
     return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
+// Headline when no behaviour could be scored at all.
+function nothingComparedHeadline({ peerEvaluated, featuresWithoutEvents, notReportedNouns }){
+    const enoughVehicles = peerEvaluated >= MIN_PEER_VEHICLES;
+
+    if (enoughVehicles && notReportedNouns.length > 0) {
+        return `No behaviour could be compared this period. Fewer than ${MIN_PEER_VEHICLES} devices in this `
+            + `selection report ${joinOr(notReportedNouns)}, and nothing else had enough data or incidents.`;
+    }
+
+    if (enoughVehicles && featuresWithoutEvents > 0) {
+        return 'The vehicles that drove in this period recorded no incidents, so no driving stands out.';
+    }
+
+    return `Not enough vehicles drove enough in this period to compare them. At least ${MIN_PEER_VEHICLES} `
+        + `need to qualify, and ${peerEvaluated} did.`;
+}
+
 function buildHeadline({
     results, flagged, featuresScored, peerEvaluated, peerNoun, focused, featuresWithoutEvents = 0, peerCount = 0,
     notReportedNouns = [],
@@ -712,18 +726,8 @@ function buildHeadline({
         return 'There are no vehicles in this selection.';
     }
 
-    if (featuresScored === 0 && notReportedNouns.length > 0 && peerEvaluated >= MIN_PEER_VEHICLES) {
-        return `No behaviour could be compared this period. Fewer than ${MIN_PEER_VEHICLES} devices in this `
-            + `selection report ${joinOr(notReportedNouns)}, and nothing else had enough data or incidents.`;
-    }
-
-    if (featuresScored === 0 && featuresWithoutEvents > 0 && peerEvaluated >= MIN_PEER_VEHICLES) {
-        return 'The vehicles that drove in this period recorded no incidents, so no driving stands out.';
-    }
-
     if (featuresScored === 0) {
-        return `Not enough vehicles drove enough in this period to compare them. At least ${MIN_PEER_VEHICLES} `
-            + `need to qualify, and ${peerEvaluated} did.`;
+        return nothingComparedHeadline({ peerEvaluated, featuresWithoutEvents, notReportedNouns });
     }
 
     const evaluated = results.filter((r) => r.status === STATUS.SCORED);
@@ -837,17 +841,21 @@ function detectFleetAnomalies(input = [], options = {}){
             const id = entry.vehicle.vehicleId;
             measuresByVehicle.set(id, measuresByVehicle.get(id) + 1);
 
-            // Computed for every rate point so the table can show what each vehicle
-            // would have recorded at the other vehicles' rate, the same baseline
-            // the chance test uses.
             const evidence = assessEvidence(definition, entry, scored, peerEntries);
             const outcome = evaluate(definition, entry, scored, evidence);
             let severity = null;
 
             if (outcome.status === POINT_STATUS.FLAGGED) {
-                const flag = buildFlag(
-                    featureKey, definition, entry.vehicle, entry.value, scored, outcome.evidence, peerNoun, reportingVerified,
-                );
+                const flag = buildFlag({
+                    featureKey,
+                    definition,
+                    vehicle: entry.vehicle,
+                    value: entry.value,
+                    scored,
+                    evidence: outcome.evidence,
+                    peerNoun,
+                    reportingVerified,
+                });
                 severity = flag.severity;
                 flagsByVehicle.get(id).push(flag);
             }
@@ -866,6 +874,7 @@ function detectFleetAnomalies(input = [], options = {}){
         });
 
         const line = groupThreshold(measured.map((m) => m.value));
+        points.sort((a, b) => a.value - b.value || a.vehicleId.localeCompare(b.vehicleId));
 
         featureSummary[featureKey] = {
             ...base,
@@ -874,16 +883,12 @@ function detectFleetAnomalies(input = [], options = {}){
                 median: round(line.median, 2),
                 threshold: round(line.threshold, 2),
                 thresholdMethod: line.method,
-                // Reference lines for the chart. Both are drawn from the whole group,
-                // so they are only sent when they describe the per-vehicle decision:
-                // the flag line when the MAD is non-zero (robust to one vehicle), and
-                // the chance limit when the median rate is above zero.
                 flagLine: line.method === METHOD.MODIFIED_Z ? round(line.threshold, 2) : null,
                 chanceRate: definition.kind === 'rate' && line.median > 0 ? round(line.median, 2) : null,
                 ratePer: definition.ratePer,
                 exposureLabel: definition.columnLabel,
                 axis: { ...definition.axis },
-                points: points.sort((a, b) => a.value - b.value || a.vehicleId.localeCompare(b.vehicleId)),
+                points,
             },
         };
     });
@@ -895,7 +900,7 @@ function detectFleetAnomalies(input = [], options = {}){
     const results = vehicles
         .filter((vehicle) => inFocus(vehicle.vehicleId))
         .map((vehicle) => {
-            const flags = (flagsByVehicle.get(vehicle.vehicleId) || []).sort(bySeverityThenScore);
+            const flags = [...(flagsByVehicle.get(vehicle.vehicleId) || [])].sort(bySeverityThenScore);
 
             return {
                 vehicleId: vehicle.vehicleId,

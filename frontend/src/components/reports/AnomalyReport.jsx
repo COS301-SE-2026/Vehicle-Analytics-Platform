@@ -20,7 +20,7 @@ const SOURCE_TEXT = {
     trips: 'distance from completed trips',
 };
 
-const FOCUSED_SCOPES = ['vehicle', 'vehicles'];
+const FOCUSED_SCOPES = new Set(['vehicle', 'vehicles']);
 
 function scopeOptions(scopes){
     const groups = (scopes.groups || []).map((g) => {
@@ -60,11 +60,19 @@ function oneIn(alpha){
 }
 
 
+function exposureStep(exposure){
+    if (!exposure.basis) {
+        return 'Too few vehicles had distance, trips or active days, so vehicles are compared on the mix of their incident types instead.';
+    }
+    const source = exposure.distanceSource ? `, using ${SOURCE_TEXT[exposure.distanceSource]}` : '';
+    return `Incidents are counted ${exposure.label}${source}, so a vehicle is never flagged just for driving more. `
+        + 'With odometer distance, incidents on days without any recorded distance are left out.';
+}
+
+
 function MethodSteps({ anomalies, peerLabel }){
     const { parameters: p, exposure } = anomalies;
-    const measured = exposure.basis
-        ? `Incidents are counted ${exposure.label}${exposure.distanceSource ? `, using ${SOURCE_TEXT[exposure.distanceSource]}` : ''}, so a vehicle is never flagged just for driving more. With odometer distance, incidents on days without any recorded distance are left out.`
-        : 'Too few vehicles had distance, trips or active days, so vehicles are compared on the mix of their incident types instead.';
+    const measured = exposureStep(exposure);
 
     const reporting = p.reportingLookbackDays
         ? `A vehicle whose device has not reported an incident type in the ${p.reportingLookbackDays} days to the end of the period is left out of that comparison, rather than counted as having none.`
@@ -172,7 +180,7 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
     }, []);
 
     const anomalies = result?.anomalies;
-    const focused = result ? FOCUSED_SCOPES.includes(result.scope.type) : false;
+    const focused = result ? FOCUSED_SCOPES.has(result.scope.type) : false;
     const noVehicles = result ? result.scope.vehicleCount === 0 : false;
     const notes = anomalies?.dataQuality?.notes || [];
     const flaggedCount = anomalies?.summary?.vehiclesFlagged || 0;
@@ -187,7 +195,7 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
         <div className="space-y-6">
             <div className="bg-white rounded-2xl border border-fleet-border shadow-sm p-4 flex flex-wrap items-end gap-4">
                 <label className="flex flex-col gap-1 text-xs font-medium text-fleet-secondary">
-                    Vehicles
+                    <span>Vehicles</span>
                     <select
                         value={scopeValue}
                         onChange={(e) => onScopeChange(e.target.value)}
@@ -209,7 +217,7 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
                 </label>
 
                 <label className="flex flex-col gap-1 text-xs font-medium text-fleet-secondary">
-                    Timeframe
+                    <span>Timeframe</span>
                     <select
                         value={periodType}
                         onChange={(e) => setPeriodType(e.target.value)}
@@ -253,7 +261,7 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
 
                 {scoredFeatures.length > 0 && (
                     <label className="flex flex-col gap-1 text-xs font-medium text-fleet-secondary">
-                        Behaviour to plot
+                        <span>Behaviour to plot</span>
                         <select
                             value={behaviourKey || ''}
                             onChange={(e) => setBehaviourKey(e.target.value)}
@@ -409,4 +417,4 @@ AnomalyReport.propTypes = {
 };
 
 export default AnomalyReport;
-export { PERIOD_OPTIONS, defaultBehaviour };
+export { PERIOD_OPTIONS, defaultBehaviour, exposureStep, coverageLine };

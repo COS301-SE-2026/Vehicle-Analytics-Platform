@@ -1,8 +1,16 @@
+function defaultPlaces(n){
+    const size = Math.abs(n);
+    if (size < 1) return 2;
+    if (size < 100) return 1;
+    return 0;
+}
+
+
 function formatNumber(value, digits){
     if (value === null || value === undefined) return '-';
     const n = Number(value);
     if (!Number.isFinite(n)) return '-';
-    const places = digits ?? (Math.abs(n) < 1 ? 2 : Math.abs(n) < 100 ? 1 : 0);
+    const places = digits ?? defaultPlaces(n);
     return n.toLocaleString('en-US', { maximumFractionDigits: places });
 }
 

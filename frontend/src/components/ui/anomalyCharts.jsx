@@ -22,13 +22,13 @@ const AXIS_PROPS = {
 }
 
 
-detect
 const LOG_SPREAD = 20
 const OFF_SCALE_FACTOR = 4
 const MAX_OFF_SCALE_SHARE = 0.2
 
 const EXPOSURE_TICKS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000]
 const NICE_STEPS = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
+const TICK_BASES = [1, 2, 2.5, 5, 10]
 const CURVE_POINTS = 60
 const EXACT_LIMIT_MU = 50
 const DOT_RADIUS = 4.5
@@ -38,8 +38,8 @@ export function niceStep(range, count = 5) {
     const raw = range / count
     const mag = 10 ** Math.floor(Math.log10(raw))
     const norm = raw / mag
-    const step = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10
-    return Number((step * mag).toPrecision(12))
+    const base = TICK_BASES.find((b) => norm <= b) ?? 10
+    return Number((base * mag).toPrecision(12))
 }
 
 // Evenly spaced ticks from min up to the first step at or above max.
@@ -244,7 +244,8 @@ export function chanceLimitCurve(rate, ratePer, domain, alpha, maxY = Infinity) 
 export function offScaleNote(points, unitLabel) {
     const above = points.filter((p) => p.offScale)
     if (!above.length) return null
-    const items = above.map((p) => `${p.vehicleId} (${formatNumber(p.value)}${unitLabel ? ` ${unitLabel}` : ''})`)
+    const unit = unitLabel ? ` ${unitLabel}` : ''
+    const items = above.map((p) => `${p.vehicleId} (${formatNumber(p.value)}${unit})`)
     return `Above the top of the chart, shown as triangles: ${joinList(items)}.`
 }
 
@@ -279,7 +280,7 @@ function ChartFrame({ height = 280, children }) {
 
 ChartFrame.propTypes = { height: PropTypes.number, children: PropTypes.node }
 
-function VehicleSymbol({ cx, cy, fill, fillOpacity, payload }) {
+export function VehicleSymbol({ cx, cy, fill, fillOpacity, payload }) {
     if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
     if (payload && payload.offScale) {
         const r = DOT_RADIUS + 1.5
@@ -301,6 +302,33 @@ VehicleSymbol.propTypes = {
     fillOpacity: PropTypes.number,
     payload: PropTypes.object,
 }
+
+export function VehicleTooltip({ active = false, payload = [], feature, peerNoun = 'fleet' }) {
+    if (!active || !payload?.length) return null
+    const p = payload[0].payload
+    if (!p?.vehicleId) return null
+
+    const rows = [[feature.distribution.exposureLabel || 'Exposure', formatNumber(p.exposure, 0)]]
+    if (p.observed !== null && p.observed !== undefined) rows.push(['Incidents', formatNumber(p.observed, 0)])
+    if (p.expected !== null && p.expected !== undefined) rows.push(['Expected', formatNumber(p.expected)])
+    rows.push([valueLabel(feature), formatNumber(p.value)])
+    rows.push([`Compared with ${peerNoun}`, statusLabel(p.status, peerNoun)])
+    return <TooltipBox title={`Vehicle ${p.vehicleId}`} rows={rows} />
+}
+
+VehicleTooltip.propTypes = {
+    active: PropTypes.bool,
+    payload: PropTypes.array,
+    feature: PropTypes.shape({ distribution: PropTypes.object.isRequired }).isRequired,
+    peerNoun: PropTypes.string,
+}
+
+export function SelectionRing({ cx, cy }) {
+    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
+    return <circle cx={cx} cy={cy} r={9} fill="none" stroke={CHART_COLORS.navy} strokeWidth={2} />
+}
+
+SelectionRing.propTypes = { cx: PropTypes.number, cy: PropTypes.number }
 
 export function AnomalyFunnelChart({
     feature,
@@ -396,17 +424,7 @@ export function AnomalyFunnelChart({
                     )}
                     <Tooltip
                         cursor={false}
-                        content={({ active, payload }) => {
-                            if (!active || !payload?.length) return null
-                            const p = payload[0].payload
-                            if (!p.vehicleId) return null
-                            const rows = [[distribution.exposureLabel || 'Exposure', formatNumber(p.exposure, 0)]]
-                            if (p.observed !== null && p.observed !== undefined) rows.push(['Incidents', formatNumber(p.observed, 0)])
-                            if (p.expected !== null && p.expected !== undefined) rows.push(['Expected', formatNumber(p.expected)])
-                            rows.push([valueLabel(feature), formatNumber(p.value)])
-                            rows.push([`Compared with ${peerNoun}`, statusLabel(p.status, peerNoun)])
-                            return <TooltipBox title={`Vehicle ${p.vehicleId}`} rows={rows} />
-                        }}
+                        content={<VehicleTooltip feature={feature} peerNoun={peerNoun} />}
                     />
                     <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12, paddingBottom: 8 }} />
                     {curve.length > 0 && (
@@ -445,9 +463,7 @@ export function AnomalyFunnelChart({
                             legendType="circle"
                             fill="none"
                             onClick={select}
-                            shape={({ cx, cy }) => (
-                                <circle cx={cx} cy={cy} r={9} fill="none" stroke={CHART_COLORS.navy} strokeWidth={2} />
-                            )}
+                            shape={SelectionRing}
                         />
                     )}
                 </ComposedChart>

@@ -8,7 +8,7 @@ const { getAnomalyFeatures } = require('../services/anomalyAnalytics');
 const { detectFleetAnomalies } = require('../services/anomalyDetection');
 const DEFAULT_PERIOD_TYPE = 'current';
 const DEFAULT_CURRENT_DAYS = 7;
-const FOCUSED_SCOPE_TYPES = ['vehicle', 'vehicles'];
+const FOCUSED_SCOPE_TYPES = new Set(['vehicle', 'vehicles']);
 
 function handleError(res, err, context) {
     if (err instanceof ScopeError) {
@@ -77,7 +77,7 @@ async function resolveRequestedPeriod(db, input) {
 
 
 async function resolvePeerGroup(db, user, scope){
-    if (!FOCUSED_SCOPE_TYPES.includes(scope.scopeType)) {
+    if (!FOCUSED_SCOPE_TYPES.has(scope.scopeType)) {
         return {
             peerScope: scope,
             peerVehicleIds: scope.vehicleIds,

@@ -13,8 +13,6 @@ const SEVERITY_LABELS = { high: 'High', moderate: 'Moderate', low: 'Low' };
 const ICON_TONE = { high: 'text-red-600', moderate: 'text-amber-600', low: 'text-slate-500' };
 const INITIALLY_VISIBLE = 6;
 
-// Plain-language evidence only. The z-score and the chance probability are
-// explained once in "How the detection works" rather than on every card.
 function evidenceChips(flag){
     const chips = [];
 
@@ -39,10 +37,13 @@ function evidenceChips(flag){
 function vehicleCautions(vehicle){
     if (Array.isArray(vehicle.cautions)) return vehicle.cautions;
 
-    const seen = new Set();
-    return (vehicle.flags || [])
-        .map((flag) => flag.caution)
-        .filter((caution) => caution && !seen.has(caution.message) && seen.add(caution.message));
+    const byMessage = new Map();
+    (vehicle.flags || []).forEach((flag) => {
+        if (flag.caution && !byMessage.has(flag.caution.message)) {
+            byMessage.set(flag.caution.message, flag.caution);
+        }
+    });
+    return [...byMessage.values()];
 }
 
 

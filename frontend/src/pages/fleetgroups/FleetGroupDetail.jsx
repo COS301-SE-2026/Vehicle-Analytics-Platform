@@ -5,7 +5,8 @@ import {ArrowLeft,
     RefreshCw,
     Search,
     Pencil,
-    Trash2
+    Trash2,
+    ArrowRightLeft
 } from 'lucide-react'
 
 import{
@@ -17,9 +18,13 @@ import{
     updateFleetGroup,
     deleteFleetGroup,
     unassignVehicles,
+    transferVehicles,
 } from '@/services/fleetGroupService'
 
 import { getUsers } from '@/services/vehicleService'
+
+import TransferVehiclesModal from '@/components/fleetgroups/TransferVehiclesModal'
+import formatVehicleList from '@/utils/formatVehicleList'
 
 const PAGE_SIZE = 20
 
@@ -54,6 +59,11 @@ export default function FleetGroupDetail() {
     const [selectedIds, setSelectedIds] = useState(new Set())
     const [assigning, setAssigning] = useState(false)
     const [selectingAll, setSelectingAll] = useState(false)
+    const [allGroups, setAllGroups] = useState([])
+    const [targetGroupId, setTargetGroupId] = useState('')
+    const [transferring, setTransferring] = useState(false)
+    const [transferNotice, setTransferNotice] = useState(null)
+        const [confirmTransferOpen, setConfirmTransferOpen] = useState(false)
 
     //editing section
     const [isEditing, setIsEditing] = useState(false)
@@ -69,6 +79,7 @@ export default function FleetGroupDetail() {
             const [groupList, userList] = await Promise.all([getFleetGroups(), getUsers()])
             const found = groupList.find((g) => String(g.id) === String(id))
             setGroup(found ?? null)
+            setAllGroups(groupList)
             setManagers((userList.users || []).filter((u) => u.role === 'fleet_manager' && u.is_active))
             setErrorMsg(found ? null : 'Fleet group not found')
         }catch (err) {
@@ -134,6 +145,7 @@ export default function FleetGroupDetail() {
 
     const assignedIds = new Set(group.assigned_managers.map((m) => m.id))
     const eligibleManagers =managers.filter((m) => !assignedIds.has(m.id))
+    const otherGroups = allGroups.filter((g) => String(g.id) !== String(group.id))
 
 
     async function handleAssignManager() {
@@ -238,6 +250,41 @@ export default function FleetGroupDetail() {
             setVehiclesError(err.message || (status === 'in_group' ? 'Failed to unassign vehicles' : 'Failed to assign vehicles'))
         }finally{
             setAssigning(false)
+        }
+    }
+
+    async function handleTransfer() {
+        if(selectedIds.size === 0 || !targetGroupId){
+            return
+        }
+
+        const target = allGroups.find((g) => String(g.id) === String(targetGroupId))
+
+        setConfirmTransferOpen(false)
+        setTransferring(true)
+        setVehiclesError(null)
+        setTransferNotice(null)
+
+        try{
+            const result = await transferVehicles(group.id, targetGroupId, Array.from(selectedIds))
+            const moved = result.transferred
+            const skipped = result.not_in_group?.length || 0
+            const skippedNote = skipped ? ` ${skipped} skipped (no longer in this group).` : ''
+
+            setTransferNotice(
+                moved.length === 0
+                    ? `No vehicles were moved.${skippedNote}`
+                    : `Moved ${formatVehicleList(moved)} to ${target?.name}.${skippedNote}`
+            )
+
+            setSelectedIds(new Set())
+            setTargetGroupId('')
+
+            await Promise.all([fetchVehiclePage(), fetchGroupAndManagers()])
+        }catch(err) {
+            setVehiclesError(err.message || 'Failed to transfer vehicles')
+        }finally{
+            setTransferring(false)
         }
     }
 
@@ -405,7 +452,30 @@ export default function FleetGroupDetail() {
         <div className="bg-fleet-surface rounded-xl border border-fleet-border p-5">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-fleet-text text-base">Vehicles</h2>
+                <div className="flex items-center gap-2">
+                    {status === 'in_group' && (
+                        <>
+                        <select
+                            value={targetGroupId}
+                            onChange={(e) => setTargetGroupId(e.target.value)}
+                            aria-label="Transfer to fleet group"
+                            className="text-sm border border-fleet-border rounded-lg px-3 py-2 bg-fleet-surface text-fleet-text">
+                                <option value="">Transfer to...</option>
+                                {otherGroups.map((g) => (
+                                    <option key={g.id} value={g.id}>{g.name}</option>
+                                ))}
+                            </select>
 
+                            <button
+                                type="button"
+                                disabled={selectedIds.size === 0 || !targetGroupId || transferring}
+                                onClick={() => setConfirmTransferOpen(true)}
+                                className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors bg-fleet-blue text-white hover:bg-fleet-blue/90">
+                                    <ArrowRightLeft className="w-4 h-4"></ArrowRightLeft>
+                                    {transferring ? 'Transferring...' : `Transfer ${selectedIds.size || ''}`}
+                                </button>
+                </>
+                    )}
                 <button
                 type="button"
                 disabled={selectedIds.size === 0 || assigning}
@@ -419,6 +489,7 @@ export default function FleetGroupDetail() {
                             ? (status === 'in_group' ? 'Unassigning...' : 'Assigning...')
                             : `${status === 'in_group' ? 'Unassign' : 'Assign'} ${selectedIds.size || ''} ${status === 'in_group' ? 'from' : 'to'} group`}
                 </button>
+            </div>
             </div>
 
             <div className="flex items-center gap-3 mb-4">
@@ -451,6 +522,10 @@ export default function FleetGroupDetail() {
                 <p className="text-xs text-fleet-alert mb-3">{vehiclesError}</p>
             )}
 
+            {transferNotice && (
+                <p className="text-xs text-fleet-green mb-3">{transferNotice}</p>
+            )}
+
 
             {vehiclesLoading ? (
                 <div className="py-8 text-center text-fleet-secondary text-sm">Loading vehicles...</div>
@@ -477,17 +552,19 @@ export default function FleetGroupDetail() {
 
                         <tbody className="divide-y divide-fleet-border">
                             {vehicles.map((vehicle) => (
-                                <tr key={vehicle.id} className="hover:bg-fleet-bg transition-colors">
+                                <tr key={vehicle.id} className="hover:bg-fleet-bg transition-colors cursor-pointer">
                                     <td className="py-3">
+                                        
                                         <input  
+                                        id={`vehicle-select-${vehicle.id}`}
                                             type="checkbox"
                                             checked={selectedIds.has(vehicle.id)}
                                             onChange={() => toggleOne(vehicle.id)}
                                         ></input>
                                     </td>
-                                    <td className="py-3 text-fleet-text font-medium">{vehicle.id}</td>
-                                    <td className="py-3 text-fleet-secondary">{vehicle.province || '-'}</td>
-                                    <td className="py-3 text-fleet-secondary">{vehicle.fleet_group_name || 'Unassigned'}</td>
+                                    <td className="text-fleet-text font-medium"><label htmlFor={`vehicle-select-${vehicle.id}`} className="block py-3 cursor-pointer">{vehicle.id}</label></td>
+                                    <td className="text-fleet-secondary"><label htmlFor={`vehicle-select-${vehicle.id}`} className="block py-3 cursor-pointer">{vehicle.province || '-'}</label></td>
+                                    <td className="text-fleet-secondary"><label htmlFor={`vehicle-select-${vehicle.id}`} className="block py-3 cursor-pointer">{vehicle.fleet_group_name || 'Unassigned'}</label></td>
                                 </tr>
                             ))}
 
@@ -557,6 +634,14 @@ export default function FleetGroupDetail() {
                         {deleting ? 'Deleting...' : 'Delete Group'}
                 </button>
         </div>
+        <TransferVehiclesModal
+            open={confirmTransferOpen}
+            onOpenChange={setConfirmTransferOpen}
+            vehicleIds={Array.from(selectedIds)}
+            fromName={group.name}
+            toName={allGroups.find((g) => String(g.id) === String(targetGroupId))?.name}
+            onConfirm={handleTransfer}
+        />
         </div>
     )
 }

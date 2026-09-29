@@ -228,6 +228,78 @@ describe('Fleet Groups API', () => {
         }); 
     });
 
+        describe('PATCH /api/fleet-groups/:id/vehicles/transfer', () => {
+        const url = '/api/fleet-groups/1/vehicles/transfer';
+
+        it('rejects a missing vehicleIds array', async () => {
+            const res = await authPatch(url, {targetGroupId: 2});
+            expect(res.status).toBe(400);
+        });
+
+        it('rejects an empty vehicleIds array', async () => {
+            const res = await authPatch(url, {vehicleIds: [], targetGroupId: 2});
+            expect(res.status).toBe(400);
+        });
+
+        it('rejects a missing targetGroupId', async () => {
+            const res = await authPatch(url, {vehicleIds: ['V1']});
+            expect(res.status).toBe(400);
+            expect(mockQuery).not.toHaveBeenCalled();
+        });
+
+        it('rejects a non numeric targetGroupId', async () => {
+            const res = await authPatch(url, {vehicleIds: ['V1'], targetGroupId: 'abc'});
+            expect(res.status).toBe(400);
+        });
+
+        it('rejects transferring to the same group', async () => {
+            const res = await authPatch(url, {vehicleIds: ['V1'], targetGroupId: 1});
+            expect(res.status).toBe(400);
+            expect(res.body.error).toMatch(/already in this group/);
+        });
+
+        it('rejects a non-admin caller', async () => {
+            const res = await authPatch(url, {vehicleIds: ['V1'], targetGroupId: 2}, managerToken);
+            expect(res.status).toBe(403);
+        });
+
+        it('returns 404 when the source group does not exist', async () => {
+            mockQuery.mockResolvedValueOnce({rows: [{id: '2'}]});
+            const res = await authPatch(url, {vehicleIds: ['V1'], targetGroupId: 2});
+            expect(res.status).toBe(404);
+            expect(res.body.error).toBe('Fleet group not found');
+        });
+
+        it('returns 404 when the target group does not exist', async () => {
+            mockQuery.mockResolvedValueOnce({rows: [{id: '1'}]});
+            const res = await authPatch(url, {vehicleIds: ['V1'], targetGroupId: 2});
+            expect(res.status).toBe(404);
+            expect(res.body.error).toBe('Target fleet group not found');
+        });
+
+        it('moves only vehicles still in the source group and reports the rest', async () => {
+            mockQuery
+                .mockResolvedValueOnce({rows: [{id: '1'}, {id: '2'}]})
+                .mockResolvedValueOnce({rows: [{vehicle_id: 'V1'}]});
+
+            const res = await authPatch(url, {vehicleIds: ['V1', 'V2'], targetGroupId: 2});
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.transferred).toEqual(['V1']);
+            expect(res.body.data.not_in_group).toEqual(['V2']);
+            expect(mockQuery).toHaveBeenLastCalledWith(
+                expect.stringContaining('fleet_group_id = $3'),
+                [2, ['V1', 'V2'], '1']
+            );
+        });
+
+        it('handles a db error', async () => {
+            mockQuery.mockRejectedValueOnce(new Error('db down'));
+            const res = await authPatch(url, {vehicleIds: ['V1'], targetGroupId: 2});
+            expect(res.status).toBe(500);
+        });
+    });
+
     describe('GET /api/fleet-groups/:id/available-vehicles', () => {
 
         it('rejects an invalid status filter', async()=> {

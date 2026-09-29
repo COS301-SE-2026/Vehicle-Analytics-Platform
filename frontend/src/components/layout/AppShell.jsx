@@ -16,12 +16,22 @@ const pageTitles = {
   '/reports':           'Reports'
 }
 
+const getPageTitle = (pathname) => {
+  if (pageTitles[pathname]) return pageTitles[pathname]
+
+  const match = Object.keys(pageTitles)
+    .filter(route => pathname.startsWith(route + '/'))
+    .sort((a, b) => b.length - a.length)[0]
+
+  return match ? pageTitles[match] : 'FleetTracker'
+}
+
 const noHeader = new Set(['/login', '/register'])
 
 export default function AppShell({ role = 'viewer' }) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
-  const title = pageTitles[location.pathname]  || 'FleetTracker'
+  const title = getPageTitle(location.pathname)
   const hideHeader = noHeader.has(location.pathname)
 
   return (

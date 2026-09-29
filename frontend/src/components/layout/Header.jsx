@@ -7,7 +7,8 @@ import NotificationBell from './NotificationBell';
 
 export default function Header({ title, collapsed }) {
   const [ activePanel, setActivePanel ] = useState(false);
-  const { user } = useAuthStore()
+  const  user  = useAuthStore((s) => s.user)
+  const  role  = useAuthStore((s) => s.role)
   const initials = (user?.name || 'User')
     .split(' ')
     .map((part) => part[0])
@@ -53,7 +54,7 @@ export default function Header({ title, collapsed }) {
       <HelpPanel
         isOpen={activePanel === 'help'}
         onClose={closeHelp}
-        role={user?.role || 'viewer'}
+        role={role}
       />
     </header>
   )

@@ -2,16 +2,20 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import Header from '../components/layout/Header'
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
 
-// Mock the auth store so we control the user object
-const mockUser = { name: 'Matthew Stevens', role: 'viewer' }
-jest.mock('../store/authStore', () => ({
-  __esModule: true,
-  default: () => ({ user: mockUser }),
-}))
+const mockState = {
+  user: { name: 'Matthew Stevens', email: 'matthew@fleet.com', id: 1 },
+  role: 'viewer',
+}
 
-// Mock HelpPanel — we only care that Header toggles it correctly
+
+jest.mock('../store/authStore', () => {
+  const store = (selector) => selector(mockState)
+  store.getState = () => mockState
+  return { __esModule: true, default: store }
+})
+
+
 jest.mock('@/components/help/HelpPanel', () => ({
   __esModule: true,
   HelpPanel: ({ isOpen, onClose, role }) =>
@@ -22,7 +26,6 @@ jest.mock('@/components/help/HelpPanel', () => ({
     ) : null,
 }))
 
-// Mock NotificationBell — we only care that Header wires its props correctly
 jest.mock('../components/layout/NotificationBell', () => ({
   __esModule: true,
   default: ({ isOpen, onOpen, onClose }) => (
@@ -33,7 +36,6 @@ jest.mock('../components/layout/NotificationBell', () => ({
   ),
 }))
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('Header – rendering', () => {
   test('renders the provided page title', () => {
@@ -43,7 +45,7 @@ describe('Header – rendering', () => {
 
   test('derives initials from the user name', () => {
     render(<Header title="Dashboard" collapsed={false} />)
-    // "Matthew Stevens" → "MS"
+    // "Matthew Stevens" should be "MS"
     expect(screen.getByText('MS')).toBeInTheDocument()
   })
 
@@ -74,7 +76,7 @@ describe('Header – help panel', () => {
     expect(screen.getByTestId('help-panel')).toBeInTheDocument()
   })
 
-  test('help panel receives the user role', () => {
+  test('help panel receives the role from the store, not from the user object', () => {
     render(<Header title="Dashboard" collapsed={false} />)
     fireEvent.click(screen.getByLabelText('Open help'))
     expect(screen.getByTestId('help-panel')).toHaveAttribute('data-role', 'viewer')

@@ -22,6 +22,8 @@ export const ROLES = {
 const ALL_ROLES = [ROLES.VIEWER, ROLES.FLEET_MANAGER, ROLES.ADMIN];
 const MANAGER_AND_ADMIN = [ROLES.FLEET_MANAGER, ROLES.ADMIN];
 
+const ADMIN_ONLY = [ROLES.ADMIN];
+
 const text = (value) => ({ type: "text", text: value });
 const list = (items) => ({ type: "list", items });
 const table = (headers, rows) => ({ type: "table", headers, rows });
@@ -243,6 +245,110 @@ export const helpMenuData = [
         ],
     },
     {
+        id: "fleet-groups",
+        title: "Fleet Groups",
+        icon: "groups",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+        {
+            id: "what-are-fleet-groups",
+            title: "What Fleet Groups Are",
+            preview: "How vehicles are organised and scoped",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A fleet group is a named collection of vehicles. Admins create the groups and decide which vehicles belong to each one, then assign Fleet Managers to the groups they're responsible for."
+                ),
+                text(
+                    "Once you're assigned, your dashboard, map, vehicle list, and safety scores are scoped to your groups only. Admins always see every group, assigned or not."
+                ),
+                callout(
+                    "Access is checked on every request, not stored when you log in. If your access changes, you'll see it on the next refresh - no need to log out and back in."
+                ),
+            ],
+        },
+        {
+            id: "switching-between-groups",
+            title: "Switching Between Groups",
+            preview: "Working across more than one fleet",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "If you're assigned to more than one fleet group, go back to the group cards and pick a different one. The dashboard, map, vehicle list, and safety scores all update to the newly selected group."
+                ),
+                callout("Switching groups doesn't reload the page - the views update in place."),
+            ],
+        },
+        {
+            id: "manager-leaderboard",
+            title: "Manager Leaderboard",
+            preview: "How your fleet compares",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "The dashboard ranks fleet managers by the average safety score of their vehicles over the last 7 days. Where two managers tie, the one with more vehicles ranks higher. The top 5 are shown by default."
+                ),
+                callout(
+                    "If you are not listed, your vehicles have no safety scores from the last 7 days. A quiet week keeps you off the board rather than putting you at the bottom of it."
+                ),
+            ],
+        },
+        {
+            id: "creating-and-deleting-groups",
+            title: "Creating & Deleting Groups",
+            preview: "Setting up and tidying up",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "On the Fleet Groups page you can create a group with a name and an optional description. It starts empty, with no vehicles and no manager, and is flagged Unassigned until you give it one. Names must be unique among active groups."
+                ),
+                text(
+                    "Deleting a group asks you to confirm and tells you how many vehicles will be affected. The vehicles are not deleted. They become unassigned and can be put into another group, and the group's manager assignment is removed."
+                ),
+                callout(
+                    "A deleted group's name becomes free again, so you can reuse it for a new group later."
+                ),
+            ],
+        },
+        {
+            id: "assigning-a-manager",
+            title: "Assigning a Manager",
+            preview: "Putting someone in charge of a group",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "Open a group and pick from the list of available managers. Only active users with the Fleet Manager role appear there. A group holds one manager at a time, so to change who is responsible, remove the current manager first and then assign the new one."
+                ),
+                text(
+                    "Assignments and removals take effect straight away. A newly assigned manager sees the group's vehicles on their next request, and a removed manager loses access just as quickly, without either of them signing out."
+                ),
+                callout(
+                    "Every assignment and removal is recorded with who made the change and when, including removals caused by deleting a group."
+                ),
+            ],
+        },
+        {
+            id: "moving-vehicles-between-groups",
+            title: "Moving Vehicles Between Groups",
+            preview: "Assigning, unassigning and transferring",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "Inside a group, vehicles are split across three tabs: Unassigned, In This Group, and In Another Group. Search by province, tick the vehicles you want, then assign them, unassign them, or transfer them straight to another group without unassigning first."
+                ),
+                list([
+                    "A vehicle belongs to one group at a time, or to none.",
+                    "Transfers ask you to confirm, showing which vehicles are moving and where to.",
+                    "A transferred vehicle immediately follows its new group's manager and custom alert rules.",
+                ]),
+                callout(
+                    "If someone moved a vehicle while you were choosing, it is skipped rather than moved twice, and the result tells you how many were skipped."
+                ),
+            ],
+        },
+      ],
+    },
+    {
         id: "geofencing",
         title: "Geofencing",
         icon: "map-pin",
@@ -290,13 +396,30 @@ export const helpMenuData = [
                 ],
             },
             {
-                id: "zone-level-event-tallies",
-                title: "Zone-Level Event Tallies",
-                preview: "Spotting high-risk locations",
+                id: "hazard-zones",
+                title: "Hazard Zones",
+                preview: "Risky spots the system finds on its own",
                 roles: ALL_ROLES,
                 content: [
                     text(
-                        "Every unsafe event that happens inside a zone gets added to that zone's own event count. Over time, this lets you compare zones side by side and spot which locations produce the most risky driving."
+                        "Alongside the zones you draw, the system marks places where risky driving keeps happening. When enough unsafe events pile up in a small area over the last 7 days, it creates a 250 m hazard zone centred on them. These appear in amber on the map and as type Hazard in the zone table, and a \"New hazard detected\" alert goes to Zone Alerts."
+                    ),
+                    callout(
+                        "Hazard zones are found automatically, so they cannot be edited or deleted. They also do not send entry or exit alerts the way your own zones do."
+                    ),
+                ],
+            },
+            {
+                id: "reading-a-hazard-zone",
+                title: "Reading a Hazard Zone",
+                preview: "What the name and details tell you",
+                roles: ALL_ROLES,
+                content: [
+                    text(
+                        "The zone name is built to answer the obvious questions at a glance: the road or area, the most common event type there, how many incidents were counted, how many vehicles were involved, and the average speed."
+                    ),
+                    text(
+                     "If one vehicle caused all of it, the name names that vehicle. If several did, you get the count and the worst offender. That distinction matters, because a hazard caused by one vehicle is usually a driver to talk to, while a hazard caused by many is usually a road or junction to warn people about."
                     ),
                 ],
             },
@@ -348,6 +471,307 @@ export const helpMenuData = [
                 ],
             },
         ],
+    },
+    {
+        id: "fuel-efficiency",
+        title: "Fuel Efficiency",
+        icon: "fuel",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+        {
+            id: "how-fuel-is-estimated",
+            title: "How Fuel Use Is Estimated",
+            preview: "Why the numbers are estimates, not readings",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Fuel figures are not read from the vehicle's tank. They are estimated from each completed trip's distance and average speed, using a standard consumption rate for each speed band."
+                ),
+                table(
+                    ["Average speed", "Fuel use"],
+                    [
+                        ["Under 20 km/h", "14 L/100km (stop-start)"],
+                        ["20 to 40 km/h", "11 L/100km (city)"],
+                        ["40 to 60 km/h", "8.5 L/100km (mixed)"],
+                        ["60 to 80 km/h", "7 L/100km (most efficient)"],
+                        ["80 to 100 km/h", "7.5 L/100km"],
+                        ["Over 100 km/h", "9 L/100km"],
+                    ]
+                ),
+                callout(
+                    "Because the estimate is speed based, a vehicle doing steady highway runs will always look more efficient than one doing town deliveries. Compare like with like."
+                ),
+                text(
+                    "Two units appear in the system. Consumption is shown as L/100km, where lower is better. Efficiency is shown as km/L, where higher is better."
+                ),
+            ],
+        },
+        {
+            id: "where-to-find-fuel-data",
+            title: "Where to Find Fuel Data",
+            preview: "Per vehicle, per trip, and fleet wide",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                list([
+                    "Vehicle profile - fuel used, distance, average speed and a trend chart for today, this week or this month.",
+                    "Each trip - its own estimated fuel consumed and efficiency.",
+                    "Fuel Analytics dashboard - fleet average efficiency, total fuel, total distance, and vehicles ranked best to worst.",
+                ]),
+                callout(
+                     "Fuel efficiency is only calculated once a trip finishes. If a vehicle is mid-trip you will see \"No data available\" for it until that trip ends."
+                ),
+            ],
+        },
+      ],
+    },
+    {
+        id: "predictive-risk",
+        title: "Predictive Risk",
+        icon: "trending-up",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+        {
+            id: "what-is-predictive-risk",
+            title: "What Predictive Risk Is",
+            preview: "A forecast of tomorrow, not a report on today",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Predictive Risk estimates how likely each vehicle is to have an unsafe day tomorrow. Every vehicle gets a score from 0 to 100, where a higher number means a higher chance of unsafe driving ahead. Scores refresh automatically once a day at 03:00."
+                ),
+                text(
+                    "The forecast is built from how the vehicle has actually been driven over the past 7 days, compared against 90 days of fleet history. It deliberately ignores today's Safety Score, so it is making a genuine prediction rather than repeating what you can already see."
+                ),
+                callout(
+                    "A vehicle can have a clean day today and still be flagged as high risk for tomorrow. That is the system working as intended, not a mistake."
+                ),
+            ],
+        },
+        {
+            id: "risk-score-vs-safety-score",
+            title: "Risk Score vs Safety Score",
+            preview: "Two different numbers, two different jobs",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "These two scores are easy to confuse because they both run from 0 to 100. They measure opposite things and move in opposite directions."
+                ),
+                table(
+                    ["Safety Score", "Risk Score"],
+                    [
+                        [
+                            "Looks backwards at what already happened today. Starts at 100 and drops as unsafe events are detected. Higher is better. Resets every 24 hours.",
+                            "Looks forwards at what is likely to happen tomorrow. Built from the last 7 days of behaviour. Higher is worse. Recalculated daily at 03:00.",
+                        ],
+                    ]
+                ),
+                callout(
+                    "If a vehicle shows a good Safety Score and a high Risk Score at the same time, nothing is broken. Today went well, but the recent pattern suggests tomorrow may not."
+                ),
+            ],
+        },
+        {
+            id: "risk-tiers-explained",
+            title: "Risk Tiers Explained",
+            preview: "What Low, Medium, High and Critical mean for you",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Every risk score is grouped into one of four tiers so you can triage the fleet at a glance instead of comparing raw numbers."
+                ),
+                glossary([
+                    {
+                        term: "Low",
+                        definition:
+                            "Recent driving looks steady. No action needed. Check in on these vehicles during your normal weekly review.",
+                    },
+                    {
+                        term: "Medium",
+                        definition:
+                            "Some early warning signs in the last 7 days, but nothing urgent. Worth a glance at the top reasons to see what is drifting.",
+                    },
+                    {
+                        term: "High",
+                        definition:
+                            "The pattern of recent driving closely resembles vehicles that went on to have an unsafe day. A coaching recommendation is created automatically for these vehicles.",
+                    },
+                    {
+                        term: "Critical",
+                        definition:
+                            "The strongest warning the system gives. These should be your first stop each morning. A coaching recommendation is created automatically and an alert is sent to your notification feed.",
+                    },
+                ]),
+                text(
+                    "The tier is shown as a coloured badge on the vehicle's Predictive Risk tab and as a small badge in the fleet table, so you can scan the whole list without opening each profile."
+                ),
+            ],
+        },
+        {
+            id: "reading-the-top-reasons",
+            title: "Reading the Top 3 Reasons",
+            preview: "Why a vehicle scored the way it did",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A score on its own does not tell you what to do about it. Under every prediction you will find the three factors that pushed the score up the most, ranked by how much each one mattered."
+                ),
+                text("The factors the model looks at are:"),
+                list([
+                    "Average safety score over the recent period",
+                    "Harsh events per trip, covering braking, acceleration and cornering",
+                    "Speeding ratio, meaning how much of the driving was above the threshold",
+                    "Distance driven over the week",
+                    "Days since the last recorded trip",
+                ]),
+                text(
+                    "Each reason is written in plain language, for example \"Frequent harsh events\" or \"High weekly distance,\" so you can go straight to the conversation you need to have with the driver."
+                ),
+            ],
+        },
+        {
+            id: "unexpected-risk-scores",
+            title: "When a Score Looks Wrong",
+            preview: "Quiet vehicles, new vehicles and missing data",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A few situations produce scores that look surprising at first but are working correctly."
+                ),
+                list([
+                    "A vehicle that has not moved recently scores low. With no recent trips there is no risky behaviour to learn from, so the system treats it as inactive rather than dangerous.",
+                    "A brand new vehicle with little history will also sit low until it has built up enough recent driving to score against.",
+                    "A vehicle with no completed trips in the last 30 days is treated as inactive, and its trip based factors fall back to neutral values.",
+                ]),
+                callout(
+                    "A low risk score on a parked vehicle is not a clean bill of health. It only means the system has nothing recent to go on."
+                ),
+            ],
+        },
+        {
+            id: "how-accurate-is-the-forecast",
+            title: "How Accurate Is the Forecast?",
+            preview: "What the model gets right and where to be careful",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "On data the model had never seen during training, it correctly ranks a genuinely unsafe vehicle above a genuinely safe one about 90.6 percent of the time. For comparison, simply assuming tomorrow will look like today gets this right 88.2 percent of the time."
+                ),
+                text(
+                    "That makes the forecast a useful way to order your attention across the fleet, but it is not a guarantee about any single vehicle. Treat a High or Critical score as a prompt to look closer, not as proof that something will go wrong."
+                ),
+                callout(
+                    "Use the risk score to decide who to check on first. Use the top reasons and the vehicle's trip history to decide what to actually say."
+                ),
+            ],
+        },
+        {
+            id: "recalculating-risk",
+            title: "Recalculating Risk Manually",
+            preview: "Refreshing predictions outside the daily run",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "Predictions normally refresh once a day at 03:00. Admins can trigger a fresh run at any time using the Recalculate Risk button on the Fleet Risk page."
+                ),
+                text(
+                    "This is useful after the model has been retrained, after a change to the underlying data, or when you need current numbers for a review straight away. When the run finishes you will see a summary of how many vehicles were scored and how many alerts were raised, and the page refreshes with the new predictions."
+                ),
+                list([
+                    "Running it more than once in a day updates the existing predictions rather than creating duplicates.",
+                    "If a run is already in progress, the system tells you instead of starting a second one.",
+                    "Fleet Managers and Viewers do not see this button and cannot trigger a run.",
+                ]),
+                callout(
+                    "If you see an error saying no trained model is available, the model needs to be trained before predictions can run. Contact whoever maintains your deployment."
+                ),
+            ],
+        },
+      ],
+    },
+    {
+        id: "custom-alerts",
+        title: "Custom Alerts",
+        icon: "bell",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+        {
+            id: "creating-a-custom-alert",
+            title: "Creating an Alert",
+            preview: "Set a rule and start monitoring",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Go to the Custom Alerts tab, click Create Alert, pick one condition type, set its values, choose the fleet group it applies to, and give it a name. Monitoring starts as soon as you save."
+                ),
+                list([
+                    "Speed threshold - a vehicle goes above a set speed",
+                    "Time restriction - a vehicle runs outside your allowed hours or days",
+                    "Repeated unsafe events - a set number of harsh events within a rolling time window",
+                    "Safety score drop - a vehicle's score falls below a set value",
+                    "Trip duration - a single trip or a day's total driving runs too long",
+                ]),
+                text(
+                    "Before you save, use Preview Impact to see how the rule would have behaved over the last month."
+                ),
+                callout(
+                    "You can only scope an alert to a fleet group you manage, and it will only ever fire for vehicles in that group."
+                ),
+            ],
+        },
+        {
+            id: "when-an-alert-fires",
+            title: "When an Alert Fires",
+            preview: "Acknowledging and resolving",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A triggered alert shows the vehicle, what was breached, the recorded value against your threshold, and the time. Acknowledge it to mark it as seen, then open Details for the location, the rule that fired, and a link to the vehicle. Mark it Resolved once you have acted."
+                ),
+                callout(
+                    "Resolved alerts stay in the feed in a muted state rather than disappearing, so you keep the history."
+                ),
+                text(
+                    "If the same vehicle breaches the same rule repeatedly in a few minutes, you get one alert rather than a stream of them." 
+                ),
+            ],
+        },
+        {
+            id: "preview-alert-impact",
+            title: "Previewing an Alert",
+            preview: "See how noisy a rule will be before saving",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Once you have picked a fleet group and filled in the rule's values, Preview Impact replays the draft against the last 30 days of real data for that group. You get the number of alerts it would have raised, how many vehicles were involved, a day by day trend with the busiest day marked, and a sample of the worst breaches showing the vehicle, the value and how far over your threshold it went."
+                ),
+                text(
+                    "Adjust a threshold and the preview re-runs on its own, so you can settle on a number that catches real problems without burying your team. If the rule would never have fired, the panel tells you that outright."
+                ),
+                callout(
+                 "Nothing is saved and nobody is notified while you preview. Your draft stays exactly as you left it."
+                ),
+                text(
+                 "The preview applies the same duplicate suppression the live rule would, so the count you tune against is the count you can expect to receive."
+                ),
+            ],
+        },
+        {
+            id: "managing-your-alerts",
+            title: "Editing, Pausing & Deleting",
+            preview: "Changing a rule after you have made it",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                list([
+                    "Edit - opens the rule pre-filled. Changes apply to data received after you save, not backwards.",
+                    "Deactivate - stops monitoring but keeps the rule in your list to switch back on later.",
+                    "Delete - removes the rule permanently. Alerts it already triggered stay in your history.",
+                ]),
+                callout(
+                    "If a save is rejected, check for a missing threshold, an end time earlier than the start time, or no fleet group selected."
+                ),
+            ],
+        },
+      ],
     },
 ];
 

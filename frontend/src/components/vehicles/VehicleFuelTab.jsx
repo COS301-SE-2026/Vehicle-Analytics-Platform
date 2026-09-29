@@ -1152,15 +1152,8 @@ if (!data || data.trips.length === 0) {
 
                 <div className="flex items-center gap-4">
 
-                    <div className="p-3 rounded-2xl bg-gray-900 shadow-lg shadow-gray-900/20">
-
-                        <Fuel className="w-5 h-5 text-white" />
-
-                    </div>
-
                     <div>
 
-                        <h3 className="text-lg font-bold text-gray-900 tracking-tight">Fuel Efficiency</h3>
 
                         <p className="text-sm text-gray-400">
 
@@ -1220,7 +1213,7 @@ whileTap={{ scale: 0.98 }}
 
 onClick={handleExport}
 
-className="flex items-center gap-2 text-sm px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all duration-300"
+className="flex items-center gap-2 text-sm text-fleet-surface px-4 py-2.5 bg-fleet-blue rounded-xl hover:bg-fleet-blue/95 hover:text-white hover:border-gray-900 transition-all duration-300"
 
 >
 

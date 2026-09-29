@@ -108,6 +108,25 @@ function ensureAnimating(entry) {
 
 // ---------- Marker helpers (extracted for cognitive complexity) ----------
 
+// Mapbox positions a marker by writing `transform` on the element it is
+// given, every frame. So that element (the wrapper) must never be styled,
+// transformed or transitioned, or markers lag and drift while the map moves.
+// All visuals, hover effects and highlight animations live on the inner element.
+function markerInner(marker) {
+  return marker.getElement().querySelector('.vehicle-marker-inner');
+}
+
+// The highlight class goes on the wrapper: index.css styles
+// `.vehicle-marker.vehicle-marker-highlighted .vehicle-marker-inner`,
+// so the pulse and scale apply to the inner element only.
+function wrapMarkerElement(inner, isHighlighted) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'vehicle-marker';
+  wrapper.classList.toggle('vehicle-marker-highlighted', !!isHighlighted);
+  wrapper.appendChild(inner);
+  return wrapper;
+}
+
 function applyMarkerStyle(el, vehicle, ringColour) {
   el.style.backgroundColor = STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline;
   el.style.boxShadow = ringColour
@@ -148,17 +167,16 @@ function updateExistingMarker(existing, vehicle, risk, ringColour, isHighlighted
 
   selfHealPosition(existing, vehicle);
 
-  const el = existing.marker.getElement();
+  const el = markerInner(existing.marker);
   applyMarkerStyle(el, vehicle, ringColour);
-  el.classList.toggle('vehicle-marker-highlighted', !!isHighlighted);
+  existing.marker.getElement().classList.toggle('vehicle-marker-highlighted', !!isHighlighted);
   applyMarkerBadge(el, risk, ringColour);
   return el;
 }
 
-function buildMarkerElement(vehicle, risk, ringColour, isHighlighted) {
+function buildMarkerElement(vehicle, risk, ringColour) {
   const el = document.createElement('div');
-  el.className = 'vehicle-marker vehicle-marker-inner';
-  if (isHighlighted) el.classList.add('vehicle-marker-highlighted');
+  el.className = 'vehicle-marker-inner';
   Object.assign(el.style, {
     width: '32px', height: '32px', borderRadius: '50%',
     backgroundColor: STATUS_COLORS[vehicle.status] || STATUS_COLORS.offline,
@@ -200,7 +218,7 @@ function buildMarkerElement(vehicle, risk, ringColour, isHighlighted) {
     el.style.boxShadow = `0 0 0 5px ${ringColour || 'rgba(255,255,255,0.3)'}`;
   });
   el.addEventListener('mouseleave', () => {
-    if (!el.classList.contains('vehicle-marker-highlighted')) {
+    if (!el.parentElement?.classList.contains('vehicle-marker-highlighted')) {
       el.style.boxShadow = ringColour
         ? `0 0 0 3px ${ringColour}`
         : '0 2px 4px rgba(0,0,0,0.4)';
@@ -372,8 +390,8 @@ export default function FleetMap({
           return;
         }
 
-        el = buildMarkerElement(vehicle, risk, ringColour, isHighlighted);
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        el = buildMarkerElement(vehicle, risk, ringColour);
+        const marker = new mapboxgl.Marker({ element: wrapMarkerElement(el, isHighlighted), anchor: 'center' })
           .setLngLat([vehicle.lng, vehicle.lat])
           .addTo(map.current);
 

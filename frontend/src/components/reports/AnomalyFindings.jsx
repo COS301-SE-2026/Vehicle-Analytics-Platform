@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { AlertTriangle } from 'lucide-react';
-import { formatChance, formatNumber, plural } from './anomalyFormat';
+import { formatNumber, plural } from './anomalyFormat';
 
 const SEVERITY_STYLES = {
     high: 'bg-red-50 text-red-700 border-red-200',
@@ -13,13 +13,13 @@ const SEVERITY_LABELS = { high: 'High', moderate: 'Moderate', low: 'Low' };
 const ICON_TONE = { high: 'text-red-600', moderate: 'text-amber-600', low: 'text-slate-500' };
 const INITIALLY_VISIBLE = 6;
 
-function evidenceChips(flag, peerNoun){
+// Plain-language evidence only. The z-score and the chance probability are
+// explained once in "How the detection works" rather than on every card.
+function evidenceChips(flag){
     const chips = [];
 
     if (flag.ratio !== null && flag.ratio !== undefined) {
-        chips.push(`${flag.ratio}× the ${peerNoun} median`);
-    } else if (flag.kind === 'rate') {
-        chips.push(`The ${peerNoun} median is zero`);
+        chips.push(`${flag.ratio}× the other vehicles' median`);
     }
 
     const evidence = flag.evidence;
@@ -27,16 +27,22 @@ function evidenceChips(flag, peerNoun){
         chips.push(`${formatNumber(evidence.observed, 0)} recorded, about ${formatNumber(evidence.expected)} expected`);
     }
 
-    const chance = evidence ? formatChance(evidence.pValue) : null;
-    if (chance) chips.push(`Chance: ${chance}`);
-
     if (flag.method === 'peers_uniform') {
         chips.push('Above every other vehicle');
-    } else if (flag.score !== null && flag.score !== undefined) {
-        chips.push(`Modified z = ${formatNumber(flag.score, 1)}`);
     }
 
     return chips;
+}
+
+
+// One caution per vehicle. Older responses carried the caution on each flag.
+function vehicleCautions(vehicle){
+    if (Array.isArray(vehicle.cautions)) return vehicle.cautions;
+
+    const seen = new Set();
+    return (vehicle.flags || [])
+        .map((flag) => flag.caution)
+        .filter((caution) => caution && !seen.has(caution.message) && seen.add(caution.message));
 }
 
 
@@ -51,7 +57,8 @@ function SeverityBadge({ severity }){
 SeverityBadge.propTypes = { severity: PropTypes.string.isRequired };
 
 
-function FindingCard({ vehicle, selected, onSelectVehicle, onShowOnChart, peerNoun }){
+function FindingCard({ vehicle, selected, onSelectVehicle, onShowOnChart }){
+    const cautions = vehicleCautions(vehicle);
     const meta = [
         plural(vehicle.flagCount, 'behaviour'),
         `${formatNumber(vehicle.totalIncidents, 0)} incidents`,
@@ -83,7 +90,7 @@ function FindingCard({ vehicle, selected, onSelectVehicle, onShowOnChart, peerNo
                     <li key={flag.feature}>
                         <p className="text-sm text-fleet-text leading-relaxed max-w-3xl">{flag.explanation}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                            {evidenceChips(flag, peerNoun).map((chip) => (
+                            {evidenceChips(flag).map((chip) => (
                                 <span key={chip} className="text-xs text-fleet-secondary bg-fleet-border/30 rounded-md px-2 py-1">
                                     {chip}
                                 </span>
@@ -96,14 +103,18 @@ function FindingCard({ vehicle, selected, onSelectVehicle, onShowOnChart, peerNo
                         >
                             Show on chart
                         </button>
-                        {flag.caution && (
-                            <p className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                                {flag.caution.message}
-                            </p>
-                        )}
                     </li>
                 ))}
             </ul>
+
+            {cautions.map((caution) => (
+                <p
+                    key={caution.message}
+                    className="mt-3 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"
+                >
+                    {caution.message}
+                </p>
+            ))}
         </article>
     );
 }
@@ -113,7 +124,6 @@ FindingCard.propTypes = {
     selected: PropTypes.bool.isRequired,
     onSelectVehicle: PropTypes.func.isRequired,
     onShowOnChart: PropTypes.func.isRequired,
-    peerNoun: PropTypes.string.isRequired,
 };
 
 
@@ -143,7 +153,6 @@ export default function AnomalyFindings({
                     selected={vehicle.vehicleId === selectedVehicleId}
                     onSelectVehicle={onSelectVehicle}
                     onShowOnChart={onShowOnChart}
-                    peerNoun={peerNoun}
                 />
             ))}
 
@@ -168,4 +177,4 @@ AnomalyFindings.propTypes = {
     peerNoun: PropTypes.string,
 };
 
-export { evidenceChips };
+export { evidenceChips, vehicleCautions };

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { AnomalyFunnelChart, STATUS_LABELS } from '../ui/anomalyCharts';
-import { behaviourName, formatNumber } from './anomalyFormat';
+import { AnomalyFunnelChart, statusLabel } from '../ui/anomalyCharts';
+import { behaviourName, formatNumber, joinList, valueLabel } from './anomalyFormat';
 
 const STATUS_BADGES = {
     flagged: 'bg-red-50 text-red-700 border-red-200',
@@ -9,7 +9,7 @@ const STATUS_BADGES = {
     unconfirmed: 'bg-white text-fleet-secondary border-fleet-border border-dashed',
 };
 
-const STATUS_ORDER = ['flagged', 'normal', 'unconfirmed'];
+const STATUS_ORDER = ['flagged', 'unconfirmed', 'normal'];
 
 function Th({ children, align = 'left' }){
     return (
@@ -33,31 +33,56 @@ function Td({ children, align = 'left', className = '' }){
 Td.propTypes = { children: PropTypes.node, align: PropTypes.string, className: PropTypes.string };
 
 
-function StatusBadge({ status }){
+function StatusBadge({ status, peerNoun }){
     return (
         <span className={`inline-flex items-center whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium ${STATUS_BADGES[status] || STATUS_BADGES.normal}`}>
-            {STATUS_LABELS[status] || status}
+            {statusLabel(status, peerNoun)}
         </span>
     );
 }
 
-StatusBadge.propTypes = { status: PropTypes.string.isRequired };
-
-
-function capitalise(text){
-    return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
-}
+StatusBadge.propTypes = { status: PropTypes.string.isRequired, peerNoun: PropTypes.string.isRequired };
 
 
 function nameList(features){
-    return features.map((f) => behaviourName(f).toLowerCase()).join(', ');
+    return joinList(features.map((f) => behaviourName(f).toLowerCase()));
 }
+
+
+function FeatureNotes({ entries }){
+    const noEvents = entries.filter((f) => f.status === 'no_events');
+    const tooFew = entries.filter((f) => f.status === 'insufficient_peers');
+    const notReported = entries.filter((f) => f.status === 'not_reported');
+
+    return (
+        <>
+            {notReported.length > 0 && (
+                <p className="mt-2 text-xs text-fleet-secondary">
+                    Too few devices report {nameList(notReported)} to compare {notReported.length === 1 ? 'it' : 'them'}.
+                </p>
+            )}
+            {noEvents.length > 0 && (
+                <p className="mt-2 text-xs text-fleet-secondary">
+                    No vehicle recorded any {nameList(noEvents)} incidents in this period.
+                </p>
+            )}
+            {tooFew.length > 0 && (
+                <p className="mt-2 text-xs text-fleet-secondary">
+                    Too few vehicles had data to compare {nameList(tooFew)}.
+                </p>
+            )}
+        </>
+    );
+}
+
+FeatureNotes.propTypes = { entries: PropTypes.array.isRequired };
 
 
 export default function AnomalyDistribution({
     features = {},
     behaviourKey = null,
     alpha,
+    peerNoun = 'fleet',
     selectedVehicleId = null,
     onSelectVehicle = () => {},
     highlightFocus = false,
@@ -77,29 +102,12 @@ export default function AnomalyDistribution({
     }, [plottable, feature, flaggedOnly, selectedVehicleId, highlightFocus]);
 
     const entries = Object.values(features);
-    const noEvents = entries.filter((f) => f.status === 'no_events');
-    const tooFew = entries.filter((f) => f.status === 'insufficient_peers');
-
-    const notes = (
-        <>
-            {noEvents.length > 0 && (
-                <p className="mt-2 text-xs text-fleet-secondary">
-                    No vehicle recorded any {nameList(noEvents)} incidents in this period.
-                </p>
-            )}
-            {tooFew.length > 0 && (
-                <p className="mt-2 text-xs text-fleet-secondary">
-                    Too few vehicles had data to compare {nameList(tooFew)}.
-                </p>
-            )}
-        </>
-    );
 
     if (!plottable) {
         return (
             <div>
                 <p className="text-sm text-fleet-secondary py-10 text-center">No behaviour had enough vehicles with data to plot.</p>
-                {notes}
+                <FeatureNotes entries={entries} />
             </div>
         );
     }
@@ -114,11 +122,12 @@ export default function AnomalyDistribution({
             <AnomalyFunnelChart
                 feature={feature}
                 alpha={alpha}
+                peerNoun={peerNoun}
                 selectedVehicleId={selectedVehicleId}
                 onSelectVehicle={onSelectVehicle}
                 highlightFocus={highlightFocus}
             />
-            {notes}
+            <FeatureNotes entries={entries} />
 
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 mb-2">
                 <p className="text-sm font-medium text-fleet-text">Vehicles to look at</p>
@@ -138,11 +147,11 @@ export default function AnomalyDistribution({
                     <thead className="border-b border-fleet-border sticky top-0 bg-white">
                         <tr>
                             <Th>Vehicle</Th>
-                            <Th align="right">{distribution.exposureLabel}</Th>
+                            <Th align="right">{distribution.exposureLabel || 'Exposure'}</Th>
                             {counted && <Th align="right">Incidents</Th>}
-                            {hasExpected && <Th align="right">Fleet expects</Th>}
-                            <Th align="right">{capitalise(feature.unitLabel)}</Th>
-                            <Th>Compared with fleet</Th>
+                            {hasExpected && <Th align="right">Expected</Th>}
+                            <Th align="right">{valueLabel(feature)}</Th>
+                            <Th>Compared with {peerNoun}</Th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-fleet-border">
@@ -162,26 +171,24 @@ export default function AnomalyDistribution({
                                 {counted && <Td align="right">{formatNumber(p.observed, 0)}</Td>}
                                 {hasExpected && <Td align="right">{formatNumber(p.expected)}</Td>}
                                 <Td align="right">{formatNumber(p.value)}</Td>
-                                <Td>
-                                    <span className="flex items-center gap-2">
-                                        <StatusBadge status={p.status} />
-                                        {distribution.median > 0 && (
-                                            <span className="text-xs text-fleet-secondary">{formatNumber(p.value / distribution.median, 2)}×</span>
-                                        )}
-                                    </span>
-                                </Td>
+                                <Td><StatusBadge status={p.status} peerNoun={peerNoun} /></Td>
                             </tr>
                         ))}
                         {rows.length === 0 && (
                             <tr>
                                 <td colSpan={columns} className="px-3 py-6 text-center text-sm text-fleet-secondary">
-                                    No vehicle differs clearly from the fleet for this behaviour.
+                                    No vehicle differs clearly from the {peerNoun} for this behaviour.
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
+            {hasExpected && (
+                <p className="mt-2 text-xs text-fleet-secondary">
+                    Expected is how many incidents the vehicle would have recorded at the other vehicles&apos; rate over the same driving.
+                </p>
+            )}
         </div>
     );
 }
@@ -190,6 +197,7 @@ AnomalyDistribution.propTypes = {
     features: PropTypes.object,
     behaviourKey: PropTypes.string,
     alpha: PropTypes.number.isRequired,
+    peerNoun: PropTypes.string,
     selectedVehicleId: PropTypes.string,
     onSelectVehicle: PropTypes.func,
     highlightFocus: PropTypes.bool,

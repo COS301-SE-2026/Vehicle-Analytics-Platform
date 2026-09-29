@@ -28,6 +28,7 @@ const STATUS = {
     INSUFFICIENT_EXPOSURE: 'insufficient_exposure',
     NOT_MEASURABLE: 'not_measurable',
     NO_EVENTS: 'no_events',
+    NOT_REPORTED: 'not_reported',
 };
 
 const DISTANCE_SOURCE = {
@@ -60,17 +61,23 @@ const EXPOSURE_BASES = [
         unit: 'events/100km',
         label: 'per 100 km driven',
         rateLabel: 'per 100 km',
+        ratePer: 100,
+        columnLabel: 'Km driven',
+        axisLabel: 'Kilometres driven in period',
         requirement: `at least ${MIN_EXPOSURE_KM} km of recorded distance`,
         minimum: MIN_EXPOSURE_KM,
         amount: (v) => v.distanceKm,
         denominator: (v) => v.distanceKm / 100,
-        describe: (v) => `${Math.round(v.distanceKm)} km`,
+        describe: (v) => `${Math.round(v.distanceKm).toLocaleString('en-US')} km`,
     },
     {
         id: 'trips',
         unit: 'events/10 trips',
         label: 'per 10 completed trips',
         rateLabel: 'per 10 trips',
+        ratePer: 10,
+        columnLabel: 'Trips',
+        axisLabel: 'Completed trips in period',
         requirement: `at least ${MIN_EXPOSURE_TRIPS} completed trips`,
         minimum: MIN_EXPOSURE_TRIPS,
         amount: (v) => v.tripCount,
@@ -82,6 +89,9 @@ const EXPOSURE_BASES = [
         unit: 'events/day',
         label: 'per active day',
         rateLabel: 'per active day',
+        ratePer: 1,
+        columnLabel: 'Active days',
+        axisLabel: 'Active days in period',
         requirement: `at least ${MIN_EXPOSURE_DAYS} active day`,
         minimum: MIN_EXPOSURE_DAYS,
         amount: (v) => v.activeDays,
@@ -217,6 +227,10 @@ function buildFeatureDefinitions(basis) {
                 unit: basis.unit,
                 unitLabel: basis.rateLabel,
                 supportingCountKey: type.countKey,
+                ratePer: basis.ratePer,
+                columnLabel: basis.columnLabel,
+                axis: { x: basis.axisLabel, y: `${type.name} incidents ${basis.rateLabel}` },
+                exposureAmount: (v) => basis.amount(v),
                 exposure: (v) => basis.denominator(v),
                 describeExposure: (v) => basis.describe(v),
                 value: (v) => {
@@ -240,6 +254,10 @@ function buildFeatureDefinitions(basis) {
             unit: 'km/h',
             unitLabel: 'km/h',
             supportingCountKey: null,
+            ratePer: null,
+            columnLabel: 'Trips',
+            axis: { x: 'Completed trips in period', y: 'Top trip speed, 90th percentile (km/h)' },
+            exposureAmount: (v) => v.tripCount,
             value: (v) => (isNumber(v.p90TripMaxSpeedKmh) ? v.p90TripMaxSpeedKmh : null),
             eligible: (v) => isNumber(v.tripCount) && v.tripCount >= MIN_EXPOSURE_TRIPS,
         };
@@ -257,6 +275,10 @@ function buildFeatureDefinitions(basis) {
             unit: '% of incidents',
             unitLabel: '% of incidents',
             supportingCountKey: type.countKey,
+            ratePer: null,
+            columnLabel: 'Incidents',
+            axis: { x: 'Incidents recorded in period', y: `${type.name} share of incidents (%)` },
+            exposureAmount: (v) => (v.counts || {}).totalEvents || 0,
             value: (v) => {
                 const total = (v.counts || {}).totalEvents || 0;
                 if (!total) return null;
@@ -267,6 +289,35 @@ function buildFeatureDefinitions(basis) {
     });
 
     return definitions;
+}
+
+
+// A device "reports" an incident type when it logged that type at least once in
+// the lookback window read by anomalyAnalytics. When the history could not be
+// read, or the caller did not supply it, every type is assumed to be reported,
+// which is how the detection behaved before the check existed.
+function isReportingVerified(vehicle){
+    const reporting = vehicle.reporting;
+    return Boolean(reporting && reporting.checked === true && reporting.types);
+}
+
+function reportsType(vehicle, countKey){
+    if (!countKey || !isReportingVerified(vehicle)) return true;
+    return vehicle.reporting.types[countKey] === true;
+}
+
+function reportingCheckFailed(vehicles){
+    return vehicles.some((v) => v.reporting && v.reporting.checked === false);
+}
+
+function reportingLookbackDays(vehicles){
+    const checked = vehicles.find((v) => isReportingVerified(v) && isNumber(v.reporting.lookbackDays));
+    return checked ? checked.reporting.lookbackDays : null;
+}
+
+function joinOr(items){
+    if (items.length <= 1) return items.join('');
+    return `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`;
 }
 
 
@@ -382,7 +433,7 @@ function assessEvidence(definition, entry, scored, peerEntries){
 }
 
 
-function evaluate(definition, entry, scored, peerEntries){
+function evaluate(definition, entry, scored, evidence){
     const count = supportingCount(entry.vehicle, definition);
     const uniformPeers = scored.method === METHOD.PEERS_UNIFORM;
 
@@ -396,7 +447,6 @@ function evaluate(definition, entry, scored, peerEntries){
         return { status: POINT_STATUS.UNCONFIRMED, reason: UNCONFIRMED_REASON.TOO_FEW_INCIDENTS, evidence: null };
     }
 
-    const evidence = assessEvidence(definition, entry, scored, peerEntries);
     if (evidence && !evidence.significant) {
         return { status: POINT_STATUS.UNCONFIRMED, reason: UNCONFIRMED_REASON.NOT_SIGNIFICANT, evidence };
     }
@@ -404,61 +454,115 @@ function evaluate(definition, entry, scored, peerEntries){
     return { status: POINT_STATUS.FLAGGED, evidence };
 }
 
-function buildCaution(definition, scored, evidence){
+const CAUTION = {
+    COUNT_ONLY: 'count_only',
+    SPARSE_TYPE: 'sparse_type',
+};
+
+// One wording for a single behaviour and for several merged on one vehicle.
+function cautionMessage(variant, nouns){
+    const several = nouns.length > 1;
+    const list = joinOr(nouns);
+
+    if (variant === 'count_only') {
+        return `No other vehicle recorded ${list} incidents in this period, so there is no rate to test `
+            + `${several ? 'these' : 'this'} against. ${several ? 'They rest' : 'It rests'} on the incident `
+            + `${several ? 'counts' : 'count'} alone.`;
+    }
+
+    const check = `Check that their devices report ${several ? 'these event types' : 'this event type'} before acting on this.`;
+    return variant === 'unverified_none'
+        ? `No other vehicle in the comparison recorded ${list} incidents. ${check}`
+        : `Most other vehicles recorded no ${list} incidents. ${check}`;
+}
+
+function cautionVariant(code, evidence){
+    if (code === CAUTION.COUNT_ONLY) return 'count_only';
+    return evidence && evidence.baseline === BASELINE.NONE ? 'unverified_none' : 'unverified_most';
+}
+
+function buildCaution(definition, scored, evidence, reportingVerified = false){
     if (definition.kind !== 'rate' || scored.peerMedian !== 0) return null;
+    const noPeerIncidents = Boolean(evidence && evidence.baseline === BASELINE.NONE);
 
-    const message = evidence && evidence.baseline === BASELINE.NONE
-        ? `No other vehicle in the comparison recorded ${definition.noun} incidents. `
-            + 'Check that their devices report this event type before acting on this.'
-        : `Most other vehicles recorded no ${definition.noun} incidents. `
-            + 'Check that their devices report this event type before acting on this.';
+    if (reportingVerified) {
+        // Every peer's device is known to report this type, so a zero median is
+        // real. The Poisson test covers the pooled case; only a finding with no
+        // rate to test against needs a caution.
+        if (!noPeerIncidents) return null;
+        return { code: CAUTION.COUNT_ONLY, message: cautionMessage('count_only', [definition.noun]) };
+    }
 
-    return { code: 'sparse_type', message };
+    return {
+        code: CAUTION.SPARSE_TYPE,
+        message: cautionMessage(cautionVariant(CAUTION.SPARSE_TYPE, evidence), [definition.noun]),
+    };
+}
+
+function mergeCautions(flags){
+    const groups = new Map();
+
+    flags.forEach((flag) => {
+        if (!flag.caution) return;
+        const variant = cautionVariant(flag.caution.code, flag.evidence);
+        if (!groups.has(variant)) groups.set(variant, { code: flag.caution.code, nouns: [] });
+        const group = groups.get(variant);
+        if (!group.nouns.includes(flag.noun)) group.nouns.push(flag.noun);
+    });
+
+    return [...groups.entries()].map(([variant, group]) => ({
+        code: group.code,
+        behaviours: group.nouns,
+        message: cautionMessage(variant, group.nouns),
+    }));
 }
 
 function explainFlag(definition, vehicle, value, scored, evidence, peerNoun){
-    const against = `against a ${peerNoun} median of ${formatNumber(scored.peerMedian)}`;
+    // Each vehicle is judged against the other vehicles without itself, so the
+    // wording names that median rather than the whole-group median on the chart.
+    const median = formatNumber(scored.peerMedian);
+    const others = `for the other vehicles in the ${peerNoun}`;
 
     if (definition.kind === 'speed') {
         return `Top trip speeds (90th percentile) of ${formatNumber(value)} km/h, `
-            + `${against} km/h, across ${vehicle.tripCount} trips.`;
+            + `against a median of ${median} km/h ${others}, across ${vehicle.tripCount} trips.`;
     }
 
     if (definition.kind === 'mix') {
         return `${definition.name} makes up ${formatNumber(value)}% of this vehicle's incidents, `
-            + `${against}%, from ${(vehicle.counts || {}).totalEvents || 0} incidents.`;
+            + `against a median of ${median}% ${others}, from ${(vehicle.counts || {}).totalEvents || 0} incidents.`;
     }
 
     const exposureText = definition.describeExposure(vehicle);
-    const lead = `${definition.name} at ${formatNumber(value)} ${definition.unitLabel}, ${against}.`;
+    const lead = `${definition.name} at ${formatNumber(value)} ${definition.unitLabel}, against a median of ${median} ${others}.`;
 
     if (!evidence || evidence.baseline === BASELINE.NONE) {
         return `${lead} ${evidence ? evidence.observed : supportingCount(vehicle, definition)} incidents over ${exposureText}.`;
     }
 
     const rateName = evidence.baseline === BASELINE.MEDIAN
-        ? `the ${peerNoun} median rate`
-        : `the ${peerNoun}'s overall rate`;
+        ? 'their median rate'
+        : 'their combined rate';
 
     return `${lead} At ${rateName}, about ${formatExpected(evidence.expected)} would be expected `
         + `over ${exposureText}. ${evidence.observed} were recorded.`;
 }
 
 
-function shortFinding(flag, peerNoun){
+function shortFinding(flag){
     if (flag.kind === 'speed') {
-        return `top trip speeds of ${formatNumber(flag.value)} km/h against a ${peerNoun} median of ${formatNumber(flag.peerMedian)} km/h`;
+        return `top trip speeds of ${formatNumber(flag.value)} km/h against a median of ${formatNumber(flag.peerMedian)} km/h for the other vehicles`;
     }
     if (flag.kind === 'mix') {
-        return `${flag.noun} makes up ${formatNumber(flag.value)}% of its incidents, against ${formatNumber(flag.peerMedian)}% across the ${peerNoun}`;
+        return `${flag.noun} makes up ${formatNumber(flag.value)}% of its incidents, against a median of ${formatNumber(flag.peerMedian)}% for the other vehicles`;
     }
     if (flag.ratio !== null) {
-        return `${flag.noun} at ${flag.ratio}x the ${peerNoun} median`;
+        return `${flag.noun} at ${flag.ratio}x the other vehicles' median`;
     }
-    return `${flag.supportingCount} ${flag.noun} incidents where the ${peerNoun} median is zero`;
+    return `${flag.supportingCount} ${flag.noun} incidents where the other vehicles' median is zero`;
 }
 
-function buildFlag(featureKey, definition, vehicle, value, scored, evidence, peerNoun) {
+function buildFlag(featureKey, definition, vehicle, value, scored, evidence, peerNoun, reportingVerified = false) {
     const count = supportingCount(vehicle, definition);
     const uniformPeers = scored.method === METHOD.PEERS_UNIFORM;
 
@@ -491,7 +595,7 @@ function buildFlag(featureKey, definition, vehicle, value, scored, evidence, pee
                 alpha: ALPHA,
             }
             : null,
-        caution: buildCaution(definition, scored, evidence),
+        caution: buildCaution(definition, scored, evidence, reportingVerified),
         explanation: explainFlag(definition, vehicle, value, scored, evidence, peerNoun),
     };
 }
@@ -510,13 +614,16 @@ function bySeverityThenScore(a, b) {
 }
 
 
+// Worst severity first, then the strongest single finding, so the headline's
+// "strongest" is the vehicle furthest from the others. Ties go to the vehicle
+// with more flagged behaviours.
 function byImportance(a, b) {
     const severity = SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
     if (severity !== 0) return severity;
-    if (b.flagCount !== a.flagCount) return b.flagCount - a.flagCount;
     const topA = a.flags[0] ? a.flags[0].score ?? -Infinity : -Infinity;
     const topB = b.flags[0] ? b.flags[0].score ?? -Infinity : -Infinity;
-    if (topB !== topA) return topB - topA;
+    if (topB !== topA) return topB > topA ? 1 : -1;
+    if (b.flagCount !== a.flagCount) return b.flagCount - a.flagCount;
     return a.vehicleId.localeCompare(b.vehicleId);
 }
 
@@ -542,7 +649,19 @@ function describeExposure(basis){
 }
 
 
-function buildDataQuality({ vehicles, evaluatedCount, basis, distance }) {
+function notReportingNote(notReporting, lookbackDays){
+    if (!notReporting.length) return null;
+
+    const parts = notReporting.map((r) => `${r.noun} ${r.vehicles} of ${r.outOf}`);
+    return `Some devices have not reported an incident type in the ${lookbackDays} days to the end of this period, `
+        + 'so those vehicles are left out of that comparison rather than counted as having none. '
+        + `Not reporting: ${parts.join(', ')} vehicles.`;
+}
+
+
+function buildDataQuality({
+    vehicles, evaluatedCount, basis, distance, notReporting = [], lookbackDays = null,
+}) {
     const notes = [];
     const total = vehicles.length;
     const incidentsWithoutDistance = vehicles.reduce((sum, v) => sum + (v.unmatchedIncidents || 0), 0);
@@ -553,6 +672,9 @@ function buildDataQuality({ vehicles, evaluatedCount, basis, distance }) {
             + `(${requirement}). The other ${total - evaluatedCount} were not assessed.`);
     }
 
+    const reportingNote = notReporting.length && lookbackDays ? notReportingNote(notReporting, lookbackDays) : null;
+    if (reportingNote) notes.push(reportingNote);
+
     if (incidentsWithoutDistance > 0) {
         notes.push(`${incidentsWithoutDistance} incident${incidentsWithoutDistance === 1 ? '' : 's'} happened on days `
             + 'with no recorded distance, so they are left out of the rates.');
@@ -562,10 +684,18 @@ function buildDataQuality({ vehicles, evaluatedCount, basis, distance }) {
         notes.push('Telemetry distance could not be read, so distance comes from completed trips only.');
     }
 
+    if (reportingCheckFailed(vehicles)) {
+        notes.push('Could not check which incident types each device reports, so a vehicle with none of a type '
+            + 'is counted as having none. Treat findings where most vehicles recorded zero with care.');
+    }
+
     return {
         distanceSource: basis && basis.id === 'distance' ? distance.source : null,
         vehiclesWithDistance: distance.vehiclesWithDistance,
         incidentsWithoutDistance,
+        vehiclesNotReporting: notReporting.map((r) => ({
+            behaviour: r.behaviour, vehicles: r.vehicles, outOf: r.outOf,
+        })),
         notes,
     };
 }
@@ -576,9 +706,15 @@ function plural(n, word){
 
 function buildHeadline({
     results, flagged, featuresScored, peerEvaluated, peerNoun, focused, featuresWithoutEvents = 0, peerCount = 0,
+    notReportedNouns = [],
 }){
     if (peerCount === 0) {
         return 'There are no vehicles in this selection.';
+    }
+
+    if (featuresScored === 0 && notReportedNouns.length > 0 && peerEvaluated >= MIN_PEER_VEHICLES) {
+        return `No behaviour could be compared this period. Fewer than ${MIN_PEER_VEHICLES} devices in this `
+            + `selection report ${joinOr(notReportedNouns)}, and nothing else had enough data or incidents.`;
     }
 
     if (featuresScored === 0 && featuresWithoutEvents > 0 && peerEvaluated >= MIN_PEER_VEHICLES) {
@@ -609,7 +745,7 @@ function buildHeadline({
     }
 
     const top = flagged[0];
-    const finding = shortFinding(top.flags[0], peerNoun);
+    const finding = shortFinding(top.flags[0]);
 
     if (single) {
         return `${top.vehicleId} stands out from the ${peerNoun} this period: ${finding}.`;
@@ -632,6 +768,7 @@ function detectFleetAnomalies(input = [], options = {}){
     const definitionList = Object.values(definitions);
 
     const featureSummary = {};
+    const notReportingByFeature = [];
     const flagsByVehicle = new Map();
     const measuresByVehicle = new Map();
     vehicles.forEach((v) => {
@@ -642,8 +779,11 @@ function detectFleetAnomalies(input = [], options = {}){
     Object.keys(definitions).forEach((featureKey) => {
         const definition = definitions[featureKey];
 
-        const measured = vehicles
-            .filter((vehicle) => definition.eligible(vehicle))
+        const eligible = vehicles.filter((vehicle) => definition.eligible(vehicle));
+        const notReporting = eligible.filter((vehicle) => !reportsType(vehicle, definition.supportingCountKey));
+
+        const measured = eligible
+            .filter((vehicle) => reportsType(vehicle, definition.supportingCountKey))
             .map((vehicle) => ({ vehicle, value: definition.value(vehicle) }))
             .filter((entry) => isNumber(entry.value));
 
@@ -652,18 +792,31 @@ function detectFleetAnomalies(input = [], options = {}){
             behaviour: definition.behaviour,
             kind: definition.kind,
             label: definition.label,
+            noun: definition.noun,
             unit: definition.unit,
             unitLabel: definition.unitLabel,
             vehiclesMeasured: measured.length,
+            vehiclesNotReporting: notReporting.length,
             fleetMedian: round(median(measured.map((m) => m.value)), 2),
         };
 
+        if (notReporting.length > 0) {
+            notReportingByFeature.push({
+                behaviour: definition.behaviour,
+                noun: definition.noun,
+                vehicles: notReporting.length,
+                outOf: notReporting.length + measured.length,
+            });
+        }
+
         if (measured.length < MIN_PEER_VEHICLES){
-            featureSummary[featureKey] = {
-                ...base,
-                status: measured.length === 0 ? STATUS.NOT_MEASURABLE : STATUS.INSUFFICIENT_PEERS,
-                distribution: null,
-            };
+            const blockedByReporting = notReporting.length > 0
+                && measured.length + notReporting.length >= MIN_PEER_VEHICLES;
+
+            let status = measured.length === 0 ? STATUS.NOT_MEASURABLE : STATUS.INSUFFICIENT_PEERS;
+            if (blockedByReporting) status = STATUS.NOT_REPORTED;
+
+            featureSummary[featureKey] = { ...base, status, distribution: null };
             return;
         }
 
@@ -674,6 +827,7 @@ function detectFleetAnomalies(input = [], options = {}){
         }
 
         const points = [];
+        const reportingVerified = measured.every((entry) => isReportingVerified(entry.vehicle));
 
         measured.forEach((entry, index) => {
             const peerEntries = measured.filter((_, i) => i !== index);
@@ -683,11 +837,17 @@ function detectFleetAnomalies(input = [], options = {}){
             const id = entry.vehicle.vehicleId;
             measuresByVehicle.set(id, measuresByVehicle.get(id) + 1);
 
-            const outcome = evaluate(definition, entry, scored, peerEntries);
+            // Computed for every rate point so the table can show what each vehicle
+            // would have recorded at the other vehicles' rate, the same baseline
+            // the chance test uses.
+            const evidence = assessEvidence(definition, entry, scored, peerEntries);
+            const outcome = evaluate(definition, entry, scored, evidence);
             let severity = null;
 
             if (outcome.status === POINT_STATUS.FLAGGED) {
-                const flag = buildFlag(featureKey, definition, entry.vehicle, entry.value, scored, outcome.evidence, peerNoun);
+                const flag = buildFlag(
+                    featureKey, definition, entry.vehicle, entry.value, scored, outcome.evidence, peerNoun, reportingVerified,
+                );
                 severity = flag.severity;
                 flagsByVehicle.get(id).push(flag);
             }
@@ -695,6 +855,9 @@ function detectFleetAnomalies(input = [], options = {}){
             points.push({
                 vehicleId: id,
                 value: round(entry.value, 2),
+                exposure: round(definition.exposureAmount(entry.vehicle), 2),
+                observed: supportingCount(entry.vehicle, definition),
+                expected: evidence ? round(evidence.expected, 1) : null,
                 status: outcome.status,
                 reason: outcome.reason || null,
                 severity,
@@ -711,6 +874,15 @@ function detectFleetAnomalies(input = [], options = {}){
                 median: round(line.median, 2),
                 threshold: round(line.threshold, 2),
                 thresholdMethod: line.method,
+                // Reference lines for the chart. Both are drawn from the whole group,
+                // so they are only sent when they describe the per-vehicle decision:
+                // the flag line when the MAD is non-zero (robust to one vehicle), and
+                // the chance limit when the median rate is above zero.
+                flagLine: line.method === METHOD.MODIFIED_Z ? round(line.threshold, 2) : null,
+                chanceRate: definition.kind === 'rate' && line.median > 0 ? round(line.median, 2) : null,
+                ratePer: definition.ratePer,
+                exposureLabel: definition.columnLabel,
+                axis: { ...definition.axis },
                 points: points.sort((a, b) => a.value - b.value || a.vehicleId.localeCompare(b.vehicleId)),
             },
         };
@@ -739,6 +911,7 @@ function detectFleetAnomalies(input = [], options = {}){
                 severity: worstSeverity(flags),
                 flagCount: flags.length,
                 flags,
+                cautions: mergeCautions(flags),
             };
         });
 
@@ -752,6 +925,12 @@ function detectFleetAnomalies(input = [], options = {}){
     const featuresWithoutEvents = Object.keys(featureSummary)
         .filter((key) => featureSummary[key].status === STATUS.NO_EVENTS).length;
 
+    const notReportedNouns = Object.keys(featureSummary)
+        .filter((key) => featureSummary[key].status === STATUS.NOT_REPORTED)
+        .map((key) => featureSummary[key].noun);
+
+    const lookbackDays = reportingLookbackDays(vehicles);
+
     return {
         method: 'fleet_relative',
         headline: buildHeadline({
@@ -763,6 +942,7 @@ function detectFleetAnomalies(input = [], options = {}){
             focused: Boolean(focusSet),
             featuresWithoutEvents,
             peerCount: vehicles.length,
+            notReportedNouns,
         }),
         parameters: {
             minPeerVehicles: MIN_PEER_VEHICLES,
@@ -770,6 +950,7 @@ function detectFleetAnomalies(input = [], options = {}){
             minEventsForMix: MIN_EVENTS_FOR_MIX,
             zThreshold: Z_THRESHOLD,
             alpha: ALPHA,
+            reportingLookbackDays: lookbackDays,
         },
         exposure: {
             ...describeExposure(basis),
@@ -780,6 +961,8 @@ function detectFleetAnomalies(input = [], options = {}){
             evaluatedCount: evaluatedIds.size,
             basis,
             distance,
+            notReporting: notReportingByFeature,
+            lookbackDays,
         }),
         peers: {
             noun: peerNoun,
@@ -822,9 +1005,13 @@ module.exports = {
     _scoreAgainstPeers: scoreAgainstPeers,
     _chooseExposureBasis: chooseExposureBasis,
     _buildFeatureDefinitions: buildFeatureDefinitions,
+    _buildCaution: buildCaution,
+    _mergeCautions: mergeCautions,
+    _reportsType: reportsType,
     _assessEvidence: assessEvidence,
     _selectDistanceSource: selectDistanceSource,
     _prepareVehicles: prepareVehicles,
     _groupThreshold: groupThreshold,
     _round: round,
+    _byImportance: byImportance,
 };

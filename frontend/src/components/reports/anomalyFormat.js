@@ -24,6 +24,56 @@ function plural(n, word){
 }
 
 
+function capitalise(text){
+    return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+}
+
+
+function joinList(items, conjunction = 'and'){
+    const list = (items || []).filter(Boolean);
+    if (list.length <= 1) return list.join('');
+    return `${list.slice(0, -1).join(', ')} ${conjunction} ${list[list.length - 1]}`;
+}
+
+
+// Header for the value column and tooltip row, e.g. "Rate per 100 km".
+function valueLabel(feature){
+    if (!feature) return '';
+    if (feature.kind === 'rate') return `Rate ${feature.unitLabel || ''}`.trim();
+    if (feature.kind === 'speed') return 'Top speed (km/h)';
+    if (feature.kind === 'mix') return 'Share of incidents (%)';
+    return capitalise(feature.unitLabel);
+}
+
+
+// What the chart panel should say, matching the reference lines actually drawn.
+function chartDescription(feature){
+    const d = feature?.distribution;
+    if (!d) return null;
+
+    const lead = 'Each dot is a vehicle, and its colour shows the result.';
+    const isRate = feature.kind === 'rate';
+    const hasFlag = Number.isFinite(d.flagLine);
+    const hasChance = isRate && Number.isFinite(d.chanceRate);
+
+    if (!hasFlag) {
+        const missing = isRate && !hasChance ? 'the flag line and chance limit' : 'the flag line';
+        return `${lead} At least half of the vehicles recorded exactly the same value, so ${missing} cannot be drawn.`;
+    }
+
+    if (hasChance) {
+        return `${lead} A vehicle stands out when it is above the red flag line and above the dotted chance limit. `
+            + 'The chance limit is higher on the left, because a few incidents over little driving can be chance.';
+    }
+
+    if (isRate) {
+        return `${lead} A vehicle stands out when it is above the red flag line and its incident count is unlikely to be chance.`;
+    }
+
+    return `${lead} A vehicle stands out when it is above the red flag line.`;
+}
+
+
 function toLocalISODate(date){
     if (!date) return undefined;
     const d = new Date(date);
@@ -45,6 +95,10 @@ export {
     formatChance,
     behaviourName,
     plural,
+    capitalise,
+    joinList,
+    valueLabel,
+    chartDescription,
     toLocalISODate,
     formatDateLabel,
 };

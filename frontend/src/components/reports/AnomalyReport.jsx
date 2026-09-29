@@ -6,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { getAnomalies } from '../../services/anomalyService';
 import AnomalyDistribution from './AnomalyDistribution';
 import AnomalyFindings from './AnomalyFindings';
-import { behaviourName, formatDateLabel, toLocalISODate } from './anomalyFormat';
+import { behaviourName, chartDescription, formatDateLabel, toLocalISODate } from './anomalyFormat';
 
 const PERIOD_OPTIONS = [
     { id: 'current', label: 'Rolling 7 days (to latest data)' },
@@ -66,13 +66,19 @@ function MethodSteps({ anomalies, peerLabel }){
         ? `Incidents are counted ${exposure.label}${exposure.distanceSource ? `, using ${SOURCE_TEXT[exposure.distanceSource]}` : ''}, so a vehicle is never flagged just for driving more. With odometer distance, incidents on days without any recorded distance are left out.`
         : 'Too few vehicles had distance, trips or active days, so vehicles are compared on the mix of their incident types instead.';
 
+    const reporting = p.reportingLookbackDays
+        ? `A vehicle whose device has not reported an incident type in the ${p.reportingLookbackDays} days to the end of the period is left out of that comparison, rather than counted as having none.`
+        : 'Which incident types each device reports could not be checked for this run, so a vehicle with none of a type is counted as having none.';
+
     const steps = [
         ['Merge bursts', 'Events of the same type from one vehicle less than 60 seconds apart count as one incident.'],
+        ['Leave out devices that do not report', reporting],
         ['Measure against exposure', measured],
-        ['Compare with the other vehicles', `Each vehicle is compared with the median of the other vehicles in ${peerLabel}, never with its own history, because the telemetry is replayed on a loop.`],
-        ['Measure distance from normal', `Modified z-score (Iglewicz and Hoaglin, 1993), based on the median absolute deviation, which one extreme vehicle cannot distort. A vehicle is unusual above ${p.zThreshold}.`],
-        ['Rule out chance', `Poisson exact test on the incident count. A finding needs a chance explanation below ${oneIn(p.alpha)} and at least ${p.minSupportingEvents} incidents.`],
+        ['Compare with the other vehicles', `Each vehicle is compared with the median of the other vehicles in ${peerLabel}, without itself, and never with its own history, because the telemetry is replayed on a loop.`],
+        ['Measure distance from normal', `Modified z-score (Iglewicz and Hoaglin, 1993), based on the median absolute deviation, which one extreme vehicle cannot distort. When at least half of the other vehicles share exactly the same value, that deviation is zero, so the mean absolute deviation is used instead. A vehicle is unusual above ${p.zThreshold}.`],
+        ['Rule out chance', `Poisson exact test on the incident count, at the other vehicles' median rate, or their combined rate when the median is zero. A finding needs the chance of at least that many incidents to be below ${oneIn(p.alpha)}, and at least ${p.minSupportingEvents} incidents.`],
         ['Require enough vehicles', `At least ${p.minPeerVehicles} vehicles with enough data are needed before any vehicle can be called unusual.`],
+        ['Read the chart by colour', 'The flag line and chance limit are drawn from the whole group, while each vehicle is judged against the others without itself. In a small group a dot can sit just across a line from its result, so the colour of the dot is the result.'],
     ];
 
     return (
@@ -347,15 +353,14 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
                             {anomalies.summary.featuresScored > 0 && plotted && (
                                 <Panel
                                     id="anomaly-chart"
-                                    title={`Vehicles compared with the fleet: ${behaviourName(plotted).toLowerCase()}`}
-                                    description={plotted.kind === 'rate'
-                                        ? 'Each dot is a vehicle, placed by how much it drove and how often this happened. A vehicle stands out when it is above the red flag line and above the dotted chance limit. The limit is higher for vehicles that drove little, because a few incidents over a short distance can be chance.'
-                                        : 'Each dot is a vehicle. A vehicle stands out when it is above the red flag line.'}
+                                    title={`Vehicles compared with the ${peerNoun}: ${behaviourName(plotted).toLowerCase()}`}
+                                    description={chartDescription(plotted)}
                                 >
                                     <AnomalyDistribution
                                         features={anomalies.features}
                                         behaviourKey={behaviourKey}
                                         alpha={anomalies.parameters.alpha}
+                                        peerNoun={peerNoun}
                                         selectedVehicleId={selectedVehicleId}
                                         onSelectVehicle={handleSelectVehicle}
                                         highlightFocus={focused}
@@ -366,7 +371,7 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
                             {anomalies.summary.vehiclesEvaluated > 0 && (
                                 <Panel
                                     title={focused ? 'Findings for the selected vehicle' : 'Vehicles that stand out'}
-                                    description="Each finding shows the behaviour, how far it is from the other vehicles, and how unlikely it is to be chance."
+                                    description="Each finding shows the behaviour, how it compares with the other vehicles, and how many incidents their rate would predict."
                                 >
                                     <AnomalyFindings
                                         flagged={anomalies.flagged}

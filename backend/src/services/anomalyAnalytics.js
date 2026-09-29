@@ -3,6 +3,17 @@
 
 const { _EVENT_FILTER: EVENT_FILTER, REPORT_TIMEZONE } = require('./safetyAnalytics');
 
+const REPORTING_LOOKBACK_DAYS = 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const REPORTED_TYPE_COLUMNS = {
+    harshBrakes: 'harsh_brakes',
+    harshAccelerations: 'harsh_accelerations',
+    harshCornering: 'harsh_cornering',
+    overspeedEvents: 'overspeed_events',
+    idlingEvents: 'idling_events',
+};
+
 const COUNT_KEYS = [
     'harshBrakes',
     'harshAccelerations',
@@ -79,6 +90,25 @@ WHERE starts_incident = 1
 GROUP BY vehicle_id, day
 `;
 
+// Which incident types each device has reported at least once in the lookback
+// window. A vehicle that never reports a type is left out of that comparison
+// instead of being counted as having none (see anomalyDetection).
+const REPORTING_SQL = `
+SELECT
+    e.vehicle_id,
+    COUNT(*) FILTER (WHERE e.event_detail = 'harsh_braking')      > 0 AS harsh_brakes,
+    COUNT(*) FILTER (WHERE e.event_detail = 'harsh_acceleration') > 0 AS harsh_accelerations,
+    COUNT(*) FILTER (WHERE e.event_detail = 'harsh_cornering')    > 0 AS harsh_cornering,
+    COUNT(*) FILTER (WHERE e.event_category = 'over_speeding')    > 0 AS overspeed_events,
+    COUNT(*) FILTER (WHERE e.event_category = 'idling')           > 0 AS idling_events
+FROM vehicle_events e
+WHERE e.vehicle_id = ANY($1::text[])
+    AND e.time >= $2
+    AND e.time <  $3
+    AND ${EVENT_FILTER}
+GROUP BY e.vehicle_id
+`;
+
 async function runQuery(db, label, sql, params){
     const startedAt = Date.now();
 
@@ -146,7 +176,42 @@ async function readTelemetryDistance(db, vehicleIds, period){
 }
 
 
-function buildVehicle(vehicleId, exposureRow, incidentRows, distanceByDay, telemetry, period){
+function reportingLookbackStart(period){
+    return new Date(period.to.getTime() - REPORTING_LOOKBACK_DAYS * DAY_MS);
+}
+
+
+async function readReportingHistory(db, vehicleIds, period){
+    try {
+        const result = await runQuery(
+            db,
+            'reporting',
+            REPORTING_SQL,
+            [vehicleIds, reportingLookbackStart(period), period.to],
+        );
+        return { checked: true, rows: result.rows || [] };
+    } catch (err) {
+        console.warn(`[anomalies] event reporting history unavailable: ${err.message}`);
+        return { checked: false, rows: [] };
+    }
+}
+
+
+function buildReporting(history, row){
+    if (!history.checked) {
+        return { checked: false, lookbackDays: REPORTING_LOOKBACK_DAYS, types: null };
+    }
+
+    const types = {};
+    Object.keys(REPORTED_TYPE_COLUMNS).forEach((key) => {
+        types[key] = Boolean(row) && row[REPORTED_TYPE_COLUMNS[key]] === true;
+    });
+
+    return { checked: true, lookbackDays: REPORTING_LOOKBACK_DAYS, types };
+}
+
+
+function buildVehicle(vehicleId, exposureRow, incidentRows, distanceByDay, telemetry, period, reporting = null){
     const counts = emptyCounts();
     const alignedCounts = telemetry.available ? emptyCounts() : null;
 
@@ -183,6 +248,7 @@ function buildVehicle(vehicleId, exposureRow, incidentRows, distanceByDay, telem
         maxSpeedKmh: toNullableNumber(exposureRow && exposureRow.max_speed_kmh),
         counts,
         alignedCounts,
+        reporting,
     };
 }
 
@@ -218,9 +284,12 @@ async function getAnomalyFeatures(db, vehicleIds, period){
     const exposure = await runQuery(db, 'exposure', EXPOSURE_SQL, [vehicleIds, period.from, period.to, REPORT_TIMEZONE]);
     const telemetry = await readTelemetryDistance(db, vehicleIds, period);
     const incidents = await runQuery(db, 'incidents', INCIDENT_SQL, [vehicleIds, period.from, period.to]);
+    const history = await readReportingHistory(db, vehicleIds, period);
 
     const exposureByVehicle = new Map((exposure.rows || []).map((row) => [row.vehicle_id, row]));
     const incidentsByVehicle = groupBy(incidents.rows || [], 'vehicle_id');
+
+    const reportingByVehicle = new Map(history.rows.map((row) => [row.vehicle_id, row]));
 
     const distanceByVehicle = new Map();
     telemetry.rows.forEach((row) => {
@@ -235,12 +304,17 @@ async function getAnomalyFeatures(db, vehicleIds, period){
         distanceByVehicle.get(vehicleId) || new Map(),
         telemetry,
         period,
+        buildReporting(history, reportingByVehicle.get(vehicleId)),
     ));
 }
 
 module.exports = {
     getAnomalyFeatures,
     REPORT_TIMEZONE,
+    REPORTING_LOOKBACK_DAYS,
+    _buildReporting: buildReporting,
+    _reportingLookbackStart: reportingLookbackStart,
+    _REPORTING_SQL: REPORTING_SQL,
     _buildVehicle: buildVehicle,
     _EXPOSURE_SQL: EXPOSURE_SQL,
     _DISTANCE_SQL: DISTANCE_SQL,

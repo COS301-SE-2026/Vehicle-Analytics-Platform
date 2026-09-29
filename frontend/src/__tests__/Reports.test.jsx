@@ -26,6 +26,16 @@ jest.mock('../components/reports/ReportToolbar', () => ({
   )
 }))
 
+jest.mock('../components/reports/AnomalyReport', () => ({ 
+  __esModule: true, 
+  default: () => <div data-testid="anomaly-report" /> 
+}))
+
+jest.mock('../components/reports/WeatherAreaReport', () => ({ 
+  __esModule: true, 
+  default: () => <div data-testid="weather-area-report" /> 
+}))
+
 const SCOPES = {
   groups: [{ id: 1, name: 'Delivery' }],
   vehicles: [{ vehicleId: 'V001', groupId: 1 }, { vehicleId: 'V002', groupId: 1 }, { vehicleId: 'V005', groupId: null }],

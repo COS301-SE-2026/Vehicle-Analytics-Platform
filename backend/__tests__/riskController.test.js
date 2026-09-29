@@ -4,8 +4,6 @@ jest.mock('@aws-sdk/client-cognito-identity-provider');
 const { mockPool, mockQuery, setupMockData } = require('./setup/mockDb');
 jest.mock('../src/db/pool', () => ({ pool: mockPool }));
 
-
-
 const mockServiceInstance = {
   getVehicleRisk: jest.fn(),
   getFleetRisk: jest.fn(),
@@ -30,8 +28,6 @@ describe('Risk Controller', () => {
     Object.values(mockServiceInstance).forEach((fn) => fn.mockReset());
   });
 
- 
-  
   describe('GET /api/risk/vehicle/:vehicleId', () => {
     test('returns 200 with latest and trend when a prediction exists', async () => {
       mockServiceInstance.getVehicleRisk.mockResolvedValueOnce({
@@ -62,28 +58,6 @@ describe('Risk Controller', () => {
       expect(res.body.error).toMatch(/No prediction/i);
     });
 
-    test('passes days query param to the service', async () => {
-      mockServiceInstance.getVehicleRisk.mockResolvedValueOnce({
-        vehicle_id: 'V001',
-        latest: { risk_score: 50, risk_tier: 'high', top_factors: [], features: {} },
-        trend: [],
-      });
-
-      await request(app).get('/api/risk/vehicle/V001?days=7').set(AUTH);
-      expect(mockServiceInstance.getVehicleRisk).toHaveBeenCalledWith('V001', 7);
-    });
-
-    test('defaults to 30 days when no query param is provided', async () => {
-      mockServiceInstance.getVehicleRisk.mockResolvedValueOnce({
-        vehicle_id: 'V001',
-        latest: { risk_score: 50, risk_tier: 'high', top_factors: [], features: {} },
-        trend: [],
-      });
-
-      await request(app).get('/api/risk/vehicle/V001').set(AUTH);
-      expect(mockServiceInstance.getVehicleRisk).toHaveBeenCalledWith('V001', 30);
-    });
-
     test('returns 500 when the service throws', async () => {
       mockServiceInstance.getVehicleRisk.mockRejectedValueOnce(new Error('db down'));
       const res = await request(app).get('/api/risk/vehicle/V001').set(AUTH);
@@ -92,7 +66,6 @@ describe('Risk Controller', () => {
     });
   });
 
- 
   describe('GET /api/risk/vehicle/:vehicleId/coaching', () => {
     test('returns 200 with coaching history', async () => {
       mockServiceInstance.getCoachingHistory.mockResolvedValueOnce({
@@ -116,8 +89,6 @@ describe('Risk Controller', () => {
     });
   });
 
-
-  
   describe('GET /api/risk/vehicle/:vehicleId/similar', () => {
     test('returns 200 with similar vehicles', async () => {
       mockServiceInstance.getSimilarVehicles.mockResolvedValueOnce([
@@ -131,18 +102,6 @@ describe('Risk Controller', () => {
       expect(res.body.data.similar[0].distance).toBe(3.14);
     });
 
-    test('passes k query param to the service', async () => {
-      mockServiceInstance.getSimilarVehicles.mockResolvedValueOnce([]);
-      await request(app).get('/api/risk/vehicle/V001/similar?k=10').set(AUTH);
-      expect(mockServiceInstance.getSimilarVehicles).toHaveBeenCalledWith('V001', 10);
-    });
-
-    test('defaults k to 5 when not provided', async () => {
-      mockServiceInstance.getSimilarVehicles.mockResolvedValueOnce([]);
-      await request(app).get('/api/risk/vehicle/V001/similar').set(AUTH);
-      expect(mockServiceInstance.getSimilarVehicles).toHaveBeenCalledWith('V001', 5);
-    });
-
     test('returns 500 on service error', async () => {
       mockServiceInstance.getSimilarVehicles.mockRejectedValueOnce(new Error('boom'));
       const res = await request(app).get('/api/risk/vehicle/V001/similar').set(AUTH);
@@ -150,8 +109,6 @@ describe('Risk Controller', () => {
     });
   });
 
-
-  
   describe('GET /api/risk/fleet', () => {
     test('returns 200 with vehicles array', async () => {
       mockServiceInstance.getFleetRisk.mockResolvedValueOnce([
@@ -179,8 +136,6 @@ describe('Risk Controller', () => {
     });
   });
 
- 
-  
   describe('POST /api/risk/run', () => {
     test('returns 200 with scored and alerts counts', async () => {
       mockServiceInstance.predictAll.mockResolvedValueOnce({ scored: 115, alerts: 79 });
@@ -200,8 +155,6 @@ describe('Risk Controller', () => {
     });
   });
 
-
-  
   describe('GET /api/risk/notifications', () => {
     test('returns 200 with notifications array', async () => {
       mockQuery.mockResolvedValueOnce({

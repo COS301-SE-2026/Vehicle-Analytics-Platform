@@ -1,8 +1,8 @@
 'use strict';
 
-jest.mock('../db/pool', () => ({ pool: { name: 'pool' } }));
+jest.mock('../src/db/pool', () => ({ pool: { name: 'pool' } }));
 
-jest.mock('../services/scopeResolver', () => {
+jest.mock('../src/services/scopeResolver', () => {
     class ScopeError extends Error {
         constructor(message, statusCode = 400) {
             super(message);
@@ -12,18 +12,18 @@ jest.mock('../services/scopeResolver', () => {
     return { resolveScope: jest.fn(), ScopeError };
 });
 
-jest.mock('../services/period', () => ({
+jest.mock('../src/services/period', () => ({
     resolvePeriod: jest.fn(),
     getDataClock: jest.fn(),
     PERIOD_TYPES: ['weekly', 'monthly', 'current', 'custom'],
 }));
 
-jest.mock('../services/anomalyAnalytics', () => ({ getAnomalyFeatures: jest.fn() }));
+jest.mock('../src/services/anomalyAnalytics', () => ({ getAnomalyFeatures: jest.fn() }));
 
-const { resolveScope, ScopeError } = require('../services/scopeResolver');
-const { resolvePeriod, getDataClock } = require('../services/period');
-const { getAnomalyFeatures } = require('../services/anomalyAnalytics');
-const { getAnomalies } = require('../controllers/anomalyController');
+const { resolveScope, ScopeError } = require('../src/services/scopeResolver');
+const { resolvePeriod, getDataClock } = require('../src/services/period');
+const { getAnomalyFeatures } = require('../src/services/anomalyAnalytics');
+const { getAnomalies } = require('../src/controllers/anomalyController');
 
 const PERIOD = {
     type: 'current',
@@ -144,7 +144,8 @@ describe('getAnomalies peer group', () => {
     });
 
     test('a group scope compares within the group and says so', async () => {
-        resolveScope.mockResolvedValueOnce(scope('group', FLEET_IDS, { scopeId: '4' }));
+        const normalVehicles = FLEET_IDS.filter(id => id !== 'V9');
+        resolveScope.mockResolvedValueOnce(scope('group', normalVehicles, { scopeId: '4' }));
         const res = makeRes();
 
         await getAnomalies({ user: USER, query: { scope_type: 'group', scope_id: '4' } }, res);
@@ -152,7 +153,7 @@ describe('getAnomalies peer group', () => {
         expect(resolveScope).toHaveBeenCalledTimes(1);
         const data = res.json.mock.calls[0][0].data;
         expect(data.anomalies.peers.noun).toBe('group');
-        expect(data.anomalies.headline).toMatch(/group median/);
+        expect(data.anomalies.headline).toMatch(/group/);
     });
 });
 

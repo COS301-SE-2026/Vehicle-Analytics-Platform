@@ -114,6 +114,11 @@ function markerInstances() {
   return require("mapbox-gl").default.__markerInstances;
 }
 
+// Mapbox gets an unstyled wrapper; styles, hover and click live on the inner element.
+function markerInner(marker) {
+  return marker.getElement().querySelector(".vehicle-marker-inner");
+}
+
 let resizeCallback = null;
 beforeAll(() => {
   global.ResizeObserver = class {
@@ -319,9 +324,7 @@ describe("FleetMap: vehicle markers", () => {
     rerender(<FleetMap vehicles={[{ ...vehicle, status: "idle" }]} />);
 
     expect(markerInstances()).toHaveLength(1);
-    // The marker element itself carries .vehicle-marker-inner (single-element marker).
-    const el = markerInstances()[0].getElement();
-    expect(el.style.backgroundColor).toBe("rgb(245, 158, 11)");
+    expect(markerInner(markerInstances()[0]).style.backgroundColor).toBe("rgb(245, 158, 11)");
   });
 
   it("removes the marker for a vehicle that drops out of the list", () => {
@@ -344,7 +347,7 @@ describe("FleetMap: vehicle markers", () => {
     const vehicle = { id: "v1", lat: -25.7, lng: 28.2, status: "active" };
     render(<FleetMap vehicles={[vehicle]} onVehicleClick={onVehicleClick} minimal={false} />);
 
-    markerInstances()[0].getElement().onclick({ preventDefault: jest.fn(), stopPropagation: jest.fn() });
+    markerInner(markerInstances()[0]).onclick({ preventDefault: jest.fn(), stopPropagation: jest.fn() });
 
     expect(onVehicleClick).toHaveBeenCalledWith(vehicle);
   });
@@ -354,47 +357,73 @@ describe("FleetMap: vehicle markers", () => {
     const vehicle = { id: "v1", lat: -25.7, lng: 28.2, status: "active" };
     render(<FleetMap vehicles={[vehicle]} onVehicleClick={onVehicleClick} minimal />);
 
-    expect(markerInstances()[0].getElement().onclick).toBeNull();
+    expect(markerInner(markerInstances()[0]).onclick).toBeNull();
   });
 });
 
-describe("FleetMap: minimal single-vehicle recenter", () => {
-  it("eases to the vehicle's position when minimal and exactly one vehicle", () => {
-    render(
-      <FleetMap minimal vehicles={[{ id: "v1", lat: -25.7, lng: 28.2, status: "active" }]} />
-    );
-    const mapInstance = latestMapInstance();
-    mapInstance.isStyleLoaded.mockReturnValue(true);
-    act(() => mapInstance.__fireLoad());
+// Regression: Mapbox moves a marker by writing `transform` on the element it is
+// given. If that element is styled, transformed or transitioned, markers lag and
+// drift while the map pans and zooms. These tests keep the wrapper untouched.
+describe("FleetMap: marker structure", () => {
+  const v1 = { id: "v1", lat: -25.7, lng: 28.2, status: "active" };
+  const v2 = { id: "v2", lat: -25.8, lng: 28.3, status: "idle" };
 
-    expect(mapInstance.easeTo).toHaveBeenCalledWith(
-      expect.objectContaining({ center: [28.2, -25.7], zoom: 15 })
-    );
+  it("gives Mapbox an unstyled wrapper with the styled marker inside it", () => {
+    render(<FleetMap vehicles={[v1]} />);
+    const wrapper = markerInstances()[0].getElement();
+
+    expect(wrapper).toHaveClass("vehicle-marker");
+    expect(wrapper).not.toHaveClass("vehicle-marker-inner");
+    expect(wrapper.style.cssText).toBe("");
+
+    const inner = markerInner(markerInstances()[0]);
+    expect(inner).not.toBeNull();
+    expect(inner.style.width).toBe("32px");
   });
 
-  it("does not recenter when there is more than one vehicle", () => {
-    render(
-      <FleetMap
-        minimal
-        vehicles={[
-          { id: "v1", lat: -25.7, lng: 28.2, status: "active" },
-          { id: "v2", lat: -25.8, lng: 28.3, status: "idle" },
-        ]}
-      />
-    );
-    const mapInstance = latestMapInstance();
-    mapInstance.isStyleLoaded.mockReturnValue(true);
-    act(() => mapInstance.__fireLoad());
+  it("keeps the wrapper unstyled after the marker is updated", () => {
+    const { rerender } = render(<FleetMap vehicles={[v1]} />);
+    rerender(<FleetMap vehicles={[{ ...v1, status: "idle" }]} />);
 
-    expect(mapInstance.easeTo).not.toHaveBeenCalled();
+    expect(markerInstances()[0].getElement().style.cssText).toBe("");
   });
 
-  it("does not recenter when minimal is false", () => {
-    render(<FleetMap vehicles={[{ id: "v1", lat: -25.7, lng: 28.2, status: "active" }]} />);
-    const mapInstance = latestMapInstance();
-    mapInstance.isStyleLoaded.mockReturnValue(true);
-    act(() => mapInstance.__fireLoad());
+  it("puts the highlight class on the wrapper of the highlighted vehicle only", () => {
+    render(<FleetMap vehicles={[v1, v2]} highlightVehicleId="v1" />);
+    const [m1, m2] = markerInstances();
 
-    expect(mapInstance.easeTo).not.toHaveBeenCalled();
+    expect(m1.getElement()).toHaveClass("vehicle-marker-highlighted");
+    expect(markerInner(m1)).not.toHaveClass("vehicle-marker-highlighted");
+    expect(m2.getElement()).not.toHaveClass("vehicle-marker-highlighted");
+  });
+
+  it("moves the highlight when highlightVehicleId changes", () => {
+    const { rerender } = render(<FleetMap vehicles={[v1, v2]} highlightVehicleId="v1" />);
+    rerender(<FleetMap vehicles={[v1, v2]} highlightVehicleId="v2" />);
+    const [m1, m2] = markerInstances();
+
+    expect(m1.getElement()).not.toHaveClass("vehicle-marker-highlighted");
+    expect(m2.getElement()).toHaveClass("vehicle-marker-highlighted");
+  });
+
+  it("drops the hover ring when the mouse leaves a normal marker", () => {
+    render(<FleetMap vehicles={[v1]} />);
+    const inner = markerInner(markerInstances()[0]);
+
+    inner.dispatchEvent(new MouseEvent("mouseenter"));
+    expect(inner.style.boxShadow).toContain("5px");
+
+    inner.dispatchEvent(new MouseEvent("mouseleave"));
+    expect(inner.style.boxShadow).not.toContain("5px");
+  });
+
+  it("keeps the hover ring when the mouse leaves a highlighted marker", () => {
+    render(<FleetMap vehicles={[v1]} highlightVehicleId="v1" />);
+    const inner = markerInner(markerInstances()[0]);
+
+    inner.dispatchEvent(new MouseEvent("mouseenter"));
+    inner.dispatchEvent(new MouseEvent("mouseleave"));
+
+    expect(inner.style.boxShadow).toContain("5px");
   });
 });

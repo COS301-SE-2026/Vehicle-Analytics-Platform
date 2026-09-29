@@ -248,13 +248,13 @@ export const helpMenuData = [
         id: "fleet-groups",
         title: "Fleet Groups",
         icon: "groups",
-        roles: MANAGER_AND_ADMIN,
+        roles: ADMIN_ONLY,
         articles: [
             {
                 id: "what-are-fleet-groups",
                 title: "What Fleet Groups Are",
                 preview: "How vehicles are organised and scoped",
-                roles: MANAGER_AND_ADMIN,
+                roles: ADMIN_ONLY,
                 content: [
                     text(
                         "A fleet group is a named collection of vehicles. Admins create the groups and decide which vehicles belong to each one, then assign Fleet Managers to the groups they're responsible for."
@@ -271,7 +271,7 @@ export const helpMenuData = [
                 id: "switching-between-groups",
                 title: "Switching Between Groups",
                 preview: "Working across more than one fleet",
-                roles: MANAGER_AND_ADMIN,
+                roles: ADMIN_ONLY,
                 content: [
                     text(
                         "If you're assigned to more than one fleet group, go back to the group cards and pick a different one. The dashboard, map, vehicle list, and safety scores all update to the newly selected group."
@@ -387,6 +387,187 @@ export const helpMenuData = [
                 ],
             },
         ],
+    },
+    {
+        id: "predictive-risk",
+        title: "Predictive Risk",
+        icon: "trending-up",
+        roles: MANAGER_AND_ADMIN,
+        articles: [
+        {
+            id: "what-is-predictive-risk",
+            title: "What Predictive Risk Is",
+            preview: "A forecast of tomorrow, not a report on today",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Predictive Risk estimates how likely each vehicle is to have an unsafe day tomorrow. Every vehicle gets a score from 0 to 100, where a higher number means a higher chance of unsafe driving ahead. Scores refresh automatically once a day at 03:00."
+                ),
+                text(
+                    "The forecast is built from how the vehicle has actually been driven over the past 7 days, compared against 90 days of fleet history. It deliberately ignores today's Safety Score, so it is making a genuine prediction rather than repeating what you can already see."
+                ),
+                callout(
+                    "A vehicle can have a clean day today and still be flagged as high risk for tomorrow. That is the system working as intended, not a mistake."
+                ),
+            ],
+        },
+        {
+            id: "risk-score-vs-safety-score",
+            title: "Risk Score vs Safety Score",
+            preview: "Two different numbers, two different jobs",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "These two scores are easy to confuse because they both run from 0 to 100. They measure opposite things and move in opposite directions."
+                ),
+                table(
+                    ["Safety Score", "Risk Score"],
+                    [
+                        [
+                            "Looks backwards at what already happened today. Starts at 100 and drops as unsafe events are detected. Higher is better. Resets every 24 hours.",
+                            "Looks forwards at what is likely to happen tomorrow. Built from the last 7 days of behaviour. Higher is worse. Recalculated daily at 03:00.",
+                        ],
+                    ]
+                ),
+                callout(
+                    "If a vehicle shows a good Safety Score and a high Risk Score at the same time, nothing is broken. Today went well, but the recent pattern suggests tomorrow may not."
+                ),
+            ],
+        },
+        {
+            id: "risk-tiers-explained",
+            title: "Risk Tiers Explained",
+            preview: "What Low, Medium, High and Critical mean for you",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Every risk score is grouped into one of four tiers so you can triage the fleet at a glance instead of comparing raw numbers."
+                ),
+                glossary([
+                    {
+                        term: "Low",
+                        definition:
+                            "Recent driving looks steady. No action needed. Check in on these vehicles during your normal weekly review.",
+                    },
+                    {
+                        term: "Medium",
+                        definition:
+                            "Some early warning signs in the last 7 days, but nothing urgent. Worth a glance at the top reasons to see what is drifting.",
+                    },
+                    {
+                        term: "High",
+                        definition:
+                            "The pattern of recent driving closely resembles vehicles that went on to have an unsafe day. A coaching recommendation is created automatically for these vehicles.",
+                    },
+                    {
+                        term: "Critical",
+                        definition:
+                            "The strongest warning the system gives. These should be your first stop each morning. A coaching recommendation is created automatically and an alert is sent to your notification feed.",
+                    },
+                ]),
+                text(
+                    "The tier is shown as a coloured badge on the vehicle's Predictive Risk tab and as a small badge in the fleet table, so you can scan the whole list without opening each profile."
+                ),
+            ],
+        },
+        {
+            id: "reading-the-top-reasons",
+            title: "Reading the Top 3 Reasons",
+            preview: "Why a vehicle scored the way it did",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A score on its own does not tell you what to do about it. Under every prediction you will find the three factors that pushed the score up the most, ranked by how much each one mattered."
+                ),
+                text("The factors the model looks at are:"),
+                list([
+                    "Average safety score over the recent period",
+                    "Harsh events per trip, covering braking, acceleration and cornering",
+                    "Speeding ratio, meaning how much of the driving was above the threshold",
+                    "Distance driven over the week",
+                    "Days since the last recorded trip",
+                ]),
+                text(
+                    "Each reason is written in plain language, for example \"Frequent harsh events\" or \"High weekly distance,\" so you can go straight to the conversation you need to have with the driver."
+                ),
+            ],
+        },
+        {
+            id: "coaching-recommendations",
+            title: "Coaching Recommendations",
+            preview: "What to do about a flagged vehicle",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "When a vehicle lands in High or Critical, the system writes a coaching recommendation for you automatically. You do not need to request one."
+                ),
+                text(
+                    "The recommendation is derived from the vehicle's top reason, so a vehicle flagged for harsh cornering gets different advice from one flagged for sustained speeding. You will find it in the Coaching History panel on the vehicle's Predictive Risk tab, alongside the date it was raised and the reason behind it."
+                ),
+                callout(
+                    "Recommendations are suggestions for your conversation with the driver. The system does not contact drivers directly and does not take any action on the vehicle."
+                ),
+            ],
+        },
+        {
+            id: "unexpected-risk-scores",
+            title: "When a Score Looks Wrong",
+            preview: "Quiet vehicles, new vehicles and missing data",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A few situations produce scores that look surprising at first but are working correctly."
+                ),
+                list([
+                    "A vehicle that has not moved recently scores low. With no recent trips there is no risky behaviour to learn from, so the system treats it as inactive rather than dangerous.",
+                    "A brand new vehicle with little history will also sit low until it has built up enough recent driving to score against.",
+                    "A vehicle with no completed trips in the last 30 days is treated as inactive, and its trip based factors fall back to neutral values.",
+                ]),
+                callout(
+                    "A low risk score on a parked vehicle is not a clean bill of health. It only means the system has nothing recent to go on."
+                ),
+            ],
+        },
+        {
+            id: "how-accurate-is-the-forecast",
+            title: "How Accurate Is the Forecast?",
+            preview: "What the model gets right and where to be careful",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "On data the model had never seen during training, it correctly ranks a genuinely unsafe vehicle above a genuinely safe one about 90.6 percent of the time. For comparison, simply assuming tomorrow will look like today gets this right 88.2 percent of the time."
+                ),
+                text(
+                    "That makes the forecast a useful way to order your attention across the fleet, but it is not a guarantee about any single vehicle. Treat a High or Critical score as a prompt to look closer, not as proof that something will go wrong."
+                ),
+                callout(
+                    "Use the risk score to decide who to check on first. Use the top reasons and the vehicle's trip history to decide what to actually say."
+                ),
+            ],
+        },
+        {
+            id: "recalculating-risk",
+            title: "Recalculating Risk Manually",
+            preview: "Refreshing predictions outside the daily run",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "Predictions normally refresh once a day at 03:00. Admins can trigger a fresh run at any time using the Recalculate Risk button on the Fleet Risk page."
+                ),
+                text(
+                    "This is useful after the model has been retrained, after a change to the underlying data, or when you need current numbers for a review straight away. When the run finishes you will see a summary of how many vehicles were scored and how many alerts were raised, and the page refreshes with the new predictions."
+                ),
+                list([
+                    "Running it more than once in a day updates the existing predictions rather than creating duplicates.",
+                    "If a run is already in progress, the system tells you instead of starting a second one.",
+                    "Fleet Managers and Viewers do not see this button and cannot trigger a run.",
+                ]),
+                callout(
+                    "If you see an error saying no trained model is available, the model needs to be trained before predictions can run. Contact whoever maintains your deployment."
+                ),
+            ],
+        },
+      ],
     },
 ];
 

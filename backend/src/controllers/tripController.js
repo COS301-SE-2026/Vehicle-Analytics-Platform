@@ -235,18 +235,33 @@ async function getTripReplay(req, res) {
 
 
       
-  const pointsResult = await pool.query(
+const MAX_REPLAY_POINTS = 2000;
+const RAW_REPLAY_MAX_SECONDS = 2*60*60;
+const tripEnd = trip.end_time ? new Date(trip.end_time) : new Date();
+const durationSeconds = (tripEnd - new Date(trip.start_time)) /1000;
 
-
-
+let pointsResult;
+    if(durationSeconds <= RAW_REPLAY_MAX_SECONDS) {
+        pointsResult = await pool.query(
             `SELECT * FROM get_trip_replay($1)`,
-
-
             [tripId]
-
-
-
         );
+    }else {
+        const stepSeconds = Math.max(60, Math.ceil(durationSeconds / MAX_REPLAY_POINTS));
+
+        pointsResult = await pool.query(`
+                SELECT time_bucket($4::interval, bucket) AS point_time,
+                       first(latitude, bucket)            AS latitude,
+                       first(longitude, bucket)           AS longitude,
+                       max(max_speed)                     AS speed_kmh
+                FROM vehicle_speed_1min
+                WHERE vehicle_id = $1
+                  AND bucket BETWEEN $2 AND $3
+                  AND latitude IS NOT NULL
+                GROUP BY 1
+                ORDER BY 1
+            `, [trip.vehicle_id, trip.start_time, tripEnd, `${stepSeconds} seconds`]);
+        }
 
 
 

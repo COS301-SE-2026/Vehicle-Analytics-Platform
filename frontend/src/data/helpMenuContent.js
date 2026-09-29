@@ -248,38 +248,105 @@ export const helpMenuData = [
         id: "fleet-groups",
         title: "Fleet Groups",
         icon: "groups",
-        roles: ADMIN_ONLY,
+        roles: MANAGER_AND_ADMIN,
         articles: [
-            {
-                id: "what-are-fleet-groups",
-                title: "What Fleet Groups Are",
-                preview: "How vehicles are organised and scoped",
-                roles: ADMIN_ONLY,
-                content: [
-                    text(
-                        "A fleet group is a named collection of vehicles. Admins create the groups and decide which vehicles belong to each one, then assign Fleet Managers to the groups they're responsible for."
-                    ),
-                    text(
-                        "Once you're assigned, your dashboard, map, vehicle list, and safety scores are scoped to your groups only. Admins always see every group, assigned or not."
-                    ),
-                    callout(
-                        "Access is checked on every request, not stored when you log in. If your access changes, you'll see it on the next refresh - no need to log out and back in."
-                    ),
-                ],
-            },
-            {
-                id: "switching-between-groups",
-                title: "Switching Between Groups",
-                preview: "Working across more than one fleet",
-                roles: ADMIN_ONLY,
-                content: [
-                    text(
-                        "If you're assigned to more than one fleet group, go back to the group cards and pick a different one. The dashboard, map, vehicle list, and safety scores all update to the newly selected group."
-                    ),
-                    callout("Switching groups doesn't reload the page - the views update in place."),
-                ],
-            }
-       ],
+        {
+            id: "what-are-fleet-groups",
+            title: "What Fleet Groups Are",
+            preview: "How vehicles are organised and scoped",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "A fleet group is a named collection of vehicles. Admins create the groups and decide which vehicles belong to each one, then assign Fleet Managers to the groups they're responsible for."
+                ),
+                text(
+                    "Once you're assigned, your dashboard, map, vehicle list, and safety scores are scoped to your groups only. Admins always see every group, assigned or not."
+                ),
+                callout(
+                    "Access is checked on every request, not stored when you log in. If your access changes, you'll see it on the next refresh - no need to log out and back in."
+                ),
+            ],
+        },
+        {
+            id: "switching-between-groups",
+            title: "Switching Between Groups",
+            preview: "Working across more than one fleet",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "If you're assigned to more than one fleet group, go back to the group cards and pick a different one. The dashboard, map, vehicle list, and safety scores all update to the newly selected group."
+                ),
+                callout("Switching groups doesn't reload the page - the views update in place."),
+            ],
+        },
+        {
+            id: "manager-leaderboard",
+            title: "Manager Leaderboard",
+            preview: "How your fleet compares",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "The dashboard ranks fleet managers by the average safety score of their vehicles over the last 7 days. Where two managers tie, the one with more vehicles ranks higher. The top 5 are shown by default."
+                ),
+                callout(
+                    "If you are not listed, your vehicles have no safety scores from the last 7 days. A quiet week keeps you off the board rather than putting you at the bottom of it."
+                ),
+            ],
+        },
+        {
+            id: "creating-and-deleting-groups",
+            title: "Creating & Deleting Groups",
+            preview: "Setting up and tidying up",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "On the Fleet Groups page you can create a group with a name and an optional description. It starts empty, with no vehicles and no manager, and is flagged Unassigned until you give it one. Names must be unique among active groups."
+                ),
+                text(
+                    "Deleting a group asks you to confirm and tells you how many vehicles will be affected. The vehicles are not deleted. They become unassigned and can be put into another group, and the group's manager assignment is removed."
+                ),
+                callout(
+                    "A deleted group's name becomes free again, so you can reuse it for a new group later."
+                ),
+            ],
+        },
+        {
+            id: "assigning-a-manager",
+            title: "Assigning a Manager",
+            preview: "Putting someone in charge of a group",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "Open a group and pick from the list of available managers. Only active users with the Fleet Manager role appear there. A group holds one manager at a time, so to change who is responsible, remove the current manager first and then assign the new one."
+                ),
+                text(
+                    "Assignments and removals take effect straight away. A newly assigned manager sees the group's vehicles on their next request, and a removed manager loses access just as quickly, without either of them signing out."
+                ),
+                callout(
+                    "Every assignment and removal is recorded with who made the change and when, including removals caused by deleting a group."
+                ),
+            ],
+        },
+        {
+            id: "moving-vehicles-between-groups",
+            title: "Moving Vehicles Between Groups",
+            preview: "Assigning, unassigning and transferring",
+            roles: ADMIN_ONLY,
+            content: [
+                text(
+                    "Inside a group, vehicles are split across three tabs: Unassigned, In This Group, and In Another Group. Search by province, tick the vehicles you want, then assign them, unassign them, or transfer them straight to another group without unassigning first."
+                ),
+                list([
+                    "A vehicle belongs to one group at a time, or to none.",
+                    "Transfers ask you to confirm, showing which vehicles are moving and where to.",
+                    "A transferred vehicle immediately follows its new group's manager and custom alert rules.",
+                ]),
+                callout(
+                    "If someone moved a vehicle while you were choosing, it is skipped rather than moved twice, and the result tells you how many were skipped."
+                ),
+            ],
+        },
+      ],
     },
     {
         id: "geofencing",

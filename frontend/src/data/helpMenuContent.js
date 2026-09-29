@@ -626,6 +626,9 @@ export const helpMenuData = [
                     "Safety score drop - a vehicle's score falls below a set value",
                     "Trip duration - a single trip or a day's total driving runs too long",
                 ]),
+                text(
+                    "Before you save, use Preview Impact to see how the rule would have behaved over the last month."
+                ),
                 callout(
                     "You can only scope an alert to a fleet group you manage, and it will only ever fire for vehicles in that group."
                 ),
@@ -645,6 +648,26 @@ export const helpMenuData = [
                 ),
                 text(
                     "If the same vehicle breaches the same rule repeatedly in a few minutes, you get one alert rather than a stream of them." 
+                ),
+            ],
+        },
+        {
+            id: "preview-alert-impact",
+            title: "Previewing an Alert",
+            preview: "See how noisy a rule will be before saving",
+            roles: MANAGER_AND_ADMIN,
+            content: [
+                text(
+                    "Once you have picked a fleet group and filled in the rule's values, Preview Impact replays the draft against the last 30 days of real data for that group. You get the number of alerts it would have raised, how many vehicles were involved, a day by day trend with the busiest day marked, and a sample of the worst breaches showing the vehicle, the value and how far over your threshold it went."
+                ),
+                text(
+                    "Adjust a threshold and the preview re-runs on its own, so you can settle on a number that catches real problems without burying your team. If the rule would never have fired, the panel tells you that outright."
+                ),
+                callout(
+                 "Nothing is saved and nobody is notified while you preview. Your draft stays exactly as you left it."
+                ),
+                text(
+                 "The preview applies the same duplicate suppression the live rule would, so the count you tune against is the count you can expect to receive."
                 ),
             ],
         },

@@ -22,6 +22,7 @@
 [![Issues Closed](https://img.shields.io/github/issues-closed/COS301-SE-2026/Vehicle-Analytics-Platform)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/issues?q=is%3Aissue+is%3Aclosed)
 [![Node](https://img.shields.io/badge/node-v20-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Uptime](https://img.shields.io/uptimerobot/status/m802945452-ad34f756748729c34c7594e0?label=uptime)](https://stats.uptimerobot.com/3qOgv6HCr1)
 
 </div>
 

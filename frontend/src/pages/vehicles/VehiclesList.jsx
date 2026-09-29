@@ -144,6 +144,7 @@ useEffect(() => {
                 id: v.id,
                 status: v.status,
                 safetyScore: v.safety_score,
+                avgSafetyScore: v.avg_safety_score != null ? Number(v.avg_safety_score) : null,
                 hasAlert: v.has_alert,
                 isSpeeding: v.is_speeding,
                 lastUpdated: v.last_updated,

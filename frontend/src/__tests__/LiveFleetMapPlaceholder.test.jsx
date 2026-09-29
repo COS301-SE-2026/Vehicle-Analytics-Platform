@@ -2,6 +2,20 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import FleetMapPlaceholder from "../components/dashboard/LiveFleetMapPlaceholder";
 
 let lastOnVehicleClick = null;
+
+jest.mock("@/services/riskService", () => ({
+  __esModule: true,
+  getFleetRisk: jest.fn().mockResolvedValue([]),
+  getVehicleRisk: jest.fn().mockResolvedValue(null),
+  getCoachingHistory: jest.fn().mockResolvedValue(null),
+  getSimilarVehicles: jest.fn().mockResolvedValue([]),
+  getRiskNotifications: jest.fn().mockResolvedValue({ notifications: [], checked_at: new Date().toISOString() }),
+}));
+
+jest.mock("react-router-dom", () => ({
+  useNavigate: () => jest.fn(),
+}));
+
 jest.mock("../components/map/FleetMap", () => ({
   __esModule: true,
   default: ({ vehicles, buffer, initialView, onGeofenceClick, onVehicleClick, minimal }) => {
@@ -24,6 +38,8 @@ jest.mock("lucide-react", () => ({
   MapPin: (props) => <svg data-testid="icon-mappin" {...props} />,
   Clock: (props) => <svg data-testid="icon-clock" {...props} />,
   Waypoints: (props) => <svg data-testid="icon-waypoints" {...props} />,
+  Brain: (props) => <svg data-testid="icon-brain" {...props} />,
+  ArrowRight: (props) => <svg data-testid="icon-arrow-right" {...props} />,
 }));
 
 function clickVehicle(vehicle) {
@@ -99,7 +115,7 @@ describe("FleetMapPlaceholder: vehicle panel visibility", () => {
 
   it("matches vehicle id across string/number type mismatches", () => {
     render(<FleetMapPlaceholder {...baseProps({ vehicles: [{ id: 7, status: "idle" }] })} />);
-    clickVehicle({ id: "7" }); // clicked marker reports a string id
+    clickVehicle({ id: "7" });
 
     expect(screen.getByText("7")).toBeInTheDocument();
   });

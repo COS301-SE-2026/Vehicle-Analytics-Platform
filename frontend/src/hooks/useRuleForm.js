@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EMPTY_PARAMS, buildConditionParams as buildParams } from '@/components/alerts/ruleFormConstants';
+import { EMPTY_PARAMS, buildConditionParams as buildParams } from '@/utils/ruleFormConstants';
 
 export default function useRuleForm() {
   const [conditionType, setConditionType] = useState('speed_threshold');
@@ -30,6 +30,16 @@ export default function useRuleForm() {
     return buildParams(conditionType, params);
   }
 
+  function changeName(value) {
+    setName(value);
+    setError('');
+  }
+
+  function changeFleetGroup(value) {
+    setFleetGroupId(value);
+    setError('');
+  }
+
   function reset(next = {}) {
     setConditionType(next.conditionType ?? 'speed_threshold');
     setName(next.name ?? '');
@@ -44,8 +54,8 @@ export default function useRuleForm() {
     fleetGroupId,
     params,
     error,
-    setName,
-    setFleetGroupId,
+    setName: changeName,
+    setFleetGroupId: changeFleetGroup,
     setError,
     selectCondition,
     updateParam,

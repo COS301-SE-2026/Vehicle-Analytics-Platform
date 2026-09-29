@@ -16,6 +16,7 @@ import CreateAlertRuleModal from './CreateRuleModal';
 import EditAlertRuleModal from './EditRuleModal';
 import DeleteAlertRuleModal from './DeleteRuleModal';
 import { Pencil, Trash2 } from 'lucide-react';
+import { describeEventTypes } from '../../utils/ruleFormConstants';
 
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
@@ -32,34 +33,39 @@ const CONDITION_LABELS = {
   trip_duration_exceeded: 'Trip Duration Exceeded'
 };
 
+function formatDuration(minutes) {
+  const total = Math.round(minutes);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+const THRESHOLD_FORMATTERS = {
+  speed_threshold: (p) => (p.max_speed_kmh != null ? `${p.max_speed_kmh} km/h` : null),
+
+  time_based_restriction: (p) =>
+    p.start_time && p.end_time ? `${p.start_time}–${p.end_time}` : null,
+
+  repeated_unsafe_events: (p) =>
+    p.count != null && p.window_minutes != null
+      ? `${p.count}x ${describeEventTypes(p.event_types)} in ${p.window_minutes}m`
+      : null,
+
+  safety_score_drop: (p) => (p.min_score != null ? `< ${p.min_score}` : null),
+
+  trip_duration_exceeded: (p) => {
+    const parts = [];
+    if (p.max_trip_minutes != null) parts.push(`${formatDuration(p.max_trip_minutes)}/trip`);
+    if (p.max_daily_minutes != null) parts.push(`${formatDuration(p.max_daily_minutes)}/day`);
+    return parts.length ? parts.join(' · ') : null;
+  },
+};
+
 function formatThreshold(rule) {
+  const formatter = THRESHOLD_FORMATTERS[rule.condition_type];
   const params = rule.condition_params ?? {};
-
-  switch (rule.condition_type) {
-    case 'speed_threshold':
-      return params.max_speed_kmh != null ? `${params.max_speed_kmh} km/h` : '—';
-
-    case 'time_based_restriction':
-      return params.start_time && params.end_time
-        ? `${params.start_time}–${params.end_time}`
-        : '—';
-
-    case 'repeated_unsafe_events':
-      return params.count != null && params.window_minutes != null
-        ? `${params.count}x in ${params.window_minutes}m`
-        : '—';
-
-    case 'safety_score_drop':
-      return params.min_score != null ? `< ${params.min_score}` : '—';
-
-    case 'trip_duration_exceeded':
-      if (params.max_trip_minutes != null) return `${params.max_trip_minutes} min/trip`;
-      if (params.max_daily_minutes != null) return `${params.max_daily_minutes} min/day`;
-      return '—';
-
-    default:
-      return rule.threshold_value ?? '—';
-  }
+  return formatter?.(params) ?? rule.threshold_value ?? '—';
 }
 
 
@@ -126,9 +132,6 @@ export default function AlertRulesTab() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
 
         });      
-
-        console.log('fleet groups raw response:', res.data);
-
 
         setFleetGroups(res.data.data.groups);
 

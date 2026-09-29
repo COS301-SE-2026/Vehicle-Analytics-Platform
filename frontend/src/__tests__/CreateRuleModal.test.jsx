@@ -39,7 +39,7 @@ describe('CreateAlertRuleModal', () => {
 
     expect(screen.getByLabelText(/Alert Name/i)).toHaveValue('');
 
-    expect(screen.getByLabelText(/Fleet Group/i)).toHaveValue('');
+    expect(screen.getByLabelText(/Fleet Group/i, { selector: 'select' })).toHaveValue('');
 
     expect(screen.getByLabelText(/Speed Limit/i)).toHaveValue(null);
   });
@@ -192,7 +192,7 @@ describe('CreateAlertRuleModal', () => {
     render(<CreateAlertRuleModal isOpen={true} onClose={onClose} onCreated={onCreated} fleetGroups={fleetGroups} />);
 
     await user.type(screen.getByLabelText(/Alert Name/i), 'Highway Speeding');
-    await user.selectOptions(screen.getByLabelText(/Fleet Group/i), 'fg-1');
+    await user.selectOptions(screen.getByLabelText(/Fleet Group/i, { selector: 'select' }), 'fg-1');
     await user.type(screen.getByLabelText(/Speed Limit/i), '120');
 
     await user.click(screen.getByRole('button', { name: /Create Alert Rule/i }));
@@ -228,7 +228,7 @@ describe('CreateAlertRuleModal', () => {
     render(<CreateAlertRuleModal isOpen={true} onClose={onClose} onCreated={onCreated} fleetGroups={fleetGroups} />);
 
     await user.type(screen.getByLabelText(/Alert Name/i), 'Highway Speeding');
-    await user.selectOptions(screen.getByLabelText(/Fleet Group/i), 'fg-1');
+    await user.selectOptions(screen.getByLabelText(/Fleet Group/i, { selector: 'select' }), 'fg-1');
     await user.type(screen.getByLabelText(/Speed Limit/i), '120');
 
     await user.click(screen.getByRole('button', { name: /Create Alert Rule/i }));
@@ -252,7 +252,7 @@ describe('CreateAlertRuleModal', () => {
     render(<CreateAlertRuleModal isOpen={true} onClose={onClose} onCreated={onCreated} fleetGroups={fleetGroups} />);
 
     await user.type(screen.getByLabelText(/Alert Name/i), 'Highway Speeding');
-    await user.selectOptions(screen.getByLabelText(/Fleet Group/i), 'fg-1');
+    await user.selectOptions(screen.getByLabelText(/Fleet Group/i, { selector: 'select' }), 'fg-1');
     await user.type(screen.getByLabelText(/Speed Limit/i), '120');
 
     await user.click(screen.getByRole('button', { name: /Create Alert Rule/i }));
@@ -268,7 +268,7 @@ describe('CreateAlertRuleModal', () => {
     render(<CreateAlertRuleModal isOpen={true} onClose={onClose} onCreated={onCreated} fleetGroups={fleetGroups} />);
 
     await user.type(screen.getByLabelText(/Alert Name/i), 'Long Trips');
-    await user.selectOptions(screen.getByLabelText(/Fleet Group/i), 'fg-2');
+    await user.selectOptions(screen.getByLabelText(/Fleet Group/i, { selector: 'select' }), 'fg-2');
     await user.click(screen.getByText('Trip Duration'));
     await user.type(screen.getByLabelText(/Max Trip Duration/i), '90');
 

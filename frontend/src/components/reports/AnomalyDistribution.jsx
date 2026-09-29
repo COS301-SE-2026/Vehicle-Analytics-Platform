@@ -94,3 +94,151 @@ export function buildScale(feature) {
 
 const DRAW_ORDER = { normal: 0, unconfirmed: 1, flagged: 2 }
 
+function Strip({ feature, selectedVehicleId, onSelectVehicle, highlightFocus }) {
+    const [activeId, setActiveId] = useState(null)
+    const scale = buildScale(feature)
+    const x = scale.position
+    const { points, median, threshold } = feature.distribution
+    const name = behaviourName(feature)
+
+
+
+    const ordered = points
+        .map((p, index) => ({ ...p, lane: LANE_OFFSETS[index % LANE_OFFSETS.length] }))
+        .sort((a, b) => (DRAW_ORDER[a.status] ?? 0) - (DRAW_ORDER[b.status] ?? 0))
+
+
+    const flagged = points.filter((p) => p.status === 'flagged')
+    const labelled = new Set(flagged.slice(-MAX_LABELS).map((p) => p.vehicleId))
+    if (highlightFocus) points.filter((p) => p.inFocus).forEach((p) => labelled.add(p.vehicleId))
+    if (selectedVehicleId) labelled.add(selectedVehicleId)
+
+    const captionPoint = points.find((p) => p.vehicleId === (activeId || selectedVehicleId))
+    const bandEnd = isNumber(threshold) ? x(threshold) : null
+
+
+
+    return (
+        <figure className="space-y-1" data-testid={`strip-${feature.feature}`}>
+            <figcaption className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-fleet-text">
+                    {name}
+                    <span className="font-normal text-fleet-secondary"> {feature.unitLabel}</span>
+                </span>
+                <span className="text-xs text-fleet-secondary">
+                    Median {formatNumber(median)}
+                    {isNumber(threshold) ? `, flag line ${formatNumber(threshold)}` : ', no spread to set a flag line'}
+                    {scale.type === 'log' ? ', log scale' : ''}
+                </span>
+            </figcaption>
+
+            <svg
+                viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+                className="w-full h-auto overflow-visible"
+                role="group"
+                aria-label={`${name}: ${points.length} vehicles, median ${formatNumber(median)}, ${flagged.length} flagged`}
+            >
+                {bandEnd !== null && (
+                    <rect
+                        x={PLOT_LEFT}
+                        y={BAND_TOP}
+                        width={Math.max(bandEnd - PLOT_LEFT, 0)}
+                        height={BAND_HEIGHT}
+                        rx="6"
+                        fill="#A8A8A0"
+                        fillOpacity="0.14"
+                        data-testid="normal-band"
+                    />
+                )}
+                {isNumber(median) && (
+                    <line x1={x(median)} x2={x(median)} y1={BAND_TOP} y2={BAND_TOP + BAND_HEIGHT} stroke="#8A8A82" strokeWidth="1" />
+                )}
+                {bandEnd !== null && (
+                    <line
+                        x1={bandEnd}
+                        x2={bandEnd}
+                        y1={BAND_TOP - 4}
+                        y2={BAND_TOP + BAND_HEIGHT + 4}
+                        stroke={DOT_COLORS.high}
+                        strokeDasharray="4 3"
+                        data-testid="flag-line"
+                    />
+                )}
+
+                {scale.ticks.map((tick) => (
+                    <text key={tick} x={x(tick)} y={AXIS_Y} textAnchor="middle" fontSize="10" fill="#6B6B63">
+                        {formatNumber(tick)}
+                    </text>
+                ))}
+
+                {ordered.map((p) => {
+                    const selected = p.vehicleId === selectedVehicleId
+                    const focus = highlightFocus && p.inFocus
+                    const colour = p.status === 'flagged'
+                        ? DOT_COLORS[p.severity] || DOT_COLORS.high
+                        : p.status === 'unconfirmed' ? DOT_COLORS.unconfirmed : DOT_COLORS.normal
+                    const hollow = p.status === 'unconfirmed'
+                    const interesting = p.status !== 'normal' || focus
+
+                    return (
+                        <g key={p.vehicleId}>
+                            <circle
+                                cx={x(p.value)}
+                                cy={CENTRE_Y + p.lane}
+                                r={p.status === 'flagged' || focus ? 6 : 4.5}
+                                fill={hollow ? '#FFFFFF' : colour}
+                                stroke={selected || focus ? DOT_COLORS.selected : hollow ? colour : 'none'}
+                                strokeWidth={selected || focus ? 2.5 : 1.5}
+                                tabIndex={interesting ? 0 : -1}
+                                role="button"
+                                aria-label={`${p.vehicleId}: ${formatNumber(p.value)} ${feature.unitLabel}, ${STATUS_TEXT[p.status] || p.status}`}
+                                aria-pressed={selected}
+                                data-testid={`dot-${feature.feature}-${p.vehicleId}`}
+                                className="cursor-pointer outline-none"
+                                onClick={() => onSelectVehicle(p.vehicleId)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        onSelectVehicle(p.vehicleId)
+                                    }
+                                }}
+                                onMouseEnter={() => setActiveId(p.vehicleId)}
+                                onMouseLeave={() => setActiveId(null)}
+                                onFocus={() => setActiveId(p.vehicleId)}
+                                onBlur={() => setActiveId(null)}
+                            />
+                            {labelled.has(p.vehicleId) && (
+                                <text
+                                    x={x(p.value)}
+                                    y={BAND_TOP - 2}
+                                    textAnchor="middle"
+                                    fontSize="10"
+                                    fontWeight="600"
+                                    fill={p.status === 'flagged' ? colour : DOT_COLORS.selected}
+                                >
+                                    {p.vehicleId}
+                                </text>
+                            )}
+                        </g>
+                    )
+                })}
+            </svg>
+
+            <p className="text-xs text-fleet-secondary min-h-[1rem]" aria-live="polite">
+                {captionPoint
+                    ? `${captionPoint.vehicleId}: ${formatNumber(captionPoint.value)} ${feature.unitLabel}, ${STATUS_TEXT[captionPoint.status] || captionPoint.status}.`
+                    : `${points.length} vehicles, ${flagged.length} flagged.`}
+            </p>
+        </figure>
+    )
+}
+
+Strip.propTypes = {
+    feature: PropTypes.object.isRequired,
+    selectedVehicleId: PropTypes.string,
+    onSelectVehicle: PropTypes.func.isRequired,
+    highlightFocus: PropTypes.bool.isRequired,
+}
+
+
+

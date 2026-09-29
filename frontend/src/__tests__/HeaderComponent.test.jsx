@@ -1,10 +1,29 @@
-//import React from 'react'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import Header from '../components/layout/Header'
 
-jest.mock('../store/authStore', () => () => ({
-  user: { name: 'Zola Nkosi' }
+
+const mockState = {
+  user: { name: 'Zola Nkosi', email: 'zola@fleet.com', id: 1 },
+  role: 'viewer',
+}
+
+jest.mock('../store/authStore', () => {
+  const store = (selector) => selector(mockState)
+  store.getState = () => mockState
+  return { __esModule: true, default: store }
+})
+
+
+jest.mock('@/components/help/HelpPanel', () => ({
+  __esModule: true,
+  HelpPanel: ({ isOpen }) =>
+    isOpen ? <div data-testid="help-panel" /> : null,
+}))
+
+jest.mock('../components/layout/NotificationBell', () => ({
+  __esModule: true,
+  default: () => <div data-testid="notification-bell" />,
 }))
 
 describe('Header', () => {
@@ -20,6 +39,7 @@ describe('Header', () => {
 
   test('renders the avatar initials', () => {
     render(<Header title="Dashboard" collapsed={false} />)
+    // "Zola Nkosi" → "ZN"
     expect(screen.getByText('ZN')).toBeInTheDocument()
   })
 

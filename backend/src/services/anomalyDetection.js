@@ -539,3 +539,185 @@ function buildHeadline({ results, flagged, featuresScored, peerEvaluated, peerNo
 
 
 
+function detectFleetAnomalies(vehicles = [], options = {}){
+    const { focusIds = null, peerNoun = 'fleet' } = options;
+    const focusSet = Array.isArray(focusIds) ? new Set(focusIds) : null;
+    const inFocus = (id) => !focusSet || focusSet.has(id);
+
+    const basis = chooseExposureBasis(vehicles);
+    const definitions = buildFeatureDefinitions(basis);
+    const definitionList = Object.values(definitions);
+
+    const featureSummary = {};
+    const flagsByVehicle = new Map();
+    const measuresByVehicle = new Map();
+    vehicles.forEach((v) => {
+        flagsByVehicle.set(v.vehicleId, []);
+        measuresByVehicle.set(v.vehicleId, 0);
+    });
+
+    Object.keys(definitions).forEach((featureKey) => {
+        const definition = definitions[featureKey];
+
+        const measured = vehicles
+            .filter((vehicle) => definition.eligible(vehicle))
+            .map((vehicle) => ({ vehicle, value: definition.value(vehicle) }))
+            .filter((entry) => isNumber(entry.value));
+
+        const base = {
+            feature: featureKey,
+            behaviour: definition.behaviour,
+            kind: definition.kind,
+            label: definition.label,
+            unit: definition.unit,
+            unitLabel: definition.unitLabel,
+            vehiclesMeasured: measured.length,
+            fleetMedian: round(median(measured.map((m) => m.value)), 2),
+        };
+
+        if (measured.length < MIN_PEER_VEHICLES){
+            featureSummary[featureKey] = {
+                ...base,
+                status: measured.length === 0 ? STATUS.NOT_MEASURABLE : STATUS.INSUFFICIENT_PEERS,
+                distribution: null,
+            };
+            return;
+        }
+
+        const points = [];
+
+        measured.forEach((entry, index) => {
+            const peerEntries = measured.filter((_, i) => i !== index);
+            const scored = scoreAgainstPeers(entry.value, peerEntries.map((m) => m.value));
+            if (!scored) return;
+
+            const id = entry.vehicle.vehicleId;
+            measuresByVehicle.set(id, measuresByVehicle.get(id) + 1);
+
+            const outcome = evaluate(definition, entry, scored, peerEntries);
+            let severity = null;
+
+            if (outcome.status === POINT_STATUS.FLAGGED) {
+                const flag = buildFlag(featureKey, definition, entry.vehicle, entry.value, scored, outcome.evidence, peerNoun);
+                severity = flag.severity;
+                flagsByVehicle.get(id).push(flag);
+            }
+
+            points.push({
+                vehicleId: id,
+                value: round(entry.value, 2),
+                status: outcome.status,
+                reason: outcome.reason || null,
+                severity,
+                inFocus: inFocus(id),
+            });
+        });
+
+        const line = groupThreshold(measured.map((m) => m.value));
+
+        featureSummary[featureKey] = {
+            ...base,
+            status: STATUS.SCORED,
+            distribution: {
+                median: round(line.median, 2),
+                threshold: round(line.threshold, 2),
+                thresholdMethod: line.method,
+                points: points.sort((a, b) => a.value - b.value || a.vehicleId.localeCompare(b.vehicleId)),
+            },
+        };
+    });
+
+    const evaluatedIds = new Set(vehicles
+        .filter((vehicle) => definitionList.some((definition) => definition.eligible(vehicle)))
+        .map((vehicle) => vehicle.vehicleId));
+
+    const results = vehicles
+        .filter((vehicle) => inFocus(vehicle.vehicleId))
+        .map((vehicle) => {
+            const flags = (flagsByVehicle.get(vehicle.vehicleId) || []).sort(bySeverityThenScore);
+
+            return {
+                vehicleId: vehicle.vehicleId,
+                distanceKm: round(vehicle.distanceKm, 2),
+                tripCount: vehicle.tripCount ?? 0,
+                activeDays: vehicle.activeDays ?? 0,
+                totalIncidents: (vehicle.counts || {}).totalEvents ?? 0,
+                status: evaluatedIds.has(vehicle.vehicleId)
+                    ? STATUS.SCORED
+                    : STATUS.INSUFFICIENT_EXPOSURE,
+                measuresCompared: measuresByVehicle.get(vehicle.vehicleId) || 0,
+                severity: worstSeverity(flags),
+                flagCount: flags.length,
+                flags,
+            };
+        });
+
+    const flagged = results.filter((r) => r.flagCount > 0).sort(byImportance);
+
+    const featuresScored = Object.keys(featureSummary)
+        .filter((key) => featureSummary[key].status === STATUS.SCORED).length;
+
+    const vehiclesEvaluated = results.filter((r) => r.status === STATUS.SCORED).length;
+
+    return {
+        method: 'fleet_relative',
+        headline: buildHeadline({
+            results,
+            flagged,
+            featuresScored,
+            peerEvaluated: evaluatedIds.size,
+            peerNoun,
+            focused: Boolean(focusSet),
+        }),
+        parameters: {
+            minPeerVehicles: MIN_PEER_VEHICLES,
+            minSupportingEvents: MIN_SUPPORTING_EVENTS,
+            minEventsForMix: MIN_EVENTS_FOR_MIX,
+            zThreshold: Z_THRESHOLD,
+            alpha: ALPHA,
+        },
+        exposure: describeExposure(basis),
+        peers: {
+            noun: peerNoun,
+            vehicles: vehicles.length,
+            vehiclesEvaluated: evaluatedIds.size,
+        },
+        summary: {
+            vehiclesInScope: results.length,
+            vehiclesEvaluated,
+            vehiclesExcluded: results.length - vehiclesEvaluated,
+            vehiclesFlagged: flagged.length,
+            featuresScored,
+        },
+        features: featureSummary,
+        vehicles: results,
+        flagged,
+    };
+}
+
+module.exports = {
+    detectFleetAnomalies,
+    EXPOSURE_BASES,
+    INCIDENT_TYPES,
+    METHOD,
+    STATUS,
+    POINT_STATUS,
+    UNCONFIRMED_REASON,
+    BASELINE,
+    SEVERITY,
+    MIN_PEER_VEHICLES,
+    MIN_EXPOSURE_KM,
+    MIN_EXPOSURE_TRIPS,
+    MIN_SUPPORTING_EVENTS,
+    MIN_EVENTS_FOR_MIX,
+    Z_THRESHOLD,
+    ALPHA,
+    _median: median,
+    _medianAbsoluteDeviation: medianAbsoluteDeviation,
+    _scoreAgainstPeers: scoreAgainstPeers,
+    _chooseExposureBasis: chooseExposureBasis,
+    _buildFeatureDefinitions: buildFeatureDefinitions,
+    _assessEvidence: assessEvidence,
+    _groupThreshold: groupThreshold,
+    _round: round,
+};

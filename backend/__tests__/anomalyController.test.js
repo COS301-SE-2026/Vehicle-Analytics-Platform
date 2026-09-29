@@ -1,121 +1,256 @@
 'use strict';
 
-process.env.JWT_SECRET = 'test_secret_key';
-process.env.NODE_ENV = 'test';
+jest.mock('../db/pool', () => ({ pool: { name: 'pool' } }));
 
-const request = require('supertest');
-const app = require('../src/app');
-const { mockQuery } = require('pg');
-const generateToken = require('../tests/generateToken');
-const { _resetDataClockProbe } = require('../src/services/period');
+jest.mock('../services/scopeResolver', () => {
+    class ScopeError extends Error {
+        constructor(message, statusCode = 400) {
+            super(message);
+            this.statusCode = statusCode;
+        }
+    }
+    return { resolveScope: jest.fn(), ScopeError };
+});
 
-const VEHICLES = ['V001', 'V002', 'V003', 'V004', 'V005', 'V006', 'V999'];
+jest.mock('../services/period', () => ({
+    resolvePeriod: jest.fn(),
+    getDataClock: jest.fn(),
+    PERIOD_TYPES: ['weekly', 'monthly', 'current', 'custom'],
+}));
 
-function exposureRows() {
-    return VEHICLES.map((vehicle_id) => ({
-        vehicle_id, distance_km: '500', trip_count: '10', active_days: '5',
+jest.mock('../services/anomalyAnalytics', () => ({ getAnomalyFeatures: jest.fn() }));
+
+const { resolveScope, ScopeError } = require('../services/scopeResolver');
+const { resolvePeriod, getDataClock } = require('../services/period');
+const { getAnomalyFeatures } = require('../services/anomalyAnalytics');
+const { getAnomalies } = require('../controllers/anomalyController');
+
+const PERIOD = {
+    type: 'current',
+    label: 'Last 7 days',
+    fromDate: '2026-09-21',
+    toDate: '2026-09-27',
+    days: 7,
+    from: new Date('2026-09-20T22:00:00Z'),
+    to: new Date('2026-09-27T22:00:00Z'),
+};
+
+const FLEET_IDS = Array.from({ length: 10 }, (_, i) => `V${i}`);
+
+function features(ids) {
+    return ids.map((id, i) => ({
+        vehicleId: id,
+        distanceKm: 500,
+        tripCount: 20,
+        activeDays: 5,
+        p90TripMaxSpeedKmh: 100,
+        maxSpeedKmh: 110,
+        counts: {
+            harshBrakes: id === 'V9' ? 90 : 10 + (i % 3),
+            harshAccelerations: 5,
+            harshCornering: 0,
+            overspeedEvents: 8 + (i % 2),
+            idlingEvents: 0,
+            crashes: 0,
+            totalEvents: (id === 'V9' ? 90 : 10 + (i % 3)) + 5 + 8 + (i % 2),
+        },
     }));
 }
 
-// Six peers at 2 harsh brakes per 100 km, one vehicle at 20.
-function incidentRows() {
-    return VEHICLES.map((vehicle_id) => ({
-        vehicle_id,
-        harsh_brakes: vehicle_id === 'V999' ? '100' : '10',
-        harsh_accelerations: '0',
-        harsh_cornering: '0',
-        overspeed_events: '0',
-        idling_events: '0',
-        crashes: '0',
-        total_events: vehicle_id === 'V999' ? '100' : '10',
-    }));
+function scope(scopeType, vehicleIds, extra = {}) {
+    return {
+        scopeType,
+        scopeId: null,
+        label: `${scopeType} label`,
+        vehicleIds,
+        vehicleCount: vehicleIds.length,
+        groupIds: [],
+        ...extra,
+    };
 }
 
-function routeQuery(sql) {
-    if (sql.includes('fleet_manager_assignments')) {
-        return { rows: [{ id: 1, name: 'Delivery vehicles' }] };
-    }
-    if (sql.includes('fleet_group_id IS NULL')) return { rows: [{ count: 0 }] };
-    if (sql.includes('fleet_group_id = ANY')) {
-        return { rows: VEHICLES.map((vehicle_id) => ({ vehicle_id })) };
-    }
-    if (sql.includes('to_regproc')) return { rows: [{ present: false }] };
-    if (sql.includes('current_vehicle_position')) {
-        return { rows: [{ data_now: '2026-09-21T10:00:00Z' }] };
-    }
-    if (sql.includes('FROM trips')) return { rows: exposureRows() };
-    if (sql.includes('FROM vehicle_events')) return { rows: incidentRows() };
-    if (sql.includes('FROM clean_telemetry')) return { rows: [] };
-    return { rows: [] };
+function makeRes() {
+    const res = {};
+    res.status = jest.fn().mockReturnValue(res);
+    res.json = jest.fn().mockReturnValue(res);
+    return res;
 }
 
-describe('GET /api/anomalies', () => {
-    let managerToken;
-    let viewerToken;
+const USER = { id: 'u1', role: 'fleet_manager' };
 
-    beforeAll(() => {
-        managerToken = generateToken(1, 'manager@test.com', 'fleet_manager');
-        viewerToken = generateToken(2, 'viewer@test.com', 'viewer');
+beforeEach(() => {
+    jest.clearAllMocks();
+    getDataClock.mockResolvedValue(new Date('2026-09-28T00:00:00Z'));
+    resolvePeriod.mockReturnValue(PERIOD);
+    getAnomalyFeatures.mockImplementation(async (db, ids) => features(ids));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterEach(() => {
+    console.error.mockRestore();
+});
+
+describe('getAnomalies peer group', () => {
+    test('fleet scope is its own peer group and every vehicle is reported', async () => {
+        resolveScope.mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { scope_type: 'fleet' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(resolveScope).toHaveBeenCalledTimes(1);
+        expect(getAnomalyFeatures).toHaveBeenCalledWith(expect.anything(), FLEET_IDS, PERIOD);
+
+        const data = res.json.mock.calls[0][0].data;
+        expect(data.peerGroup).toEqual({ type: 'fleet', label: 'fleet label', vehicleCount: 10 });
+        expect(data.anomalies.summary.vehiclesInScope).toBe(10);
+        expect(data.anomalies.flagged.map((v) => v.vehicleId)).toEqual(['V9']);
     });
 
-    beforeEach(() => {
-        jest.clearAllMocks();
-        _resetDataClockProbe();
-        mockQuery.mockImplementation((sql) => Promise.resolve(routeQuery(sql)));
+    test('a single vehicle is compared against the authorised fleet', async () => {
+        resolveScope
+            .mockResolvedValueOnce(scope('vehicle', ['V3']))
+            .mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { scope_type: 'vehicle', scope_id: 'V3' } }, res);
+
+        expect(resolveScope).toHaveBeenNthCalledWith(2, expect.anything(), USER, { scopeType: 'fleet', scopeId: null });
+        expect(getAnomalyFeatures).toHaveBeenCalledWith(expect.anything(), FLEET_IDS, PERIOD);
+
+        const data = res.json.mock.calls[0][0].data;
+        expect(data.scope.type).toBe('vehicle');
+        expect(data.peerGroup.type).toBe('fleet');
+        expect(data.anomalies.vehicles.map((v) => v.vehicleId)).toEqual(['V3']);
+        expect(data.anomalies.flagged).toEqual([]);
+        expect(data.anomalies.headline).toMatch(/^V3 is within the fleet's normal range/);
     });
 
-    test('rejects an unauthenticated request', async () => {
-        const response = await request(app).get('/api/anomalies');
-        expect(response.status).toBe(401);
+    test('selected vehicles missing from the fleet list are still included as peers', async () => {
+        resolveScope
+            .mockResolvedValueOnce(scope('vehicles', ['V9', 'EXTRA']))
+            .mockResolvedValueOnce(scope('fleet', FLEET_IDS.slice(0, 9)));
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { scope_type: 'vehicles', scope_id: ['V9', 'EXTRA'] } }, res);
+
+        const requested = getAnomalyFeatures.mock.calls[0][1];
+        expect(requested).toEqual(expect.arrayContaining([...FLEET_IDS.slice(0, 9), 'V9', 'EXTRA']));
+        expect(new Set(requested).size).toBe(requested.length);
+
+        const data = res.json.mock.calls[0][0].data;
+        expect(data.anomalies.vehicles.map((v) => v.vehicleId).sort()).toEqual(['EXTRA', 'V9']);
+        expect(data.anomalies.flagged.map((v) => v.vehicleId)).toEqual(['V9']);
     });
 
-    test('rejects a role without reporting access', async () => {
-        const response = await request(app)
-            .get('/api/anomalies')
-            .set('Authorization', `Bearer ${viewerToken}`);
-        expect(response.status).toBe(403);
+    test('a group scope compares within the group and says so', async () => {
+        resolveScope.mockResolvedValueOnce(scope('group', FLEET_IDS, { scopeId: '4' }));
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { scope_type: 'group', scope_id: '4' } }, res);
+
+        expect(resolveScope).toHaveBeenCalledTimes(1);
+        const data = res.json.mock.calls[0][0].data;
+        expect(data.anomalies.peers.noun).toBe('group');
+        expect(data.anomalies.headline).toMatch(/group median/);
+    });
+});
+
+describe('getAnomalies errors', () => {
+    test('an unauthorised scope is rejected with the resolver status', async () => {
+        resolveScope.mockRejectedValueOnce(new ScopeError('Not authorised for this vehicle', 403));
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { scope_type: 'vehicle', scope_id: 'X' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(getAnomalyFeatures).not.toHaveBeenCalled();
     });
 
-    test('rejects a fleet group the manager is not assigned to', async () => {
-        const response = await request(app)
-            .get('/api/anomalies?scope_type=group&scope_id=99')
-            .set('Authorization', `Bearer ${managerToken}`);
+    test('a failure resolving the peer fleet is not swallowed', async () => {
+        resolveScope
+            .mockResolvedValueOnce(scope('vehicle', ['V3']))
+            .mockRejectedValueOnce(new ScopeError('No fleet assigned', 403));
+        const res = makeRes();
 
-        expect(response.status).toBe(403);
+        await getAnomalies({ user: USER, query: { scope_type: 'vehicle', scope_id: 'V3' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(getAnomalyFeatures).not.toHaveBeenCalled();
     });
 
-    test('returns fleet-relative anomalies for the managed scope', async () => {
-        const response = await request(app)
-            .get('/api/anomalies')
-            .set('Authorization', `Bearer ${managerToken}`);
+    test('an invalid period type is a 400', async () => {
+        resolveScope.mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        const res = makeRes();
 
-        expect(response.status).toBe(200);
+        await getAnomalies({ user: USER, query: { period_type: 'yearly' } }, res);
 
-        const payload = response.body.data || response.body;
-        expect(payload.anomalies.method).toBe('fleet_relative');
-        expect(payload.scope.vehicleCount).toBe(VEHICLES.length);
-        expect(payload.anomalies.flagged).toHaveLength(1);
-        expect(payload.anomalies.flagged[0].vehicleId).toBe('V999');
-        expect(payload.anomalies.flagged[0].flags[0].feature).toBe('harshBrakingPer100Km');
+        expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    test('rejects an unknown period type', async () => {
-        const response = await request(app)
-            .get('/api/anomalies?period_type=fortnightly')
-            .set('Authorization', `Bearer ${managerToken}`);
+    test('an unexpected failure is a 500', async () => {
+        resolveScope.mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        getAnomalyFeatures.mockRejectedValueOnce(new Error('connection reset'));
+        const res = makeRes();
 
-        expect(response.status).toBe(400);
+        await getAnomalies({ user: USER, query: {} }, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(console.error).toHaveBeenCalled();
+    });
+});
+
+describe('getAnomalies custom periods', () => {
+    test('a custom range passes parsed dates to the period resolver', async () => {
+        resolveScope.mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { period_type: 'custom', from: '2026-09-01', to: '2026-09-07' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        const args = resolvePeriod.mock.calls[0][0];
+        expect(args.periodType).toBe('custom');
+        expect(args.from).toBeInstanceOf(Date);
+        expect(args.to).toBeInstanceOf(Date);
     });
 
-    test('accepts a custom period and requires both bounds', async () => {
-        const missing = await request(app)
-            .get('/api/anomalies?period_type=custom&from=2026-09-01')
-            .set('Authorization', `Bearer ${managerToken}`);
-        expect(missing.status).toBe(400);
+    test('a custom range without both ends is a 400', async () => {
+        resolveScope.mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        const res = makeRes();
 
-        const valid = await request(app)
-            .get('/api/anomalies?period_type=custom&from=2026-09-01&to=2026-09-08')
-            .set('Authorization', `Bearer ${managerToken}`);
-        expect(valid.status).toBe(200);
+        await getAnomalies({ user: USER, query: { period_type: 'custom', from: '2026-09-01' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    test('an unparseable date is a 400', async () => {
+        resolveScope.mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { period_type: 'custom', from: 'not-a-date', to: '2026-09-07' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    test('a range the period resolver rejects is a 400, not a 500', async () => {
+        resolveScope.mockResolvedValueOnce(scope('fleet', FLEET_IDS));
+        resolvePeriod.mockImplementationOnce(() => { throw new Error('from must be before to'); });
+        const res = makeRes();
+
+        await getAnomalies({ user: USER, query: { period_type: 'custom', from: '2026-09-07', to: '2026-09-01' } }, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    test('a rolling period uses the data clock unless an anchor is given', async () => {
+        resolveScope.mockResolvedValue(scope('fleet', FLEET_IDS));
+
+        await getAnomalies({ user: USER, query: { period_type: 'current', current_days: '14' } }, makeRes());
+        expect(getDataClock).toHaveBeenCalledTimes(1);
+        expect(resolvePeriod.mock.calls[0][0].currentDays).toBe(14);
+
+        await getAnomalies({ user: USER, query: { period_type: 'current', anchor: '2026-09-10' } }, makeRes());
+        expect(getDataClock).toHaveBeenCalledTimes(1);
+        expect(resolvePeriod.mock.calls[1][0].anchor).toEqual(new Date('2026-09-10'));
     });
 });

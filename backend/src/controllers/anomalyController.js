@@ -1,16 +1,14 @@
 'use strict';
 
 const { pool } = require('../db/pool');
-
 const { success, error } = require('../utils/response');
-
 const { resolvePeriod, getDataClock, PERIOD_TYPES } = require('../services/period');
 const { resolveScope, ScopeError } = require('../services/scopeResolver');
 const { getAnomalyFeatures } = require('../services/anomalyAnalytics');
 const { detectFleetAnomalies } = require('../services/anomalyDetection');
-
 const DEFAULT_PERIOD_TYPE = 'current';
 const DEFAULT_CURRENT_DAYS = 7;
+const FOCUSED_SCOPE_TYPES = ['vehicle', 'vehicles'];
 
 function handleError(res, err, context) {
     if (err instanceof ScopeError) {
@@ -18,7 +16,6 @@ function handleError(res, err, context) {
     }
 
     console.error(`${context}:`, err);
-
 
     const message = process.env.NODE_ENV === 'production'
         ? 'Failed to detect anomalies'
@@ -78,6 +75,29 @@ async function resolveRequestedPeriod(db, input) {
     return resolvePeriod({ periodType, anchor, currentDays });
 }
 
+
+async function resolvePeerGroup(db, user, scope){
+    if (!FOCUSED_SCOPE_TYPES.includes(scope.scopeType)) {
+        return {
+            peerScope: scope,
+            peerVehicleIds: scope.vehicleIds,
+            focusIds: null,
+            peerNoun: scope.scopeType === 'group' ? 'group' : 'fleet',
+        };
+    }
+
+    const fleet = await resolveScope(db, user, { scopeType: 'fleet', scopeId: null });
+
+    const peerVehicleIds = [...new Set([...fleet.vehicleIds, ...scope.vehicleIds])];
+
+    return {
+        peerScope: fleet,
+        peerVehicleIds,
+        focusIds: scope.vehicleIds,
+        peerNoun: 'fleet',
+    };
+}
+
 async function getAnomalies(req, res) {
     try {
         const input = { ...(req.query || {}), ...(req.body || {}) };
@@ -87,9 +107,13 @@ async function getAnomalies(req, res) {
 
         const scope = await resolveScope(pool, req.user, { scopeType, scopeId });
         const period = await resolveRequestedPeriod(pool, input);
+        const peers = await resolvePeerGroup(pool, req.user, scope);
 
-        const features = await getAnomalyFeatures(pool, scope.vehicleIds, period);
-        const detection = detectFleetAnomalies(features);
+        const features = await getAnomalyFeatures(pool, peers.peerVehicleIds, period);
+        const detection = detectFleetAnomalies(features, {
+            focusIds: peers.focusIds,
+            peerNoun: peers.peerNoun,
+        });
 
         return success(res, {
             generatedAt: new Date().toISOString(),
@@ -99,6 +123,11 @@ async function getAnomalies(req, res) {
                 label: scope.label,
                 vehicleCount: scope.vehicleCount,
                 groupIds: scope.groupIds,
+            },
+            peerGroup: {
+                type: peers.peerScope.scopeType,
+                label: peers.peerScope.label,
+                vehicleCount: peers.peerVehicleIds.length,
             },
             period: {
                 type: period.type,
@@ -117,4 +146,5 @@ async function getAnomalies(req, res) {
 module.exports = {
     getAnomalies,
     _resolveRequestedPeriod: resolveRequestedPeriod,
+    _resolvePeerGroup: resolvePeerGroup,
 };

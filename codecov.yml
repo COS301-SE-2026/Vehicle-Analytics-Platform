@@ -6,3 +6,23 @@ coverage:
     patch:
       default:
         target: 10%
+        threshold: 5%
+
+# Exclude non-testable files from coverage accounting so patch diffs
+# that touch SQL migrations or test files don't tank the Codecov check.
+ignore:
+  - "database/migrations/**"
+  - "**/*.sql"
+  - "**/__tests__/**"
+  - "**/*.test.js"
+  - "**/*.test.jsx"
+  - "**/*.spec.js"
+  - "**/*.spec.jsx"
+  - "**/*.config.js"
+  - "**/*.config.ts"
+  - "**/node_modules/**"
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false

@@ -31,9 +31,9 @@ export default function AppShell({ role = 'viewer' }) {
         onToggle={() => setCollapsed(prev => !prev)}
       />
 
-      <div className={`${collapsed ? 'ml-[64px]' : 'ml-[220px]'} transition-all duration-300`}>
+      <div className={`${collapsed ? 'ml-[64px]' : 'ml-[220px]'} transition-[margin] duration-300`}>
         {!hideHeader && <Header title={title} collapsed={collapsed} />}
-        <main className={`${hideHeader ? 'pt-0 p-0' : 'pt-[60px] p-6'}`}>
+        <main className={`${hideHeader ? 'pt-0 p-0' : 'pt-[60px] p-6'} relative z-0`}>
           <Outlet />
         </main>
       </div>

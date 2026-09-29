@@ -1,6 +1,26 @@
 // controllers/triggeredAlertsController.js
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
+const DEFAULT_RESOLVED_WINDOW_HOURS = 48;
+const MAX_RESOLVED_WINDOW_HOURS = 24 * 365;
+
+function parseResolvedWindowHours(raw) {
+    if (raw === undefined || raw === null || raw === '') {
+        return DEFAULT_RESOLVED_WINDOW_HOURS;
+    }
+
+    const hours = Number.parseInt(raw, 10);
+
+    if(Number.isNaN(hours) || hours < 0) {
+        return DEFAULT_RESOLVED_WINDOW_HOURS;
+    }
+
+    if(hours === 0) {
+        return 0;
+    }
+
+    return Math.min(hours, MAX_RESOLVED_WINDOW_HOURS);
+}
 
 
 async function findAlertForUpdate(client, id) {
@@ -35,11 +55,13 @@ async function listTriggeredAlerts(req, res) {
         limit = 50,
         offset = 0,
         start_date,
-        end_date
+        end_date,
+        resolved_within_hours
     } = req.query;
 
     const limitInt = Number.parseInt(limit, 10);
     const offsetInt = Number.parseInt(offset, 10);
+    const resolvedWindowHours = parseResolvedWindowHours(resolved_within_hours);
 
     try {
         // Get all fleet groups this manager has access to
@@ -55,6 +77,7 @@ async function listTriggeredAlerts(req, res) {
         if (accessibleFleetIds.length === 0) {
             return success(res, {
                 data: [],
+                resolved_within_hours: resolvedWindowHours,
                 pagination: { total: 0, limit: limitInt, offset: offsetInt, hasMore: false }
             });
         }
@@ -103,6 +126,16 @@ async function listTriggeredAlerts(req, res) {
             paramIndex++;
         }
 
+       
+        if (resolvedWindowHours > 0) {
+            whereConditions.push(
+                `(ta.status <> 'resolved'
+                  OR COALESCE(ta.resolved_at, ta.created_at) > NOW() - make_interval(hours => $${paramIndex}::int))`
+            );
+            queryParams.push(resolvedWindowHours);
+            paramIndex++;
+        }
+
         const whereClause = whereConditions.join(' AND ');
 
         // Get total count
@@ -142,6 +175,7 @@ async function listTriggeredAlerts(req, res) {
 
         return success(res, {
             data: result.rows,
+            resolved_within_hours: resolvedWindowHours,
             pagination: {
                 total,
                 limit: limitInt,

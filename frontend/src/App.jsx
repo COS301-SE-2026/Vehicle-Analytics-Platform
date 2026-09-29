@@ -21,6 +21,7 @@ import FleetGroupsManagement from './pages/fleetgroups/FleetGroupsManagement'
 import FleetGroupDetail from './pages/fleetgroups/FleetGroupDetail'
 
 import Reports from './pages/reports/Reports'
+import FleetRiskPage from './pages/risk/FleetRiskPage'
 
 function ProtectedRoute({ children, allowedRoles }) {
   useNewAlertToasts();
@@ -150,6 +151,15 @@ function App() {
   element={
     <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
       <Reports />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/risk"
+  element={
+    <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+      <FleetRiskPage />
     </ProtectedRoute>
   }
 />

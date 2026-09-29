@@ -11,6 +11,19 @@ let mockVehiclePayload = {
   movement: 'moving'
 }
 
+jest.mock('../services/riskService', () => ({
+  __esModule: true,
+  getFleetRisk: jest.fn().mockResolvedValue([]),
+  getVehicleRisk: jest.fn().mockResolvedValue(null),
+  getCoachingHistory: jest.fn().mockResolvedValue(null),
+  getSimilarVehicles: jest.fn().mockResolvedValue([]),
+  getRiskNotifications: jest.fn().mockResolvedValue({ notifications: [], checked_at: new Date().toISOString() }),
+}))
+
+jest.mock('react-router-dom', () => ({
+  useNavigate: () => jest.fn(),
+}))
+
 jest.mock('../components/map/FleetMap', () => ({
   __esModule: true,
   default: ({ onVehicleClick, minimal }) => (
@@ -31,6 +44,8 @@ jest.mock('lucide-react', () => ({
   MapPin:    () => <svg data-testid="mappin-icon" />,
   Clock:     () => <svg data-testid="clock-icon" />,
   Waypoints: () => <svg data-testid="waypoints-icon" />,
+  Brain:     () => <svg data-testid="brain-icon" />,
+  ArrowRight: () => <svg data-testid="arrow-right-icon" />,
 }))
 
 const defaultProps = {
@@ -91,11 +106,6 @@ describe('LiveFleetMapPlaceholder – FleetMap integration', () => {
     expect(screen.queryByText('Current Speed')).not.toBeInTheDocument()
   })
 })
-
-
-
-
-// ── VehiclePanel returns null when vehicle is null ────────────────────────────
 
 describe('LiveFleetMapPlaceholder – VehiclePanel null guard', () => {
   it('does not render VehiclePanel when no vehicle selected', () => {

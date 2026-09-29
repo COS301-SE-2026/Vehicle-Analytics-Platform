@@ -215,19 +215,21 @@ class RiskPredictionService {
     return { scored, alerts: alerts.length };
   }
 
-  async getVehicleRisk(vehicleId, days = 30) {
+  async getVehicleRisk(vehicleId, days = 30, fleetGroupIds = null) {
     const { rows } = await this.pool.query(
       `
-      SELECT prediction_date, risk_score, risk_tier, top_factors,
-             feature_safety, feature_harsh,
-             feature_speeding, feature_weekend,
-             feature_distance, feature_recency
-      FROM vehicle_risk_predictions
-      WHERE vehicle_id = $1
-        AND prediction_date >= CURRENT_DATE - $2::int
-      ORDER BY prediction_date DESC
+      SELECT p.prediction_date, p.risk_score, p.risk_tier, p.top_factors,
+             p.feature_safety, p.feature_harsh,
+             p.feature_speeding, p.feature_weekend,
+             p.feature_distance, p.feature_recency
+      FROM vehicle_risk_predictions p
+      JOIN vehicles v ON v.vehicle_id = p.vehicle_id
+      WHERE p.vehicle_id = $1
+        AND p.prediction_date >= CURRENT_DATE - $2::int
+        AND ($3::bigint[] IS NULL OR v.fleet_group_id = ANY($3::bigint[]))
+      ORDER BY p.prediction_date DESC
       `,
-      [vehicleId, days]
+      [vehicleId, days, fleetGroupIds]
     );
 
     if (rows.length === 0) return null;
@@ -259,16 +261,19 @@ class RiskPredictionService {
     };
   }
 
-  async getFleetRisk() {
+  async getFleetRisk(fleetGroupIds = null) {
     const { rows } = await this.pool.query(
       `
-      SELECT vehicle_id, risk_score, risk_tier, top_factors, prediction_date
-      FROM vehicle_risk_predictions
-      WHERE prediction_date = (
+      SELECT p.vehicle_id, p.risk_score, p.risk_tier, p.top_factors, p.prediction_date
+      FROM vehicle_risk_predictions p
+      JOIN vehicles v ON v.vehicle_id = p.vehicle_id
+      WHERE p.prediction_date = (
         SELECT MAX(prediction_date) FROM vehicle_risk_predictions
       )
-      ORDER BY risk_score DESC
-      `
+        AND ($1::bigint[] IS NULL OR v.fleet_group_id = ANY($1::bigint[]))
+      ORDER BY p.risk_score DESC
+      `,
+      [fleetGroupIds]
     );
 
     const ids = rows.map((r) => r.vehicle_id);
@@ -276,13 +281,15 @@ class RiskPredictionService {
 
     const { rows: trendRows } = await this.pool.query(
       `
-      SELECT vehicle_id, prediction_date, risk_score
-      FROM vehicle_risk_predictions
-      WHERE vehicle_id = ANY($1::text[])
-        AND prediction_date >= CURRENT_DATE - INTERVAL '14 days'
-      ORDER BY vehicle_id, prediction_date ASC
+      SELECT p.vehicle_id, p.prediction_date, p.risk_score
+      FROM vehicle_risk_predictions p
+      JOIN vehicles v ON v.vehicle_id = p.vehicle_id
+      WHERE p.vehicle_id = ANY($1::text[])
+        AND p.prediction_date >= CURRENT_DATE - INTERVAL '14 days'
+        AND ($2::bigint[] IS NULL OR v.fleet_group_id = ANY($2::bigint[]))
+      ORDER BY p.vehicle_id, p.prediction_date ASC
       `,
-      [ids]
+      [ids, fleetGroupIds]
     );
 
     const trendByVehicle = {};
@@ -304,7 +311,23 @@ class RiskPredictionService {
     }));
   }
 
-  async getCoachingHistory(vehicleId) {
+  async getCoachingHistory(vehicleId, fleetGroupIds = null) {
+    // Skip the scope check when unrestricted (admin). Old callers
+    // that pass no fleetGroupIds don't need the extra round trip.
+    if (fleetGroupIds !== null) {
+      const { rows: scopeCheck } = await this.pool.query(
+        `
+        SELECT 1 FROM vehicles
+        WHERE vehicle_id = $1
+          AND fleet_group_id = ANY($2::bigint[])
+        `,
+        [vehicleId, fleetGroupIds]
+      );
+      if (!scopeCheck.length) {
+        return { vehicle_id: vehicleId, effectiveness_rate: null, interventions: [] };
+      }
+    }
+
     const { rows } = await this.pool.query(
       `
       SELECT id, created_at, recommendation_text, primary_factor,
@@ -366,14 +389,16 @@ class RiskPredictionService {
     return { updated: rowCount };
   }
 
-  async getSimilarVehicles(vehicleId, k = 5) {
+  async getSimilarVehicles(vehicleId, k = 5, fleetGroupIds = null) {
     const { rows } = await this.pool.query(
       `
       WITH target AS (
-        SELECT safety_feature, harsh_feature, speeding_feature,
-               weekend_feature, distance_feature, recency_feature
-        FROM vehicle_risk_features
-        WHERE vehicle_id = $1
+        SELECT f.safety_feature, f.harsh_feature, f.speeding_feature,
+               f.weekend_feature, f.distance_feature, f.recency_feature
+        FROM vehicle_risk_features f
+        JOIN vehicles v ON v.vehicle_id = f.vehicle_id
+        WHERE f.vehicle_id = $1
+          AND ($3::bigint[] IS NULL OR v.fleet_group_id = ANY($3::bigint[]))
       )
       SELECT
         f.vehicle_id,
@@ -389,15 +414,17 @@ class RiskPredictionService {
           POWER(f.recency_feature  - t.recency_feature,  2) * 0.01
         ) AS distance
       FROM vehicle_risk_features f
+      JOIN vehicles v ON v.vehicle_id = f.vehicle_id
       CROSS JOIN target t
       LEFT JOIN vehicle_risk_predictions p
         ON p.vehicle_id = f.vehicle_id
        AND p.prediction_date = CURRENT_DATE
       WHERE f.vehicle_id <> $1
+        AND ($3::bigint[] IS NULL OR v.fleet_group_id = ANY($3::bigint[]))
       ORDER BY distance ASC
       LIMIT $2
       `,
-      [vehicleId, k]
+      [vehicleId, k, fleetGroupIds]
     );
 
     return rows.map((r) => ({

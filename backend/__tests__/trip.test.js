@@ -179,5 +179,38 @@ describe('Trip Controller', () => {
       expect(response.status).toBe(200);
       expect(response.body.data.events).toEqual([]);
     });
+
+    test('downsamples long trips frm the per minute summary', async () => {
+      const start = new Date('2026-08-21T00:00:00Z');
+      const end = new Date('2026-09-03T00:00:00Z');
+
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [{
+            vehicle_id: '1033',
+            start_time: start,
+            end_time: end,
+            distance_km: 900,
+            avg_speed_kmh: 50,
+            max_speed_kmh: 120,
+            safety_score: 80,
+          }],
+        })
+        .mockResolvedValueOnce({
+          rows: [{point_time: start, latitude: '-25.7', longitude: '28.2', speed_kmh: 70}],
+        })
+        .mockResolvedValueOnce({rows: []});
+
+      const response = await request(app)
+        .get('/api/trips/replay/4665494')
+        .set('Authorization', 'Bearer test-token');
+
+        expect(response.status).toBe(200);
+        expect(response.body.data.points).toHaveLength(1);
+
+        const [pointSql, pointParams] = mockQuery.mock.calls[1];
+        expect(pointSql).toContain('vehicle_speed_1min');
+        expect(pointParams[3]).toBe('562 seconds');
+    });
   });
 });

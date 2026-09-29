@@ -3,6 +3,7 @@ import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, 
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import vaporlogo from "../../pages/landing/img/logo.png"
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
@@ -71,7 +72,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
         <div className="flex items-center justify-between mb-10 px-1">
           {!collapsed && (
             <div className="flex items-center gap-3 w-full justify-center">
-              <span className="text-fleet-blue font-bold text-2xl">V.A.P.O.R</span>
+               <img src={vaporlogo} alt="V.A.P.O.R" className="w-full h-14" />
             </div>
           )}
           <button

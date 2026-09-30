@@ -1,4 +1,3 @@
-//import React from 'react'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MemoryRouter } from 'react-router-dom'
@@ -22,22 +21,34 @@ jest.mock('../components/layout/AppShell', () =>
   }
 )
 
+// ProtectedRoute polls for alerts; routing tests don't need it.
+jest.mock('../hooks/useNewAlertToasts', () => () => {})
+
+jest.mock('../pages/landing/Landing',           () => () => <div data-testid="landing-page" />)
 jest.mock('../pages/auth/Login',                () => () => <div data-testid="login-page" />)
 jest.mock('../pages/auth/Signup',               () => () => <div data-testid="signup-page" />)
 jest.mock('../pages/auth/VerifyEmail',          () => () => <div data-testid="verify-page" />)
-jest.mock('../pages/dashboard/ViewerDashboard', () => () => <div data-testid="viewer-dashboard" />)
 jest.mock('../pages/dashboard/ManagerDashboard',() => () => <div data-testid="manager-dashboard" />)
 jest.mock('../pages/dashboard/AdminDashboard',  () => () => <div data-testid="admin-dashboard" />)
 jest.mock('../pages/map/LiveMap',               () => () => <div data-testid="live-map" />)
-jest.mock('../pages/reports/Reports',           () => () => <div data-testid="reports-page" />) 
-
+jest.mock('../pages/map/ViewerMap',             () => () => <div data-testid="viewer-map" />)
+jest.mock('../pages/reports/Reports',           () => () => <div data-testid="reports-page" />)
 
 import App from '../App'
 import useAuthStore from '../store/authStore'
 
-const setup = (path, user, role, getDashboardPath = () => '/login') => {
+const DASHBOARD_PATHS = {
+  viewer: '/dashboard/viewer',
+  manager: '/dashboard/manager',
+  fleet_manager: '/dashboard/manager',
+  admin: '/dashboard/admin',
+}
+
+const setup = (path, user, role) => {
   useAuthStore.mockReturnValue({ user, role })
-  useAuthStore.getState.mockReturnValue({ getDashboardPath })
+  useAuthStore.getState.mockReturnValue({
+    getDashboardPath: () => DASHBOARD_PATHS[role] ?? '/login',
+  })
   return render(
     <MemoryRouter initialEntries={[path]}>
       <App />
@@ -45,7 +56,7 @@ const setup = (path, user, role, getDashboardPath = () => '/login') => {
   )
 }
 
-describe('App routing', () => {
+describe('App routing: public pages', () => {
   test('/login renders Login page', () => {
     setup('/login', null, null)
     expect(screen.getByTestId('login-page')).toBeInTheDocument()
@@ -61,40 +72,70 @@ describe('App routing', () => {
     expect(screen.getByTestId('verify-page')).toBeInTheDocument()
   })
 
+  test('an unknown path redirects to the landing page', () => {
+    setup('/no-such-page', null, null)
+    expect(screen.getByTestId('landing-page')).toBeInTheDocument()
+  })
+})
+
+describe('App routing: dashboards', () => {
   test('unauthenticated user at /dashboard/viewer redirects to /login', () => {
     setup('/dashboard/viewer', null, null)
     expect(screen.getByTestId('login-page')).toBeInTheDocument()
   })
 
-  test('viewer at /dashboard/viewer sees ViewerDashboard', () => {
-    setup('/dashboard/viewer', { id: 1 }, 'viewer', () => '/dashboard/viewer')
-    expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
+  test('manager at /dashboard/manager sees ManagerDashboard', () => {
+    setup('/dashboard/manager', { id: 2 }, 'manager')
+    expect(screen.getByTestId('manager-dashboard')).toBeInTheDocument()
   })
 
-  test('manager at /dashboard/manager sees ManagerDashboard', () => {
-    setup('/dashboard/manager', { id: 2 }, 'manager', () => '/dashboard/manager')
+  test('fleet manager at /dashboard/manager sees ManagerDashboard', () => {
+    setup('/dashboard/manager', { id: 2 }, 'fleet_manager')
     expect(screen.getByTestId('manager-dashboard')).toBeInTheDocument()
   })
 
   test('admin at /dashboard/admin sees AdminDashboard', () => {
-    setup('/dashboard/admin', { id: 3 }, 'admin', () => '/dashboard/admin')
+    setup('/dashboard/admin', { id: 3 }, 'admin')
     expect(screen.getByTestId('admin-dashboard')).toBeInTheDocument()
   })
 
-  test('viewer at /map sees LiveMap', () => {
-    setup('/map', { id: 1 }, 'viewer', () => '/dashboard/viewer')
+  test('manager at /dashboard/admin is sent to their own dashboard', () => {
+    setup('/dashboard/admin', { id: 2 }, 'manager')
+    expect(screen.queryByTestId('admin-dashboard')).not.toBeInTheDocument()
+    expect(screen.getByTestId('manager-dashboard')).toBeInTheDocument()
+  })
+})
+
+// Viewers have no dashboard: everything leads to the viewer map.
+describe('App routing: viewers', () => {
+  test('viewer at /dashboard/viewer is sent to the viewer map', () => {
+    setup('/dashboard/viewer', { id: 1 }, 'viewer')
+    expect(screen.getByTestId('viewer-map')).toBeInTheDocument()
+  })
+
+  test('viewer at /map sees the viewer map, not the full live map', () => {
+    setup('/map', { id: 1 }, 'viewer')
+    expect(screen.getByTestId('viewer-map')).toBeInTheDocument()
+    expect(screen.queryByTestId('live-map')).not.toBeInTheDocument()
+  })
+
+  test('viewer at /dashboard/admin ends up on the viewer map', () => {
+    setup('/dashboard/admin', { id: 1 }, 'viewer')
+    expect(screen.queryByTestId('admin-dashboard')).not.toBeInTheDocument()
+    expect(screen.getByTestId('viewer-map')).toBeInTheDocument()
+  })
+
+  test('viewer at /reports ends up on the viewer map', () => {
+    setup('/reports', { id: 1 }, 'viewer')
+    expect(screen.queryByTestId('reports-page')).not.toBeInTheDocument()
+    expect(screen.getByTestId('viewer-map')).toBeInTheDocument()
+  })
+})
+
+describe('App routing: live map for staff', () => {
+  test.each(['manager', 'fleet_manager', 'admin'])('%s at /map sees the full live map', (role) => {
+    setup('/map', { id: 2 }, role)
     expect(screen.getByTestId('live-map')).toBeInTheDocument()
-  })
-
-  test('wrong role at /dashboard/admin redirects to their dashboard', () => {
-    setup('/dashboard/admin', { id: 1 }, 'viewer', () => '/dashboard/viewer')
-    expect(screen.queryByTestId('admin-dashboard')).not.toBeInTheDocument()
-    expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
-  })
-
-   test('wrong role at /dashboard/admin redirects to their dashboard', () => {
-    setup('/dashboard/admin', { id: 1 }, 'viewer', () => '/dashboard/viewer')
-    expect(screen.queryByTestId('admin-dashboard')).not.toBeInTheDocument()
-    expect(screen.getByTestId('viewer-dashboard')).toBeInTheDocument()
+    expect(screen.queryByTestId('viewer-map')).not.toBeInTheDocument()
   })
 })

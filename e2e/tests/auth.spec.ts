@@ -53,15 +53,41 @@ test.describe('Fixture-authenticated access (no login form, no Cognito)', () => 
     await expect(page).not.toHaveURL(/\/login/);
   });
 
-  test('a seeded viewer session is redirected away from an admin-only route', async ({ page }) => {
+  test('a seeded admin session can reach /map', async ({ page }) => {
+    await seedAuthenticated(page, 'admin');
+    await page.goto('/map');
+    await expect(page).toHaveURL(/\/map/);
+  });
+});
+
+// Viewers have no dashboard: their start page is the live map, and every
+// other page sends them back there.
+test.describe('Viewer access', () => {
+  test.beforeEach(async ({ page }) => {
     await seedAuthenticated(page, 'viewer');
-    await page.goto('/dashboard/admin');
-    await expect(page).toHaveURL(/\/dashboard\/viewer/);
   });
 
-test('a seeded admin session can reach /map', async ({ page }) => {
-  await seedAuthenticated(page, 'admin');
-  await page.goto('/map');
-  await expect(page).toHaveURL(/\/map/);
-});
+  const REDIRECTS = [
+    { from: '/dashboard/admin', reason: 'an admin-only route' },
+    { from: '/dashboard/viewer', reason: 'their own dashboard address' },
+    { from: '/reports', reason: 'a page typed into the address bar' },
+    { from: '/fleet-groups', reason: 'fleet group management' },
+  ];
+
+  for (const { from, reason } of REDIRECTS) {
+    test(`a viewer is sent to the live map from ${reason} (${from})`, async ({ page }) => {
+      await page.goto(from);
+      await expect(page).toHaveURL(/\/map$/);
+    });
+  }
+
+  test('a viewer only sees Live Map in the sidebar', async ({ page }) => {
+    await page.goto('/map');
+
+    const nav = page.getByRole('navigation');
+    await expect(nav.getByRole('link', { name: /live map/i })).toBeVisible();
+    for (const hidden of [/dashboard/i, /geofence/i, /vehicles/i, /fleet risk/i, /reports/i]) {
+      await expect(nav.getByRole('link', { name: hidden })).toHaveCount(0);
+    }
+  });
 });

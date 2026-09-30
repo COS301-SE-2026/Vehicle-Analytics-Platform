@@ -10,7 +10,30 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   'http://localhost:5000'
 
-export default function Sidebar({ role, collapsed, onToggle }) {
+// Who sees each link. Keep in step with the allowedRoles on the routes in App.jsx,
+// or users see links that just bounce them back to their start page.
+const MANAGERS = ['manager', 'fleet_manager']
+const STAFF = ['admin', ...MANAGERS]
+
+const NAV_ITEMS = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: null, roles: STAFF },   // path comes from the auth store
+  { icon: Map, label: 'Live Map', path: '/map', roles: [...STAFF, 'viewer'] },
+  { icon: Globe, label: 'Geofence', path: '/geofence', roles: STAFF },
+  { icon: Truck, label: 'Vehicles', path: '/vehicles', roles: STAFF },
+  { icon: ShieldAlert, label: 'Fleet Risk', path: '/risk', roles: STAFF },
+  { icon: BellRing, label: 'Custom Alerts', path: '/custom-alerts', roles: MANAGERS },
+  { icon: FileBarChart, label: 'Reports', path: '/reports', roles: STAFF },
+  { icon: UsersRound, label: 'Fleet Groups', path: '/fleet-groups', roles: ['admin'] },
+]
+
+const ROLE_LABELS = {
+  admin: 'Admin',
+  fleet_manager: 'Fleet manager',
+  manager: 'Fleet manager',
+  viewer: 'Viewer',
+}
+
+export default function Sidebar({ role = 'user', collapsed, onToggle }) {
   const navigate = useNavigate()
   const { user, role: storeRole } = useAuthStore()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -18,17 +41,9 @@ export default function Sidebar({ role, collapsed, onToggle }) {
   const displayRole = storeRole ?? role
   const dashboardPath = useAuthStore.getState().getDashboardPath()
 
-  const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
-    { icon: Map, label: 'Live Map', path: '/map' },
-    { icon: Globe, label: 'Geofence', path: '/geofence' },
-    { icon: Truck, label: 'Vehicles', path: '/vehicles' },
-    { icon: ShieldAlert, label: 'Fleet Risk', path: '/risk' },
-    { icon: BellRing, label: 'Custom Alerts', path: '/custom-alerts' },
-    { icon: FileBarChart, label: 'Reports', path: '/reports' },
-
-    ...(displayRole === 'admin' ? [{ icon: UsersRound, label: 'FleetGroups', path: '/fleet-groups' }] : []),
-  ]
+  const navItems = NAV_ITEMS
+    .filter((item) => item.roles.includes(displayRole))
+    .map((item) => ({ ...item, path: item.path ?? dashboardPath }))
 
   const name = user?.name ?? 'User Name'
 
@@ -123,8 +138,8 @@ export default function Sidebar({ role, collapsed, onToggle }) {
           {!collapsed && (
             <div className="flex flex-col min-w-0">
               <p className="text-fleet-blue text-xs font-medium truncate">{name}</p>
-              <span className="text-fleet-blue text-xs opacity-80 capitalize truncate">
-                {displayRole}
+              <span className="text-fleet-blue text-xs opacity-80 truncate">
+                {ROLE_LABELS[displayRole] ?? displayRole}
               </span>
             </div>
           )}
@@ -148,8 +163,4 @@ Sidebar.propTypes = {
   onToggle: PropTypes.func.isRequired,
   collapsed: PropTypes.bool.isRequired,
   role: PropTypes.string,
-}
-
-Sidebar.defaultProps = {
-  role: 'user',
 }

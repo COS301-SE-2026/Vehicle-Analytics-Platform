@@ -228,7 +228,11 @@ function buildMarkerElement(vehicle, risk, ringColour) {
   return el;
 }
 
-export default function FleetMap({
+// Shared map. The exported wrappers below decide whether it shows risk rings
+// and geofences, so the risk hook is only called where risk is wanted.
+const NO_RISK = Object.freeze({})
+
+function FleetMapView({
   vehicles = [],
   buffer = EMPTY_FC,
   onVehicleClick,
@@ -236,13 +240,16 @@ export default function FleetMap({
   initialView = null,
   onGeofenceClick,
   highlightVehicleId = null,
+  riskLookup = NO_RISK,
+  showGeofences = true,
 }) {
   const mapContainer = useRef(null)
   const map = useRef(null)
   const markers = useRef({})
   const lastTrailStamp = useRef(null)
-  const riskLookup = useFleetRiskLookup()
   const riskLookupRef = useRef(riskLookup)
+  // Read once when the map is created; the map's layers are set up a single time.
+  const showGeofencesRef = useRef(showGeofences)
   const lastFlewRef = useRef(null)
 
   useEffect(() => { riskLookupRef.current = riskLookup; }, [riskLookup])
@@ -288,18 +295,20 @@ export default function FleetMap({
     map.current.on('load', () => {
       map.current.resize();
 
-      map.current.addSource(GEOFENCE_SOURCE_ID, { type: 'geojson', data: EMPTY_FC });
-      map.current.addLayer({
-        id: `${GEOFENCE_SOURCE_ID}-fill`, type: 'fill', source: GEOFENCE_SOURCE_ID,
-        paint: { 'fill-color': SOURCE_COLOR, 'fill-opacity': 0.15 },
-      });
-      map.current.addLayer({
-        id: `${GEOFENCE_SOURCE_ID}-outline`, type: 'line', source: GEOFENCE_SOURCE_ID,
-        paint: { 'line-color': SOURCE_COLOR, 'line-width': 2 },
-      });
-      getGeofencesGeoJSON()
-        .then((fc) => map.current?.getSource(GEOFENCE_SOURCE_ID)?.setData(fc))
-        .catch((err) => console.error('FleetMap: failed to load geofences', err));
+      if (showGeofencesRef.current) {
+        map.current.addSource(GEOFENCE_SOURCE_ID, { type: 'geojson', data: EMPTY_FC });
+        map.current.addLayer({
+          id: `${GEOFENCE_SOURCE_ID}-fill`, type: 'fill', source: GEOFENCE_SOURCE_ID,
+          paint: { 'fill-color': SOURCE_COLOR, 'fill-opacity': 0.15 },
+        });
+        map.current.addLayer({
+          id: `${GEOFENCE_SOURCE_ID}-outline`, type: 'line', source: GEOFENCE_SOURCE_ID,
+          paint: { 'line-color': SOURCE_COLOR, 'line-width': 2 },
+        });
+        getGeofencesGeoJSON()
+          .then((fc) => map.current?.getSource(GEOFENCE_SOURCE_ID)?.setData(fc))
+          .catch((err) => console.error('FleetMap: failed to load geofences', err));
+      }
 
       map.current.addSource(TRAIL_SOURCE_ID, {
         type: 'geojson', lineMetrics: true, data: EMPTY_FC,
@@ -497,6 +506,52 @@ export default function FleetMap({
       style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
     />
   )
+}
+
+/** Full map for admins and fleet managers: risk rings and geofences. */
+export default function FleetMap(props) {
+  const riskLookup = useFleetRiskLookup()
+  return <FleetMapView {...props} riskLookup={riskLookup} />
+}
+
+/**
+ * Map for viewers: every vehicle, but no risk rings, no geofences and no
+ * vehicle click-through. Doesn't call the risk or geofence APIs at all.
+ */
+export function ViewerFleetMap({ vehicles = [], buffer = EMPTY_FC, initialView = null }) {
+  return (
+    <FleetMapView
+      vehicles={vehicles}
+      buffer={buffer}
+      initialView={initialView}
+      riskLookup={NO_RISK}
+      showGeofences={false}
+    />
+  )
+}
+
+ViewerFleetMap.propTypes = {
+  vehicles: PropTypes.array,
+  buffer: PropTypes.object,
+  initialView: PropTypes.shape({
+    center: PropTypes.arrayOf(PropTypes.number),
+    zoom: PropTypes.number,
+  }),
+}
+
+FleetMapView.propTypes = {
+  vehicles: PropTypes.array,
+  buffer: PropTypes.object,
+  onVehicleClick: PropTypes.func,
+  minimal: PropTypes.bool,
+  initialView: PropTypes.shape({
+    center: PropTypes.arrayOf(PropTypes.number),
+    zoom: PropTypes.number,
+  }),
+  onGeofenceClick: PropTypes.func,
+  highlightVehicleId: PropTypes.string,
+  riskLookup: PropTypes.object,
+  showGeofences: PropTypes.bool,
 }
 
 FleetMap.propTypes = {

@@ -21,10 +21,6 @@ Count.propTypes = {
   dotClass: PropTypes.string.isRequired,
 }
 
-/**
- * Live map for the viewer role: every vehicle's live position, and nothing
- * else. No risk tiers, no geofences, no links into vehicle details.
- */
 export default function ViewerMap() {
   const { vehicles, buffer, loading, lastUpdated } = useLiveFleetData()
 
@@ -33,14 +29,16 @@ export default function ViewerMap() {
   const offline = vehicles.filter((v) => v.status === 'offline').length
 
   return (
-    <div className="relative w-full h-[calc(100vh-6rem)] min-h-[600px]">
+    <div data-testid="viewer-map" className="relative w-full h-[calc(100vh-6rem)] min-h-[600px]">
       <ViewerFleetMap vehicles={vehicles} buffer={buffer} />
 
       <section
-        aria-label="Fleet status"
+        aria-labelledby="viewer-map-title"
         aria-live="polite"
         className="absolute top-4 left-4 z-10 rounded-2xl border border-fleet-border bg-white/95 px-5 py-4 shadow-md"
       >
+        {/* Same title as the staff Live Map, so both read as the same page. */}
+        <h2 id="viewer-map-title" className="mb-3 text-sm font-semibold text-fleet-text">Live Fleet</h2>
         <div className="grid grid-cols-3 gap-6">
           <Count label="Moving" value={moving} dotClass="bg-fleet-green" />
           <Count label="Idle" value={idle} dotClass="bg-amber-500" />

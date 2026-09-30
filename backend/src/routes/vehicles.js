@@ -14,18 +14,22 @@ const {
 } = require('../controllers/vehiclesController');
 
 const { authenticate, requireRole } = require('../middleware/auth');
-const { requireFleetGroupAccess} = require('../middleware/fleetGroupAccess');
+const { requireFleetGroupAccess } = require('../middleware/fleetGroupAccess');
+const { requireLiveMapAccess } = require('../middleware/liveMapAccess');
 
 const router = express.Router();
 
-const ALL_ROLES = ['admin', 'fleet_manager', 'viewer'];
-router.get('/', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehiclesList);
-router.get('/locations', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getLiveLocations);
-router.get('/buffer', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehiclePositionBuffer);
-router.get('/:vehicleId/trips', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehicleTrips);
-router.get('/:vehicleId/safety-trend', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehicleSafetyTrend);
+// Viewers only get the live map: positions and the playback buffer.
+const LIVE_MAP_ROLES = ['admin', 'fleet_manager', 'viewer'];
+const MANAGER_ROLES = ['admin', 'fleet_manager'];
 
-router.get('/:vehicleId', authenticate, requireRole(ALL_ROLES), requireFleetGroupAccess, getVehicleById);
+router.get('/locations', authenticate, requireRole(LIVE_MAP_ROLES), requireLiveMapAccess, getLiveLocations);
+router.get('/buffer', authenticate, requireRole(LIVE_MAP_ROLES), requireLiveMapAccess, getVehiclePositionBuffer);
+
+router.get('/', authenticate, requireRole(MANAGER_ROLES), requireFleetGroupAccess, getVehiclesList);
+router.get('/:vehicleId/trips', authenticate, requireRole(MANAGER_ROLES), requireFleetGroupAccess, getVehicleTrips);
+router.get('/:vehicleId/safety-trend', authenticate, requireRole(MANAGER_ROLES), requireFleetGroupAccess, getVehicleSafetyTrend);
+router.get('/:vehicleId', authenticate, requireRole(MANAGER_ROLES), requireFleetGroupAccess, getVehicleById);
 router.patch('/:vehicleId/fleet-group', authenticate, requireRole(['admin']), assignVehicleToFleetGroup);
 
 module.exports = router;

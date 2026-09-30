@@ -6,10 +6,10 @@ import Landing from './pages/landing/Landing'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import VerifyEmail from './pages/auth/VerifyEmail'
-import ViewerDashboard from './pages/dashboard/ViewerDashboard'
 import ManagerDashboard from './pages/dashboard/ManagerDashboard'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import LiveMap from './pages/map/LiveMap'
+import ViewerMap from './pages/map/ViewerMap'
 import Geofence from './pages/geofence/Geofence'
 import useAuthStore from './store/authStore'
 import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
@@ -23,7 +23,7 @@ import FleetGroupDetail from './pages/fleetgroups/FleetGroupDetail'
 import Reports from './pages/reports/Reports'
 import FleetRiskPage from './pages/risk/FleetRiskPage'
 
-function ProtectedRoute({ children, allowedRoles }) {
+function ProtectedRoute({ children, allowedRoles = [] }) {
   useNewAlertToasts();
 
   const { user, role } = useAuthStore()
@@ -41,10 +41,6 @@ function ProtectedRoute({ children, allowedRoles }) {
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
   allowedRoles: PropTypes.arrayOf(PropTypes.string)
-}
-
-ProtectedRoute.defaultProps = {
-  allowedRoles: []
 }
 
 function App() {
@@ -77,11 +73,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Viewers have no dashboard; their landing page is the live map. */}
           <Route
             path="/dashboard/viewer"
             element={
               <ProtectedRoute allowedRoles={['viewer']}>
-                <ViewerDashboard />
+                <Navigate to="/map" replace />
               </ProtectedRoute>
             }
           />
@@ -89,7 +86,8 @@ function App() {
             path="/map"
             element={
               <ProtectedRoute allowedRoles={['viewer', 'manager', 'fleet_manager', 'admin']}>
-                <LiveMap />
+                {/* Viewers get vehicles only: no risk rings, geofences or vehicle details. */}
+                {role === 'viewer' ? <ViewerMap /> : <LiveMap />}
               </ProtectedRoute>
             }
           />
@@ -166,8 +164,8 @@ function App() {
         </Route>
 
 
-        {/* Default redirect - TEMP for testing */}
-        <Route path="/landing" element={<Landing />} />
+        {/* Anything else goes to the landing page */}
+        <Route path="*" element={<Navigate to="/landing" replace />} />
       </Routes>
 
       <Toaster position="bottom-right" richColors closeButton />

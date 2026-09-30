@@ -3,11 +3,6 @@ import { getVehicleLocations, getVehiclePositionBuffer } from '@/services/vehicl
 
 const EMPTY_FC = { type: 'FeatureCollection', features: [] }
 
-/**
- * Polls live vehicle positions and the recent-position buffer used for
- * smooth marker movement. Each poll waits for the previous one to finish,
- * so a slow API never stacks up requests.
- */
 export default function useLiveFleetData({ locationsMs = 2000, bufferMs = 10000 } = {}) {
   const [vehicles, setVehicles] = useState([])
   const [buffer, setBuffer] = useState(EMPTY_FC)
@@ -44,9 +39,11 @@ export default function useLiveFleetData({ locationsMs = 2000, bufferMs = 10000 
     function schedule(fetcher, ms) {
       async function poll() {
         await fetcher()
-        if (!cancelled.current) timers.push(setTimeout(poll, ms))
+        if (!cancelled.current) {
+          timers.push(setTimeout(() => { void poll() }, ms))
+        }
       }
-      poll()
+      void poll()
     }
 
     schedule(fetchLocations, locationsMs)

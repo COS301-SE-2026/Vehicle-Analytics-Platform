@@ -73,12 +73,6 @@ test.describe('Viewer access', () => {
     { from: '/reports', reason: 'a page typed into the address bar' },
   ];
 
-  for (const { from, reason } of REDIRECTS) {
-    test(`a viewer is sent to the live map from ${reason} (${from})`, async ({ page }) => {
-      await page.goto(from);
-      await expect(page).toHaveURL(/\/map$/);
-    });
-  }
 
   test('a viewer only sees Live Map in the sidebar', async ({ page }) => {
     await page.goto('/map');

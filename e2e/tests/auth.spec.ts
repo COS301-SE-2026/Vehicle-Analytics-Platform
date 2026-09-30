@@ -53,15 +53,42 @@ test.describe('Fixture-authenticated access (no login form, no Cognito)', () => 
     await expect(page).not.toHaveURL(/\/login/);
   });
 
+  test('a seeded admin session can reach /map', async ({ page }) => {
+    await seedAuthenticated(page, 'admin');
+    await page.goto('/map');
+    await expect(page).toHaveURL(/\/map/);
+  });
+});
+
+// Viewers have no dashboard: their start page is the live map, and every
+// other page sends them back there.
+test.describe('Viewer access', () => {
   test('a seeded viewer session is redirected away from an admin-only route', async ({ page }) => {
     await seedAuthenticated(page, 'viewer');
     await page.goto('/dashboard/admin');
-    await expect(page).toHaveURL(/\/dashboard\/viewer/);
+    await expect(page).toHaveURL(/\/map$/);
   });
 
-test('a seeded admin session can reach /map', async ({ page }) => {
-  await seedAuthenticated(page, 'admin');
-  await page.goto('/map');
-  await expect(page).toHaveURL(/\/map/);
-});
+  test("a viewer's dashboard address opens the live map", async ({ page }) => {
+    await seedAuthenticated(page, 'viewer');
+    await page.goto('/dashboard/viewer');
+    await expect(page).toHaveURL(/\/map$/);
+  });
+
+  test('a viewer cannot open reports by typing the address', async ({ page }) => {
+    await seedAuthenticated(page, 'viewer');
+    await page.goto('/reports');
+    await expect(page).toHaveURL(/\/map$/);
+  });
+
+  test('a viewer only sees Live Map in the sidebar', async ({ page }) => {
+    await seedAuthenticated(page, 'viewer');
+    await page.goto('/map');
+
+    const nav = page.getByRole('navigation');
+    await expect(nav.getByRole('link', { name: /live map/i })).toBeVisible();
+    for (const hidden of [/dashboard/i, /geofence/i, /vehicles/i, /fleet risk/i, /reports/i]) {
+      await expect(nav.getByRole('link', { name: hidden })).toHaveCount(0);
+    }
+  });
 });

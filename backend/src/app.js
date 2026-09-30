@@ -21,6 +21,8 @@ const reportRoutes = require('./routes/reports');
 
 //added for anomaly detection 
 const anomalyRoutes = require('./routes/anomalies');
+const riskRoutes = require('./routes/risk');
+
 
 const app = express();
 
@@ -61,6 +63,8 @@ app.use('/api/notifications', notificationsRoutes)
 app.use('/api/reports', reportRoutes); // added for reporting
 
 app.use('/api/anomalies', anomalyRoutes); // added for anomaly detection
+
+app.use('/api/risk', riskRoutes); // added for risk
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

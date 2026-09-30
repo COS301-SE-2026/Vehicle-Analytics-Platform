@@ -7,7 +7,8 @@ import NotificationBell from './NotificationBell';
 
 export default function Header({ title, collapsed }) {
   const [ activePanel, setActivePanel ] = useState(false);
-  const { user } = useAuthStore()
+  const  user  = useAuthStore((s) => s.user)
+  const  role  = useAuthStore((s) => s.role)
   const initials = (user?.name || 'User')
     .split(' ')
     .map((part) => part[0])
@@ -21,7 +22,7 @@ export default function Header({ title, collapsed }) {
     const closeNotifications = useCallback(() => setActivePanel(null), []);
 
   return (
-    <header className={`h-[60px] bg-fleet-surface border-b border-fleet-border fixed top-0 right-0 ${collapsed ? 'left-[64px]' : 'left-[220px]'} transition-all duration-300 z-10 flex items-center justify-between px-6`}>
+    <header className={`h-[60px] bg-fleet-surface border-b border-fleet-border fixed top-0 right-0 ${collapsed ? 'left-[64px]' : 'left-[220px]'} transition-[left] duration-300 z-10 flex items-center justify-between px-6`}>
       
       {/* Page Title */}
       <h1 className="font-display font-bold text-xl text-fleet-blue">
@@ -53,7 +54,7 @@ export default function Header({ title, collapsed }) {
       <HelpPanel
         isOpen={activePanel === 'help'}
         onClose={closeHelp}
-        role={user?.role || 'viewer'}
+        role={role}
       />
     </header>
   )

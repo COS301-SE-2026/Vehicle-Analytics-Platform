@@ -35,11 +35,11 @@ describe('CustomAlerts', () => {
 
 
 
-  test('defaults to the "triggered" tab', () => {
+  test('defaults to the "rules" tab', () => {
     render(<CustomAlerts />)
 
-    expect(screen.getByTestId('triggered-alerts-tab')).toBeInTheDocument()
+    expect(screen.getByTestId('alert-rules-tab')).toBeInTheDocument()
 
-    expect(screen.queryByTestId('alert-rules-tab')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('triggered-rules-tab')).not.toBeInTheDocument()
   })
 })

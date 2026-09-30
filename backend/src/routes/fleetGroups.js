@@ -12,6 +12,7 @@ const{
     updateFleetGroup,
     deleteFleetGroup,
     unassignVehiclesFromGroup,
+    transferVehiclesToGroup,
 } = require('../controllers/fleetGroupsController');
 
 const {
@@ -33,6 +34,7 @@ router.get('/leaderboard', authenticate, requireRole(['admin', 'fleet_manager'])
 router.patch('/:id', authenticate, requireRole(['admin']), updateFleetGroup);
 router.delete('/:id', authenticate, requireRole(['admin']), deleteFleetGroup);
 router.patch('/:id/vehicles/unassign', authenticate, requireRole(['admin']), unassignVehiclesFromGroup);
+router.patch('/:id/vehicles/transfer', authenticate, requireRole(['admin']), transferVehiclesToGroup);
 
 
 module.exports = router;

@@ -43,20 +43,19 @@ async function getDataNow() {
 
 async function querySpeed(groupId, cutoff, params) {
     const threshold = Number(params.max_speed_kmh);
-
     const result = await pool.query(`
-        SELECT ct.vehicle_id,
-               min(ct.time) AS time,
-               max(ct.speed) AS breach_value,
-               min(ct.latitude) AS latitude,
-               min(ct.longitude) AS longitude
-        FROM clean_telemetry ct
-        JOIN vehicles v ON v.vehicle_id = ct.vehicle_id
-        WHERE v.fleet_group_id = $1
-          AND ct.time >= $2::timestamptz
-          AND ct.speed > $3::numeric
-        GROUP BY ct.vehicle_id, date_trunc('minute', ct.time)
-        ORDER BY ct.vehicle_id, min(ct.time)
+        SELECT s.vehicle_id,
+               s.bucket     AS time,
+               s.max_speed  AS breach_value,
+               s.latitude,
+               s.longitude
+        FROM vehicle_speed_1min s
+        WHERE s.vehicle_id = ANY (ARRAY(
+                SELECT vehicle_id FROM vehicles WHERE fleet_group_id = $1
+              ))
+          AND s.bucket >= $2::timestamptz
+          AND s.max_speed > $3::numeric
+        ORDER BY s.vehicle_id, s.bucket
     `, [groupId, cutoff, threshold]);
 
     return { rows: result.rows, threshold };
@@ -66,35 +65,34 @@ async function queryTime(groupId, cutoff, params) {
     const days = Array.isArray(params.restricted_days) && params.restricted_days.length > 0
         ? params.restricted_days
         : null;
-
     const result = await pool.query(`
-        SELECT ct.vehicle_id,
-               min(ct.time) AS time,
-               to_char(min(ct.time), 'HH24:MI') AS breach_value,
-               min(ct.latitude) AS latitude,
-               min(ct.longitude) AS longitude
-        FROM clean_telemetry ct
-        JOIN vehicles v ON v.vehicle_id = ct.vehicle_id
-        WHERE v.fleet_group_id = $1
-          AND ct.time >= $2::timestamptz
+        SELECT s.vehicle_id,
+               s.bucket                    AS time,
+               to_char(s.bucket, 'HH24:MI') AS breach_value,
+               s.latitude,
+               s.longitude
+        FROM vehicle_speed_1min s
+        WHERE s.vehicle_id = ANY (ARRAY(
+                SELECT vehicle_id FROM vehicles WHERE fleet_group_id = $1
+              ))
+          AND s.bucket >= $2::timestamptz
           AND (
             CASE
                 WHEN $3::time > $4::time
-                    THEN ct.time::time >= $3::time OR ct.time::time < $4::time
-                ELSE ct.time::time >= $3::time AND ct.time::time < $4::time
+                    THEN s.bucket::time >= $3::time OR s.bucket::time < $4::time
+                ELSE s.bucket::time >= $3::time AND s.bucket::time < $4::time
             END
           )
-          AND ($5::text[] IS NULL OR to_char(ct.time, 'Dy') = ANY($5::text[]))
-        GROUP BY ct.vehicle_id, date_trunc('minute', ct.time)
-        ORDER BY ct.vehicle_id, min(ct.time)
-
+          AND ($5::text[] IS NULL OR to_char(s.bucket, 'Dy') = ANY($5::text[]))
+        ORDER BY s.vehicle_id, s.bucket
     `, [groupId, cutoff, params.start_time, params.end_time, days]);
 
     return {
-        rows: result.rows, 
+        rows: result.rows,
         threshold: `${params.start_time}-${params.end_time}`,
     };
 }
+
 
 async function queryEvents(groupId, cutoff, params) {
     const required = Number.parseInt(params.count, 10);
@@ -239,7 +237,9 @@ async function backtestRule(req, res){
             .map((a) => ({
                 vehicle_id: a.vehicle_id,
                 time: new Date(a.time).toISOString(),
-                breach_value: Number(a.breach_value),
+                breach_value: condition_type === CONDITION_TYPES.TIME
+                    ? a.breach_value
+                    : Number(a.breach_value),
                 threshold_value: Number.isNaN(Number(threshold)) ? threshold: Number(threshold),
                 latitude: a.latitude === null ? null : Number(a.latitude),
                 longitude: a.longitude === null ? null : Number(a.longitude),

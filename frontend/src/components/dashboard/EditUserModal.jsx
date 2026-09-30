@@ -71,7 +71,7 @@ export default function EditUserModal({ user, onClose, onSave }) {
   return (
       <dialog
         ref={dialogRef}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 m-0 h-full w-full max-w-none max-h-none border-none bg-transparent p-4 flex items-center justify-center backdrop:bg-black/50"
         aria-modal="true"
         aria-labelledby="eu-title"
         onCancel={(e) => { e.preventDefault(); onClose() }}
@@ -94,7 +94,7 @@ export default function EditUserModal({ user, onClose, onSave }) {
           <div className="px-6 py-4 border-b border-fleet-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-fleet-green flex items-center justify-center shrink-0" aria-hidden>
+                  <div className="w-10 h-10 rounded-lg bg-fleet-blue flex items-center justify-center shrink-0" aria-hidden>
                     <span className="text-white text-sm font-bold">
                       {initials}
                     </span>
@@ -183,7 +183,7 @@ export default function EditUserModal({ user, onClose, onSave }) {
               <button
                 onClick={handleSave}
                 disabled={saving || selectedRole === user.role}
-                className="flex-1 h-10 bg-fleet-green text-white rounded-lg text-sm font-medium hover:bg-fleet-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 h-10 bg-fleet-blue text-white rounded-lg text-sm font-medium hover:bg-fleet-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>

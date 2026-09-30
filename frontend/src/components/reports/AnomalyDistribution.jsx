@@ -93,7 +93,7 @@ export default function AnomalyDistribution({
 
     const rows = useMemo(() => {
         if (!plottable) return [];
-        return feature.distribution.points
+        return feature?.distribution?.points
             .filter((p) => !flaggedOnly
                 || p.status === 'flagged'
                 || p.vehicleId === selectedVehicleId

@@ -58,6 +58,7 @@ V.A.P.O.R. is a real-time fleet analytics platform built for FuseIT. It ingests 
 | <img src="https://cdn.simpleicons.org/github/181717" width="14"/> Developer Wiki | [Project Wiki](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/wiki) |
 | <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> Software Requirements Specification (SRS) | [View srs.md](./docs/Demo3/srs/srs.md) |
 | <img src="https://cdn.simpleicons.org/googlechrome/4285F4" width="14"/> Brand Style Guide | [View Style Guide](https://d25bouomowr0it.cloudfront.net/style-guide) |
+| <img src="https://cdn.simpleicons.org/adobeacrobatreader/EC1C24" width="14"/> User Manual | [View User Manual.pdf](./docs/Demo3/VAPOR_User_Manual.pdf) |
 | <img src="https://cdn.simpleicons.org/adobeacrobatreader/EC1C24" width="14"/> Software Architecture Specification (SAS) | [View SAS.pdf](./docs/Demo3/SAS.pdf) |
 | <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> Functional Requirements (SRS) | [View Document](#) |
 | <img src="https://cdn.simpleicons.org/github/181717" width="14"/> GitHub Project Board | [View Board](https://github.com/orgs/COS301-SE-2026/projects/49) |

@@ -71,8 +71,15 @@ test.describe('Viewer access', () => {
     { from: '/dashboard/admin', reason: 'an admin-only route' },
     { from: '/dashboard/viewer', reason: 'their own dashboard address' },
     { from: '/reports', reason: 'a page typed into the address bar' },
+    { from: '/fleet-groups', reason: 'fleet group management' },
   ];
 
+  for (const { from, reason } of REDIRECTS) {
+    test(`a viewer is sent to the live map from ${reason} (${from})`, async ({ page }) => {
+      await page.goto(from);
+      await expect(page).toHaveURL(/\/map$/);
+    });
+  }
 
   test('a viewer only sees Live Map in the sidebar', async ({ page }) => {
     await page.goto('/map');

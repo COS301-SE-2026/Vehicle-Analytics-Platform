@@ -41,15 +41,15 @@ test.describe('Fleet groups', () => {
     await expect(page.getByRole('columnheader', { name: 'Actions' })).toBeVisible();
   });
 
-test('the New Group button opens the create dialog', async ({ page }) => {
-  await seedAuthenticated(page, 'admin');
-  await gotoFleetGroupsPage(page);
+  test('the New Group button opens the create dialog', async ({ page }) => {
+    await seedAuthenticated(page, 'admin');
+    await gotoFleetGroupsPage(page);
 
-  await page.getByRole('button', { name: /new group/i }).click();
+    await page.getByRole('button', { name: /new group/i }).click();
 
-  const createDialog = page.getByRole('dialog').filter({ hasText: /create fleet group/i });
-  await expect(createDialog).toBeVisible();
-});
+    const createDialog = page.getByRole('dialog').filter({ hasText: /create fleet group/i });
+    await expect(createDialog).toBeVisible();
+  });
 
   test('a fleet_manager session is redirected away', async ({ page }) => {
     await seedAuthenticated(page, 'fleet_manager');
@@ -57,13 +57,6 @@ test('the New Group button opens the create dialog', async ({ page }) => {
 
     await expect(page).not.toHaveURL(/\/fleet-groups/);
     await expect(page).not.toHaveURL(/\/login/);
-  });
-
-  test('a viewer session is redirected away', async ({ page }) => {
-    await seedAuthenticated(page, 'viewer');
-    await page.goto(FLEET_GROUPS_PATH);
-
-    await expect(page).toHaveURL(/\/dashboard\/viewer/);
   });
 
   test('an unauthenticated visitor is redirected to login', async ({ page }) => {

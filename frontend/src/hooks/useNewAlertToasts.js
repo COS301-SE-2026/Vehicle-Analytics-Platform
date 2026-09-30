@@ -3,14 +3,22 @@ import axios from 'axios';
 import useAuthStore from '../store/authStore';
 import { useToast } from '../components/alerts/ToastProvider'; 
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
-const POLL_INTERVAL_MS = 20000; 
+// Same fallback as the backend's local port. Never default to production:
+// a local run without VITE_API_URL would otherwise poll the live API.
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const POLL_INTERVAL_MS = 20000;
+
+// Custom alert rules belong to fleet managers; the endpoint refuses everyone else.
+const ALERT_ROLES = new Set(['manager', 'fleet_manager']);
 
 export default function useNewAlertToasts() {
   const toast = useToast();
+  const role = useAuthStore((state) => state.role);
   const lastCheckedRef = useRef(new Date().toISOString());
 
   useEffect(() => {
+    if (!ALERT_ROLES.has(role)) return undefined;
+
     let cancelled = false;
 
     async function poll() {
@@ -45,5 +53,5 @@ export default function useNewAlertToasts() {
 
     const interval = setInterval(poll, POLL_INTERVAL_MS);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [toast]);
+  }, [toast, role]);
 }

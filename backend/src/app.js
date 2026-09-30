@@ -18,6 +18,9 @@ const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
 // added for report
 const reportRoutes = require('./routes/reports');
 
+
+//added for anomaly detection 
+const anomalyRoutes = require('./routes/anomalies');
 const riskRoutes = require('./routes/risk');
 
 
@@ -59,8 +62,9 @@ app.use('/api/fleet-groups', fleetGroupsRoutes);
 app.use('/api/notifications', notificationsRoutes)
 app.use('/api/reports', reportRoutes); // added for reporting
 
+app.use('/api/anomalies', anomalyRoutes); // added for anomaly detection
 
-app.use('/api/risk', riskRoutes);
+app.use('/api/risk', riskRoutes); // added for risk
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

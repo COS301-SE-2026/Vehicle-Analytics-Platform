@@ -29,6 +29,8 @@ jest.mock('../pages/dashboard/ViewerDashboard', () => () => <div data-testid="vi
 jest.mock('../pages/dashboard/ManagerDashboard',() => () => <div data-testid="manager-dashboard" />)
 jest.mock('../pages/dashboard/AdminDashboard',  () => () => <div data-testid="admin-dashboard" />)
 jest.mock('../pages/map/LiveMap',               () => () => <div data-testid="live-map" />)
+jest.mock('../pages/reports/Reports',           () => () => <div data-testid="reports-page" />) 
+
 
 import App from '../App'
 import useAuthStore from '../store/authStore'

@@ -3,6 +3,7 @@ import { LayoutDashboard, Map, Globe, ChevronLeft, ChevronRight, LogOut, Truck, 
 import { useState } from 'react'
 import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
+import vaporlogo from "../../pages/landing/img/logo.png"
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
@@ -71,7 +72,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
         <div className="flex items-center justify-between mb-10 px-1">
           {!collapsed && (
             <div className="flex items-center gap-3 w-full justify-center">
-              <span className="text-fleet-blue font-bold text-2xl">V.A.P.O.R</span>
+               <img src={vaporlogo} alt="V.A.P.O.R" className="w-full h-14" />
             </div>
           )}
           <button
@@ -96,7 +97,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
               to={item.path}
               title={collapsed ? item.label : ''}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-2 py-2.5 rounded-lg transition-all duration-150 ${
+                `flex items-center gap-3 px-2 py-2.5 rounded-sm transition-all duration-150 ${
                   isActive
                     ? 'bg-fleet-blue text-white'
                     : 'text-fleet-blue hover:text-fleet-blue hover:bg-fleet-blue/10'
@@ -133,7 +134,7 @@ export default function Sidebar({ role, collapsed, onToggle }) {
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="inline-flex items-center justify-center rounded-md bg-fleet-blue p-1.5 text-white/80 hover:text-white hover:bg-fleet-blue/90 disabled:opacity-80"
+            className="inline-flex items-center justify-center rounded-sm bg-fleet-blue p-1.5 text-white/80 hover:text-white hover:bg-fleet-blue/90 disabled:opacity-80"
             title="Logout"
           >
             <LogOut className="h-4 w-4" />

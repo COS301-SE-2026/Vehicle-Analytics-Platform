@@ -389,6 +389,60 @@ async function unassignVehiclesFromGroup(req, res) {
     }
 }
 
+async function transferVehiclesToGroup(req, res) {
+    const {id: sourceGroupId} = req.params;
+    const {vehicleIds, targetGroupId} = req.body;
+    const isValidId = (value) => /^\d+$/.test(String(value));
+
+    if(!Array.isArray(vehicleIds) || vehicleIds.length === 0) {
+        return error(res, 'vehicleIds must be a non empty array', 400);
+    }
+
+    if(!isValidId(sourceGroupId) || !isValidId(targetGroupId)) {
+        return error(res, 'A targetGroupId is required', 400);
+    }
+
+    if(String(sourceGroupId) === String(targetGroupId)) {
+        return error(res, 'Vehicles are already in this group', 400);
+    }
+
+    try{
+        const groupResult = await pool.query(
+            'SELECT id FROM fleet_groups WHERE id = ANY($1::bigint[]) AND deleted_at IS NULL',
+            [[sourceGroupId, targetGroupId]]
+        );
+
+        const foundIds = groupResult.rows.map((row) => String(row.id));
+
+        if(!foundIds.includes(String(sourceGroupId))) {
+            return error(res, 'Fleet group not found', 404);
+        }
+
+        if(!foundIds.includes(String(targetGroupId))) {
+            return error(res, 'Target fleet group not found', 404);
+        }
+
+
+        const updateResult = await pool.query(`
+            UPDATE vehicles SET fleet_group_id = $1
+            WHERE vehicle_id = ANY($2::text[]) AND fleet_group_id = $3
+            RETURNING vehicle_id
+        `, [targetGroupId, vehicleIds, sourceGroupId]);
+
+        const transferredIds = updateResult.rows.map((row) => row.vehicle_id);
+        const notInGroupIds = vehicleIds.filter((id) => !transferredIds.includes(id));
+
+        return success(res, {
+            message: `${transferredIds.length} vehicle(s) transferred successfully`,
+            transferred: transferredIds,
+            not_in_group: notInGroupIds,
+        }, 200);
+    }catch(err){
+        console.error('Transfer vehicles error:', err);
+        return error(res, 'Failed to transfer vehicles' , 500);
+    }
+}
+
 async function listVehiclesForAssignment(req, res) {
     const {id: fleetGroupId} = req.params;
     const {status = 'unassigned', search, page=1, limit =20} = req.query;
@@ -464,4 +518,4 @@ async function listVehiclesForAssignment(req, res) {
 }
 
 
-module.exports = {createFleetGroup, listFleetGroups, assignFleetManager, removeFleetManagerAssignment, bulkAssignVehiclesToGroup, listMyFleetGroups, listVehiclesForAssignment, getManagerLeaderboard, updateFleetGroup, deleteFleetGroup,unassignVehiclesFromGroup};
+module.exports = {createFleetGroup, listFleetGroups, assignFleetManager, removeFleetManagerAssignment, bulkAssignVehiclesToGroup, listMyFleetGroups, listVehiclesForAssignment, getManagerLeaderboard, updateFleetGroup, deleteFleetGroup,unassignVehiclesFromGroup, transferVehiclesToGroup};

@@ -106,14 +106,13 @@ describe('FleetRiskPage', () => {
   })
 
   describe('loaded state', () => {
-    test('renders the page heading and subtitle', async () => {
+    test('renders the page subtitle', async () => {
       mockGetFleetRisk.mockResolvedValueOnce(makeVehicles(3))
       render(<FleetRiskPage />)
 
-      await waitFor(() => {
-        expect(screen.getByText('Fleet Risk Forecast')).toBeInTheDocument()
-      })
-      expect(screen.getByText(/Predicted risk for every vehicle/i)).toBeInTheDocument()
+      expect(
+        await screen.findByText(/Predicted risk for every vehicle/i)
+      ).toBeInTheDocument()
     })
 
     test('renders a row for every vehicle returned', async () => {

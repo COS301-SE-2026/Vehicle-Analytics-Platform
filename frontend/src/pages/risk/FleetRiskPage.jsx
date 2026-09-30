@@ -177,12 +177,11 @@ export default function FleetRiskPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-fleet-text">Fleet Risk Forecast</h1>
-          <p className="text-sm text-fleet-secondary mt-1">
+          <p className="text-sm text-fleet-secondary mt-2">
             Predicted risk for every vehicle, based on the last 30 days of telemetry. Updated daily at 03:00 SAST.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mt-2">
           <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 ring-1 ring-emerald-100 text-xs font-medium text-emerald-700">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />

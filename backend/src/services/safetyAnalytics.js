@@ -218,4 +218,6 @@ module.exports = {
     REPORT_TIMEZONE,
     _deriveVehicle: deriveVehicle,
     _emptySummary: emptySummary,
+    _EVENT_FILTER: EVENT_FILTER,
+
 };

@@ -12,7 +12,7 @@
 
 * **FR2.1:** The system must display the real-time positions of vehicles on an interactive map.
 * **FR2.2:** The dashboard must update visualization in near real-time, rendering updates within 5 to 10 seconds of telemetry events.
-* **FR2.3:** The system shall display a fleet dashboard showing fleet KPIs, vehicle status and recent activity for the user's role.
+* **FR2.3:** The system shall display a fleet dashboard showing fleet KPIs, vehicle status and recent activity to Fleet Managers and Administrators.
 * **FR2.4:** The system shall show a vehicle's details when the user selects that vehicle on the live map.
 * **FR2.5:** The system shall restrict a Fleet Manager's dashboard figures and live map to vehicles in their assigned fleet groups.
 
@@ -102,7 +102,7 @@
 * **FR10.3:** The system shall reject a registration when the email address is already registered.
 * **FR10.4:** The system shall require a newly registered user to verify their email address.
 * **FR10.5:** The system shall authenticate a user with their email and password through AWS Cognito.
-* **FR10.6:** The system shall extract the user's role from the authentication token and display the dashboard for that role after a successful login.
+* **FR10.6:** The system shall extract the user's role from the authentication token and display the dashboard for that role after a successful login: the dashboard for Fleet Managers and Administrators, and the live map for Viewers.
 * **FR10.7:** The system shall refuse a login with incorrect credentials and display an error.
 * **FR10.8:** The system shall refuse a login for a deactivated account and display an error.
 * **FR10.9:** The system shall allow a user to log out and shall return them to the login page.
@@ -118,7 +118,7 @@
 * **FR11.6:** The system shall not allow an Administrator to change their own role.
 * **FR11.7:** The system shall not allow an Administrator to deactivate their own account.
 * **FR11.8:** The system shall restrict user and role administration to Administrators.
-* **FR11.9:** The system shall limit Viewers to read-only access to the dashboard and live map.
+* **FR11.9:** The system shall limit Viewers to read-only access to the live map.
 
 ### FR12: Custom Alert Rules
 
@@ -214,15 +214,29 @@ This section of the document contains sections **3.1.2 User Stories / User Chara
  
 V.A.P.O.R. has three types of users. Each section describes the user, then lists their user stories. Every story has short, testable acceptance criteria links to the use cases (**UC**) in 3.1.3.
 
- 
-## 3.1.2.2 Stories Shared by All Users
+## 3.1.2.1 Viewer
 
-These stories apply to all three user types.
+**Profile:** Staff who need to see where the fleet is but are not responsible for managing it, such as operations staff or stakeholders who want an overview. Everyone who registers starts as a Viewer until an Administrator gives them another role.
+
+**Technical proficiency:** Basic. Comfortable reading a map.
+
+**Primary goals:** See where vehicles are right now, without being able to change anything.
+
+**Scope:** Viewers can only use the live map and the help menu. They also have the shared stories **US02, US04 and US05**.
 
 | ID | User story | Acceptance criteria | UC |
 |---|---|---|---|
-| US02 | As a user, I want to log in and out securely so that only I can access my account. | • With correct credentials, I see the dashboard for my role.<br>• Incorrect credentials or a deactivated account are refused with an error.<br>• When I log out, I return to the login page. | UC02, UC03 |
-| US03 | As a user, I want a fleet dashboard so that I can see the state of the fleet at a glance. | • The dashboard shows fleet KPIs, vehicle status and recent activity for my role.<br>• A Fleet Manager's figures include only vehicles in their groups. | UC06 |
+| US01 | As a new viewer, I want to register an account so that I can access the platform. | • After registering, I am asked to verify my email address.<br>• New accounts receive the Viewer role. | UC01 |
+
+ 
+## 3.1.2.2 Stories Shared by All Users
+
+These stories apply to all three user types, except US03, which applies to Fleet Managers and Administrators only.
+
+| ID | User story | Acceptance criteria | UC |
+|---|---|---|---|
+| US02 | As a user, I want to log in and out securely so that only I can access my account. | • With correct credentials, I see the home page for my role.<br>• Incorrect credentials or a deactivated account are refused with an error.<br>• When I log out, I return to the login page. | UC02, UC03 |
+| US03 | As a Fleet Manager or administrator, I want a fleet dashboard so that I can see the state of the fleet at a glance. | • The dashboard shows fleet KPIs, vehicle status and recent activity for my role.<br>• A Fleet Manager's figures include only vehicles in their groups. | UC06 |
 | US04 | As a user, I want to see vehicles on a live map so that I know where they are right now. | • Vehicle positions refresh every few seconds without reloading the page.<br>• Clicking a vehicle shows its details. | UC07 |
 | US05 | As a user, I want an in-app help menu so that I can learn a feature without leaving the platform. | • The help menu opens from the header on every page.<br>• I can search the help articles. | UC08 |
 
@@ -262,7 +276,7 @@ These stories apply to all three user types.
 
 **Primary goals:** Make sure every vehicle is managed by the right person, every user has the right access, and changes are traceable.
 
-**Scope:** Administrators see the entire fleet. They also have stories **US06-US11** and **US14-US16**. Fleet analytics, the leaderboard and custom alerts are for Fleet Managers only.
+**Scope:** Administrators see the entire fleet. They also have stories **US03, US06-US11** and **US14-US16**. Fleet analytics, the leaderboard and custom alerts are for Fleet Managers only.
 
 | ID | User story | Acceptance criteria | UC |
 |---|---|---|---|
@@ -282,7 +296,7 @@ Use cases are derived from the functional requirements and verified against the 
 
 | Actor | Description |
 |---|---|
-| Viewer | User type with read-only access to the dashboard and live map. |
+| Viewer | User type with read-only access to the live map. |
 | Fleet Manager | User type responsible for their assigned fleet groups. |
 | Administrator | User type who manages users and fleet groups, and sees the entire fleet. |
 | User *(abstract)* | Not a user type. Groups all three user types, for use cases every user can perform. |
@@ -301,7 +315,7 @@ The two abstract actors only exist to keep the diagrams simple through actor inh
 | UC03 Log Out | Y | Y | Y | Y | User | US02 |
 | UC04 Change User Role | Y | Y | Y | Y | Administrator | US21 |
 | UC05 Deactivate User Account | Y | Y | Y | Y | Administrator | US21 |
-| UC06 View Fleet Dashboard | Y | Y | Y | Y | User | US03 |
+| UC06 View Fleet Dashboard | Y | Y | Y | Y | Fleet Operator | US03 |
 | UC07 Track Vehicles on Live Map | Y | Y | Y | Y | User | US04 |
 | UC08 Access Help Menu | Y | Y | Y | Y | User | US05 |
 | UC09 View Notifications | Y | Y | Y | Y | Fleet Operator | US19, US25 |
@@ -341,7 +355,7 @@ The two abstract actors only exist to keep the diagrams simple through actor inh
 | UC | Use case | TUCBW | TUCEW |
 |---|---|---|---|
 | UC01 | Register Account | a new Viewer clicks **Create one** on the login page. | the Viewer is asked to verify their email address. |
-| UC02 | Log In | the User submits their email and password. | the User sees the dashboard for their role. |
+| UC02 | Log In | the User submits their email and password. | the User sees the home page for their role. |
 | UC03 | Log Out | the User clicks the log out button in the sidebar. | the User sees the login page. |
 
 ## Use Case Diagram 2: User Administration
@@ -359,7 +373,7 @@ The two abstract actors only exist to keep the diagrams simple through actor inh
 
 | UC | Use case | TUCBW | TUCEW |
 |---|---|---|---|
-| UC06 | View Fleet Dashboard | the User opens **Dashboard**. | the User sees the fleet's KPIs, alerts and activity. |
+| UC06 | View Fleet Dashboard | the Fleet Operator opens **Dashboard**. | the User sees the fleet's KPIs, vehicle status, alerts and activity. |
 | UC07 | Track Vehicles on Live Map | the User opens **Live Map**. | the User sees the current positions of their vehicles. |
 | UC08 | Access Help Menu | the User clicks the help icon in the header. | the User reads the help article they need. |
 | UC09 | View Notifications | the Fleet Operator clicks the notification bell. | the Fleet Operator has read their notifications. |

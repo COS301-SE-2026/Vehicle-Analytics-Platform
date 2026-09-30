@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { AnomalyFunnelChart, statusLabel } from '../ui/anomalyCharts';
-import { behaviourName, formatNumber, joinList, valueLabel } from './anomalyFormat';
+import { formatNumber, valueLabel } from './anomalyFormat';
+import InfoHint from './InfoHint';
 
 const STATUS_BADGES = {
     flagged: 'bg-red-50 text-red-700 border-red-200',
@@ -44,40 +45,6 @@ function StatusBadge({ status, peerNoun }){
 StatusBadge.propTypes = { status: PropTypes.string.isRequired, peerNoun: PropTypes.string.isRequired };
 
 
-function nameList(features){
-    return joinList(features.map((f) => behaviourName(f).toLowerCase()));
-}
-
-
-function FeatureNotes({ entries }){
-    const noEvents = entries.filter((f) => f.status === 'no_events');
-    const tooFew = entries.filter((f) => f.status === 'insufficient_peers');
-    const notReported = entries.filter((f) => f.status === 'not_reported');
-
-    return (
-        <>
-            {notReported.length > 0 && (
-                <p className="mt-2 text-xs text-fleet-secondary">
-                    Too few devices report {nameList(notReported)} to compare {notReported.length === 1 ? 'it' : 'them'}.
-                </p>
-            )}
-            {noEvents.length > 0 && (
-                <p className="mt-2 text-xs text-fleet-secondary">
-                    No vehicle recorded any {nameList(noEvents)} incidents in this period.
-                </p>
-            )}
-            {tooFew.length > 0 && (
-                <p className="mt-2 text-xs text-fleet-secondary">
-                    Too few vehicles had data to compare {nameList(tooFew)}.
-                </p>
-            )}
-        </>
-    );
-}
-
-FeatureNotes.propTypes = { entries: PropTypes.array.isRequired };
-
-
 export default function AnomalyDistribution({
     features = {},
     behaviourKey = null,
@@ -101,14 +68,9 @@ export default function AnomalyDistribution({
             .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || b.value - a.value);
     }, [plottable, feature, flaggedOnly, selectedVehicleId, highlightFocus]);
 
-    const entries = Object.values(features);
-
     if (!plottable) {
         return (
-            <div>
-                <p className="text-sm text-fleet-secondary py-10 text-center">No behaviour had enough vehicles with data to plot.</p>
-                <FeatureNotes entries={entries} />
-            </div>
+            <p className="text-sm text-fleet-secondary py-10 text-center">No behaviour had enough vehicles with data to plot.</p>
         );
     }
 
@@ -127,10 +89,31 @@ export default function AnomalyDistribution({
                 onSelectVehicle={onSelectVehicle}
                 highlightFocus={highlightFocus}
             />
-            <FeatureNotes entries={entries} />
-
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 mb-2">
-                <p className="text-sm font-medium text-fleet-text">Vehicles to look at</p>
+                <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-fleet-text">Vehicles to look at</p>
+                    <InfoHint label="Vehicles to look at">
+                        <p>
+                            <strong>{distribution?.exposureLabel || 'Exposure'}</strong> is how much each vehicle drove
+                            in the period, which the rate is measured against.
+                        </p>
+                        {counted && <p><strong>Incidents</strong> is how many the vehicle recorded.</p>}
+                        {hasExpected && (
+                            <p>
+                                <strong>Expected</strong> is how many incidents it would have recorded at the other
+                                vehicles&apos; rate over the same driving.
+                            </p>
+                        )}
+                        <p>
+                            <strong>Compared with {peerNoun}</strong> is the result: stands out, unconfirmed (above the
+                            line, but too few incidents or possibly chance), or normal.
+                        </p>
+                        <p>
+                            By default only vehicles that stand out are listed. Untick the box to see every vehicle.
+                            Vehicles whose devices never report this behaviour are left out.
+                        </p>
+                    </InfoHint>
+                </div>
                 <label className="flex items-center gap-2 text-xs text-fleet-secondary">
                     <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} className="rounded border-fleet-border"/>
                     Only vehicles that stand out
@@ -179,11 +162,6 @@ export default function AnomalyDistribution({
                     </tbody>
                 </table>
             </div>
-            {hasExpected && (
-                <p className="mt-2 text-xs text-fleet-secondary">
-                    Expected is how many incidents the vehicle would have recorded at the other vehicles&apos; rate over the same driving.
-                </p>
-            )}
         </div>
     );
 }

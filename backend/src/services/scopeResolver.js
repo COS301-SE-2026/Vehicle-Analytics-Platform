@@ -274,7 +274,7 @@ function canReadReport(role, accessibleGroupIds, reportGroupIds, includesUnassig
 	const raw = Array.isArray(reportGroupIds) ? reportGroupIds : [];
 	const requested = raw.map(toGroupId);
 
-	if (!requested.length || requested.some((id) => id === null)) return false;
+	if (!requested.length || requested.includes(null)) return false;
 
 	const accessible = new Set(accessibleGroupIds);
 	return requested.every((id) => accessible.has(id));

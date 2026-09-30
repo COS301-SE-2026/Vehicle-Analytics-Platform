@@ -58,13 +58,15 @@ function classify(modelledChangePct, cv, higherIsBetter, threshold) {
 
     const rising = modelledChangePct > 0;
     if (higherIsBetter === null) return rising ? TREND.INCREASING : TREND.DECREASING;
-    return (higherIsBetter ? rising : !rising) ? TREND.IMPROVING : TREND.DETERIORATING;
+    const improving = higherIsBetter ? rising : !rising;
+    return improving ? TREND.IMPROVING : TREND.DETERIORATING;
 }
+
 
 
 function buildTrend(metric, points, options = {}){
     if (!Array.isArray(points)) {
-        throw new Error('buildTrend requires an array of weekly points');
+        throw new TypeError('buildTrend requires an array of weekly points');
     }
 
     const {

@@ -72,7 +72,7 @@ function assignRanks(sorted, precision) {
 
 function rankBy(entities, metric, options = {}){
     if (!Array.isArray(entities)) {
-        throw new Error('rankBy requires an array of entities');
+        throw new TypeError('rankBy requires an array of entities');
     }
 
     if (typeof metric !== 'string' || !metric) {
@@ -174,7 +174,7 @@ function requiresAttention(entities, metric, options = {}){
 
 function mergeEntities(sources, idField = 'vehicleId') {
     if (!Array.isArray(sources)) {
-        throw new Error('mergeEntities requires an array of entity arrays');
+        throw new TypeError('mergeEntities requires an array of entity arrays');
     }
 
     const merged = new Map();

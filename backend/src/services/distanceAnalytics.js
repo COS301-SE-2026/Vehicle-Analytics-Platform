@@ -115,7 +115,7 @@ async function getDistanceAnalytics(db, vehicleIds, period){
         throw new Error('getDistanceAnalytics requires a pg client or pool');
     }
     if (!Array.isArray(vehicleIds)) {
-        throw new Error('getDistanceAnalytics requires a vehicleIds array from scopeResolver');
+        throw new TypeError('getDistanceAnalytics requires a vehicleIds array from scopeResolver');
     }
     if (!period || !(period.from instanceof Date) || !(period.to instanceof Date)) {
         throw new Error('getDistanceAnalytics requires a resolved period with Date bounds');

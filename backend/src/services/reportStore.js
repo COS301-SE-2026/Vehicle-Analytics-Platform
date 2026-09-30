@@ -54,7 +54,7 @@ async function saveReport(db, { payload, trigger = 'manual', generatedBy } = {})
     if (!db || typeof db.query !== 'function') {
         throw new Error('saveReport requires a pg client or pool');
     }
-    if (!payload || !payload.report || !payload.period) {
+    if (!payload?.report || !payload.period) {
         throw new Error('saveReport requires a report dataset');
     }
     if (!TRIGGERS.includes(trigger)) {
@@ -152,9 +152,7 @@ async function listReports(db, user, options = {}){
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    params.push(safeLimit);
-
-    params.push(safeOffset);
+    params.push(safeLimit, safeOffset);
 
     const result = await db.query(
         `SELECT ${SUMMARY_COLUMNS}

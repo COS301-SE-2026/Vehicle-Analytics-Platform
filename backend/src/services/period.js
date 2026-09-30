@@ -144,7 +144,7 @@ function resolveCustom(from, to) {
     const fromDate = from instanceof Date ? from : new Date(from);
     const toDate = to instanceof Date ? to : new Date(to);
     if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
-        throw new Error("Custom period requires valid 'from' and 'to' dates");
+        throw new TypeError("Custom period requires valid 'from' and 'to' dates");
     }
 
     const startWall = startOfDayWall(toWall(fromDate));
@@ -179,7 +179,7 @@ function resolvePeriod({ periodType, anchor, from, to, currentDays = 7 } = {}) {
 
     if (ANCHORED_PERIOD_TYPES.includes(periodType)) {
         if (!(anchor instanceof Date) || Number.isNaN(anchor.getTime())) {
-            throw new Error('resolvePeriod requires a valid Date anchor');
+            throw new TypeError('resolvePeriod requires a valid Date anchor');
         }
     }
 

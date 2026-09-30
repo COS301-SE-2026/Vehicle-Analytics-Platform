@@ -158,6 +158,15 @@ async function resolveRequestedPeriod(db, body, now = () => new Date()) {
 
 }
 
+const SAFETY_MEASURES = [...COMPARED_METRICS, 'eventsPerVehicleDay'];
+
+function measuredSafety(summary) {
+    if (summary?.eventDataAvailable !== false) return summary;
+    const unmeasured = { ...summary };
+    SAFETY_MEASURES.forEach((key) => { unmeasured[key] = null; });
+    return unmeasured;
+}
+
 async function runAnalytics(db, vehicleIds, window) {
     const safety = await getSafetyAnalytics(db, vehicleIds, window);
     const distance = await getDistanceAnalytics(db, vehicleIds, window);
@@ -177,7 +186,7 @@ async function buildWeeklyTrends(db, vehicleIds, period) {
     for (const week of weeks) {
         const safety = await getSafetyAnalytics(db, vehicleIds, week);
         const distance = await getDistanceAnalytics(db, vehicleIds, week);
-        weeklySummaries.push({ ...distance.summary, ...safety.summary });
+        weeklySummaries.push({ ...distance.summary, ...measuredSafety(safety.summary) });
     }
 
     return {
@@ -245,8 +254,8 @@ async function buildReportPayload(db, user, request, options = {}){
     const comparisons = previous
         ? {
             safety: compareSummaries(
-                current.safety.summary,
-                previous.safety.summary,
+                measuredSafety(current.safety.summary),
+                measuredSafety(previous.safety.summary),
                 { ...compareOptions, metrics: COMPARED_METRICS },
             ),
             distance: compareSummaries(
@@ -310,10 +319,14 @@ async function buildReportPayload(db, user, request, options = {}){
             vehiclesWithFuelData: current.fuel.summary.vehiclesWithFuelData,
             fuelIsEstimated: true,
             baselineSufficient,
+            eventDataAvailable: current.safety.summary.eventDataAvailable !== false,
+            previousEventDataAvailable: previous
+                ? previous.safety.summary.eventDataAvailable !== false
+                : null,
         },
 
         safety: {
-            summary: current.safety.summary,
+            summary: measuredSafety(current.safety.summary),
             vehicles: current.safety.vehicles,
             comparison: comparisons.safety,
         },

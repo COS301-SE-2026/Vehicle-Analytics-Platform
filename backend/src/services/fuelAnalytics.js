@@ -123,7 +123,7 @@ async function getFuelAnalytics(db, vehicleIds, period){
         throw new Error('getFuelAnalytics requires a pg client or pool');
     }
     if (!Array.isArray(vehicleIds)){
-        throw new Error('getFuelAnalytics requires a vehicleIds array from scopeResolver');
+        throw new TypeError('getFuelAnalytics requires a vehicleIds array from scopeResolver');
     }
     if (!period || !(period.from instanceof Date) || !(period.to instanceof Date)){
         throw new Error('getFuelAnalytics requires a resolved period with Date bounds');

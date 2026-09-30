@@ -18,7 +18,7 @@ function validateScheduledInputs(db, deps, periodType){
 
     const { buildReportPayload } = deps || {};
     if (typeof buildReportPayload !== 'function') {
-        throw new Error('runScheduledReports requires a buildReportPayload function');
+        throw new TypeError('runScheduledReports requires a buildReportPayload function');
     }
 
 
@@ -41,7 +41,7 @@ function resolveRunAnchor(anchor, now){
 
     const date = anchor instanceof Date ? anchor : new Date(anchor);
     if (Number.isNaN(date.getTime())) {
-        throw new Error(`Invalid scheduled report anchor '${anchor}'`);
+        throw new TypeError(`Invalid scheduled report anchor '${anchor}'`);
     }
     return date;
 }

@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const { Buffer } = require('buffer');
+const crypto = require('node:crypto');
+const { Buffer } = require('node:buffer');
 const express = require('express');
 
 const {

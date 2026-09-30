@@ -25,7 +25,7 @@ function byImportance(severityOrder, percentKey){
 
 function changeFindings(comparison, metrics = null){
     return Object.values(comparison || {})
-        .filter((c) => c && CHANGE_DIRECTIONS.includes(c.direction))
+        .filter((c) => CHANGE_DIRECTIONS.includes(c?.direction))
         .filter((c) => !metrics || metrics.includes(c.metric))
         .map((c) => ({
             metric: c.metric,
@@ -41,7 +41,7 @@ function changeFindings(comparison, metrics = null){
 }
 
 function trendFindings(trends, metrics = null){
-    const series = trends && trends.metrics ? Object.values(trends.metrics) : [];
+    const series = trends?.metrics ? Object.values(trends.metrics) : [];
     return series
         .filter((t) => t && TREND_CLASSES.includes(t.classification))
         .filter((t) => !metrics || metrics.includes(t.metric))

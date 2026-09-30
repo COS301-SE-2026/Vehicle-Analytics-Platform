@@ -1,6 +1,6 @@
 'use strict';
 
-const { Buffer } = require('buffer');
+const { Buffer } = require('node:buffer');
 
 let PDFDocument = null;
 
@@ -37,16 +37,20 @@ const HEADLINE_METRICS = [
 ];
 
 
+
+
+
 const VEHICLE_COLUMNS = [
-    { key: 'vehicleId', label: 'Vehicle', width: 62, align: 'left' },
-    { key: 'safetyScore', label: 'Score', width: 42, align: 'right' },
-    { key: 'classification', label: 'Rating', width: 58, align: 'left', pad: 10 },
-    { key: 'totalEvents', label: 'Events', width: 48, align: 'right' },
-    { key: 'harshBrakes', label: 'Brake', width: 44, align: 'right' },
-    { key: 'harshAccelerations', label: 'Accel', width: 44, align: 'right' },
-    { key: 'harshCornering', label: 'Corner', width: 46, align: 'right' },
-    { key: 'crashes', label: 'Crash', width: 42, align: 'right' },
-    { key: 'overspeedEvents', label: 'Speed', width: 44, align: 'right' },
+    { key: 'vehicleId', label: 'Vehicle', width: 54, align: 'left' },
+    { key: 'safetyScore', label: 'Score', width: 38, align: 'right' },
+    { key: 'classification', label: 'Rating', width: 54, align: 'left', pad: 8 },
+    { key: 'totalEvents', label: 'Events', width: 42, align: 'right' },
+    { key: 'harshBrakes', label: 'Brake', width: 38, align: 'right' },
+    { key: 'harshAccelerations', label: 'Accel', width: 38, align: 'right' },
+    { key: 'harshCornering', label: 'Corner', width: 40, align: 'right' },
+    { key: 'crashes', label: 'Crash', width: 36, align: 'right' },
+    { key: 'overspeedEvents', label: 'Speed', width: 38, align: 'right' },
+    { key: 'idlingEvents', label: 'Idle', width: 36, align: 'right' },
     { key: 'distanceKm', label: 'Distance', width: 58, align: 'right' },
 ];
 
@@ -56,7 +60,7 @@ const DIRECTION_LABEL = {
     increased: 'Up',
     decreased: 'Down',
     stable: 'Stable',
-    no_baseline: '-',
+    no_baseline: 'No baseline',
     insufficient_baseline: 'Low data',
     unavailable: '-',
 };
@@ -78,6 +82,27 @@ function formatValue(value){
 }
 
 
+
+function withUnit(text, unit){
+    return unit ? `${text} ${unit}` : text;
+}
+
+function formatPercentChange(percentChange){
+    const sign = percentChange > 0 ? '+' : '';
+    return `${sign}${percentChange}%`;
+}
+
+function scoreColour(score){
+    if (score >= 75) return COLOR.green;
+    if (score >= 50) return COLOR.amber;
+    return COLOR.red;
+}
+
+function trendColour(classification){
+    if (classification === 'improving') return COLOR.green;
+    if (classification === 'deteriorating') return COLOR.red;
+    return COLOR.secondary;
+}
 
 function contentWidth(doc){
     return doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -150,6 +175,36 @@ function drawHeader(doc, report){
     doc.moveDown(0.4);
 }
 
+
+function coverageNotes(report){
+    const c = report.coverage;
+    if (!c.hasTelemetry) {
+        return [{ colour: COLOR.red, text: 'No telemetry was recorded in this period. Safety figures cannot be calculated.' }];
+    }
+
+    const notes = [];
+    if (c.eventDataAvailable === false) {
+        notes.push({
+            colour: COLOR.red,
+            text: 'No driving-event data was recorded in this period, so event counts and the safety score are not available.',
+        });
+    }
+    if (report.previousPeriod && c.previousEventDataAvailable === false) {
+        notes.push({
+            colour: COLOR.amber,
+            text: `No driving-event data was recorded in ${report.previousPeriod.label}, `
+                + 'so changes in events and the safety score have no baseline.',
+        });
+    }
+    if (report.previousPeriod && !c.baselineSufficient) {
+        notes.push({
+            colour: COLOR.amber,
+            text: 'The comparison period saw too little activity for percentage changes to carry a verdict.',
+        });
+    }
+    return notes;
+}
+
 function drawCoverage(doc, report){
     const c = report.coverage;
 
@@ -163,13 +218,10 @@ function drawCoverage(doc, report){
     doc.fillColor(COLOR.secondary).fontSize(8.5).font('Helvetica')
         .text(parts.join('   -   '));
 
-    if (!c.hasTelemetry) {
+    coverageNotes(report).forEach((note) => {
         doc.moveDown(0.2);
-        doc.fillColor(COLOR.red).text('No telemetry was recorded in this period. Safety figures cannot be calculated.');
-    } else if (report.previousPeriod && !c.baselineSufficient) {
-        doc.moveDown(0.2);
-        doc.fillColor(COLOR.amber).text('The comparison period saw too little activity for percentage changes to carry a verdict.');
-    }
+        doc.fillColor(note.colour).text(note.text);
+    });
 
     doc.moveDown(0.4);
 
@@ -220,7 +272,7 @@ function drawSummaryCards(doc, summary){
 
         doc.fillColor(hasValue ? COLOR.text : COLOR.secondary).fontSize(hasValue ? 15 : 9).font(hasValue ? 'Helvetica-Bold' : 'Helvetica')
             .text(
-                hasValue ? `${formatValue(card.value)}${card.unit ? ` ${card.unit}` : ''}` : 'Not available',
+                hasValue ? withUnit(formatValue(card.value), card.unit) : 'Not available',
                 x + 8, y + 22, { width: width - 16 },
             );
     });
@@ -272,7 +324,7 @@ function drawComparisonTable(doc, comparison){
             formatValue(row.previous),
             row.percentChange === null || row.percentChange === undefined
                 ? '-'
-                : `${row.percentChange > 0 ? '+' : ''}${row.percentChange}%`,
+                : formatPercentChange(row.percentChange),
             DIRECTION_LABEL[row.direction] || '-',
         ];
 
@@ -338,7 +390,7 @@ function drawVehicleTable(doc, vehicles){
 
             if (col.key === 'crashes' && raw > 0) colour = COLOR.red;
             if (col.key === 'safetyScore' && typeof raw === 'number') {
-                colour = raw >= 75 ? COLOR.green : raw >= 50 ? COLOR.amber : COLOR.red;
+                colour = scoreColour(raw);
             }
             if (raw === null || raw === undefined) colour = COLOR.secondary;
 
@@ -357,7 +409,7 @@ function describeChange(item){
     const move = `${formatValue(item.previous)} to ${formatValue(item.current)}${unit}`;
     const pct = item.percentChange === null || item.percentChange === undefined
         ? 'from zero'
-        : `${item.percentChange > 0 ? '+' : ''}${item.percentChange}%`;
+        : formatPercentChange(item.percentChange);
     return `${item.label}: ${move} (${pct})`;
 }
 
@@ -397,9 +449,15 @@ function drawInsights(doc, insights){
 
 }
 
+// Safety scores have no unit, so show them out of 100 rather than as a bare number.
+function rankingValue(entry, ranking){
+    if (ranking.metric === 'safetyScore') return `${formatValue(entry.value)} / 100`;
+    return withUnit(formatValue(entry.value), ranking.unit);
+}
+
 function drawRanking(doc, title, ranking){
     doc.x = doc.page.margins.left;
-    if (!ranking || ranking.status !== 'ok' || !ranking.entries.length) return;
+    if (ranking?.status !== 'ok' || !ranking.entries.length) return;
 
     ensureSpace(doc, 30 + ranking.entries.length * 12);
 
@@ -410,12 +468,10 @@ function drawRanking(doc, title, ranking){
     doc.moveDown(0.2);
 
     ranking.entries.forEach((entry) => {
+        const value = rankingValue(entry, ranking);
+        const tied = entry.tied ? '  (tied)' : '';
         doc.fillColor(COLOR.secondary).fontSize(8.5).font('Helvetica')
-            .text(
-                `${entry.rank}. ${entry.id}    ${formatValue(entry.value)}`
-                + `${ranking.unit ? ` ${ranking.unit}` : ''}${entry.tied ? '  (tied)' : ''}`,
-                { indent: 8 },
-            );
+            .text(`${entry.rank}. ${entry.id}    ${value}${tied}`, { indent: 8 });
     });
 
     doc.moveDown(0.5);
@@ -433,7 +489,7 @@ function drawRankings(doc, rankings){
         ['Most events', rankings.mostEvents],
         ['Highest utilisation', rankings.highestUtilisation],
         ['Best fuel efficiency', rankings.bestFuelEfficiency],
-    ].filter(([, r]) => r && r.status === 'ok' && r.entries.length);
+    ].filter(([, r]) => r?.status === 'ok' && r.entries.length);
 
     if (!blocks.length) return;
 
@@ -446,7 +502,7 @@ function drawRankings(doc, rankings){
 
 
 function drawTrends(doc, trends){
-    if (!trends || !trends.metrics) return;
+    if (!trends?.metrics) return;
 
     const metrics = Object.values(trends.metrics).filter((m) => m.classification !== 'insufficient_data');
 
@@ -494,9 +550,7 @@ function drawTrends(doc, trends){
             cx += weekWidth;
         });
 
-        const tone = metric.classification === 'improving' ? COLOR.green
-            : metric.classification === 'deteriorating' ? COLOR.red
-                : COLOR.secondary;
+        const tone = trendColour(metric.classification);
 
         doc.fillColor(tone).font('Helvetica-Bold').text(metric.classification, cx, y, { width: 70, align: 'right' });
 
@@ -538,7 +592,7 @@ function drawPageNumbers(doc){
 }
 
 function buildReportPdf(report){
-    if (!report || !report.report || !report.period) {
+    if (!report?.report || !report.period) {
         throw new Error('buildReportPdf requires a report dataset');
     }
 
@@ -560,9 +614,9 @@ function buildReportPdf(report){
             };
 
             const comparison = {
-                ...(report.distance.comparison || {}),
-                ...(report.fuel.comparison || {}),
-                ...(report.safety.comparison || {}),
+                ...report.distance.comparison,
+                ...report.fuel.comparison,
+                ...report.safety.comparison,
             };
 
             drawHeader(doc, report);
@@ -588,8 +642,8 @@ function buildReportPdf(report){
 function reportFilename(report){
     const scope = String(report.report.scope.label)
         .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '')
+        .replaceAll(/[^a-z0-9]+/g, '-')
+        .replaceAll(/^-|-$/g, '')
         .slice(0, 40) || 'fleet';
 
     return `vapor-report-${scope}-${report.period.fromDate}-to-${report.period.toDate}.pdf`;
@@ -601,4 +655,6 @@ module.exports = {
     _formatValue: formatValue,
     _describeChange: describeChange,
     _describeTrend: describeTrend,
+    _coverageNotes: coverageNotes,
+    _rankingValue: rankingValue,
 };

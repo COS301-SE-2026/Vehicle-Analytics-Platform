@@ -97,6 +97,15 @@ SELECT EXISTS (
   ) AS has_telemetry
 `;
 
+
+const EVENT_FEED_SQL = `
+SELECT EXISTS (
+    SELECT 1 FROM vehicle_events
+    WHERE time >= $1
+        AND time <  $2
+  ) AS event_data
+`;
+
 function toNumber(value, fallback = 0){
     if (value === null || value === undefined) return fallback;
     const n = Number(value);
@@ -134,10 +143,11 @@ function deriveVehicle(row){
 
 }
 
-function emptySummary(vehiclesInScope, hasTelemetry){
+function emptySummary(vehiclesInScope, hasTelemetry, eventDataAvailable){
     return {
       hasTelemetry,
-      safetyScore: hasTelemetry ? 100 : null,
+      eventDataAvailable,
+      safetyScore: hasTelemetry && eventDataAvailable ? 100 : null,
       classification: null,
       harshBrakes: 0,
       harshAccelerations: 0,
@@ -160,29 +170,32 @@ async function getSafetyAnalytics(db, vehicleIds, period) {
         throw new Error('getSafetyAnalytics requires a pg client or pool');
     }
     if (!Array.isArray(vehicleIds)) {
-        throw new Error('getSafetyAnalytics requires a vehicleIds array from scopeResolver');
+        throw new TypeError('getSafetyAnalytics requires a vehicleIds array from scopeResolver');
     }
     if (!period || !(period.from instanceof Date) || !(period.to instanceof Date)) {
         throw new Error('getSafetyAnalytics requires a resolved period with Date bounds');
     }
 
     if (!vehicleIds.length) {
-        return { summary: emptySummary(0, false), vehicles: [] };
+        return { summary: emptySummary(0, false, false), vehicles: [] };
     }
 
     const params = [vehicleIds, period.from, period.to, REPORT_TIMEZONE];
 
-    const [perVehicle, fleet, telemetry] = await Promise.all([
+    const [perVehicle, fleet, telemetry, eventFeed] = await Promise.all([
         db.query(PER_VEHICLE_SQL, params),
         db.query(FLEET_SQL, params),
         db.query(TELEMETRY_EXISTS_SQL, params.slice(0, 3)),
+        db.query(EVENT_FEED_SQL, params.slice(1, 3)),
     ]);
 
-    const hasTelemetry = Boolean(telemetry.rows[0] && telemetry.rows[0].has_telemetry);
+    const hasTelemetry = Boolean(telemetry.rows[0]?.has_telemetry);
     const vehicles = perVehicle.rows.map(deriveVehicle);
+    // Events in scope prove the feed was recording, whatever the probe says.
+    const eventDataAvailable = vehicles.length > 0 || Boolean(eventFeed.rows[0]?.event_data);
 
     if (!vehicles.length) {
-        return { summary: emptySummary(vehicleIds.length, hasTelemetry), vehicles: [] };
+        return { summary: emptySummary(vehicleIds.length, hasTelemetry, eventDataAvailable), vehicles: [] };
     }
 
     const fleetRow = fleet.rows[0] || {};
@@ -193,6 +206,7 @@ async function getSafetyAnalytics(db, vehicleIds, period) {
     return {
         summary: {
             hasTelemetry,
+            eventDataAvailable,
             safetyScore: fleetRow.safety_score === null || fleetRow.safety_score === undefined
                 ? null : toNumber(fleetRow.safety_score),
             classification: fleetRow.classification || null,

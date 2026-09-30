@@ -6,6 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { getAnomalies } from '../../services/anomalyService';
 import AnomalyDistribution from './AnomalyDistribution';
 import AnomalyFindings from './AnomalyFindings';
+import InfoHint, { Formula, HowCalculated } from './InfoHint';
 import { behaviourName, chartDescription, formatDateLabel, toLocalISODate } from './anomalyFormat';
 
 const PERIOD_OPTIONS = [
@@ -35,11 +36,14 @@ function scopeOptions(scopes){
 }
 
 
-function Panel({ id, title, description, children }){
+function Panel({ id, title, description, info, children }){
     return (
         <section id={id} className="bg-white rounded-2xl border border-fleet-border shadow-sm">
             <div className="px-5 py-4 border-b border-fleet-border">
-                <h3 className="text-sm font-semibold text-fleet-text">{title}</h3>
+                <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-fleet-text">{title}</h3>
+                    {info && <InfoHint label={title}>{info}</InfoHint>}
+                </div>
                 {description && <p className="text-xs text-fleet-secondary mt-1 max-w-2xl">{description}</p>}
             </div>
             <div className="p-5">{children}</div>
@@ -51,6 +55,7 @@ Panel.propTypes = {
     id: PropTypes.string,
     title: PropTypes.string.isRequired,
     description: PropTypes.node,
+    info: PropTypes.node,
     children: PropTypes.node,
 };
 
@@ -90,9 +95,9 @@ function MethodSteps({ anomalies, peerLabel }){
     ];
 
     return (
-        <ol className="space-y-3 list-decimal pl-5 marker:text-fleet-secondary">
+        <ol className="space-y-2 list-decimal pl-4 marker:text-fleet-secondary">
             {steps.map(([title, text]) => (
-                <li key={title} className="text-sm text-fleet-text pl-1">
+                <li key={title} className="pl-1">
                     <span className="font-medium">{title}.</span>{' '}
                     <span className="text-fleet-secondary">{text}</span>
                 </li>
@@ -112,6 +117,67 @@ function coverageLine(result){
     const parts = [`${peers.vehiclesEvaluated} of ${peers.vehicles} vehicles compared (${result.peerGroup.label})`];
     if (exposure.label) parts.push(`rates ${exposure.label}`);
     return parts.join(', ');
+}
+
+
+// Reading guide for the distribution chart. The first paragraph is the same text
+// the panel used to show underneath its title.
+function ChartInfo({ feature, parameters }){
+    const p = parameters;
+    return (
+        <>
+            <p>{chartDescription(feature)}</p>
+            <p>
+                <strong>Red</strong> dots stand out from the other vehicles. <strong>Dashed</strong> dots are
+                above the line but were not confirmed, because the vehicle had too few incidents or the count
+                could be chance. Grey dots are normal. Click a dot to open that vehicle&apos;s finding.
+            </p>
+            <HowCalculated>
+                <Formula
+                    label="Distance from normal (modified z-score)"
+                    note="MAD is the median absolute deviation of the other vehicles. When at least half of them share the same value it is zero, so the mean absolute deviation (× 1.2533) is used instead."
+                >
+                    z = 0.6745 × (vehicle value − median of the others) ÷ MAD
+                </Formula>
+                <Formula label="Flag line">
+                    unusual when z &gt; {p.zThreshold}, i.e. value &gt; median + {p.zThreshold} × MAD ÷ 0.6745
+                </Formula>
+                <Formula
+                    label="Chance check (rates only)"
+                    note="Expected uses the other vehicles' median rate, or their combined rate when the median is zero."
+                >
+                    expected = others&apos; rate × this vehicle&apos;s exposure
+                    <br />
+                    P(this many incidents or more | expected) &lt; {p.alpha}, and at least {p.minSupportingEvents} incidents
+                </Formula>
+            </HowCalculated>
+        </>
+    );
+}
+
+ChartInfo.propTypes = { feature: PropTypes.object.isRequired, parameters: PropTypes.object.isRequired };
+
+
+function FindingsInfo(){
+    return (
+        <>
+            <p>
+                One card per vehicle that stands out, most severe first. Each line names a behaviour and explains
+                how the vehicle compares with the others.
+            </p>
+            <p>
+                The chips give the evidence: how many times the other vehicles&apos; median the vehicle is, and how
+                many incidents it recorded against how many their rate would predict over the same driving.
+            </p>
+            <p>&quot;Show on chart&quot; switches the chart to that behaviour and highlights the vehicle.</p>
+            <HowCalculated>
+                <Formula label="Severity" note="When the other vehicles all share the same value there is no score, so the incident count is used instead: High at 10 or more, Moderate at 5 or more.">
+                    High: z ≥ 8 &nbsp;·&nbsp; Moderate: z ≥ 5.5 &nbsp;·&nbsp; Low: otherwise
+                </Formula>
+                <Formula label="Vehicle severity">the most severe of its findings</Formula>
+            </HowCalculated>
+        </>
+    );
 }
 
 
@@ -182,7 +248,6 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
     const anomalies = result?.anomalies;
     const focused = result ? FOCUSED_SCOPES.has(result.scope.type) : false;
     const noVehicles = result ? result.scope.vehicleCount === 0 : false;
-    const notes = anomalies?.dataQuality?.notes || [];
     const flaggedCount = anomalies?.summary?.vehiclesFlagged || 0;
     const peerNoun = anomalies?.peers?.noun || 'fleet';
     const customIncomplete = periodType === 'custom' && (!dateRange?.from || !dateRange?.to);
@@ -345,24 +410,20 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
                                     <p className="text-lg leading-snug text-fleet-text max-w-3xl" data-testid="anomaly-headline">
                                         {anomalies.headline}
                                     </p>
+                                    <span className="mt-1.5">
+                                        <InfoHint label="How the detection works">
+                                            <MethodSteps anomalies={anomalies} peerLabel={result.peerGroup.label} />
+                                        </InfoHint>
+                                    </span>
                                 </div>
-                                {notes.length > 0 && (
-                                    <ul className="mt-4 space-y-2">
-                                        {notes.map((note) => (
-                                            <li key={note} className="flex items-start gap-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                                <Info className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-                                                {note}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
                             </section>
 
                             {anomalies.summary.featuresScored > 0 && plotted && (
                                 <Panel
                                     id="anomaly-chart"
                                     title={`Vehicles compared with the ${peerNoun}: ${behaviourName(plotted).toLowerCase()}`}
-                                    description={chartDescription(plotted)}
+                                    description="Each dot is a vehicle, and its colour shows the result."
+                                    info={<ChartInfo feature={plotted} parameters={anomalies.parameters} />}
                                 >
                                     <AnomalyDistribution
                                         features={anomalies.features}
@@ -379,7 +440,7 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
                             {anomalies.summary.vehiclesEvaluated > 0 && (
                                 <Panel
                                     title={focused ? 'Findings for the selected vehicle' : 'Vehicles that stand out'}
-                                    description="Each finding shows the behaviour, how it compares with the other vehicles, and how many incidents their rate would predict."
+                                    info={<FindingsInfo />}
                                 >
                                     <AnomalyFindings
                                         flagged={anomalies.flagged}
@@ -391,14 +452,6 @@ function AnomalyReport({ scopes, scopeValue, onScopeChange }){
                                 </Panel>
 							)}
 
-                            <details className="bg-white rounded-2xl border border-fleet-border shadow-sm group">
-                                <summary className="cursor-pointer select-none px-5 py-4 text-sm font-semibold text-fleet-text rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-fleet-blue">
-                                    How the detection works
-                                </summary>
-                                <div className="px-5 pb-5">
-                                    <MethodSteps anomalies={anomalies} peerLabel={result.peerGroup.label} />
-                                </div>
-                            </details>
                         </>
                     )}
                 </div>

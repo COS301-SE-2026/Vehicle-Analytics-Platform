@@ -113,8 +113,8 @@ export default function AnomalyDistribution({
     }
 
     const { distribution } = feature;
-    const counted = feature.kind !== 'speed';
-    const hasExpected = feature.kind === 'rate';
+    const counted = feature?.kind !== 'speed';
+    const hasExpected = feature?.kind === 'rate';
     const columns = 4 + (counted ? 1 : 0) + (hasExpected ? 1 : 0);
 
     return (
@@ -132,12 +132,7 @@ export default function AnomalyDistribution({
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 mb-2">
                 <p className="text-sm font-medium text-fleet-text">Vehicles to look at</p>
                 <label className="flex items-center gap-2 text-xs text-fleet-secondary">
-                    <input
-                        type="checkbox"
-                        checked={flaggedOnly}
-                        onChange={(e) => setFlaggedOnly(e.target.checked)}
-                        className="rounded border-fleet-border"
-                    />
+                    <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} className="rounded border-fleet-border"/>
                     Only vehicles that stand out
                 </label>
             </div>
@@ -147,7 +142,7 @@ export default function AnomalyDistribution({
                     <thead className="border-b border-fleet-border sticky top-0 bg-white">
                         <tr>
                             <Th>Vehicle</Th>
-                            <Th align="right">{distribution.exposureLabel || 'Exposure'}</Th>
+                            <Th align="right">{distribution?.exposureLabel || 'Exposure'}</Th>
                             {counted && <Th align="right">Incidents</Th>}
                             {hasExpected && <Th align="right">Expected</Th>}
                             <Th align="right">{valueLabel(feature)}</Th>

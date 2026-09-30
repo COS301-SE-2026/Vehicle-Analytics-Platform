@@ -63,26 +63,24 @@ test.describe('Fixture-authenticated access (no login form, no Cognito)', () => 
 // Viewers have no dashboard: their start page is the live map, and every
 // other page sends them back there.
 test.describe('Viewer access', () => {
-  test('a seeded viewer session is redirected away from an admin-only route', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await seedAuthenticated(page, 'viewer');
-    await page.goto('/dashboard/admin');
-    await expect(page).toHaveURL(/\/map$/);
   });
 
-  test("a viewer's dashboard address opens the live map", async ({ page }) => {
-    await seedAuthenticated(page, 'viewer');
-    await page.goto('/dashboard/viewer');
-    await expect(page).toHaveURL(/\/map$/);
-  });
+  const REDIRECTS = [
+    { from: '/dashboard/admin', reason: 'an admin-only route' },
+    { from: '/dashboard/viewer', reason: 'their own dashboard address' },
+    { from: '/reports', reason: 'a page typed into the address bar' },
+  ];
 
-  test('a viewer cannot open reports by typing the address', async ({ page }) => {
-    await seedAuthenticated(page, 'viewer');
-    await page.goto('/reports');
-    await expect(page).toHaveURL(/\/map$/);
-  });
+  for (const { from, reason } of REDIRECTS) {
+    test(`a viewer is sent to the live map from ${reason} (${from})`, async ({ page }) => {
+      await page.goto(from);
+      await expect(page).toHaveURL(/\/map$/);
+    });
+  }
 
   test('a viewer only sees Live Map in the sidebar', async ({ page }) => {
-    await seedAuthenticated(page, 'viewer');
     await page.goto('/map');
 
     const nav = page.getByRole('navigation');

@@ -13,6 +13,8 @@ const {
 
 const { authenticate, requireRole } = require('../middleware/auth');
 
+const { generateWeatherReport } = require('../controllers/weatherReportController');
+
 const router = express.Router();
 
 const REPORTING_ROLES = ['admin', 'fleet_manager', 'manager'];
@@ -44,5 +46,7 @@ router.post('/run-scheduled', requireSchedulerToken, runScheduledHttp);
 router.get('/', authenticate, requireRole(REPORTING_ROLES), listReportHistory);
 router.get('/:id', authenticate, requireRole(REPORTING_ROLES), getStoredReport);
 router.get('/:id/pdf', authenticate, requireRole(REPORTING_ROLES), getStoredReportPdf);
+
+router.post('/weather', authenticate, requireRole(REPORTING_ROLES), generateWeatherReport);
 
 module.exports = router;

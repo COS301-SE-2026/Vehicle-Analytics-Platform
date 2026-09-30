@@ -22,6 +22,7 @@
 [![Issues Closed](https://img.shields.io/github/issues-closed/COS301-SE-2026/Vehicle-Analytics-Platform)](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/issues?q=is%3Aissue+is%3Aclosed)
 [![Node](https://img.shields.io/badge/node-v20-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Uptime](https://img.shields.io/uptimerobot/status/m802945452-ad34f756748729c34c7594e0?label=uptime)](https://stats.uptimerobot.com/3qOgv6HCr1)
 
 </div>
 
@@ -54,10 +55,14 @@ V.A.P.O.R. is a real-time fleet analytics platform built for FuseIT. It ingests 
 | Resource | Link |
 |---|---|
 | <img src="https://cdn.simpleicons.org/googlechrome/4285F4" width="14"/> Live Web Application | [V.A.P.O.R. Live Demo](https://d25bouomowr0it.cloudfront.net/landing) |
-| <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> Software Requirements Specification (SRS) | [View srs.md](./docs/Demo2/srs/srs.md) |
-| <img src="https://cdn.simpleicons.org/adobeacrobatreader/EC1C24" width="14"/> Software Architecture Specification (SAS) | [View SAS.pdf](./docs/Demo2/SAS.pdf) |
+| <img src="https://cdn.simpleicons.org/github/181717" width="14"/> Developer Wiki | [Project Wiki](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/wiki) |
+| <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> Software Requirements Specification (SRS) | [View srs.md](./docs/Demo3/srs/srs.md) |
+| <img src="https://cdn.simpleicons.org/googlechrome/4285F4" width="14"/> Brand Style Guide | [View Style Guide](https://d25bouomowr0it.cloudfront.net/style-guide) |
+| <img src="https://cdn.simpleicons.org/adobeacrobatreader/EC1C24" width="14"/> Software Architecture Specification (SAS) | [View SAS.pdf](./docs/Demo3/SAS.pdf) |
 | <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> Functional Requirements (SRS) | [View Document](#) |
-| <img src="https://cdn.simpleicons.org/github/181717" width="14"/> GitHub Project Board | [View Board](https://github.com/orgs/COS301-SE-2026/projects) |
+| <img src="https://cdn.simpleicons.org/github/181717" width="14"/> GitHub Project Board | [View Board](https://github.com/orgs/COS301-SE-2026/projects/49) |
+| <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> NFR Testing | [View README.md](./docs/Demo3/nfr-testing/README.md) |
+| <img src="https://cdn.simpleicons.org/googledocs/4285F4" width="14"/> API Service Contracts | [View service-contracts.md](./docs/Demo3/api/service-contracts.md) |
 | <img src="https://cdn.simpleicons.org/gmail/EA4335" width="14"/> Team Email | kilimanjaro.capstone@gmail.com |
 
 ---

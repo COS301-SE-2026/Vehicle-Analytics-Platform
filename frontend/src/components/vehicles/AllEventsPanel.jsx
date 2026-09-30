@@ -18,6 +18,8 @@ import {
     SheetDescription,
 } from '@/components/ui/sheet'
 
+import { formatEventLabel, formatEventTime, formatCoordinates } from '@/utils/eventFormat'
+
 const EVENT_ICONS = {
     harsh_braking: AlertTriangle,
     harsh_acceleration: TrendingUp,
@@ -27,20 +29,6 @@ const EVENT_ICONS = {
 }
 
 const PAGE_SIZE = 8
-
-function formatEventLabel(type) {
-    return type
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-function formatTime(timestamp) {
-    return new Date(timestamp).toLocaleTimeString('en-ZA', {
-        hour: '2-digit',
-        minute: '2-digit',
-    })
-}
 
 function formatDateHeading(timestamp) {
     return new Date(timestamp).toLocaleDateString('en-ZA', {
@@ -80,10 +68,10 @@ export default function AllEventsPanel({ open, onOpenChange, vehicleId, events }
                                     <p className="text-sm font-medium text-fleet-text">{formatEventLabel(event.type)}</p>
                                     <p className="text-xs text-fleet-secondary">
                                         {event.speed ? `${event.speed} KM/H \u2022 ` : ''}
-                                        {event.latitude.toFixed(4)}, {event.longitude.toFixed(4)}
+                                        {formatCoordinates(event.latitude, event.longitude)}
                                     </p>
                                 </div>
-                                <span className="text-xs text-fleet-secondary">{formatTime(event.timestamp)}</span>
+                                <span className="text-xs text-fleet-secondary">{formatEventTime(event.timestamp)}</span>
                                 </div>
                         )
                     })}

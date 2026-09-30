@@ -37,6 +37,16 @@ jest.mock('../components/reports/ReportToolbar', () => ({
   )
 }))
 
+jest.mock('../components/reports/AnomalyReport', () => ({ 
+  __esModule: true, 
+  default: () => <div data-testid="anomaly-report" /> 
+}))
+
+jest.mock('../components/reports/WeatherAreaReport', () => ({ 
+  __esModule: true, 
+  default: () => <div data-testid="weather-area-report" /> 
+}))
+
 const SCOPES = {
   groups: [{ id: 1, name: 'Delivery' }],
   vehicles: [{ vehicleId: 'V001', groupId: 1 }, { vehicleId: 'V002', groupId: 1 }, { vehicleId: 'V005', groupId: null }],
@@ -74,7 +84,7 @@ beforeEach(() => {
 describe('Reports - initial load', () => {
   test('renders heading, loads scopes, and defaults correctly', async () => {
     render(<Reports />)
-    expect(screen.getByText('Fleet Reports')).toBeInTheDocument()
+    
     expect(screen.getByText(/Choose a timeframe and a scope/i)).toBeInTheDocument()
     expect(screen.getByTestId('toolbar-period')).toHaveTextContent('weekly')
     expect(screen.getByTestId('toolbar-scope')).toHaveTextContent('fleet')

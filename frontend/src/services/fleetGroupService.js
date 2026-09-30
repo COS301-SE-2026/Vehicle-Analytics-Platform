@@ -197,4 +197,21 @@ export async function unassignVehicles(fleetGroupId, vehicleIds) {
     return data.data
 }
 
+export async function transferVehicles(sourceGroupId, targetGroupId, vehicleIds) {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${sourceGroupId}/vehicles/transfer`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({vehicleIds, targetGroupId}),
+    })
+
+    const data = await res.json().catch(() => ({}))
+
+    if(!res.ok) {
+        throw new Error(data.error || 'Failed to transfer vehicles')
+    }
+
+    return data.data
+}
+
 

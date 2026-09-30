@@ -10,6 +10,7 @@ import {
 import LiveTrackingMap from './LiveTrackingMap'
 import { getScoreSeverity} from '@/utils/safetyScore'
 import AllEventsPanel from './AllEventsPanel'
+import { formatEventLabel, formatEventTime, formatCoordinates } from '@/utils/eventFormat'
 
 const EVENT_ICONS = {
     harsh_braking: AlertTriangle,
@@ -17,20 +18,6 @@ const EVENT_ICONS = {
     harsh_cornering: TrendingUp,
     speeding: MapPin,
     crash_detection: AlertTriangle,    
-}
-
-function formatEventLabel(type) {
-    return type
-        .split('_')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-}
-
-function formatTime(timestamp){
-    return new Date(timestamp).toLocaleTimeString('en-ZA', {
-        hour: '2-digit',
-        minute: '2-digit',
-    })
 }
 
 export default function CurrentTripTab({ vehicle, recentEvents }){
@@ -139,11 +126,11 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                                     <p className="text-sm font-medium text-fleet-text">{formatEventLabel(event.type)}</p>
                                     <p className="text-xs text-fleet-secondary">
                                         {event.speed ? `${event.speed} KM/H \u2022 ` : ''}
-                                        {event.latitude.toFixed(4)}, {event.longitude.toFixed(4)}
+                                        {formatCoordinates(event.latitude, event.longitude)}
                                     </p>
                                     </div>
                         <span className="text-xs text-fleet-secondary">
-                            {formatTime(event.timestamp)}
+                            {formatEventTime(event.timestamp)}
                         </span>
                         </div>
                         )

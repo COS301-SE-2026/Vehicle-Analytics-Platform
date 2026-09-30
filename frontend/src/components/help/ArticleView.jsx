@@ -45,9 +45,9 @@ export function ArticleView({ article, categoryTitle, onBack }){
                   )}
 
                   {block.type === "callout" && (
-                    <div className='rounded-lg bg-fleet-blue/40 border border-fleet-blue/20 px-3 py-2'>
-                      <Info size={16} className="shrink-0 mt-0.5 text-fleet-blue"/>
-                        <p className="text-sm text-fleet-text text-fleet-secondary leading-relaxed">
+                    <div className='flex items-start gap-2 rounded-lg bg-fleet-green/20 border border-fleet-blue/20 px-3 py-2'>
+                      <Info size={16} className="shrink-0 mt-0.5 text-fleet-green"/>
+                        <p className="text-sm text-fleet-green leading-relaxed">
                           {block.text}
                         </p>
                     </div>

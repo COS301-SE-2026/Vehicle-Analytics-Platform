@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from './components/ui/sonner'
 import AppShell from './components/layout/AppShell'
 import PropTypes from 'prop-types'
 import Landing from './pages/landing/Landing'
@@ -14,12 +15,17 @@ import useAuthStore from './store/authStore'
 import BrandStyleGuide from './pages/styleguide/BrandStyleGuide'
 import VehiclesList from './pages/vehicles/VehiclesList'
 import VehicleProfile from './pages/vehicles/VehicleProfile'
+import CustomAlerts from './pages/alerts/CustomAlerts';
+import useNewAlertToasts from '../src/hooks/useNewAlertToasts';
 import FleetGroupsManagement from './pages/fleetgroups/FleetGroupsManagement'
 import FleetGroupDetail from './pages/fleetgroups/FleetGroupDetail'
 
 import Reports from './pages/reports/Reports'
+import FleetRiskPage from './pages/risk/FleetRiskPage'
 
 function ProtectedRoute({ children, allowedRoles }) {
+  useNewAlertToasts();
+
   const { user, role } = useAuthStore()
 
   if (!user) return <Navigate to="/login" replace />
@@ -115,6 +121,15 @@ function App() {
           />
 
           <Route
+            path="/custom-alerts"
+            element={
+            <ProtectedRoute allowedRoles={['manager', 'fleet_manager']}>
+              <CustomAlerts />
+            </ProtectedRoute>
+            }
+          />
+
+        <Route
           path="/fleet-groups"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
@@ -139,12 +154,23 @@ function App() {
     </ProtectedRoute>
   }
 />
+
+<Route
+  path="/risk"
+  element={
+    <ProtectedRoute allowedRoles={['manager', 'fleet_manager', 'admin']}>
+      <FleetRiskPage />
+    </ProtectedRoute>
+  }
+/>
         </Route>
 
 
         {/* Default redirect - TEMP for testing */}
         <Route path="/landing" element={<Landing />} />
       </Routes>
+
+      <Toaster position="bottom-right" richColors closeButton />
     </BrowserRouter>
   )
 }

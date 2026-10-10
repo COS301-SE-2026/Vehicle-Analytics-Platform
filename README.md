@@ -50,19 +50,7 @@
 
 ---
 
-**100+ vehicles** &nbsp;|&nbsp; **5-10 s** live map refresh &nbsp;|&nbsp; **11** features &nbsp;|&nbsp; **4** wow factors &nbsp;|&nbsp; **36** use cases &nbsp;|&nbsp; **3** user roles
-
----
-
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">01 · Overview</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Project Description</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/01-overview.svg" alt="Project Description" width="100%" />
 
 **Kilimanjaro StoneCap - V.A.P.O.R. (Vehicle Analytics, Processing and Operations in Real-time)**
 
@@ -70,52 +58,261 @@ V.A.P.O.R. is a real-time fleet analytics platform built for FuseIT. It ingests 
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">02 · Pipeline</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Data Flow</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/02-pipeline.svg" alt="Data Flow" width="100%" />
 
-<details>
-<summary><b>From telemetry to alert - click to expand the event lifecycle</b></summary>
+### The Big Picture
 
-<br/>
+Data flows through five stages:
+
+```text
+1. Vehicle emits telemetry
+2. Ingestion buffers it in Kinesis
+3. Processing transforms and enriches it in Lambda
+4. Storage persists it in TimescaleDB and S3
+5. Presentation serves it to the React dashboard
+```
+
+Each stage has one job. Data moves forward. Nothing skips a stage.
+
+Each stage has one job. Data moves forward. Nothing skips a stage.
+
+### Event Journey: Harsh Braking on Vehicle 1015
 
 ```mermaid
-sequenceDiagram
-    participant V as Vehicle
-    participant K as AWS Kinesis
-    participant L as AWS Lambda
-    participant D as TimescaleDB
-    participant A as API Gateway
-    participant F as React Dashboard
+%%{init: {"theme": "dark", "themeVariables": {"primaryColor": "#0F172A", "primaryTextColor": "#F8FAFC", "primaryBorderColor": "#EA580C", "lineColor": "#F97316", "secondaryColor": "#1E293B", "tertiaryColor": "#334155", "fontFamily": "Segoe UI, Roboto, Helvetica, Arial, sans-serif"}}}%%
+flowchart TD
+    A["1 · Vehicle 1015<br/>Harsh brake at 42 km/h<br/>-25.7, 28.2"] --> B["2 · HTTPS packet<br/>API Gateway"]
+    B --> C["3 · AWS Kinesis<br/>Stream buffer"]
+    C --> D["4 · Lambda Ingestion<br/>Parse · flag harsh_braking"]
+    D --> E["5 · TimescaleDB<br/>clean_telemetry + vehicle_events"]
+    E --> F["6 · Live map update<br/>current_vehicle_position"]
+    E --> G["7 · Geofence check<br/>zone event counts"]
+    E --> H["8 · Alert rules<br/>triggered alert if matched"]
+    F --> I["9 · React polls every 5s<br/>Map marker moves"]
+    H --> J["10 · Notification toast<br/>Manager sees alert"]
+    E --> K["11 · Next day 03:00<br/>ML risk score → HIGH"]
+    K --> L["12 · Coaching written"]
+    L --> M["13 · +7 days 04:00<br/>Outcome measured"]
 
-    V->>K: Telemetry stream (GPS, speed, braking)
-    K->>L: Trigger processing
-    L->>L: Detect speeding / harsh braking / crash
-    L->>D: Store event + metrics
-    D->>A: Query ready data
-    A->>F: Push alerts + live updates
-    F->>F: Render map, KPIs, notifications
+    classDef step fill:#0F172A,stroke:#EA580C,stroke-width:2px,color:#F8FAFC
+    classDef late fill:#1E293B,stroke:#A78BFA,stroke-width:2px,color:#E9D5FF
+    class A,B,C,D,E,F,G,H,I,J step
+    class K,L,M late
 ```
+
+
+<details>
+<summary><b>Stage 1: Vehicle Emits Telemetry</b></summary>
+
+<br/>
+
+Every 5 to 10 seconds, each vehicle sends a telemetry packet. The packet contains:
+
+* `vehicle_id` (anonymised)
+* GPS coordinates (latitude, longitude)
+* Speed in km/h
+* Ignition state (on or off)
+* Movement state (moving or stationary)
+* Event flags (harsh braking, harsh acceleration, harsh cornering, crash detection)
+
+Vehicles push this over HTTPS to the ingestion endpoint.
+
+</details>
+
+<details>
+<summary><b>Stage 2: Ingestion Buffers It</b></summary>
+
+<br/>
+
+The HTTPS request hits API Gateway, which forwards the packet into AWS Kinesis Data Streams.
+
+Kinesis is a buffer, not a database. Its job is to absorb bursts and hold records until something is ready to process them.
+
+**Why Kinesis and not a direct database write:**
+
+* If the database is temporarily unavailable, Kinesis retains records for 24 hours
+* Multiple consumers can read the same stream
+* Lambda scales independently of the write volume
+* Sharding allows horizontal scaling
+
+</details>
+
+<details>
+<summary><b>Stage 3: Processing Transforms It</b></summary>
+
+<br/>
+
+AWS Lambda is triggered when Kinesis has new records. The `kinesis_telemetry_ingestion` function processes a batch at a time. For each record it:
+
+1. Parses the JSON payload
+2. Validates required fields (GPS, speed, timestamp, vehicle_id)
+3. Enriches it with geospatial data and road type
+4. Detects unsafe driving events (speeding, harsh braking, crash)
+5. Detects geofence boundary crossings against defined zones
+6. Writes the record and derived events to TimescaleDB
+7. On failure, sends the record to an SQS Dead Letter Queue so nothing is lost
+
+Lambda auto scales from zero to hundreds of concurrent executions based on stream volume. No server to manage.
+
+</details>
+
+<details>
+<summary><b>Stage 4: Storage Persists It</b></summary>
+
+<br/>
+
+Everything goes into PostgreSQL with TimescaleDB. Data is organised into three logical layers, following the Medallion architecture:
+
+**Bronze (raw):**
+
+* `raw_telemetry` - untouched incoming records, kept for debugging and replay
+
+**Silver (cleaned):**
+
+* `clean_telemetry` - validated records with parsed GPS and normalised speed
+* `vehicle_events` - extracted events (harsh braking, speeding, crash)
+* `trips` - trip boundaries and summaries
+
+**Gold (pre-computed):**
+
+* `current_vehicle_position` - one row per vehicle for the live map
+* `driver_daily_safety_scores` - daily aggregates per vehicle
+* `vehicle_risk_predictions` - ML risk scores
+* `coaching_interventions` - coaching recommendations and outcomes
+* `vehicle_risk_features` - feature view for the ML model
+
+TimescaleDB hypertables partition data by time automatically. A query over the last 7 days only scans 7 days of chunks, not the full history.
+
+Continuous aggregates pre-compute daily and weekly summaries in the background, so dashboard queries hit pre-computed rows instead of running heavy joins live.
+
+Raw copies also go to Amazon S3 for archival and disaster recovery.
+
+</details>
+
+<details>
+<summary><b>Stage 5: Presentation Serves It</b></summary>
+
+<br/>
+
+API Gateway fronts a second Lambda (`capstone-analytics-backend`) that runs an Express app through `serverless-http`. It exposes REST endpoints under `/api`.
+
+Every request goes through:
+
+1. Cognito JWT validation at API Gateway
+2. Rate limiting (1000 requests per 15 minutes per IP)
+3. Middleware chain on the backend:
+   * CORS
+   * Helmet security headers
+   * `authenticate` (decode user, check DB)
+   * `requireRole` (role-based access)
+   * `requireFleetGroupAccess` (scope to user's fleet groups)
+
+The backend queries TimescaleDB, formats a response, and returns it to the React frontend. The frontend renders:
+
+* Live Fleet Map (Mapbox GL JS, polling every 5 seconds)
+* Fleet Dashboard and KPIs
+* Vehicle Profile and Trip History
+* Fleet Risk page (Predictive Risk engine output)
+* Geofencing
+* Custom Alerts
+* Reports
+
+The frontend calls the backend through a single `api.js` axios instance configured with `VITE_API_URL` as the base URL.
+
+</details>
+
+<details>
+<summary><b>Security Layer Wrapped Around Everything</b></summary>
+
+<br/>
+
+**AWS Cognito** handles identity:
+
+* Self-registration with email verification
+* Login with email and password
+* JWT issuance with a role claim
+* Role-based user groups: admin, fleet_manager, viewer
+
+API Gateway validates the JWT signature before the request ever reaches Lambda.
+
+**Encryption:**
+
+* In transit: TLS 1.2+ on API Gateway and Kinesis
+* At rest: AES-256 via AWS KMS for S3, RDS and Kinesis
+
+**Scoping:**
+
+* Every backend query filters by `fleet_group_id`
+* A manager only sees vehicles in their assigned groups
+* An admin sees everything
+
+</details>
+
+<details>
+<summary><b>Automations Run Inside the Database</b></summary>
+
+<br/>
+
+Four scheduled jobs run on `pg_cron`:
+
+| Time       | Job                      | What it does                                                                                        |
+| ---------- | ------------------------ | --------------------------------------------------------------------------------------------------- |
+| 03:00 SAST | risk_prediction_job      | Scores every vehicle with the ML model, writes predictions, generates coaching for HIGH or CRITICAL |
+| 04:00 SAST | coaching_outcome_job     | Measures whether coaching from 7+ days ago reduced risk                                             |
+| Hourly     | safety_score_refresh_job | Recomputes daily safety scores                                                                      |
+| Nightly    | fuel_calculation_job     | Calculates fuel efficiency per vehicle from the day's trips                                         |
+
+All jobs are idempotent. A re-run updates instead of duplicating.
+
+</details>
+
+<details>
+<summary><b>Complete Example: A Harsh Braking Event</b></summary>
+
+<br/>
+
+Here is the full journey of one event.
+
+1. Vehicle 1015 brakes hard while driving at 42 km/h at coordinates -25.7, 28.2
+2. Packet goes over HTTPS to API Gateway
+3. API Gateway forwards to Kinesis stream
+4. Kinesis triggers the ingestion Lambda with a batch of records
+5. Lambda parses the record and flags `harsh_braking`
+6. Lambda writes to `clean_telemetry` and `vehicle_events`
+7. Lambda updates `current_vehicle_position` for the live map
+8. Lambda checks active geofences and updates zone event counts if the vehicle is inside a zone
+9. Lambda checks custom alert rules and writes a triggered alert if any rule matches
+10. Frontend polls `/api/vehicles/locations` every 5 seconds and updates the map marker
+11. Frontend polls `/api/alerts/triggered/new` and shows a toast in the notification bell
+12. A fleet manager opens the vehicle profile and sees the harsh braking event on the timeline
+13. At 03:00 SAST the next day, the risk prediction job scores every vehicle including 1015
+14. Vehicle 1015 gets a HIGH risk score, so a coaching recommendation is written
+15. Seven days later, at 04:00 SAST, the coaching outcome job measures whether coaching reduced 1015's risk
+
+</details>
+
+<details>
+<summary><b>Summary</b></summary>
+
+<br/>
+
+| Layer | Technology |
+| ----- | ---------- |
+| Data in | HTTPS from 100+ vehicles |
+| Data buffered | AWS Kinesis |
+| Data transformed | AWS Lambda ingestion function |
+| Data stored | PostgreSQL with TimescaleDB, plus S3 for archival |
+| Data served | API Gateway plus Lambda backend, rendered by React |
+| Data automated | pg_cron jobs run nightly predictions, outcome measurement, safety score refresh, and fuel calculations |
+| Data secured | Cognito for auth, JWT for every request, TLS in transit, AES-256 at rest, fleet group scoping at every query |
+
+Every layer has one job. Data flows in one direction. Alerts flow out. Nothing gets lost.
 
 </details>
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">03 · Resources</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Links</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/03-resources.svg" alt="Links" width="100%" />
 
 | Resource                                  | Link |
 | ----------------------------------------- | ---- |
@@ -132,15 +329,7 @@ sequenceDiagram
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">04 · Context</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">The Problem</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/04-context.svg" alt="The Problem" width="100%" />
 
 Modern fleet operators collect massive amounts of raw vehicle telemetry such as GPS coordinates, speed readings and braking events. The problem is how can we take these and turn them into actionable insights? Without real-time analysis, unsafe driver behaviour goes undetected and managers are left reacting to incidents after they happen rather than preventing them.
 
@@ -150,20 +339,14 @@ Modern fleet operators collect massive amounts of raw vehicle telemetry such as 
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">05 · Product</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">The Solution</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/05-product.svg" alt="The Solution" width="100%" />
 
 V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management platform. By processing live data from AWS Kinesis streams, the platform delivers real-time driver safety scores, interactive fleet maps and analytics dashboards.
 
+<img src="./docs/assets/headers/features-label.svg" alt="Features" width="100%" />
+
 <details>
-<summary><b>Features - click to expand the full feature list</b></summary>
+<summary><b>Expand</b></summary>
 
 <br/>
 
@@ -183,8 +366,10 @@ V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management pl
 
 </details>
 
+<img src="./docs/assets/headers/wowfactors-label.svg" alt="Wow Factors" width="100%" />
+
 <details>
-<summary><b>Wow Factors - click to expand the full list</b></summary>
+<summary><b>Expand</b></summary>
 
 <br/>
 
@@ -202,6 +387,8 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 </details>
 
+<br/>
+
 **Who it's for**
 
 | Viewer                                                                           | Fleet Manager                                                                                                                                           | Administrator                                                                                                  |
@@ -210,17 +397,9 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">06 · Scope</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Use Cases</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/06-scope.svg" alt="Use Cases" width="100%" />
 
-V.A.P.O.R. has three primary user types: Viewer, Fleet Manager, and Administrator. Every use case below is mapped to its actor and user story.
+<img src="./docs/assets/headers/usecases-intro.svg" alt="V.A.P.O.R. has three primary user types: Viewer, Fleet Manager, and Administrator." width="100%" />
 
 <details>
 <summary><b>Authentication and User Administration (UC01 to UC05)</b></summary>
@@ -306,19 +485,11 @@ V.A.P.O.R. has three primary user types: Viewer, Fleet Manager, and Administrato
 
 </details>
 
-**Key:** Fleet Operator is an abstract actor grouping Fleet Manager and Administrator for monitoring and analysis use cases they share.
+<img src="./docs/assets/headers/usecases-key.svg" alt="Key: Fleet Operator is an abstract actor grouping Fleet Manager and Administrator for monitoring and analysis use cases they share." width="100%" />
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">07 · Stack</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Technology</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/07-stack.svg" alt="Technology" width="100%" />
 
 ### Frontend
 
@@ -358,15 +529,7 @@ V.A.P.O.R. has three primary user types: Viewer, Fleet Manager, and Administrato
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">08 · Getting Started</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Setup Guide</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/08-getting-started.svg" alt="Setup Guide" width="100%" />
 
 <details>
 <summary><b>Click to expand the setup steps</b></summary>
@@ -441,15 +604,7 @@ npm run dev
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">09 · Contributing</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Developer Guide</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/09-contributing.svg" alt="Developer Guide" width="100%" />
 
 <details>
 <summary><b>Click to expand the developer guide</b></summary>
@@ -499,15 +654,7 @@ cd backend && npm run test
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">10 · Layout</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Project Structure</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/10-layout.svg" alt="Project Structure" width="100%" />
 
 <details>
 <summary><b>Click to expand the folder tree</b></summary>
@@ -553,18 +700,23 @@ cd backend && npm run test
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">11 · The Team</span>
+<img src="./docs/assets/headers/11-the-team.svg" alt="Team Members" width="100%" />
+
+<div align="center">
+
+<img src="./docs/assets/team-photo.jpg" alt="Kilimanjaro StoneCap team" width="100%" />
+
 <br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Team Members</span>
-</td>
-</tr>
-</table>
+
+<sub><b style="color:#F97316;">Kilimanjaro StoneCap, COS301 Capstone 2026</b></sub>
+
+</div>
+
+<br/>
 
 <table>
 <tr>
+
 <td align="center" width="200">
 <br/>
 <a href="https://github.com/u23770912"><img src="https://github.com/u23770912.png?size=160" width="88" height="88" alt="Warona Moleboge" /></a>
@@ -575,6 +727,18 @@ cd backend && npm run test
 <br/><br/>
 <a href="https://www.linkedin.com/in/warona-moleboge-6855161b8"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
 <a href="https://github.com/u23770912"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
+<br/><br/>
+</td>
+<td align="center" width="200">
+<br/>
+<a href="https://github.com/Boompie3"><img src="https://github.com/Boompie3.png?size=160" width="88" height="88" alt="Marchant Grootboom" /></a>
+<br/><br/>
+<b>Marchant Grootboom</b>
+<br/>
+<sub>Data Eng and Integration</sub>
+<br/><br/>
+<a href="https://www.linkedin.com/in/marchant-grootboom-246513234"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
+<a href="https://github.com/Boompie3"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
 <br/><br/>
 </td>
 <td align="center" width="200">
@@ -603,18 +767,6 @@ cd backend && npm run test
 </td>
 <td align="center" width="200">
 <br/>
-<a href="https://github.com/Boompie3"><img src="https://github.com/Boompie3.png?size=160" width="88" height="88" alt="Marchant Grootboom" /></a>
-<br/><br/>
-<b>Marchant Grootboom</b>
-<br/>
-<sub>Data Eng and Integration</sub>
-<br/><br/>
-<a href="https://www.linkedin.com/in/marchant-grootboom-246513234"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
-<a href="https://github.com/Boompie3"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
-<br/><br/>
-</td>
-<td align="center" width="200">
-<br/>
 <a href="https://github.com/Chriscoding19"><img src="https://github.com/Chriscoding19.png?size=160" width="88" height="88" alt="Christopher Adolph" /></a>
 <br/><br/>
 <b>Christopher Adolph</b>
@@ -625,20 +777,13 @@ cd backend && npm run test
 <a href="https://github.com/Chriscoding19"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
 <br/><br/>
 </td>
+
 </tr>
 </table>
 
 ---
 
-<table width="100%">
-<tr>
-<td style="background: #0F172A; border-left: 4px solid #EA580C; border-radius: 10px; padding: 18px 24px;">
-<span style="color: #F97316; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;">12 · Thanks</span>
-<br/>
-<span style="color: #FFFFFF; font-size: 26px; font-weight: 800;">Acknowledgements</span>
-</td>
-</tr>
-</table>
+<img src="./docs/assets/headers/12-thanks.svg" alt="Acknowledgements" width="100%" />
 
 We would like to thank our FuseIT mentors for their guidance, encouragement, and ongoing support throughout this project. Special thanks to Ayanda Juqu and Richard Lastrucci for their mentorship, feedback, and enthusiasm across every sprint, and to Edith Maphisa and Michael du Plessis for their continued input and for making this project possible.
 

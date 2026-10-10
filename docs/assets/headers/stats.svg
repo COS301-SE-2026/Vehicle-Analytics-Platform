@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 60" width="100%">
+  <rect x="0" y="0" width="1200" height="60" rx="10" fill="#0F172A" stroke="#EA580C" stroke-opacity="0.4"/>
+  <text x="600" y="38" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="18" fill="#E5E7EB">
+    <tspan font-weight="800" fill="#F97316">100+ vehicles</tspan>
+    <tspan fill="#6B7280"> | </tspan>
+    <tspan font-weight="800" fill="#F97316">5-10 s</tspan>
+    <tspan fill="#E5E7EB"> live map refresh </tspan>
+    <tspan fill="#6B7280"> | </tspan>
+    <tspan font-weight="800" fill="#F97316">11</tspan>
+    <tspan fill="#E5E7EB"> features </tspan>
+    <tspan fill="#6B7280"> | </tspan>
+    <tspan font-weight="800" fill="#F97316">4</tspan>
+    <tspan fill="#E5E7EB"> wow factors </tspan>
+    <tspan fill="#6B7280"> | </tspan>
+    <tspan font-weight="800" fill="#F97316">36</tspan>
+    <tspan fill="#E5E7EB"> use cases </tspan>
+    <tspan fill="#6B7280"> | </tspan>
+    <tspan font-weight="800" fill="#F97316">3</tspan>
+    <tspan fill="#E5E7EB"> user roles</tspan>
+  </text>
+</svg>

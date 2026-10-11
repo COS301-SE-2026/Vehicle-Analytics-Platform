@@ -50,6 +50,7 @@
 
 ---
 
+<a id="project-description"></a>
 <img src="./docs/assets/headers/01-overview.svg" alt="Project Description" width="100%" />
 
 **Kilimanjaro StoneCap - V.A.P.O.R. (Vehicle Analytics, Processing and Operations in Real-time)**
@@ -58,6 +59,7 @@ V.A.P.O.R. is a real-time fleet analytics platform built for FuseIT. It ingests 
 
 ---
 
+<a id="data-flow"></a>
 <img src="./docs/assets/headers/02-pipeline.svg" alt="Data Flow" width="100%" />
 
 ### The Big Picture
@@ -73,7 +75,6 @@ Data flows through five stages:
 ```
 
 Each stage has one job. Data moves forward. Nothing skips a stage.
-
 
 ### Event Journey: Harsh Braking on Vehicle 1015
 
@@ -98,7 +99,6 @@ flowchart TD
     class A,B,C,D,E,F,G,H,I,J step
     class K,L,M late
 ```
-
 
 <details>
 <summary><b>Stage 1: Vehicle Emits Telemetry</b></summary>
@@ -311,6 +311,7 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 
 ---
 
+<a id="links"></a>
 <img src="./docs/assets/headers/03-resources.svg" alt="Links" width="100%" />
 
 | Resource                                  | Link |
@@ -328,6 +329,7 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 
 ---
 
+<a id="the-problem"></a>
 <img src="./docs/assets/headers/04-context.svg" alt="The Problem" width="100%" />
 
 Modern fleet operators collect massive amounts of raw vehicle telemetry such as GPS coordinates, speed readings and braking events. The problem is how can we take these and turn them into actionable insights? Without real-time analysis, unsafe driver behaviour goes undetected and managers are left reacting to incidents after they happen rather than preventing them.
@@ -338,6 +340,7 @@ Modern fleet operators collect massive amounts of raw vehicle telemetry such as 
 
 ---
 
+<a id="the-solution"></a>
 <img src="./docs/assets/headers/05-product.svg" alt="The Solution" width="100%" />
 
 V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management platform. By processing live data from AWS Kinesis streams, the platform delivers real-time driver safety scores, interactive fleet maps and analytics dashboards.
@@ -396,6 +399,7 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 ---
 
+<a id="use-cases"></a>
 <img src="./docs/assets/headers/06-scope.svg" alt="Use Cases" width="100%" />
 
 <img src="./docs/assets/headers/usecases-intro.svg" alt="V.A.P.O.R. has three primary user types: Viewer, Fleet Manager, and Administrator." width="100%" />
@@ -488,6 +492,7 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 ---
 
+<a id="technology-stack"></a>
 <img src="./docs/assets/headers/07-stack.svg" alt="Technology" width="100%" />
 
 ### Frontend
@@ -528,6 +533,7 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 ---
 
+<a id="setup-guide"></a>
 <img src="./docs/assets/headers/08-getting-started.svg" alt="Setup Guide" width="100%" />
 
 <details>
@@ -603,6 +609,7 @@ npm run dev
 
 ---
 
+<a id="developer-guide"></a>
 <img src="./docs/assets/headers/09-contributing.svg" alt="Developer Guide" width="100%" />
 
 <details>
@@ -653,6 +660,7 @@ cd backend && npm run test
 
 ---
 
+<a id="project-structure"></a>
 <img src="./docs/assets/headers/10-layout.svg" alt="Project Structure" width="100%" />
 
 <details>
@@ -699,6 +707,7 @@ cd backend && npm run test
 
 ---
 
+<a id="team-members"></a>
 <img src="./docs/assets/headers/11-the-team.svg" alt="Team Members" width="100%" />
 
 <div align="center">
@@ -715,7 +724,6 @@ cd backend && npm run test
 
 <table>
 <tr>
-
 <td align="center" width="200">
 <br/>
 <a href="https://github.com/u23770912"><img src="https://github.com/u23770912.png?size=160" width="88" height="88" alt="Warona Moleboge" /></a>
@@ -776,12 +784,12 @@ cd backend && npm run test
 <a href="https://github.com/Chriscoding19"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
 <br/><br/>
 </td>
-
 </tr>
 </table>
 
 ---
 
+<a id="acknowledgements"></a>
 <img src="./docs/assets/headers/12-thanks.svg" alt="Acknowledgements" width="100%" />
 
 We would like to thank our FuseIT mentors for their guidance, encouragement, and ongoing support throughout this project. Special thanks to Ayanda Juqu and Richard Lastrucci for their mentorship, feedback, and enthusiasm across every sprint, and to Edith Maphisa and Michael du Plessis for their continued input and for making this project possible.

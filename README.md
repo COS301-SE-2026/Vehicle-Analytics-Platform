@@ -74,7 +74,6 @@ Data flows through five stages:
 
 Each stage has one job. Data moves forward. Nothing skips a stage.
 
-Each stage has one job. Data moves forward. Nothing skips a stage.
 
 ### Event Journey: Harsh Braking on Vehicle 1015
 

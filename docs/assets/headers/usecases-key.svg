@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 50" width="100%">
+  <rect x="0" y="0" width="1200" height="50" rx="10" fill="#0F172A" stroke="#EA580C" stroke-opacity="0.25"/>
+  <text x="24" y="32" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" fill="#E5E7EB">
+    <tspan fill="#F97316" font-weight="700">Key:</tspan> Fleet Operator is an abstract actor grouping Fleet Manager and Administrator for monitoring and analysis use cases they share.
+  </text>
+</svg>

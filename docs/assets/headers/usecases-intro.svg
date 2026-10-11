@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 60" width="100%">
+  <rect x="0" y="0" width="1200" height="60" rx="10" fill="#0F172A" stroke="#EA580C" stroke-opacity="0.25"/>
+  <text x="24" y="38" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" fill="#E5E7EB">
+    V.A.P.O.R. has three primary user types: <tspan fill="#F97316" font-weight="700">Viewer</tspan>, <tspan fill="#F97316" font-weight="700">Fleet Manager</tspan>, and <tspan fill="#F97316" font-weight="700">Administrator</tspan>.
+  </text>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 150" width="100%" role="img" aria-label="Built by Kilimanjaro StoneCap">
+  <defs>
+    <linearGradient id="w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#C2410C"/><stop offset="0.5" stop-color="#F97316"/><stop offset="1" stop-color="#C2410C"/></linearGradient>
+    <clipPath id="c"><rect width="1200" height="150" rx="18"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="1200" height="150" fill="#0B0F19"/>
+    <path d="M0 70 Q150 48 300 70 Q450 92 600 70 Q750 48 900 70 Q1050 92 1200 70 Q1350 48 1500 70 Q1650 92 1800 70 Q1950 48 2100 70 Q2250 92 2400 70 V160 H0 Z" fill="url(#w)" opacity="0.25"><animateTransform attributeName="transform" type="translate" from="0 0" to="-1200 0" dur="14s" repeatCount="indefinite"/></path>
+    <path d="M0 86 Q150 68 300 86 Q450 104 600 86 Q750 68 900 86 Q1050 104 1200 86 Q1350 68 1500 86 Q1650 104 1800 86 Q1950 68 2100 86 Q2250 104 2400 86 V160 H0 Z" fill="url(#w)" opacity="0.45"><animateTransform attributeName="transform" type="translate" from="-600 0" to="-1800 0" dur="10s" repeatCount="indefinite"/></path>
+    <path d="M0 104 Q150 90 300 104 Q450 118 600 104 Q750 90 900 104 Q1050 118 1200 104 Q1350 90 1500 104 Q1650 118 1800 104 Q1950 90 2100 104 Q2250 118 2400 104 V160 H0 Z" fill="url(#w)" opacity="0.85"><animateTransform attributeName="transform" type="translate" from="0 0" to="-1200 0" dur="7s" repeatCount="indefinite"/></path>
+    <text x="600" y="62" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="22" font-weight="800" letter-spacing="3" fill="#FFFFFF">BUILT BY KILIMANJARO STONECAP</text>
+    <text x="600" y="128" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" letter-spacing="2" fill="#FFFFFF">UNIVERSITY OF PRETORIA  /  COS301 CAPSTONE 2026</text>
+  </g>
+</svg>

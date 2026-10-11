@@ -380,14 +380,123 @@ V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management pl
 **Predictive High-Risk Driving Forecast**  
 Machine learning logistic regression trained on 90 days of fleet telemetry. Every prediction is explainable, with the top 3 contributing factors computed as the exact contribution of each feature. Vehicles flagged HIGH or CRITICAL get a coaching recommendation, and the system measures whether that coaching actually reduced risk 7 days later. It runs automatically at 3 AM and 4 AM via pg_cron. AUC 0.906 versus a persistence baseline of 0.882.
 
+<details>
+<summary><b>Engineering the Wow</b></summary>
+
+<br/>
+
+The pipeline runs in eleven steps:
+
+| Step | What happens | Formula or method |
+| ---- | ------------ | ----------------- |
+| 1. Features | Five features per vehicle, rolling 7-day window: safety score, harsh events per trip, speeding ratio, distance, days since last trip | Feature engineering over vehicle_events and driver_daily_safety_scores |
+| 2. Standardise | Every feature is put on the same scale so distance in km does not dominate harsh events | Z-score: z = (x - mean) / std |
+| 3. Log-odds | Combine the standardised features with learned weights | log_odds = intercept + sum(w_i * z_i) |
+| 4. Sigmoid | Squash the log-odds into a probability between 0 and 1 | p = 1 / (1 + e^(-log_odds)) |
+| 5. Risk score | Scale the probability to a 0 to 100 score | score = p * 100 |
+| 6. Tier | Assign an operational tier | LOW 0-39, MEDIUM 40-59, HIGH 60-79, CRITICAL 80-100 |
+| 7. Explainability | The top 3 contributing factors are computed exactly, not approximated | contribution_i = abs(w_i * z_i), sorted descending, take top 3 |
+| 8. Similar vehicles | Find other vehicles whose feature profile looks like this one | K-Nearest Neighbours with Euclidean distance: d = sqrt(sum((x_i - y_i)^2)), take top 5 |
+| 9. Output | Risk score, tier, top 3 reasons, similar vehicles, coaching recommendation | Written to vehicle_risk_predictions and coaching_interventions |
+| 10. Automation | Scores the whole fleet every night and measures coaching effectiveness 7 days later | pg_cron: 03:00 SAST prediction job, 04:00 SAST outcome job. Both idempotent |
+| 11. Design choice | Today's safety score is deliberately excluded from the feature set | Prevents persistence. Forces the model to predict from past behaviour, not echo the present |
+
+The coaching loop uses a second scheduled job:
+
+* At 04:00 SAST, the outcome job looks at every coaching intervention older than 7 days
+* It compares the vehicle's risk score before the intervention to its score after
+* It writes back risk_fell, risk_rose, or risk_unchanged
+* The effectiveness rate on the dashboard uses only measured interventions
+
+</details>
+
 **Anomaly Detection**  
 Statistical outlier detection across driver behaviour. Flags unusual patterns before they become incidents, using rolling window statistics on the telemetry stream.
+
+<details>
+<summary><b>Engineering the Wow</b></summary>
+
+<br/>
+
+| Technique | What it does | Where it runs |
+| --------- | ------------ | ------------- |
+| Rolling window statistics | Computes mean and standard deviation over a sliding time window | Across vehicle_events in TimescaleDB |
+| Z-score outlier test | Flags a reading when it deviates beyond a threshold from the rolling mean | z = (x - mean) / std, flag when abs(z) > threshold |
+| Volume check | Compares expected versus observed event counts to spot silent devices | Poisson comparison on event rates |
+
+</details>
 
 **Weather and Area Risk Report**  
 Correlates driving behaviour with real weather conditions. Compares wet and dry unsafe event rates per 100 km across areas, and marks each area and vehicle as Above fleet, Below fleet, or Insufficient data.
 
+<details>
+<summary><b>Engineering the Wow</b></summary>
+
+<br/>
+
+Weather data comes from the Open-Meteo API.
+
+| Metric | What it shows | Method |
+| ------ | ------------- | ------ |
+| Wet vs dry event rate | Unsafe events per 100 km on wet days versus dry days | rate = events / km * 100 |
+| Risk verdict | Marks each area and vehicle as Above fleet, Below fleet or Insufficient data | Ratio of observed to expected events. Expected is computed from the fleet rate |
+| Statistical significance | Confidence that the difference is real | 95 percent confidence interval on the rate ratio. Significant when the interval does not cross 1 |
+| Smoothing | Prevents small samples from producing false positives | Prior of 1000 km added at the fleet rate |
+| Data quality | Skips days where the vehicle did not report | Minimum expected events threshold. Below that, no verdict |
+
+</details>
+
 **Alert Rule Backtesting**  
 Before a custom alert rule is saved, the system replays it against the last 30 days of telemetry and estimates how often it would have fired. This lets fleet managers tune thresholds before turning a rule on, instead of flooding the alert feed or catching nothing.
+
+<details>
+<summary><b>Engineering the Wow: Alert Rule Preview</b></summary>
+
+<br/>
+
+Before a rule is saved, we replay 30 days of history against the proposed condition.
+
+| Step | What happens | Why |
+| ---- | ------------ | --- |
+| 1. Read raw pings | Query clean_telemetry for the last 30 days | Baseline data |
+| 2. Scan volume | Roughly 10 million GPS pings for a single fleet group | Volume is the problem |
+| 3. Index first | Add a timeseries index on clean_telemetry for vehicle_id and time | Faster than no index, but still slow at 30 days |
+| 4. Summary table | Pre-aggregate pings into a per-minute summary table vehicle_speed_1min | This is the real solution |
+| 5. Preview query | Read from the summary table instead of raw telemetry | 58 seconds down to 15 seconds for the same query |
+| 6. Debounce | Merge repeated breaches for the same vehicle within 5 minutes | Matches the live alert trigger |
+| 7. Estimate | Report total alerts, vehicles affected, daily breakdown, up to 50 sample breaches | Lets managers tune before saving |
+
+</details>
+
+<details>
+<summary><b>Engineering the Wow: Coordinates Problem</b></summary>
+
+<br/>
+
+Raw GPS coordinates are just numbers. You cannot sort or search them efficiently. To turn them into something useful, we import a road network and spatial boundaries into PostGIS.
+
+| Problem | Resolution |
+| ------- | ---------- |
+| Raw GPS coordinates cannot be sorted or searched | Import OpenStreetMap roads, places and admin boundaries into PostGIS |
+| 1.6 million roads plus 10 000 places and 4 700 admin boundaries | Reorder and index once at import time using spatial indexes |
+| Matching every ping to a road would scan thousands of rows per ping | Spatial index narrows thousands of candidates to a few nearby |
+| The live map cannot afford a spatial join on every poll | Cache each vehicle's closest location so the live map reads a ready answer |
+
+The import command:
+
+```bash
+sudo -u postgres osm2pgsql \
+  --create \
+  --database fleet_analytics \
+  --output flex \
+  --style /var/lib/osm/osm_features.lua \
+  --slim \
+  --cache 256 \
+  --number-processes 1 \
+  /var/lib/osm/south-africa-latest.osm.pbf
+```
+
+</details>
 
 </details>
 
@@ -420,7 +529,7 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 </details>
 
 <details>
-<summary><b>Fleet Monitoring and Vehicle Profiles (UC06 to UC13)</b></summary>
+<summary><b>Fleet Monitoring and Dashboard (UC06 to UC09)</b></summary>
 
 | UC   | Use case                   | Actor          | User story |
 | ---- | -------------------------- | -------------- | ---------- |
@@ -428,10 +537,18 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 | UC07 | Track Vehicles on Live Map | User           | US04       |
 | UC08 | Access Help Menu           | User           | US05       |
 | UC09 | View Notifications         | Fleet Operator | US19, US25 |
-| UC10 | View Vehicle Profile       | Fleet Operator | US06       |
-| UC11 | View Trip History          | Fleet Operator | US07       |
-| UC12 | Replay Trip                | Fleet Operator | US08       |
-| UC13 | View Fuel Efficiency       | Fleet Operator | US09       |
+
+</details>
+
+<details>
+<summary><b>Vehicle Profile and Driver Safety Scoring (UC10 to UC13)</b></summary>
+
+| UC   | Use case                             | Actor          | User story |
+| ---- | ------------------------------------ | -------------- | ---------- |
+| UC10 | View Vehicle Profile                 | Fleet Operator | US06       |
+| UC11 | View Trip History and Routes         | Fleet Operator | US07       |
+| UC12 | Replay Trip with Speed Visualisation | Fleet Operator | US08       |
+| UC13 | View Fuel Efficiency                 | Fleet Operator | US09       |
 
 </details>
 

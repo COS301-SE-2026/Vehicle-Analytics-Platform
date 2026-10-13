@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./docs/assets/hero.svg" alt="V.A.P.O.R. - Vehicle Analytics, Processing and Operations in Real-time" width="100%" />
+<img src="./docs/assets/logo.svg" alt="V.A.P.O.R. - Vehicle Analytics, Processing and Operations in Real-time" width="100%" />
 
 <br/>
 
@@ -39,6 +39,7 @@
 
 [![Overview](https://img.shields.io/badge/Overview-EA580C?style=flat-square)](#project-description)
 [![Data Flow](https://img.shields.io/badge/Data_Flow-EA580C?style=flat-square)](#data-flow)
+[![Architecture](https://img.shields.io/badge/Architecture-EA580C?style=flat-square)](#architecture)
 [![Features](https://img.shields.io/badge/Features-EA580C?style=flat-square)](#the-solution)
 [![Use Cases](https://img.shields.io/badge/Use_Cases-EA580C?style=flat-square)](#use-cases)
 [![Tech Stack](https://img.shields.io/badge/Tech_Stack-EA580C?style=flat-square)](#technology-stack)
@@ -311,6 +312,8 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 
 ---
 
+
+
 <a id="links"></a>
 <img src="./docs/assets/headers/03-resources.svg" alt="Links" width="100%" />
 
@@ -352,21 +355,21 @@ V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management pl
 
 <br/>
 
-| Feature                            | Description                                                                                                                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| User Registration & Authentication | Self-registration with email verification, secure login via AWS Cognito, role-based redirect to Admin, Fleet Manager or Viewer dashboard                                     |
-| Live Vehicle Map                   | Real-time interactive map showing 100+ vehicle positions updating every 5-10 seconds via Mapbox GL JS                                                                        |
-| Fleet Dashboard & KPIs             | Live dashboard showing active vehicles, safety scores, alerts today and fleet performance metrics                                                                            |
+| Feature                            | Description                                                                                                                                   |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| User Registration & Authentication | Self-registration with email verification, secure login via AWS Cognito, role-based redirect to Admin, Fleet Manager or Viewer dashboard      |
+| Live Vehicle Map                   | Real-time interactive map showing 100+ vehicle positions updating every 5-10 seconds via Mapbox GL JS                                         |
+| Fleet Dashboard & KPIs             | Live dashboard showing active vehicles, safety scores, alerts today and fleet performance metrics                                             |
 | Driver Safety Scoring              | Real-time safety score per trip based on harsh braking, acceleration, cornering and crash detection events, aggregated per day and per vehicle over a selectable time period |
-| Trip History & Replay              | Completed trips with safety scores, event timelines, and animated route replay with speed visualisation                                                                      |
-| Fuel Efficiency                    | Road-class-aware fuel consumption estimates per vehicle, with trend charts and fleet ranking                                                                                 |
-| Geofencing                         | Named polygon zones with entry/exit alerts, automatic hotspot discovery, and per-zone event breakdowns                                                                       |
-| Custom Alert Rules                 | Rule-based alerts for speeding, restricted hours, repeated unsafe events, safety score drops, and long trips, with 30-day backtesting preview                                |
-| Fleet Analytics & Reports          | Daily and weekly safety trends, manager leaderboard, fleet performance reports, and weather and area risk reports                                                            |
-| Predictive Risk Forecasting        | Machine learning forecast of tomorrow's high-risk vehicles, with explainable top reasons and closed-loop coaching outcomes                                                   |
-| Anomaly Detection                  | Statistical outlier detection across driver behaviour, flagging unusual patterns before they become incidents                                                                |
-| Fleet Groups & Roles               | Administrator-managed groups with scoped access, audit logging, and coverage-gap notifications                                                                               |
-| Help & Notifications               | In-app help menu on every page, searchable articles, and a notification bell for group assignments, coverage gaps and risk alerts                                            |
+| Trip History & Replay              | Completed trips with safety scores, event timelines, and animated route replay with speed visualisation                                       |
+| Fuel Efficiency                    | Road-class-aware fuel consumption estimates per vehicle, with trend charts and fleet ranking                                                  |
+| Geofencing                         | Named polygon zones with entry/exit alerts, automatic hotspot discovery, and per-zone event breakdowns                                        |
+| Custom Alert Rules                 | Rule-based alerts for speeding, restricted hours, repeated unsafe events, safety score drops, and long trips, with 30-day backtesting preview |
+| Fleet Analytics & Reports          | Daily and weekly safety trends, manager leaderboard, fleet performance reports, and weather and area risk reports                             |
+| Predictive Risk Forecasting        | Machine learning forecast of tomorrow's high-risk vehicles, with explainable top reasons and closed-loop coaching outcomes                    |
+| Anomaly Detection                  | Statistical outlier detection across driver behaviour, flagging unusual patterns before they become incidents                                 |
+| Fleet Groups & Roles               | Administrator-managed groups with scoped access, audit logging, and coverage-gap notifications                                                |
+| Help & Notifications               | In-app help menu on every page, searchable articles, and a notification bell for group assignments, coverage gaps and risk alerts             |
 
 </details>
 
@@ -389,24 +392,24 @@ The pipeline runs in eleven steps:
 
 | Step | What happens | Formula or method |
 | ---- | ------------ | ----------------- |
-| 1. Features | Five features per vehicle, rolling 7-day window: safety score, harsh events per trip, speeding ratio, distance, days since last trip | Feature engineering over vehicle_events and driver_daily_safety_scores |
-| 2. Standardise | Every feature is put on the same scale so distance in km does not dominate harsh events | Z-score: z = (x - mean) / std |
-| 3. Log-odds | Combine the standardised features with learned weights | log_odds = intercept + sum(w_i * z_i) |
-| 4. Sigmoid | Squash the log-odds into a probability between 0 and 1 | p = 1 / (1 + e^(-log_odds)) |
-| 5. Risk score | Scale the probability to a 0 to 100 score | score = p * 100 |
+| 1. Features | Five features per vehicle, rolling 7-day window: safety score, harsh events per trip, speeding ratio, distance, days since last trip | Feature engineering over `vehicle_events` and `driver_daily_safety_scores` |
+| 2. Standardise | Every feature is put on the same scale so distance in km does not dominate harsh events | Z-score: `z = (x - mean) / std` |
+| 3. Log-odds | Combine the standardised features with learned weights | `log_odds = intercept + sum(w_i * z_i)` |
+| 4. Sigmoid | Squash the log-odds into a probability between 0 and 1 | `p = 1 / (1 + e^(-log_odds))` |
+| 5. Risk score | Scale the probability to a 0 to 100 score | `score = p * 100` |
 | 6. Tier | Assign an operational tier | LOW 0-39, MEDIUM 40-59, HIGH 60-79, CRITICAL 80-100 |
-| 7. Explainability | The top 3 contributing factors are computed exactly, not approximated | contribution_i = abs(w_i * z_i), sorted descending, take top 3 |
-| 8. Similar vehicles | Find other vehicles whose feature profile looks like this one | K-Nearest Neighbours with Euclidean distance: d = sqrt(sum((x_i - y_i)^2)), take top 5 |
-| 9. Output | Risk score, tier, top 3 reasons, similar vehicles, coaching recommendation | Written to vehicle_risk_predictions and coaching_interventions |
-| 10. Automation | Scores the whole fleet every night and measures coaching effectiveness 7 days later | pg_cron: 03:00 SAST prediction job, 04:00 SAST outcome job. Both idempotent |
+| 7. Explainability | The top 3 contributing factors are computed exactly, not approximated | `contribution_i = abs(w_i * z_i)`, sorted descending, take top 3 |
+| 8. Similar vehicles | Find other vehicles whose feature profile looks like this one | K-Nearest Neighbours with Euclidean distance: `d = sqrt(sum((x_i - y_i)^2))`, take top 5 |
+| 9. Output | Risk score, tier, top 3 reasons, similar vehicles, coaching recommendation | Written to `vehicle_risk_predictions` and `coaching_interventions` |
+| 10. Automation | Scores the whole fleet every night and measures coaching effectiveness 7 days later | `pg_cron`: 03:00 SAST prediction job, 04:00 SAST outcome job. Both idempotent |
 | 11. Design choice | Today's safety score is deliberately excluded from the feature set | Prevents persistence. Forces the model to predict from past behaviour, not echo the present |
 
 The coaching loop uses a second scheduled job:
 
-* At 04:00 SAST, the outcome job looks at every coaching intervention older than 7 days
-* It compares the vehicle's risk score before the intervention to its score after
-* It writes back risk_fell, risk_rose, or risk_unchanged
-* The effectiveness rate on the dashboard uses only measured interventions
+1. At 04:00 SAST, the outcome job looks at every coaching intervention older than 7 days
+2. It compares the vehicle's risk score before the intervention to its score after
+3. It writes back `risk_fell`, `risk_rose`, or `risk_unchanged`
+4. The effectiveness rate on the dashboard uses only measured interventions
 
 </details>
 
@@ -420,8 +423,8 @@ Statistical outlier detection across driver behaviour. Flags unusual patterns be
 
 | Technique | What it does | Where it runs |
 | --------- | ------------ | ------------- |
-| Rolling window statistics | Computes mean and standard deviation over a sliding time window | Across vehicle_events in TimescaleDB |
-| Z-score outlier test | Flags a reading when it deviates beyond a threshold from the rolling mean | z = (x - mean) / std, flag when abs(z) > threshold |
+| Rolling window statistics | Computes mean and standard deviation over a sliding time window | Across `vehicle_events` in TimescaleDB |
+| Z-score outlier test | Flags a reading when it deviates beyond a threshold from the rolling mean | `z = (x - mean) / std`, flag when `abs(z) > threshold` |
 | Volume check | Compares expected versus observed event counts to spot silent devices | Poisson comparison on event rates |
 
 </details>
@@ -438,7 +441,7 @@ Weather data comes from the Open-Meteo API.
 
 | Metric | What it shows | Method |
 | ------ | ------------- | ------ |
-| Wet vs dry event rate | Unsafe events per 100 km on wet days versus dry days | rate = events / km * 100 |
+| Wet vs dry event rate | Unsafe events per 100 km on wet days versus dry days | `rate = events / km * 100` |
 | Risk verdict | Marks each area and vehicle as Above fleet, Below fleet or Insufficient data | Ratio of observed to expected events. Expected is computed from the fleet rate |
 | Statistical significance | Confidence that the difference is real | 95 percent confidence interval on the rate ratio. Significant when the interval does not cross 1 |
 | Smoothing | Prevents small samples from producing false positives | Prior of 1000 km added at the fleet rate |
@@ -458,10 +461,10 @@ Before a rule is saved, we replay 30 days of history against the proposed condit
 
 | Step | What happens | Why |
 | ---- | ------------ | --- |
-| 1. Read raw pings | Query clean_telemetry for the last 30 days | Baseline data |
+| 1. Read raw pings | Query `clean_telemetry` for the last 30 days | Baseline data |
 | 2. Scan volume | Roughly 10 million GPS pings for a single fleet group | Volume is the problem |
-| 3. Index first | Add a timeseries index on clean_telemetry for vehicle_id and time | Faster than no index, but still slow at 30 days |
-| 4. Summary table | Pre-aggregate pings into a per-minute summary table vehicle_speed_1min | This is the real solution |
+| 3. Index first | Add a timeseries index on `clean_telemetry` for `vehicle_id` and time | Faster than no index, but still slow at 30 days |
+| 4. Summary table | Pre-aggregate pings into a per-minute summary table `vehicle_speed_1min` | This is the real solution |
 | 5. Preview query | Read from the summary table instead of raw telemetry | 58 seconds down to 15 seconds for the same query |
 | 6. Debounce | Merge repeated breaches for the same vehicle within 5 minutes | Matches the live alert trigger |
 | 7. Estimate | Report total alerts, vehicles affected, daily breakdown, up to 50 sample breaches | Lets managers tune before saving |
@@ -518,6 +521,8 @@ sudo -u postgres osm2pgsql \
 <details>
 <summary><b>Authentication and User Administration (UC01 to UC05)</b></summary>
 
+<br/>
+
 | UC   | Use case                | Actor         | User story |
 | ---- | ----------------------- | ------------- | ---------- |
 | UC01 | Register Account        | Viewer        | US01       |
@@ -531,6 +536,8 @@ sudo -u postgres osm2pgsql \
 <details>
 <summary><b>Fleet Monitoring and Dashboard (UC06 to UC09)</b></summary>
 
+<br/>
+
 | UC   | Use case                   | Actor          | User story |
 | ---- | -------------------------- | -------------- | ---------- |
 | UC06 | View Fleet Dashboard       | Fleet Operator | US03       |
@@ -543,17 +550,21 @@ sudo -u postgres osm2pgsql \
 <details>
 <summary><b>Vehicle Profile and Driver Safety Scoring (UC10 to UC13)</b></summary>
 
-| UC   | Use case                             | Actor          | User story |
-| ---- | ------------------------------------ | -------------- | ---------- |
-| UC10 | View Vehicle Profile                 | Fleet Operator | US06       |
-| UC11 | View Trip History and Routes         | Fleet Operator | US07       |
-| UC12 | Replay Trip with Speed Visualisation | Fleet Operator | US08       |
-| UC13 | View Fuel Efficiency                 | Fleet Operator | US09       |
+<br/>
+
+| UC   | Use case                              | Actor          | User story |
+| ---- | ------------------------------------- | -------------- | ---------- |
+| UC10 | View Vehicle Profile                  | Fleet Operator | US06       |
+| UC11 | View Trip History and Routes          | Fleet Operator | US07       |
+| UC12 | Replay Trip with Speed Visualisation  | Fleet Operator | US08       |
+| UC13 | View Fuel Efficiency                  | Fleet Operator | US09       |
 
 </details>
 
 <details>
 <summary><b>Geofencing (UC14 to UC17)</b></summary>
+
+<br/>
 
 | UC   | Use case             | Actor          | User story |
 | ---- | -------------------- | -------------- | ---------- |
@@ -566,6 +577,8 @@ sudo -u postgres osm2pgsql \
 
 <details>
 <summary><b>Analytics and Reporting (UC18 to UC22)</b></summary>
+
+<br/>
 
 | UC   | Use case                              | Actor          | User story |
 | ---- | ------------------------------------- | -------------- | ---------- |
@@ -580,6 +593,8 @@ sudo -u postgres osm2pgsql \
 <details>
 <summary><b>Custom Alerts (UC23 to UC27)</b></summary>
 
+<br/>
+
 | UC   | Use case                   | Actor         | User story |
 | ---- | -------------------------- | ------------- | ---------- |
 | UC23 | Create Alert Rule          | Fleet Manager | US17       |
@@ -592,6 +607,8 @@ sudo -u postgres osm2pgsql \
 
 <details>
 <summary><b>Fleet Group Management (UC28 to UC36)</b></summary>
+
+<br/>
 
 | UC   | Use case                         | Actor         | User story |
 | ---- | -------------------------------- | ------------- | ---------- |
@@ -704,7 +721,7 @@ COGNITO_CLIENT_ID=your_cognito_client_id
 AWS_REGION=af-south-1
 ```
 
-> **Warning**  
+> [!WARNING]
 > Never commit `.env` files or real credentials. Only the `.env.example` templates belong in version control.
 
 ### Step 4 - Run the Frontend

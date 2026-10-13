@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./docs/assets/hero.svg" alt="V.A.P.O.R. - Vehicle Analytics, Processing and Operations in Real-time" width="100%" />
+<img src="./docs/assets/logo.svg" alt="V.A.P.O.R. - Vehicle Analytics, Processing and Operations in Real-time" width="100%" />
 
 <br/>
 
@@ -39,6 +39,7 @@
 
 [![Overview](https://img.shields.io/badge/Overview-EA580C?style=flat-square)](#project-description)
 [![Data Flow](https://img.shields.io/badge/Data_Flow-EA580C?style=flat-square)](#data-flow)
+[![Architecture](https://img.shields.io/badge/Architecture-EA580C?style=flat-square)](#architecture)
 [![Features](https://img.shields.io/badge/Features-EA580C?style=flat-square)](#the-solution)
 [![Use Cases](https://img.shields.io/badge/Use_Cases-EA580C?style=flat-square)](#use-cases)
 [![Tech Stack](https://img.shields.io/badge/Tech_Stack-EA580C?style=flat-square)](#technology-stack)
@@ -50,6 +51,7 @@
 
 ---
 
+<a id="project-description"></a>
 <img src="./docs/assets/headers/01-overview.svg" alt="Project Description" width="100%" />
 
 **Kilimanjaro StoneCap - V.A.P.O.R. (Vehicle Analytics, Processing and Operations in Real-time)**
@@ -58,6 +60,7 @@ V.A.P.O.R. is a real-time fleet analytics platform built for FuseIT. It ingests 
 
 ---
 
+<a id="data-flow"></a>
 <img src="./docs/assets/headers/02-pipeline.svg" alt="Data Flow" width="100%" />
 
 ### The Big Picture
@@ -71,8 +74,6 @@ Data flows through five stages:
 4. Storage persists it in TimescaleDB and S3
 5. Presentation serves it to the React dashboard
 ```
-
-Each stage has one job. Data moves forward. Nothing skips a stage.
 
 Each stage has one job. Data moves forward. Nothing skips a stage.
 
@@ -99,7 +100,6 @@ flowchart TD
     class A,B,C,D,E,F,G,H,I,J step
     class K,L,M late
 ```
-
 
 <details>
 <summary><b>Stage 1: Vehicle Emits Telemetry</b></summary>
@@ -312,6 +312,9 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 
 ---
 
+
+
+<a id="links"></a>
 <img src="./docs/assets/headers/03-resources.svg" alt="Links" width="100%" />
 
 | Resource                                  | Link |
@@ -329,6 +332,7 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 
 ---
 
+<a id="the-problem"></a>
 <img src="./docs/assets/headers/04-context.svg" alt="The Problem" width="100%" />
 
 Modern fleet operators collect massive amounts of raw vehicle telemetry such as GPS coordinates, speed readings and braking events. The problem is how can we take these and turn them into actionable insights? Without real-time analysis, unsafe driver behaviour goes undetected and managers are left reacting to incidents after they happen rather than preventing them.
@@ -339,6 +343,7 @@ Modern fleet operators collect massive amounts of raw vehicle telemetry such as 
 
 ---
 
+<a id="the-solution"></a>
 <img src="./docs/assets/headers/05-product.svg" alt="The Solution" width="100%" />
 
 V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management platform. By processing live data from AWS Kinesis streams, the platform delivers real-time driver safety scores, interactive fleet maps and analytics dashboards.
@@ -355,6 +360,7 @@ V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management pl
 | User Registration & Authentication | Self-registration with email verification, secure login via AWS Cognito, role-based redirect to Admin, Fleet Manager or Viewer dashboard      |
 | Live Vehicle Map                   | Real-time interactive map showing 100+ vehicle positions updating every 5-10 seconds via Mapbox GL JS                                         |
 | Fleet Dashboard & KPIs             | Live dashboard showing active vehicles, safety scores, alerts today and fleet performance metrics                                             |
+| Driver Safety Scoring              | Real-time safety score per trip based on harsh braking, acceleration, cornering and crash detection events, aggregated per day and per vehicle over a selectable time period |
 | Trip History & Replay              | Completed trips with safety scores, event timelines, and animated route replay with speed visualisation                                       |
 | Fuel Efficiency                    | Road-class-aware fuel consumption estimates per vehicle, with trend charts and fleet ranking                                                  |
 | Geofencing                         | Named polygon zones with entry/exit alerts, automatic hotspot discovery, and per-zone event breakdowns                                        |
@@ -363,6 +369,7 @@ V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management pl
 | Predictive Risk Forecasting        | Machine learning forecast of tomorrow's high-risk vehicles, with explainable top reasons and closed-loop coaching outcomes                    |
 | Anomaly Detection                  | Statistical outlier detection across driver behaviour, flagging unusual patterns before they become incidents                                 |
 | Fleet Groups & Roles               | Administrator-managed groups with scoped access, audit logging, and coverage-gap notifications                                                |
+| Help & Notifications               | In-app help menu on every page, searchable articles, and a notification bell for group assignments, coverage gaps and risk alerts             |
 
 </details>
 
@@ -376,14 +383,123 @@ V.A.P.O.R. transforms raw vehicle telemetry into a proactive fleet management pl
 **Predictive High-Risk Driving Forecast**  
 Machine learning logistic regression trained on 90 days of fleet telemetry. Every prediction is explainable, with the top 3 contributing factors computed as the exact contribution of each feature. Vehicles flagged HIGH or CRITICAL get a coaching recommendation, and the system measures whether that coaching actually reduced risk 7 days later. It runs automatically at 3 AM and 4 AM via pg_cron. AUC 0.906 versus a persistence baseline of 0.882.
 
+<details>
+<summary><b>Engineering the Wow</b></summary>
+
+<br/>
+
+The pipeline runs in eleven steps:
+
+| Step | What happens | Formula or method |
+| ---- | ------------ | ----------------- |
+| 1. Features | Five features per vehicle, rolling 7-day window: safety score, harsh events per trip, speeding ratio, distance, days since last trip | Feature engineering over `vehicle_events` and `driver_daily_safety_scores` |
+| 2. Standardise | Every feature is put on the same scale so distance in km does not dominate harsh events | Z-score: `z = (x - mean) / std` |
+| 3. Log-odds | Combine the standardised features with learned weights | `log_odds = intercept + sum(w_i * z_i)` |
+| 4. Sigmoid | Squash the log-odds into a probability between 0 and 1 | `p = 1 / (1 + e^(-log_odds))` |
+| 5. Risk score | Scale the probability to a 0 to 100 score | `score = p * 100` |
+| 6. Tier | Assign an operational tier | LOW 0-39, MEDIUM 40-59, HIGH 60-79, CRITICAL 80-100 |
+| 7. Explainability | The top 3 contributing factors are computed exactly, not approximated | `contribution_i = abs(w_i * z_i)`, sorted descending, take top 3 |
+| 8. Similar vehicles | Find other vehicles whose feature profile looks like this one | K-Nearest Neighbours with Euclidean distance: `d = sqrt(sum((x_i - y_i)^2))`, take top 5 |
+| 9. Output | Risk score, tier, top 3 reasons, similar vehicles, coaching recommendation | Written to `vehicle_risk_predictions` and `coaching_interventions` |
+| 10. Automation | Scores the whole fleet every night and measures coaching effectiveness 7 days later | `pg_cron`: 03:00 SAST prediction job, 04:00 SAST outcome job. Both idempotent |
+| 11. Design choice | Today's safety score is deliberately excluded from the feature set | Prevents persistence. Forces the model to predict from past behaviour, not echo the present |
+
+The coaching loop uses a second scheduled job:
+
+1. At 04:00 SAST, the outcome job looks at every coaching intervention older than 7 days
+2. It compares the vehicle's risk score before the intervention to its score after
+3. It writes back `risk_fell`, `risk_rose`, or `risk_unchanged`
+4. The effectiveness rate on the dashboard uses only measured interventions
+
+</details>
+
 **Anomaly Detection**  
 Statistical outlier detection across driver behaviour. Flags unusual patterns before they become incidents, using rolling window statistics on the telemetry stream.
+
+<details>
+<summary><b>Engineering the Wow</b></summary>
+
+<br/>
+
+| Technique | What it does | Where it runs |
+| --------- | ------------ | ------------- |
+| Rolling window statistics | Computes mean and standard deviation over a sliding time window | Across `vehicle_events` in TimescaleDB |
+| Z-score outlier test | Flags a reading when it deviates beyond a threshold from the rolling mean | `z = (x - mean) / std`, flag when `abs(z) > threshold` |
+| Volume check | Compares expected versus observed event counts to spot silent devices | Poisson comparison on event rates |
+
+</details>
 
 **Weather and Area Risk Report**  
 Correlates driving behaviour with real weather conditions. Compares wet and dry unsafe event rates per 100 km across areas, and marks each area and vehicle as Above fleet, Below fleet, or Insufficient data.
 
+<details>
+<summary><b>Engineering the Wow</b></summary>
+
+<br/>
+
+Weather data comes from the Open-Meteo API.
+
+| Metric | What it shows | Method |
+| ------ | ------------- | ------ |
+| Wet vs dry event rate | Unsafe events per 100 km on wet days versus dry days | `rate = events / km * 100` |
+| Risk verdict | Marks each area and vehicle as Above fleet, Below fleet or Insufficient data | Ratio of observed to expected events. Expected is computed from the fleet rate |
+| Statistical significance | Confidence that the difference is real | 95 percent confidence interval on the rate ratio. Significant when the interval does not cross 1 |
+| Smoothing | Prevents small samples from producing false positives | Prior of 1000 km added at the fleet rate |
+| Data quality | Skips days where the vehicle did not report | Minimum expected events threshold. Below that, no verdict |
+
+</details>
+
 **Alert Rule Backtesting**  
 Before a custom alert rule is saved, the system replays it against the last 30 days of telemetry and estimates how often it would have fired. This lets fleet managers tune thresholds before turning a rule on, instead of flooding the alert feed or catching nothing.
+
+<details>
+<summary><b>Engineering the Wow: Alert Rule Preview</b></summary>
+
+<br/>
+
+Before a rule is saved, we replay 30 days of history against the proposed condition.
+
+| Step | What happens | Why |
+| ---- | ------------ | --- |
+| 1. Read raw pings | Query `clean_telemetry` for the last 30 days | Baseline data |
+| 2. Scan volume | Roughly 10 million GPS pings for a single fleet group | Volume is the problem |
+| 3. Index first | Add a timeseries index on `clean_telemetry` for `vehicle_id` and time | Faster than no index, but still slow at 30 days |
+| 4. Summary table | Pre-aggregate pings into a per-minute summary table `vehicle_speed_1min` | This is the real solution |
+| 5. Preview query | Read from the summary table instead of raw telemetry | 58 seconds down to 15 seconds for the same query |
+| 6. Debounce | Merge repeated breaches for the same vehicle within 5 minutes | Matches the live alert trigger |
+| 7. Estimate | Report total alerts, vehicles affected, daily breakdown, up to 50 sample breaches | Lets managers tune before saving |
+
+</details>
+
+<details>
+<summary><b>Engineering the Wow: Coordinates Problem</b></summary>
+
+<br/>
+
+Raw GPS coordinates are just numbers. You cannot sort or search them efficiently. To turn them into something useful, we import a road network and spatial boundaries into PostGIS.
+
+| Problem | Resolution |
+| ------- | ---------- |
+| Raw GPS coordinates cannot be sorted or searched | Import OpenStreetMap roads, places and admin boundaries into PostGIS |
+| 1.6 million roads plus 10 000 places and 4 700 admin boundaries | Reorder and index once at import time using spatial indexes |
+| Matching every ping to a road would scan thousands of rows per ping | Spatial index narrows thousands of candidates to a few nearby |
+| The live map cannot afford a spatial join on every poll | Cache each vehicle's closest location so the live map reads a ready answer |
+
+The import command:
+
+```bash
+sudo -u postgres osm2pgsql \
+  --create \
+  --database fleet_analytics \
+  --output flex \
+  --style /var/lib/osm/osm_features.lua \
+  --slim \
+  --cache 256 \
+  --number-processes 1 \
+  /var/lib/osm/south-africa-latest.osm.pbf
+```
+
+</details>
 
 </details>
 
@@ -397,12 +513,15 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 ---
 
+<a id="use-cases"></a>
 <img src="./docs/assets/headers/06-scope.svg" alt="Use Cases" width="100%" />
 
 <img src="./docs/assets/headers/usecases-intro.svg" alt="V.A.P.O.R. has three primary user types: Viewer, Fleet Manager, and Administrator." width="100%" />
 
 <details>
 <summary><b>Authentication and User Administration (UC01 to UC05)</b></summary>
+
+<br/>
 
 | UC   | Use case                | Actor         | User story |
 | ---- | ----------------------- | ------------- | ---------- |
@@ -415,7 +534,9 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 </details>
 
 <details>
-<summary><b>Fleet Monitoring and Vehicle Profiles (UC06 to UC13)</b></summary>
+<summary><b>Fleet Monitoring and Dashboard (UC06 to UC09)</b></summary>
+
+<br/>
 
 | UC   | Use case                   | Actor          | User story |
 | ---- | -------------------------- | -------------- | ---------- |
@@ -423,15 +544,27 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 | UC07 | Track Vehicles on Live Map | User           | US04       |
 | UC08 | Access Help Menu           | User           | US05       |
 | UC09 | View Notifications         | Fleet Operator | US19, US25 |
-| UC10 | View Vehicle Profile       | Fleet Operator | US06       |
-| UC11 | View Trip History          | Fleet Operator | US07       |
-| UC12 | Replay Trip                | Fleet Operator | US08       |
-| UC13 | View Fuel Efficiency       | Fleet Operator | US09       |
+
+</details>
+
+<details>
+<summary><b>Vehicle Profile and Driver Safety Scoring (UC10 to UC13)</b></summary>
+
+<br/>
+
+| UC   | Use case                              | Actor          | User story |
+| ---- | ------------------------------------- | -------------- | ---------- |
+| UC10 | View Vehicle Profile                  | Fleet Operator | US06       |
+| UC11 | View Trip History and Routes          | Fleet Operator | US07       |
+| UC12 | Replay Trip with Speed Visualisation  | Fleet Operator | US08       |
+| UC13 | View Fuel Efficiency                  | Fleet Operator | US09       |
 
 </details>
 
 <details>
 <summary><b>Geofencing (UC14 to UC17)</b></summary>
+
+<br/>
 
 | UC   | Use case             | Actor          | User story |
 | ---- | -------------------- | -------------- | ---------- |
@@ -444,6 +577,8 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 <details>
 <summary><b>Analytics and Reporting (UC18 to UC22)</b></summary>
+
+<br/>
 
 | UC   | Use case                              | Actor          | User story |
 | ---- | ------------------------------------- | -------------- | ---------- |
@@ -458,6 +593,8 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 <details>
 <summary><b>Custom Alerts (UC23 to UC27)</b></summary>
 
+<br/>
+
 | UC   | Use case                   | Actor         | User story |
 | ---- | -------------------------- | ------------- | ---------- |
 | UC23 | Create Alert Rule          | Fleet Manager | US17       |
@@ -470,6 +607,8 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 <details>
 <summary><b>Fleet Group Management (UC28 to UC36)</b></summary>
+
+<br/>
 
 | UC   | Use case                         | Actor         | User story |
 | ---- | -------------------------------- | ------------- | ---------- |
@@ -489,6 +628,7 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 ---
 
+<a id="technology-stack"></a>
 <img src="./docs/assets/headers/07-stack.svg" alt="Technology" width="100%" />
 
 ### Frontend
@@ -529,6 +669,7 @@ Before a custom alert rule is saved, the system replays it against the last 30 d
 
 ---
 
+<a id="setup-guide"></a>
 <img src="./docs/assets/headers/08-getting-started.svg" alt="Setup Guide" width="100%" />
 
 <details>
@@ -580,7 +721,7 @@ COGNITO_CLIENT_ID=your_cognito_client_id
 AWS_REGION=af-south-1
 ```
 
-> **Warning**  
+> [!WARNING]
 > Never commit `.env` files or real credentials. Only the `.env.example` templates belong in version control.
 
 ### Step 4 - Run the Frontend
@@ -604,6 +745,7 @@ npm run dev
 
 ---
 
+<a id="developer-guide"></a>
 <img src="./docs/assets/headers/09-contributing.svg" alt="Developer Guide" width="100%" />
 
 <details>
@@ -654,6 +796,7 @@ cd backend && npm run test
 
 ---
 
+<a id="project-structure"></a>
 <img src="./docs/assets/headers/10-layout.svg" alt="Project Structure" width="100%" />
 
 <details>
@@ -700,6 +843,7 @@ cd backend && npm run test
 
 ---
 
+<a id="team-members"></a>
 <img src="./docs/assets/headers/11-the-team.svg" alt="Team Members" width="100%" />
 
 <div align="center">
@@ -783,6 +927,7 @@ cd backend && npm run test
 
 ---
 
+<a id="acknowledgements"></a>
 <img src="./docs/assets/headers/12-thanks.svg" alt="Acknowledgements" width="100%" />
 
 We would like to thank our FuseIT mentors for their guidance, encouragement, and ongoing support throughout this project. Special thanks to Ayanda Juqu and Richard Lastrucci for their mentorship, feedback, and enthusiasm across every sprint, and to Edith Maphisa and Michael du Plessis for their continued input and for making this project possible.

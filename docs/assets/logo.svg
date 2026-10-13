@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 200" width="100%">
+  <rect width="1200" height="200" fill="#0F172A" rx="16"/>
+  <rect x="0" y="0" width="1200" height="6" fill="#EA580C"/>
+  <text x="600" y="112" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="96" font-weight="800" letter-spacing="6" fill="#F97316">V.A.P.O.R.</text>
+  <text x="600" y="152" text-anchor="middle" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="17" font-weight="500" letter-spacing="2" fill="#FDBA74">Vehicle Analytics, Processing and Operations in Real-time</text>
+</svg>

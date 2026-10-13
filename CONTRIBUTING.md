@@ -1,9 +1,9 @@
 # Contributing Guide
 
 ## Branching Strategy
-- main        — production only, merge at demo time
-- development — integration branch, all PRs merge here
-- feature/task_name — one branch per task, branched from development
+- main        - production only, merge at demo time
+- development - integration branch, all PRs merge here
+- feature/task_name - one branch per task, branched from development
 
 ## Branch Naming
 Use snake_case: feature/db_schema_setup, feature/auth_lambda

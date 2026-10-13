@@ -860,7 +860,6 @@ cd backend && npm run test
 
 <table>
 <tr>
-
 <td align="center" width="200">
 <br/>
 <a href="https://github.com/u23770912"><img src="https://github.com/u23770912.png?size=160" width="88" height="88" alt="Warona Moleboge" /></a>
@@ -921,7 +920,6 @@ cd backend && npm run test
 <a href="https://github.com/Chriscoding19"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
 <br/><br/>
 </td>
-
 </tr>
 </table>
 

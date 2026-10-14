@@ -322,7 +322,7 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 | Live Web Application                      | [V.A.P.O.R. Live Demo](https://d25bouomowr0it.cloudfront.net/landing) |
 | Developer Wiki                            | [Project Wiki](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/wiki) |
 | Software Requirements Specification (SRS) | [View srs.md](./docs/Demo4/srs/srs.md) |
-| Brand Style Guide                         | [View Style Guide](https://d25bouomowr0it.cloudfront.net/) |
+| Brand Style Guide                         | [View Style Guide](https://d25bouomowr0it.cloudfront.net/style-guide) |
 | Software Architecture Specification (SAS) | [View SAS.pdf](./docs/Demo4/SAS.pdf) |
 | GitHub Project Board                      | [View Board](https://github.com/orgs/COS301-SE-2026/projects/49) |
 | NFR Testing                               | [View README.md](./docs/Demo4/nfr-testing/README.md) |

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./docs/assets/logo.svg" alt="V.A.P.O.R. - Vehicle Analytics, Processing and Operations in Real-time" width="100%" />
+<img src="./docs/assets/logo.png" alt="V.A.P.O.R. - Vehicle Analytics, Processing and Operations in Real-time" width="100%" />
 
 <br/>
 

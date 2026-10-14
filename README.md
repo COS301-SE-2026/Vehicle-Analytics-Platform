@@ -22,7 +22,7 @@
 
 <a href="https://d25bouomowr0it.cloudfront.net/landing"><img src="https://img.shields.io/badge/LAUNCH_LIVE_DEMO-EA580C?style=for-the-badge" alt="Launch live demo" /></a>
 <a href="https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/wiki"><img src="https://img.shields.io/badge/DEVELOPER_WIKI-181717?style=for-the-badge" alt="Developer wiki" /></a>
-<a href="./docs/Demo3/VAPOR_User_Manual.pdf"><img src="https://img.shields.io/badge/USER_MANUAL-EC1C24?style=for-the-badge" alt="User manual" /></a>
+<a href="./docs/Demo4/VAPOR_User_Manual.pdf"><img src="https://img.shields.io/badge/USER_MANUAL-EC1C24?style=for-the-badge" alt="User manual" /></a>
 
 <br/><br/>
 
@@ -321,13 +321,13 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 | ----------------------------------------- | ---- |
 | Live Web Application                      | [V.A.P.O.R. Live Demo](https://d25bouomowr0it.cloudfront.net/landing) |
 | Developer Wiki                            | [Project Wiki](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/wiki) |
-| Software Requirements Specification (SRS) | [View srs.md](./docs/Demo3/srs/srs.md) |
+| Software Requirements Specification (SRS) | [View srs.md](./docs/Demo4/srs/srs.md) |
 | Brand Style Guide                         | [View Style Guide](https://d25bouomowr0it.cloudfront.net/) |
-| Software Architecture Specification (SAS) | [View SAS.pdf](./docs/Demo3/SAS.pdf) |
+| Software Architecture Specification (SAS) | [View SAS.pdf](./docs/Demo4/SAS.pdf) |
 | GitHub Project Board                      | [View Board](https://github.com/orgs/COS301-SE-2026/projects/49) |
-| NFR Testing                               | [View README.md](./docs/Demo3/nfr-testing/README.md) |
-| API Service Contracts                     | [View service-contracts.md](./docs/Demo3/api/service-contracts.md) |
-| User Manual                               | [View User Manual.pdf](./docs/Demo3/VAPOR_User_Manual.pdf) |
+| NFR Testing                               | [View README.md](./docs/Demo4/nfr-testing/README.md) |
+| API Service Contracts                     | [View service-contracts-v2.md](./docs/Demo4/api/service-contracts-v2.md) |
+| User Manual                               | [View User Manual.pdf](./docs/Demo4/VAPOR_User_Manual.pdf) |
 | Team Email                                | kilimanjaro.capstone@gmail.com |
 
 ---

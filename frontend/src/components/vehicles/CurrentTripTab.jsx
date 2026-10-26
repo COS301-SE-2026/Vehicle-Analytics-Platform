@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import { useState } from 'react'
 
 import PropTypes from 'prop-types'
 import {
@@ -8,9 +8,10 @@ import {
 } from 'lucide-react'
 
 import LiveTrackingMap from './LiveTrackingMap'
-import { getScoreSeverity} from '@/utils/safetyScore'
+import { getScoreSeverity } from '@/utils/safetyScore'
 import AllEventsPanel from './AllEventsPanel'
 import { formatEventLabel, formatEventTime, formatCoordinates } from '@/utils/eventFormat'
+import SafetyScoreDrawer from './SafetyScoreDrawer'
 
 const EVENT_ICONS = {
     harsh_braking: AlertTriangle,
@@ -22,6 +23,8 @@ const EVENT_ICONS = {
 
 export default function CurrentTripTab({ vehicle, recentEvents }){
     const [showAllEvents, setShowAllEvents] = useState(false)
+    const [drawerOpen, setDrawerOpen] = useState(false)
+    
     const severity = getScoreSeverity(vehicle.todaySafetyScore)
     const isSpeeding = vehicle.speed > vehicle.speedLimit
     const previewEvents = recentEvents.slice(0,3)
@@ -40,25 +43,35 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                         Current Location: {vehicle.latitude.toFixed(4)}, {vehicle.longitude.toFixed(4)}
                     </p>
                 </div>
-                {/*SPEED AND SAETY SCORE*/}
+                
+                {/* SPEED AND SAFETY SCORE */}
                 <div className="flex flex-col gap-4">
-                    <div className="bg-white rounded-xl border border-fleet-border p-4">
-                        <div className="relative flex items-center justify-center w-[88px] h-[88px] mx-auto">
-                        <svg width="88" height="88" className="-rotate-90">
-                            <circle cx="44" cy="44" r="38" fill="none" stroke="#E5E7EB" strokeWidth="6"/>
-                            <circle
-                                cx="44" cy="44" r="38" fill="none"
-                                stroke={severity.ringColour} strokeWidth="6" strokeLinecap="round"
-                                strokeDasharray={2*Math.PI*38}
-                                strokeDashoffset={2*Math.PI*38* (1- (vehicle.todaySafetyScore ?? 0) / 100)}>
-
+                    
+                    {/* CLICKABLE SAFETY SCORE CARD */}
+                    <div 
+                        onClick={() => setDrawerOpen(true)}
+                        className="bg-white rounded-xl border border-fleet-border p-4 cursor-pointer hover:border-fleet-blue hover:shadow-md transition-all group"
+                        title="Click to see how this score is calculated"
+                    >
+                        <div className="relative flex items-center justify-center w-[88px] h-[88px] mx-auto group-hover:scale-105 transition-transform">
+                            <svg width="88" height="88" className="-rotate-90">
+                                <circle cx="44" cy="44" r="38" fill="none" stroke="#E5E7EB" strokeWidth="6"/>
+                                <circle
+                                    cx="44" cy="44" r="38" fill="none"
+                                    stroke={severity.ringColour} strokeWidth="6" strokeLinecap="round"
+                                    strokeDasharray={2*Math.PI*38}
+                                    strokeDashoffset={2*Math.PI*38* (1- (vehicle.todaySafetyScore ?? 0) / 100)}>
                                 </circle>
-                        </svg>
-                        <span className="absolute text-2xl font-bold text-fleet-text">{vehicle.todaySafetyScore ?? '-'}</span>
-</div>
+                            </svg>
+                            <span className="absolute text-2xl font-bold text-fleet-text">{vehicle.todaySafetyScore ?? '-'}</span>
+                        </div>
 
-                        <p className="text-xs text-fleet-secondary mt-3 text-center">Today's Safety Score</p>
-                        <p className="text-xs text-fleet-secondary text-center">Resets daily at midnight</p>
+                        <p className="text-xs text-fleet-secondary mt-3 text-center group-hover:text-fleet-blue transition-colors font-medium">
+                            Today's Safety Score
+                        </p>
+                        <p className="text-xs text-fleet-secondary text-center">
+                            Resets daily at midnight
+                        </p>
                     </div>
 
                     <div className="bg-white rounded-xl border border-fleet-border p-4 space-y-3">
@@ -73,30 +86,23 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                             )}
                         </div>
                         
-
                         <p className={`text-xl font-bold ${isSpeeding ? 'text-fleet-alert' : 'text-fleet-text'}`}>
                             {vehicle.speed} KM/H
                         </p>
-
 
                         <div className="border-t border-fleet-border pt-3">
                             <span className="text-xs font-medium text-fleet-secondary">
                                 TRIP TIME
                             </span>
                             <p className="text-xl font-bold text-fleet-text">
-
-
                                 {formatTripDuration(vehicle.tripStartTime)}
-
-
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-
-            {/*LIVE EVENT FEED */}
+            {/* LIVE EVENT FEED */}
             <div className="bg-white rounded-xl border border-fleet-border p-4">
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-semibold text-fleet-text">
@@ -114,8 +120,6 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                 <div className="space-y-3">
                     {previewEvents.length === 0 && (
                         <p className="text-sm text-fleet-secondary">No events recorded yet today.</p>
-
-
                     )}
                     {previewEvents.map((event) => {
                         const Icon = EVENT_ICONS[event.type] ?? AlertTriangle
@@ -129,20 +133,29 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                                         {formatCoordinates(event.latitude, event.longitude)}
                                     </p>
                                     </div>
-                        <span className="text-xs text-fleet-secondary">
-                            {formatEventTime(event.timestamp)}
-                        </span>
-                        </div>
+                                <span className="text-xs text-fleet-secondary">
+                                    {formatEventTime(event.timestamp)}
+                                </span>
+                            </div>
                         )
                     })}
                 </div>
             </div>
+            
             <AllEventsPanel
                 open={showAllEvents}
                 onOpenChange={setShowAllEvents}
                 vehicleId={vehicle.id}
                 events={recentEvents}
             ></AllEventsPanel>
+            
+            {/* THE ANIMATED DRAWER WITH EVENTS PASSED IN */}
+            <SafetyScoreDrawer 
+                isOpen={drawerOpen} 
+                onClose={() => setDrawerOpen(false)} 
+                score={vehicle.todaySafetyScore} 
+                recentEvents={recentEvents}
+            />
         </div>
     )
 }

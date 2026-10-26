@@ -4,7 +4,7 @@ import api from './api';
 
 export async function getVehicleRisk(vehicleId, days = 30) {
   try {
-    const res = await api.get(`/api/risk/vehicle/${vehicleId}`, {
+    const res = await api.get(`/risk/vehicle/${vehicleId}`, {
       params: { days },
     });
     return res.data.data || null;
@@ -17,7 +17,7 @@ export async function getVehicleRisk(vehicleId, days = 30) {
 
 export async function getFleetRisk() {
   try {
-    const res = await api.get('/api/risk/fleet');
+    const res = await api.get('/risk/fleet');
     return res.data.data?.vehicles || [];
   } catch (err) {
     console.error('getFleetRisk error:', err);
@@ -27,7 +27,7 @@ export async function getFleetRisk() {
 
 export async function getCoachingHistory(vehicleId) {
   try {
-    const res = await api.get(`/api/risk/vehicle/${vehicleId}/coaching`);
+    const res = await api.get(`/risk/vehicle/${vehicleId}/coaching`);
     return res.data.data || null;
   } catch (err) {
     console.error('getCoachingHistory error:', err);
@@ -37,7 +37,7 @@ export async function getCoachingHistory(vehicleId) {
 
 export async function getRiskNotifications(since) {
   try {
-    const res = await api.get('/api/risk/notifications', {
+    const res = await api.get('/risk/notifications', {
       params: since ? { since } : {},
     });
     return res.data.data || { notifications: [], checked_at: new Date().toISOString() };
@@ -49,7 +49,7 @@ export async function getRiskNotifications(since) {
 
 export async function getSimilarVehicles(vehicleId, k = 5) {
   try {
-    const res = await api.get(`/api/risk/vehicle/${vehicleId}/similar`, {
+    const res = await api.get(`/risk/vehicle/${vehicleId}/similar`, {
       params: { k },
     });
     return res.data.data?.similar || [];

@@ -46,7 +46,7 @@ export async function getAnomalies({
         params.set('current_days', String(currentDays))
     }
 
-    const res = await fetch(`${API_BASE_URL}/api/anomalies?${params.toString()}`, {
+    const res = await fetch(`${API_BASE_URL}/anomalies?${params.toString()}`, {
         headers: getAuthHeaders(),
     })
 

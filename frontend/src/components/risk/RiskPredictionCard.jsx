@@ -65,14 +65,15 @@ export default function RiskPredictionCard({ vehicleId }) {
     );
   }
 
-  const { latest, trend } = data;
-  const prev = trend.length > 1 ? trend[trend.length - 2].risk_score : latest.risk_score;
-  const delta = latest.risk_score - prev;
+  // SAFE FALLBACKS FOR TREND AND LATEST
+  const { latest, trend = [] } = data;
+  const prev = trend && trend.length > 1 ? trend[trend.length - 2].risk_score : (latest?.risk_score || 0);
+  const delta = (latest?.risk_score || 0) - prev;
   const { Icon: DeltaIcon, cls: deltaColor } = deltaMeta(delta);
 
   const maxWeight = Math.max(
     0.01,
-    ...(latest.top_factors || []).map((f) => Number(f.weight) || 0)
+    ...(latest?.top_factors || []).map((f) => Number(f.weight) || 0)
   );
 
   return (
@@ -89,15 +90,15 @@ export default function RiskPredictionCard({ vehicleId }) {
             </p>
           </div>
         </div>
-        <RiskBadge tier={latest.risk_tier} score={latest.risk_score} size="md" />
+        <RiskBadge tier={latest?.risk_tier || 'low'} score={latest?.risk_score || 0} size="md" />
       </div>
 
       <div className="flex items-baseline gap-3 mb-6">
         <span
           className="text-5xl font-bold tracking-tight"
-          style={{ color: scoreColor(latest.risk_score) }}
+          style={{ color: scoreColor(latest?.risk_score || 0) }}
         >
-          {Math.round(latest.risk_score)}
+          {Math.round(latest?.risk_score || 0)}
         </span>
         <span className="text-sm text-gray-400">/ 100</span>
         <span className={`ml-auto inline-flex items-center gap-1 text-sm font-medium ${deltaColor}`}>
@@ -106,7 +107,8 @@ export default function RiskPredictionCard({ vehicleId }) {
         </span>
       </div>
 
-      {trend.length > 1 && (
+      {/* ONLY RENDER CHART IF THERE ARE AT LEAST 2 DATA POINTS */}
+      {trend && trend.length > 1 && (
         <div className="h-32 mb-6">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trend}>
@@ -125,7 +127,7 @@ export default function RiskPredictionCard({ vehicleId }) {
               <Line
                 type="monotone"
                 dataKey="risk_score"
-                stroke={scoreColor(latest.risk_score)}
+                stroke={scoreColor(latest?.risk_score || 0)}
                 strokeWidth={2.5}
                 dot={false}
               />
@@ -141,7 +143,7 @@ export default function RiskPredictionCard({ vehicleId }) {
             Top Contributing Factors
           </span>
         </div>
-        {latest.top_factors && latest.top_factors.length > 0 ? (
+        {latest?.top_factors && latest.top_factors.length > 0 ? (
           <ul className="space-y-2.5 mb-5">
             {latest.top_factors.map((f) => (
               <li key={f.name} className="flex items-center gap-3">
@@ -172,8 +174,8 @@ export default function RiskPredictionCard({ vehicleId }) {
           </span>
         </div>
         <RiskFeatureTable
-          features={latest.features}
-          topFactors={latest.top_factors}
+          features={latest?.features || {}}
+          topFactors={latest?.top_factors || []}
         />
       </div>
     </div>

@@ -47,10 +47,11 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                 {/* SPEED AND SAFETY SCORE */}
                 <div className="flex flex-col gap-4">
                     
-                    {/* CLICKABLE SAFETY SCORE CARD */}
-                    <div 
+                    {/* FIXED: Changed from div to button for accessibility */}
+                    <button 
+                        type="button"
                         onClick={() => setDrawerOpen(true)}
-                        className="bg-white rounded-xl border border-fleet-border p-4 cursor-pointer hover:border-fleet-blue hover:shadow-md transition-all group"
+                        className="w-full text-left bg-white rounded-xl border border-fleet-border p-4 cursor-pointer hover:border-fleet-blue hover:shadow-md transition-all group"
                         title="Click to see how this score is calculated"
                     >
                         <div className="relative flex items-center justify-center w-[88px] h-[88px] mx-auto group-hover:scale-105 transition-transform">
@@ -72,7 +73,7 @@ export default function CurrentTripTab({ vehicle, recentEvents }){
                         <p className="text-xs text-fleet-secondary text-center">
                             Resets daily at midnight
                         </p>
-                    </div>
+                    </button>
 
                     <div className="bg-white rounded-xl border border-fleet-border p-4 space-y-3">
                         <div className="flex items-center justify-between">

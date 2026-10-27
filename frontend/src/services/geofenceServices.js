@@ -15,10 +15,10 @@ async function getAuthHeaders() {
     } return { 'Content-Type': 'application/json'};
 }
 
-// POST /api/geofence
+// POST /geofence
 export async function createGeofence(geofence_payload){
     const headers = await getAuthHeaders();
-    const res = await fetch(`${API_BASE_URL}/api/geofences`, {
+    const res = await fetch(`${API_BASE_URL}/geofences`, {
         method: 'POST',
         headers,
         body: JSON.stringify( geofence_payload ),
@@ -31,12 +31,12 @@ export async function createGeofence(geofence_payload){
     };
 }
 
-// GET /api/geofence
+// GET /geofence
 export async function getGeofences(source) {
     const headers = await getAuthHeaders();
     const url = source
-        ? `${API_BASE_URL}/api/geofences?source=${encodeURIComponent(source)}`
-        : `${API_BASE_URL}/api/geofences`;
+        ? `${API_BASE_URL}/geofences?source=${encodeURIComponent(source)}`
+        : `${API_BASE_URL}/geofences`;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch geofences');
     const data = await res.json();
@@ -46,24 +46,24 @@ export async function getGeofences(source) {
     };
 }
 
-// GET /api/geofences/geojson -- existing zones as a FeatureCollection,
+// GET /geofences/geojson -- existing zones as a FeatureCollection,
 // straight from Postgres (get_geofences_geojson), for map rendering.
 // Distinct from getGeofences above, which returns flat rows for the table.
 export async function getGeofencesGeoJSON(vehicle_id) {
     const headers = await getAuthHeaders();
     const url = vehicle_id
-        ? `${API_BASE_URL}/api/geofences/geojson?vehicle_id=${vehicle_id}`
-        : `${API_BASE_URL}/api/geofences/geojson`;
+        ? `${API_BASE_URL}/geofences/geojson?vehicle_id=${vehicle_id}`
+        : `${API_BASE_URL}/geofences/geojson`;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch geofences geojson');
     const data = await res.json();
     return data.data;
 }
 
-// PATCH /api/geofence/:geofence_id
+// PATCH /geofence/:geofence_id
 export async function updateGeofence(geofence_id, update){
     const headers = await getAuthHeaders();
-    const res = await fetch(`${API_BASE_URL}/api/geofences/${geofence_id}`, {
+    const res = await fetch(`${API_BASE_URL}/geofences/${geofence_id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify( update ),
@@ -72,10 +72,10 @@ export async function updateGeofence(geofence_id, update){
     return await res.json()
 }
 
-// DELETE /api/geofence
+// DELETE /geofence
 export async function deleteGeofence(geofence_id) {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE_URL}/api/geofences/${geofence_id}`, {
+  const res = await fetch(`${API_BASE_URL}/geofences/${geofence_id}`, {
     method: 'DELETE',
     headers,
   });
@@ -85,12 +85,12 @@ export async function deleteGeofence(geofence_id) {
   return await res.json();
 }
 
-// GET /api/geofence/
+// GET /geofence/
 export async function getGeofenceEvents(geofence_id){
     const headers = await getAuthHeaders();
     const url = geofence_id
-        ? `${API_BASE_URL}/api/geofences/events?geofence_id=${geofence_id}`
-        : `${API_BASE_URL}/api/geofences/events`;
+        ? `${API_BASE_URL}/geofences/events?geofence_id=${geofence_id}`
+        : `${API_BASE_URL}/geofences/events`;
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('Failed to fetch geofence events');
     const data = await res.json();
@@ -153,8 +153,8 @@ export async function deleteGeofenceEvents(options = {}) {
  
     const query = params.toString();
     const url = query
-        ? `${API_BASE_URL}/api/geofences/events?${query}`
-        : `${API_BASE_URL}/api/geofences/events`;
+        ? `${API_BASE_URL}/geofences/events?${query}`
+        : `${API_BASE_URL}/geofences/events`;
  
     const res = await fetch(url, { method: 'DELETE', headers });
     if (!res.ok) throw new Error('Failed to delete geofence alerts');
@@ -166,7 +166,7 @@ export async function deleteGeofenceEvents(options = {}) {
 // GET
 export async function discoverFrequentStops(vehicle_id) {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${API_BASE_URL}/api/geofences/discover/stops?vehicle_id=${vehicle_id}` , { headers });
+    const res = await fetch(`${API_BASE_URL}/geofences/discover/stops?vehicle_id=${vehicle_id}` , { headers });
     if (!res.ok) throw new Error('Failed to fetch geofence events')
     const data = await res.json()
     return {
@@ -177,7 +177,7 @@ export async function discoverFrequentStops(vehicle_id) {
 
 export async function createGeofenceFromCluster(cluster_payload){
     const headers = await getAuthHeaders();
-    const res = await fetch(`${API_BASE_URL}/api/geofences/discover/create`, {
+    const res = await fetch(`${API_BASE_URL}/geofences/discover/create`, {
         method: 'POST',
         headers,
         body: JSON.stringify(cluster_payload),
@@ -192,7 +192,7 @@ export async function createGeofenceFromCluster(cluster_payload){
 
 export async function discoverFrequentEvents(vehicle_id, event_category, event_detail){
     const headers = await getAuthHeaders();
-    const res = await fetch(`${API_BASE_URL}/api/geofences/discover/events?vehicle_id=${vehicle_id ?? ''}&event_category=${event_category ?? ''}&event_detail=${event_detail ?? ''}` , { headers });
+    const res = await fetch(`${API_BASE_URL}/geofences/discover/events?vehicle_id=${vehicle_id ?? ''}&event_category=${event_category ?? ''}&event_detail=${event_detail ?? ''}` , { headers });
     if (!res.ok) throw new Error('Failed to fetch geofence events')
     const data = await res.json()
     return {

@@ -307,7 +307,7 @@ describe('DeleteAlertRuleModal', () => {
       expect(axios.delete).toHaveBeenCalledWith(
 
 
-        expect.stringContaining('/api/custom-alerts/rules/rule-123'),
+        expect.stringContaining('/custom-alerts/rules/rule-123'),
 
         {
           headers: { Authorization: 'Bearer fake-token' },
@@ -355,7 +355,7 @@ describe('DeleteAlertRuleModal', () => {
       expect(axios.delete).toHaveBeenCalledWith(
 
 
-        expect.stringContaining('/api/custom-alerts/rules/rule-123'),
+        expect.stringContaining('/custom-alerts/rules/rule-123'),
 
         { headers: {} }
       )

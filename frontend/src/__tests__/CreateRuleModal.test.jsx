@@ -201,7 +201,7 @@ describe('CreateAlertRuleModal', () => {
 
       expect(axios.post).toHaveBeenCalledWith(
 
-        expect.stringContaining('/api/custom-alerts/rules'),
+        expect.stringContaining('/custom-alerts/rules'),
         {
           name: 'Highway Speeding',
           fleet_group_id: 'fg-1',
@@ -278,7 +278,7 @@ describe('CreateAlertRuleModal', () => {
 
       expect(axios.post).toHaveBeenCalledWith(
 
-        expect.stringContaining('/api/custom-alerts/rules'),
+        expect.stringContaining('/custom-alerts/rules'),
         {
           name: 'Long Trips',
           fleet_group_id: 'fg-2',

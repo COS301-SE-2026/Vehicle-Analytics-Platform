@@ -93,8 +93,8 @@ class RiskPredictionService {
       },
       {
         name: 'Days since last trip',
-        weight: Math.abs(num(f.recency_feature) * 0.01),
-        value: num(f.recency_feature),
+        weight: Math.abs(num(f.days_since_last_trip) * 0.01),
+        value: num(f.days_since_last_trip),
       },
     ];
 
@@ -171,7 +171,7 @@ class RiskPredictionService {
           f.harsh_feature,
           f.speeding_feature,
           f.distance_feature,
-          f.recency_feature,
+          f.days_since_last_trip,
           JSON.stringify(topFactors),
           model.id,
         ]
@@ -312,8 +312,6 @@ class RiskPredictionService {
   }
 
   async getCoachingHistory(vehicleId, fleetGroupIds = null) {
-    // Skip the scope check when unrestricted (admin). Old callers
-    // that pass no fleetGroupIds don't need the extra round trip.
     if (fleetGroupIds !== null) {
       const { rows: scopeCheck } = await this.pool.query(
         `
@@ -394,7 +392,7 @@ class RiskPredictionService {
       `
       WITH target AS (
         SELECT f.safety_feature, f.harsh_feature, f.speeding_feature,
-               f.weekend_feature, f.distance_feature, f.recency_feature
+               f.weekend_feature, f.distance_feature, f.days_since_last_trip
         FROM vehicle_risk_features f
         JOIN vehicles v ON v.vehicle_id = f.vehicle_id
         WHERE f.vehicle_id = $1
@@ -403,7 +401,7 @@ class RiskPredictionService {
       SELECT
         f.vehicle_id,
         f.safety_feature, f.harsh_feature, f.speeding_feature,
-        f.weekend_feature, f.distance_feature, f.recency_feature,
+        f.weekend_feature, f.distance_feature, f.days_since_last_trip,
         p.risk_score, p.risk_tier,
         SQRT(
           POWER(f.safety_feature   - t.safety_feature,   2) +
@@ -411,8 +409,8 @@ class RiskPredictionService {
           POWER(f.speeding_feature - t.speeding_feature, 2) * 100 +
           POWER(f.weekend_feature  - t.weekend_feature,  2) * 100 +
           POWER(f.distance_feature - t.distance_feature, 2) * 0.0001 +
-          POWER(f.recency_feature  - t.recency_feature,  2) * 0.01
-        ) AS distance
+          POWER(f.days_since_last_trip - t.days_since_last_trip, 2) * 0.01
+        )::float AS distance
       FROM vehicle_risk_features f
       JOIN vehicles v ON v.vehicle_id = f.vehicle_id
       CROSS JOIN target t
@@ -438,7 +436,7 @@ class RiskPredictionService {
         speeding: Number(r.speeding_feature),
         weekend:  Number(r.weekend_feature),
         distance: Number(r.distance_feature),
-        recency:  Number(r.recency_feature),
+        recency:  Number(r.days_since_last_trip),
       },
     }));
   }

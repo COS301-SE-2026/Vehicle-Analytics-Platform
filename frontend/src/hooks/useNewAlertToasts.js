@@ -24,7 +24,7 @@ export default function useNewAlertToasts() {
     async function poll() {
       try {
         const token = useAuthStore.getState().token;
-        const res = await axios.get(`${API_BASE}/api/alerts/triggered/new`, {
+        const res = await axios.get(`${API_BASE}/alerts/triggered/new`, {
           params: { since: lastCheckedRef.current },
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });

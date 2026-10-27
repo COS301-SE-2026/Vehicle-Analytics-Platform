@@ -24,7 +24,8 @@ describe('transferVehicles', () => {
         const result = await transferVehicles(3, 7, ['1043']);
 
         const [url, options] = global.fetch.mock.calls[0];
-        expect(url).toMatch(/\/api\/fleet-groups\/3\/vehicles\/transfer$/);
+        // FIXED: Removed the /api prefix to match the updated service
+        expect(url).toMatch(/\/fleet-groups\/3\/vehicles\/transfer$/);
         expect(options.method).toBe('PATCH');
         expect(options.headers.Authorization).toBe('Bearer test-token');
         expect(JSON.parse(options.body)).toEqual({ vehicleIds: ['1043'], targetGroupId: 7 });

@@ -98,7 +98,7 @@ export default function AlertRulesTab() {
 
       const token = useAuthStore.getState().token;
 
-      const res = await axios.get(`${API_BASE}/api/custom-alerts/rules`, {
+      const res = await axios.get(`${API_BASE}/custom-alerts/rules`, {
 
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -128,7 +128,7 @@ export default function AlertRulesTab() {
       try {
        const token = useAuthStore.getState().token;
 
-       const res = await axios.get(`${API_BASE}/api/fleet-groups/my-groups`, { 
+       const res = await axios.get(`${API_BASE}/fleet-groups/my-groups`, { 
           headers: token ? { Authorization: `Bearer ${token}` } : {},
 
         });      

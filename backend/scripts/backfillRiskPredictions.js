@@ -100,7 +100,7 @@ function buildTopFactors(model, f) {
             SELECT AVG(safety_score)
             FROM driver_daily_safety_scores s
             WHERE s.vehicle_id = $1
-              AND s.score_date BETWEEN d.d - 29 AND d.d
+              AND s.score_date BETWEEN d.d - 364 AND d.d
           ), 100)::numeric AS safety_feature,
           COALESCE((
             SELECT SUM(harsh_brakes + harsh_accelerations + harsh_cornering)::numeric
@@ -111,28 +111,28 @@ function buildTopFactors(model, f) {
              AND t.start_time::date = s.score_date
              AND t.status = 'completed'
             WHERE s.vehicle_id = $1
-              AND s.score_date BETWEEN d.d - 29 AND d.d
+              AND s.score_date BETWEEN d.d - 364 AND d.d
           ), 0)::numeric AS harsh_feature,
           COALESCE((
             SELECT AVG(CASE WHEN max_speed_kmh > 100 THEN 1 ELSE 0 END)
             FROM trips t
             WHERE t.vehicle_id = $1
               AND t.status = 'completed'
-              AND t.start_time::date BETWEEN d.d - 29 AND d.d
+              AND t.start_time::date BETWEEN d.d - 364 AND d.d
           ), 0)::numeric AS speeding_feature,
           COALESCE((
             SELECT AVG(CASE WHEN EXTRACT(DOW FROM start_time) IN (0,6) THEN 1 ELSE 0 END)
             FROM trips t
             WHERE t.vehicle_id = $1
               AND t.status = 'completed'
-              AND t.start_time::date BETWEEN d.d - 29 AND d.d
+              AND t.start_time::date BETWEEN d.d - 364 AND d.d
           ), 0)::numeric AS weekend_feature,
           LEAST(COALESCE((
             SELECT SUM(distance_km)
             FROM trips t
             WHERE t.vehicle_id = $1
               AND t.status = 'completed'
-              AND t.start_time::date BETWEEN d.d - 29 AND d.d
+              AND t.start_time::date BETWEEN d.d - 364 AND d.d
           ), 0), 5000)::numeric AS distance_feature,
           COALESCE((
             SELECT (d.d - MAX(t.end_time)::date)::numeric
@@ -157,11 +157,15 @@ function buildTopFactors(model, f) {
           INSERT INTO vehicle_risk_predictions (
             vehicle_id, prediction_date, risk_score, risk_tier,
             feature_safety, feature_harsh, feature_crashes,
-            feature_speeding, feature_weekend, top_factors, model_version
+            feature_speeding, feature_weekend,
+            feature_distance, feature_recency,
+            top_factors, model_version
           ) VALUES (
             $1, $2, $3, $4,
             $5, $6, 0,
-            $7, $8, $9, $10
+            $7, $8,
+            $9, $10,
+            $11, $12
           )
           ON CONFLICT (vehicle_id, prediction_date) DO UPDATE SET
             risk_score       = EXCLUDED.risk_score,
@@ -170,6 +174,8 @@ function buildTopFactors(model, f) {
             feature_harsh    = EXCLUDED.feature_harsh,
             feature_speeding = EXCLUDED.feature_speeding,
             feature_weekend  = EXCLUDED.feature_weekend,
+            feature_distance = EXCLUDED.feature_distance,
+            feature_recency  = EXCLUDED.feature_recency,
             top_factors      = EXCLUDED.top_factors,
             model_version    = EXCLUDED.model_version
           `,
@@ -182,6 +188,8 @@ function buildTopFactors(model, f) {
             f.harsh_feature,
             f.speeding_feature,
             f.weekend_feature,
+            f.distance_feature,
+            f.recency_feature,
             JSON.stringify(topFactors),
             model.id,
           ]

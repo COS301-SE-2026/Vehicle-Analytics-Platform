@@ -47,9 +47,9 @@ jest.mock('@/components/alerts/DeleteRuleModal', () => (props) => (
   </div>
 ))
 
-const RULES_URL_MATCH = '/api/custom-alerts/rules'
+const RULES_URL_MATCH = '/custom-alerts/rules'
 
-const FLEET_GROUPS_URL_MATCH = '/api/fleet-groups'
+const FLEET_GROUPS_URL_MATCH = '/fleet-groups'
 
 const speedingRule = {
   id: 'rule-1',

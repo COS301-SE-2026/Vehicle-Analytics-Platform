@@ -58,7 +58,7 @@ describe('useNewAlertToasts', () => {
       await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(1));
 
       expect(axios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/alerts/triggered/new'),
+        expect.stringContaining('/alerts/triggered/new'),
         expect.objectContaining({
           headers: { Authorization: 'Bearer test-token' },
         })

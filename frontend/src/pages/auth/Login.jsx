@@ -24,9 +24,9 @@ export default function Login() {
     
     try {
       // Establish the correct endpoint base URL
-      const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod/api';
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
 
-      // FIX: Removed the extra /api. It now uses just /auth/login
+      // Hit your custom unified backend login controller
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

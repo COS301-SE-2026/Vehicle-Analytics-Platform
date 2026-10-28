@@ -18,7 +18,7 @@ async function getAuthHeaders() {
 export async function getNotifications(since) {
     const headers = await getAuthHeaders()
     const query = since ? `?since=${encodeURIComponent(since)}` : ''
-    const res = await fetch(`${API_BASE_URL}/api/notifications/${query}`, {headers})
+    const res = await fetch(`${API_BASE_URL}/notifications/${query}`, {headers})
 
     if(!res.ok){
         throw new Error('Failed to fetch notifications')

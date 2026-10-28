@@ -7,7 +7,7 @@ export const getVehicleFuelHistory = async (vehicleId, period = 'week', limit = 
 
   try {
 
-    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
+    const response = await api.get(`/fuel/vehicle/${vehicleId}/history`, {
 
       params: { period, limit }
 
@@ -32,7 +32,7 @@ export const getVehicleFuelTrend = async (vehicleId, days = 30) => {
 
   try {
 
-    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/trend`, {
+    const response = await api.get(`/fuel/vehicle/${vehicleId}/trend`, {
 
       params: { days }
 
@@ -56,7 +56,7 @@ export const getFleetFuelHistory = async (period = 'week', limit = 10) => {
 
   try {
 
-    const response = await api.get('/api/fuel/fleet/history', {
+    const response = await api.get('/fuel/fleet/history', {
 
       params: { period, limit }
 
@@ -80,7 +80,7 @@ export const getFuelDashboard = async () => {
 
   try {
 
-    const response = await api.get('/api/fuel/dashboard');
+    const response = await api.get('/fuel/dashboard');
 
     return response.data.data || null;
 
@@ -100,7 +100,7 @@ export const getVehicleFuelStats = async (vehicleId, days = 30) => {
 
   try {
 
-    const response = await api.get(`/api/fuel/vehicle/${vehicleId}/history`, {
+    const response = await api.get(`/fuel/vehicle/${vehicleId}/history`, {
 
       params: { period: 'week', limit: 10 }
 
@@ -146,7 +146,7 @@ export const calculateDailyHistory = async (vehicleId, date) => {
 
   try {
 
-    const response = await api.post(`/api/fuel/vehicle/${vehicleId}/calculate`, null, {
+    const response = await api.post(`/fuel/vehicle/${vehicleId}/calculate`, null, {
 
       params: { date }
 

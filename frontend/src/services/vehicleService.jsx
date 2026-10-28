@@ -28,14 +28,14 @@ function isValidLandCoord(lat, lng) {
   return true
 }
 
-// GET /api/dashboard/kpis
+// GET /dashboard/kpis
 export async function getKPIs() {
   const headers = await getAuthHeaders();
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
-    const res = await fetch(`${API_BASE_URL}/api/dashboard/kpis`, {
+    const res = await fetch(`${API_BASE_URL}/dashboard/kpis`, {
       headers,
       signal: controller.signal
     });
@@ -66,10 +66,10 @@ export async function getKPIs() {
   }
 }
 
-// GET /api/vehicles/locations
+// GET /vehicles/locations
 export async function getVehicleLocations() {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/vehicles/locations`, { headers })
+  const res = await fetch(`${API_BASE_URL}/vehicles/locations`, { headers })
   if (!res.ok) throw new Error('Failed to fetch vehicle locations')
   const data = await res.json()
   const vehicles = (data.data.vehicles || [])
@@ -102,10 +102,10 @@ export async function getVehicleLocations() {
   }
 }
 
-// GET /api/dashboard/alerts
+// GET /dashboard/alerts
 export async function getAlerts(limit = 50) {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/dashboard/alerts?limit=${limit}`, { headers })
+  const res = await fetch(`${API_BASE_URL}/dashboard/alerts?limit=${limit}`, { headers })
   if (!res.ok) throw new Error('Failed to fetch alerts')
   const data = await res.json()
   return {
@@ -114,19 +114,19 @@ export async function getAlerts(limit = 50) {
   }
 }
 
-// GET /api/dashboard/activity
+// GET /dashboard/activity
 export async function getActivityHistory(range = 'day') {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/dashboard/activity?range=${encodeURIComponent(range)}`, { headers })
+  const res = await fetch(`${API_BASE_URL}/dashboard/activity?range=${encodeURIComponent(range)}`, { headers })
   if (!res.ok) throw new Error('Failed to fetch activity history')
   const data = await res.json()
   return data.data.points || []
 }
 
-// GET /api/vehicles/:vehicleId
+// GET /vehicles/:vehicleId
 export async function getVehicleById(vehicleId) {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}`, { headers })
+  const res = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}`, { headers })
   if (!res.ok) throw new Error('Failed to fetch vehicle details')
   const data = await res.json()
   const v = data.data.vehicle
@@ -151,19 +151,19 @@ export async function getVehicleById(vehicleId) {
   }
 }
 
-// GET /api/users (admin only)
+// GET /users (admin only)
 export async function getUsers() {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/admin/users`, { headers })
+  const res = await fetch(`${API_BASE_URL}/admin/users`, { headers })
   if (!res.ok) throw new Error('Failed to fetch users')
   const data = await res.json()
   return data.data
 }
 
-// PATCH /api/admin/users/:userId/role
+// PATCH /admin/users/:userId/role
 export async function updateUserRole(userId, role) {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/role`, {
+  const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/role`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({ role }),
@@ -172,10 +172,10 @@ export async function updateUserRole(userId, role) {
   return await res.json()
 }
 
-// DELETE /api/admin/users/:userId
+// DELETE /admin/users/:userId
 export async function deleteUser(userId) {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+  const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
     method: 'DELETE',
     headers,
   })
@@ -186,7 +186,7 @@ export async function deleteUser(userId) {
 export async function getVehiclePositionBuffer() {
   const headers = await getAuthHeaders();
 
-  const res = await fetch(`${API_BASE_URL}/api/vehicles/buffer`, {
+  const res = await fetch(`${API_BASE_URL}/vehicles/buffer`, {
     headers
   });
 
@@ -202,7 +202,7 @@ export async function getVehiclePositionBuffer() {
 export async function getVehicleSafetyScore(vehicleId, date = null) {
   const headers = await getAuthHeaders()
   const query = date ? `?date=${encodeURIComponent(date)}` : ''
-  const res = await fetch(`${API_BASE_URL}/api/safety/scores/${vehicleId}${query}`, {headers})
+  const res = await fetch(`${API_BASE_URL}/safety/scores/${vehicleId}${query}`, {headers})
 
   if (!res.ok){
     throw new Error('Failed to fetch vehicle safety score')
@@ -216,7 +216,7 @@ export async function getVehicleSafetyScore(vehicleId, date = null) {
 export async function getFleetSafetyScores(date = null){
   const headers = await getAuthHeaders()
   const query = date ? `?date=${encodeURIComponent(date)}` : ''
-  const res = await fetch(`${API_BASE_URL}/api/safety/scores${query}`, { headers })
+  const res = await fetch(`${API_BASE_URL}/safety/scores${query}`, { headers })
 
 
   if (!res.ok){
@@ -243,7 +243,7 @@ export async function getVehiclesList({status, page = 1, limit = 20, fleetGroupI
   params.set('page', page)
   params.set('limit', limit)
 
-  const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`, {headers})
+  const res = await fetch(`${API_BASE_URL}/vehicles?${params.toString()}`, {headers})
   if (!res.ok){
     throw new Error('Failed to fetch vehicles list')
   }
@@ -271,7 +271,7 @@ export async function getVehicleTrips(vehicleId, {limit = 10, before } = {}){
     params.set('before', before)
   }
 
-  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/trips?${params.toString()}`, {headers})
+  const res = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/trips?${params.toString()}`, {headers})
 
   if(!res.ok){
     throw new Error('Failed to fetch vehicle trips')
@@ -282,7 +282,7 @@ export async function getVehicleTrips(vehicleId, {limit = 10, before } = {}){
 
 export async function getVehicleSafetyScoreTrend(vehicleId, days = 7) {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/vehicles/${vehicleId}/safety-trend?days=${days}`, {headers})
+  const res = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/safety-trend?days=${days}`, {headers})
 
   if (!res.ok){
     throw new Error('Failed to fetch vehicle safety trend')
@@ -295,7 +295,7 @@ export async function getVehicleSafetyScoreTrend(vehicleId, days = 7) {
 
 export async function getTripReplay(tripId) {
   const headers = await getAuthHeaders()
-  const res = await fetch(`${API_BASE_URL}/api/trips/replay/${tripId}`, {headers})
+  const res = await fetch(`${API_BASE_URL}/trips/replay/${tripId}`, {headers})
 
   if (!res.ok){
     throw new Error('Failed to fetch trip replay')
@@ -325,7 +325,7 @@ export async function getFleetAnalytics(range = 'day') {
   const headers = await getAuthHeaders()
   try {
 
-    const res = await fetch(`${API_BASE_URL}/api/fleet/analytics?period=${encodeURIComponent(range)}`, { headers })
+    const res = await fetch(`${API_BASE_URL}/fleet/analytics?period=${encodeURIComponent(range)}`, { headers })
 
     if (!res.ok) throw new Error('Failed to fetch fleet analytics')
     const data = await res.json()

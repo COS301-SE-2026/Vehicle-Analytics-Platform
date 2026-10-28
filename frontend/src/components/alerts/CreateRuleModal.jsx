@@ -46,7 +46,7 @@ export default function CreateAlertRuleModal({ isOpen, onClose, onCreated, fleet
       const token = useAuthStore.getState().token;
 
       const res = await axios.post(
-        `${API_BASE}/api/custom-alerts/rules`,
+        `${API_BASE}/custom-alerts/rules`,
         {
           name: form.name.trim(),
           fleet_group_id: form.fleetGroupId,

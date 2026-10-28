@@ -190,7 +190,7 @@ export default function TriggeredAlertsTab() {
       if (vehicleSearch) 
         params.vehicle_id = vehicleSearch;
 
-      const res = await axios.get(`${API_BASE}/api/alerts/triggered`, {
+      const res = await axios.get(`${API_BASE}/alerts/triggered`, {
         params,
         headers: authHeaders(),
       });
@@ -236,7 +236,7 @@ export default function TriggeredAlertsTab() {
 
     try {
       await axios.put(
-        `${API_BASE}/api/alerts/triggered/${alertId}/acknowledge`,
+        `${API_BASE}/alerts/triggered/${alertId}/acknowledge`,
         {},
         { headers: authHeaders() }
       );
@@ -255,7 +255,7 @@ export default function TriggeredAlertsTab() {
     setActioningId(alertId);
     try {
       await axios.put(
-        `${API_BASE}/api/alerts/triggered/${alertId}/resolve`,
+        `${API_BASE}/alerts/triggered/${alertId}/resolve`,
         {},
         { headers: authHeaders() }
       );

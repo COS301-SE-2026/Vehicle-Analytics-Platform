@@ -78,7 +78,7 @@ describe("getAuthHeaders (exercised via every call)", () => {
 });
 
 describe("createGeofence", () => {
-  it("POSTs to /api/geofences and unwraps message + geofence", async () => {
+  it("POSTs to /geofences and unwraps message + geofence", async () => {
     const payload = { name: "Depot", boundary: {} };
     global.fetch.mockResolvedValue(
       mockJsonResponse(true, { data: { message: "created", geofence: { id: 1 } } })
@@ -87,7 +87,7 @@ describe("createGeofence", () => {
     const result = await createGeofence(payload);
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences`,
+      `${API_BASE_URL}/geofences`,
       expect.objectContaining({ method: "POST", body: JSON.stringify(payload) })
     );
     expect(result).toEqual({ message: "created", geofence: { id: 1 } });
@@ -104,7 +104,7 @@ describe("getGeofences", () => {
     global.fetch.mockResolvedValue(mockJsonResponse(true, { data: { total: 2, geofences: [1, 2] } }));
     const result = await getGeofences();
 
-    expect(global.fetch).toHaveBeenCalledWith(`${API_BASE_URL}/api/geofences`, expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith(`${API_BASE_URL}/geofences`, expect.any(Object));
     expect(result).toEqual({ total: 2, geofences: [1, 2] });
   });
 
@@ -113,7 +113,7 @@ describe("getGeofences", () => {
     await getGeofences("user zones");
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences?source=${encodeURIComponent("user zones")}`,
+      `${API_BASE_URL}/geofences?source=${encodeURIComponent("user zones")}`,
       expect.any(Object)
     );
   });
@@ -132,7 +132,7 @@ describe("getGeofencesGeoJSON", () => {
     const result = await getGeofencesGeoJSON();
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/geojson`,
+      `${API_BASE_URL}/geofences/geojson`,
       expect.any(Object)
     );
     expect(result).toEqual(fc);
@@ -143,7 +143,7 @@ describe("getGeofencesGeoJSON", () => {
     await getGeofencesGeoJSON("veh-1");
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/geojson?vehicle_id=veh-1`,
+      `${API_BASE_URL}/geofences/geojson?vehicle_id=veh-1`,
       expect.any(Object)
     );
   });
@@ -162,7 +162,7 @@ describe("updateGeofence", () => {
     await updateGeofence("gf-1", update);
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/gf-1`,
+      `${API_BASE_URL}/geofences/gf-1`,
       expect.objectContaining({ method: "PUT", body: JSON.stringify(update) })
     );
   });
@@ -179,7 +179,7 @@ describe("deleteGeofence", () => {
     await deleteGeofence("gf-1");
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/gf-1`,
+      `${API_BASE_URL}/geofences/gf-1`,
       expect.objectContaining({ method: "DELETE" })
     );
   });
@@ -206,7 +206,7 @@ describe("getGeofenceEvents", () => {
     await getGeofenceEvents();
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/events`,
+      `${API_BASE_URL}/geofences/events`,
       expect.any(Object)
     );
   });
@@ -216,7 +216,7 @@ describe("getGeofenceEvents", () => {
     await getGeofenceEvents("gf-1");
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/events?geofence_id=gf-1`,
+      `${API_BASE_URL}/geofences/events?geofence_id=gf-1`,
       expect.any(Object)
     );
   });
@@ -275,7 +275,7 @@ describe("deleteGeofenceEvents", () => {
     await deleteGeofenceEvents();
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/events`,
+      `${API_BASE_URL}/geofences/events`,
       expect.objectContaining({ method: "DELETE" })
     );
   });
@@ -310,7 +310,7 @@ describe("discoverFrequentStops", () => {
     const result = await discoverFrequentStops("veh-1");
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/discover/stops?vehicle_id=veh-1`,
+      `${API_BASE_URL}/geofences/discover/stops?vehicle_id=veh-1`,
       expect.any(Object)
     );
     expect(result).toEqual({ total_clusters: 1, clusters: [{}] });
@@ -332,7 +332,7 @@ describe("createGeofenceFromCluster", () => {
     const result = await createGeofenceFromCluster(payload);
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/discover/create`,
+      `${API_BASE_URL}/geofences/discover/create`,
       expect.objectContaining({ method: "POST", body: JSON.stringify(payload) })
     );
     expect(result).toEqual({ message: "created", geofence: { id: 5 } });
@@ -354,7 +354,7 @@ describe("discoverFrequentEvents", () => {
     await discoverFrequentEvents("veh-1", "green_driving_type", "harsh_braking");
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/discover/events?vehicle_id=veh-1&event_category=green_driving_type&event_detail=harsh_braking`,
+      `${API_BASE_URL}/geofences/discover/events?vehicle_id=veh-1&event_category=green_driving_type&event_detail=harsh_braking`,
       expect.any(Object)
     );
   });
@@ -366,7 +366,7 @@ describe("discoverFrequentEvents", () => {
     await discoverFrequentEvents();
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_BASE_URL}/api/geofences/discover/events?vehicle_id=&event_category=&event_detail=`,
+      `${API_BASE_URL}/geofences/discover/events?vehicle_id=&event_category=&event_detail=`,
       expect.any(Object)
     );
   });

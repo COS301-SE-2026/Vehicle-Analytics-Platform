@@ -92,7 +92,7 @@ describe('TriggeredAlertsTab', () => {
 
     await waitFor(() => {
       expect(axios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/alerts/triggered'),
+        expect.stringContaining('/alerts/triggered'),
         expect.objectContaining({
           params: expect.objectContaining({ limit: 10, offset: 0, resolved_within_hours: 48 }),
           headers: { Authorization: 'Bearer fake-token' },
@@ -329,7 +329,7 @@ describe('TriggeredAlertsTab', () => {
 
     await waitFor(() => {
       expect(axios.get).toHaveBeenLastCalledWith(
-        expect.stringContaining('/api/alerts/triggered'),
+        expect.stringContaining('/alerts/triggered'),
         expect.objectContaining({
           params: expect.objectContaining({ status: 'new' }),
         })
@@ -368,7 +368,7 @@ describe('TriggeredAlertsTab', () => {
       expect(axios.get).toHaveBeenLastCalledWith(
 
 
-        expect.stringContaining('/api/alerts/triggered'),
+        expect.stringContaining('/alerts/triggered'),
 
         expect.objectContaining({
 
@@ -394,7 +394,7 @@ describe('TriggeredAlertsTab', () => {
 
       expect(axios.get).toHaveBeenLastCalledWith(
 
-        expect.stringContaining('/api/alerts/triggered'),
+        expect.stringContaining('/alerts/triggered'),
 
         expect.objectContaining({
           params: expect.objectContaining({ vehicle_id: 'VH-1' }),
@@ -580,7 +580,7 @@ describe('TriggeredAlertsTab', () => {
 
       await waitFor(() => {
         expect(axios.get).toHaveBeenLastCalledWith(
-          expect.stringContaining('/api/alerts/triggered'),
+          expect.stringContaining('/alerts/triggered'),
           expect.objectContaining({
             params: expect.objectContaining({ offset: 10 }),
           })
@@ -635,7 +635,7 @@ describe('TriggeredAlertsTab', () => {
 
     await waitFor(() => {
       expect(axios.put).toHaveBeenCalledWith(
-        expect.stringContaining('/api/alerts/triggered/alert-1/resolve'),
+        expect.stringContaining('/alerts/triggered/alert-1/resolve'),
         {},
         { headers: { Authorization: 'Bearer fake-token' } }
       )

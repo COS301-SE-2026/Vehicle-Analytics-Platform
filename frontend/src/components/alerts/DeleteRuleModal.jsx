@@ -47,7 +47,7 @@ export default function DeleteAlertRuleModal({ isOpen, onClose, onDeleted, rule 
     try {
       const token = useAuthStore.getState().token;
 
-      await axios.delete(`${API_BASE}/api/custom-alerts/rules/${rule.id}`, {
+      await axios.delete(`${API_BASE}/custom-alerts/rules/${rule.id}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 

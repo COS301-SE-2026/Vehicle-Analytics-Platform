@@ -19,7 +19,7 @@ async function getAuthHeaders() {
 
 export async function getReportScopes() {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/reports/scopes`, { headers })
+    const res = await fetch(`${API_BASE_URL}/reports/scopes`, { headers })
 
     if (!res.ok) {
         throw new Error('Failed to fetch reporting scopes')
@@ -57,7 +57,7 @@ export async function generateReport({
         body.anchor = anchor
     }
 
-    const res = await fetch(`${API_BASE_URL}/api/reports/generate`, {
+    const res = await fetch(`${API_BASE_URL}/reports/generate`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
@@ -81,7 +81,7 @@ export async function generateReport({
     return data.data
 }
 
-// POST /api/reports/weather
+// POST /reports/weather
 export async function generateWeatherReport({
     scopeType = 'fleet',
     scopeId,
@@ -97,7 +97,7 @@ export async function generateWeatherReport({
     }
     if (endDate) body.end_date = endDate
 
-    const res = await fetch(`${API_BASE_URL}/api/reports/weather`, {
+    const res = await fetch(`${API_BASE_URL}/reports/weather`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),

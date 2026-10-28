@@ -239,7 +239,7 @@ describe('EditAlertRuleModal', () => {
 
     await waitFor(() => {
       expect(axios.put).toHaveBeenCalledWith(
-        expect.stringContaining('/api/custom-alerts/rules/rule-99'),
+        expect.stringContaining('/custom-alerts/rules/rule-99'),
         {
           name: 'Updated Name',
           fleet_group_id: 'fg-1',
@@ -267,7 +267,7 @@ describe('EditAlertRuleModal', () => {
 
     await waitFor(() => {
       expect(axios.put).toHaveBeenCalledWith(
-        expect.stringContaining('/api/custom-alerts/rules/rule-99'),
+        expect.stringContaining('/custom-alerts/rules/rule-99'),
         expect.objectContaining({ status: 'inactive' }),
         expect.anything()
       );

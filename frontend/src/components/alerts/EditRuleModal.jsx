@@ -74,7 +74,7 @@ export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, f
       const token = useAuthStore.getState().token;
 
       const res = await axios.put(
-        `${API_BASE}/api/custom-alerts/rules/${rule.id}`,
+        `${API_BASE}/custom-alerts/rules/${rule.id}`,
         {
           name: form.name.trim(),
           fleet_group_id: form.fleetGroupId,

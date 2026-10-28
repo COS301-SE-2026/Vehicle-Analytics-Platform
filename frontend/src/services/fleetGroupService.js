@@ -17,7 +17,7 @@ async function getAuthHeaders() {
 
 export async function getFleetGroups() {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups`, {headers})
+    const res = await fetch(`${API_BASE_URL}/fleet-groups`, {headers})
 
     if(!res.ok){
         throw new Error('Failed to fetch fleet groups')
@@ -29,7 +29,7 @@ export async function getFleetGroups() {
 
 export async function getMyFleetGroups() {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/my-groups`, {headers})
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/my-groups`, {headers})
 
     if(!res.ok){
         throw new Error('Failed to fetch fleet groups')
@@ -41,7 +41,7 @@ export async function getMyFleetGroups() {
 
 export async function assignFleetManager(fleetGroupId, managerId) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${fleetGroupId}/assignments`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${fleetGroupId}/assignments`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ managerId }),
@@ -58,7 +58,7 @@ export async function assignFleetManager(fleetGroupId, managerId) {
 
 export async function removeFleetManagerAssignment(fleetGroupId, managerId) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${fleetGroupId}/assignments/${managerId}`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${fleetGroupId}/assignments/${managerId}`, {
         method: 'DELETE',
         headers,
     })
@@ -74,7 +74,7 @@ export async function removeFleetManagerAssignment(fleetGroupId, managerId) {
 
 export async function createFleetGroup(name, description) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups`, {
         method: 'POST',
         headers,
         body: JSON.stringify({name, description }),
@@ -101,7 +101,7 @@ export async function getAvailableVehicles(fleetGroupId, {status = 'unassigned',
     params.set('page', page)
     params.set('limit', limit)
 
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${fleetGroupId}/available-vehicles?${params.toString()}`, {headers})
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${fleetGroupId}/available-vehicles?${params.toString()}`, {headers})
 
 
     if(!res.ok){
@@ -120,7 +120,7 @@ export async function getAvailableVehicles(fleetGroupId, {status = 'unassigned',
 
 export async function bulkAssignVehicles(fleetGroupId, vehicleIds) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${fleetGroupId}/vehicles`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${fleetGroupId}/vehicles`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({vehicleIds}),
@@ -137,7 +137,7 @@ export async function bulkAssignVehicles(fleetGroupId, vehicleIds) {
 
 export async function getManagerLeaderboard(limit=5) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/leaderboard?limit=${limit}`, {headers})
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/leaderboard?limit=${limit}`, {headers})
 
     if(!res.ok){
         throw new Error('Failed to fetch manager leaderboard')
@@ -149,7 +149,7 @@ export async function getManagerLeaderboard(limit=5) {
 
 export async function updateFleetGroup(id, name, description) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${id}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({name,description}),
@@ -166,7 +166,7 @@ export async function updateFleetGroup(id, name, description) {
 
 export async function deleteFleetGroup(id) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${id}`, {
         method: 'DELETE',
         headers,
     })
@@ -182,7 +182,7 @@ export async function deleteFleetGroup(id) {
 
 export async function unassignVehicles(fleetGroupId, vehicleIds) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${fleetGroupId}/vehicles/unassign`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${fleetGroupId}/vehicles/unassign`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({vehicleIds}),
@@ -199,7 +199,7 @@ export async function unassignVehicles(fleetGroupId, vehicleIds) {
 
 export async function transferVehicles(sourceGroupId, targetGroupId, vehicleIds) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${API_BASE_URL}/api/fleet-groups/${sourceGroupId}/vehicles/transfer`, {
+    const res = await fetch(`${API_BASE_URL}/fleet-groups/${sourceGroupId}/vehicles/transfer`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({vehicleIds, targetGroupId}),

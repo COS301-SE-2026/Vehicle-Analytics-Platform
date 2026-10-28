@@ -32,9 +32,10 @@ const limiter = rateLimit({
   }
 });
 
-// Explicitly allow local dev and the deployed CloudFront origin
+// Explicitly allow local dev, E2E tests (port 4173), and the deployed CloudFront origin
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:4173',
   'https://d25bouomowr0it.cloudfront.net'
 ];
 

@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { describeEventTypes } from '../../utils/ruleFormConstants';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
+const API_BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`;
 
 const LIMIT = 10;
 

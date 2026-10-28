@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
 import PasswordToggleIcon from "../../components/PasswordToggleIcon";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_URL = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`;
 
 function getStrength(password) {
   return [
@@ -38,7 +38,7 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),

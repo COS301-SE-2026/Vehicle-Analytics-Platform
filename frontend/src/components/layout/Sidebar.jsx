@@ -5,10 +5,7 @@ import PropTypes from 'prop-types'
 import useAuthStore from '../../store/authStore'
 import vaporlogo from "../../pages/landing/img/logo.png"
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:5000'
+const API_BASE_URL = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`
 
 // Who sees each link. Keep in step with the allowedRoles on the routes in App.jsx,
 // or users see links that just bounce them back to their start page.
@@ -62,7 +59,7 @@ export default function Sidebar({ role = 'user', collapsed, onToggle }) {
     const token = useAuthStore.getState().token
 
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })

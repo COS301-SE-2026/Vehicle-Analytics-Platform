@@ -24,7 +24,7 @@ export default function Login() {
     
     try {
       // Establish the correct endpoint base URL
-      const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
+      const API_BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`;
 
       // Hit your custom unified backend login controller
       const res = await fetch(`${API_BASE}/auth/login`, {

@@ -17,7 +17,7 @@ jest.mock("../store/authStore", () => ({
   default: { getState: jest.fn() },
 }));
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "http://localhost:4000/api";
 
 function mockJsonResponse(ok, body) {
   return {

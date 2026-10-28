@@ -10,7 +10,7 @@ import BacktestPreviewToggle from './BacktestPreviewToggle';
 import BacktestPreviewPanel from './BacktestPreviewPanel';
 import { paramsFromRule } from '../../utils/ruleFormConstants';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
+const API_BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`;
 
 export default function EditAlertRuleModal({ isOpen, onClose, onUpdated, rule, fleetGroups = [] }) {
 

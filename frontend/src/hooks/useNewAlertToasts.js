@@ -5,7 +5,7 @@ import { useToast } from '../components/alerts/ToastProvider';
 
 // Same fallback as the backend's local port. Never default to production:
 // a local run without VITE_API_URL would otherwise poll the live API.
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`;
 const POLL_INTERVAL_MS = 20000;
 
 // Custom alert rules belong to fleet managers; the endpoint refuses everyone else.

@@ -4,7 +4,7 @@ import useAuthStore from '../store/authStore';
 
 const DEBOUNCE_MS = 500;
 const DEFAULT_DAYS = 30;
-const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
+const API_BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`;
 
 /**
  * Checks whether the rule's own required fields are actually filled
@@ -97,7 +97,7 @@ export default function useBacktestPreview({
         const token = useAuthStore.getState().token;
 
         const res = await axios.post(
-          `${API_BASE}/api/custom-alerts/backtest`,
+          `${API_BASE}/custom-alerts/backtest`,
           {
             condition_type: conditionType,
             condition_params: params,

@@ -15,21 +15,16 @@ const fleetGroupsRoutes = require('./routes/fleetGroups');
 const notificationsRoutes = require('./routes/notifications');
 const triggeredAlertsRoutes = require('./routes/triggeredAlerts');
 const fuelHistoryRoutes = require('./routes/fuelHistoryRoutes');
-// added for report
 const reportRoutes = require('./routes/reports');
-
-
-//added for anomaly detection 
 const anomalyRoutes = require('./routes/anomalies');
 const riskRoutes = require('./routes/risk');
-
 
 const app = express();
 
 app.set('trust proxy', true);
 
 const limiter = rateLimit({
-  windowMs: 15*60*1000,
+  windowMs: 15 * 60 * 1000,
   max: 1000,
   message: 'Too many requests from this IP, please try again later.',
   keyGenerator: (req) => {
@@ -37,8 +32,23 @@ const limiter = rateLimit({
   }
 });
 
+// Explicitly allow local dev, E2E tests (port 4173), and the deployed CloudFront origin
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'https://d25bouomowr0it.cloudfront.net'
+];
+
 app.use(cors({
-  origin: true,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -46,6 +56,7 @@ app.use(cors({
 app.use(helmet());
 app.use(express.json());
 app.use(limiter);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -56,27 +67,24 @@ app.use('/api/fleet', fleetAnalyticsRoutes);
 app.use('/api/geofences', geofenceRoutes);
 app.use('/api/custom-alerts', customAlertsRoutes);
 app.use('/api/alerts', triggeredAlertsRoutes);
-//I added this for demo 3
 app.use('/api/fuel', fuelHistoryRoutes);
 app.use('/api/fleet-groups', fleetGroupsRoutes);
-app.use('/api/notifications', notificationsRoutes)
-app.use('/api/reports', reportRoutes); // added for reporting
-
-app.use('/api/anomalies', anomalyRoutes); // added for anomaly detection
-
-app.use('/api/risk', riskRoutes); // added for risk
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/anomalies', anomalyRoutes);
+app.use('/api/risk', riskRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
 app.use((err, req, res, next) => {
   console.error('Lambda Exception Execution Trace:', err.stack);
   res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
 module.exports = app;
-
-

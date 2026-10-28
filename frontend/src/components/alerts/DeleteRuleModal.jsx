@@ -4,7 +4,7 @@ import { X, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { useToast } from './ToastProvider';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://8cvbs5cpn9.execute-api.af-south-1.amazonaws.com/prod';
+const API_BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000'}/api`;
 
 export default function DeleteAlertRuleModal({ isOpen, onClose, onDeleted, rule }) {
   const toast = useToast();

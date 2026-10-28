@@ -69,8 +69,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
       env: {
-        // FIXED: Added /api here
-        VITE_API_URL: `http://localhost:${BACKEND_PORT}/api`,
+        VITE_API_URL: `http://localhost:${BACKEND_PORT}`,
         VITE_MAPBOX_TOKEN: process.env.VITE_MAPBOX_TOKEN ?? '',
       },
     },

@@ -515,15 +515,21 @@ export default function FleetMap(props) {
 }
 
 /**
- * Map for viewers: every vehicle, but no risk rings, no geofences and no
- * vehicle click-through. Doesn't call the risk or geofence APIs at all.
+ * Map for viewers: every vehicle, but no risk rings or geofences. Doesn't
+ * call the risk or geofence APIs at all.
  */
-export function ViewerFleetMap({ vehicles = [], buffer = EMPTY_FC, initialView = null }) {
+export function ViewerFleetMap({
+  vehicles = [],
+  buffer = EMPTY_FC,
+  initialView = null,
+  onVehicleClick,
+}) {
   return (
     <FleetMapView
       vehicles={vehicles}
       buffer={buffer}
       initialView={initialView}
+      onVehicleClick={onVehicleClick}
       riskLookup={NO_RISK}
       showGeofences={false}
     />
@@ -537,6 +543,7 @@ ViewerFleetMap.propTypes = {
     center: PropTypes.arrayOf(PropTypes.number),
     zoom: PropTypes.number,
   }),
+  onVehicleClick: PropTypes.func,
 }
 
 FleetMapView.propTypes = {

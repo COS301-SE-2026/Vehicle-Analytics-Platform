@@ -191,8 +191,9 @@ export default function AdminDashboard() {
       <RecentVehicleEvents events={events} limit={10} />
 
 
-      {/* Row 5 — Fleet Activity Chart */}
-      <FleetActivityChart data={activityData} />
+      {/* Row 5 - Fleet Activity Chart */}
+      {/* <FleetActivityChart data={activityData} /> */} 
+      {/*  chart removed */}
 
       {/* Edit User Modal */}
       {editingUser && (

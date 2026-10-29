@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
-// Import your login page components here...
 
 export default function LoginPage() {
-
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -10,17 +8,24 @@ export default function LoginPage() {
         const password = urlParams.get('password');
         const autoSubmit = urlParams.get('autosubmit');
 
-        // Target the inputs rendered on this specific page
         const emailInput = document.querySelector('input[type="email"], input[name="email"]');
         const passwordInput = document.querySelector('input[type="password"], input[name="password"]');
         const loginForm = document.querySelector('form');
 
+        // Helper to force React state to recognize the native DOM change
+        const setReactInputValue = (inputElement, value) => {
+            if (!inputElement) return;
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+            nativeInputValueSetter.call(inputElement, value);
+            inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+        };
+
         if (email && emailInput) {
-            emailInput.value = decodeURIComponent(email);
+            setReactInputValue(emailInput, decodeURIComponent(email));
         }
         
         if (password && passwordInput) {
-            passwordInput.value = decodeURIComponent(password);
+            setReactInputValue(passwordInput, decodeURIComponent(password));
         }
 
         if (autoSubmit === 'true' && loginForm) {
@@ -29,7 +34,8 @@ export default function LoginPage() {
                 if (submitBtn) {
                     submitBtn.click();
                 } else {
-                    loginForm.submit();
+                    // Fallback if no submit button exists
+                    loginForm.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
                 }
             }, 500);
         }
@@ -37,7 +43,7 @@ export default function LoginPage() {
 
     return (
         <main>
-            {/* Your login form JSX goes here */}
+            {/* Your login form JSX */}
         </main>
     );
 }

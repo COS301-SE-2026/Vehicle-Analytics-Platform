@@ -320,6 +320,7 @@ Every layer has one job. Data flows in one direction. Alerts flow out. Nothing g
 | Resource                                  | Link |
 | ----------------------------------------- | ---- |
 | Live Web Application                      | [V.A.P.O.R. Live Demo](https://d25bouomowr0it.cloudfront.net/landing) |
+| Full System Demo Video                    | [V.A.P.O.R. Demo Video](https://drive.google.com/file/d/1AFtARG_N1v-uU2pAWVAFbmx-1Naj-ulU/view?usp=sharing) |
 | Developer Wiki                            | [Project Wiki](https://github.com/COS301-SE-2026/Vehicle-Analytics-Platform/wiki) |
 | Software Requirements Specification (SRS) | [View srs.md](./docs/Demo4/srs/srs.md) |
 | Brand Style Guide                         | [View Style Guide](https://d25bouomowr0it.cloudfront.net/style-guide) |
@@ -858,70 +859,99 @@ cd backend && npm run test
 
 <br/>
 
-<table>
-<tr>
-<td align="center" width="200">
-<br/>
-<a href="https://github.com/u23770912"><img src="https://github.com/u23770912.png?size=160" width="88" height="88" alt="Warona Moleboge" /></a>
-<br/><br/>
-<b>Warona Moleboge</b>
-<br/>
-<sub>Cloud and Data Eng</sub>
-<br/><br/>
-<a href="https://www.linkedin.com/in/warona-moleboge-6855161b8"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
-<a href="https://github.com/u23770912"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
-<br/><br/>
-</td>
-<td align="center" width="200">
-<br/>
-<a href="https://github.com/Boompie3"><img src="https://github.com/Boompie3.png?size=160" width="88" height="88" alt="Marchant Grootboom" /></a>
-<br/><br/>
-<b>Marchant Grootboom</b>
-<br/>
-<sub>Data Eng and Integration</sub>
-<br/><br/>
-<a href="https://www.linkedin.com/in/marchant-grootboom-246513234"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
-<a href="https://github.com/Boompie3"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
-<br/><br/>
-</td>
-<td align="center" width="200">
-<br/>
-<a href="https://github.com/ZiphoZ"><img src="https://github.com/ZiphoZ.png?size=160" width="88" height="88" alt="Ziphozinhle Maduna" /></a>
-<br/><br/>
-<b>Ziphozinhle Maduna</b>
-<br/>
-<sub>Frontend and UX</sub>
-<br/><br/>
-<a href="https://www.linkedin.com/in/ziphozinhle-maduna"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
-<a href="https://github.com/ZiphoZ"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
-<br/><br/>
-</td>
-<td align="center" width="200">
-<br/>
-<a href="https://github.com/Kwanele-P"><img src="https://github.com/Kwanele-P.png?size=160" width="88" height="88" alt="Kwanele Phakathi" /></a>
-<br/><br/>
-<b>Kwanele Phakathi</b>
-<br/>
-<sub>Frontend and Integration</sub>
-<br/><br/>
-<a href="https://www.linkedin.com/in/kwanele-phakathi-77028b231/"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
-<a href="https://github.com/Kwanele-P"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
-<br/><br/>
-</td>
-<td align="center" width="200">
-<br/>
-<a href="https://github.com/Chriscoding19"><img src="https://github.com/Chriscoding19.png?size=160" width="88" height="88" alt="Christopher Adolph" /></a>
-<br/><br/>
-<b>Christopher Adolph</b>
-<br/>
-<sub>Backend and Testing</sub>
-<br/><br/>
-<a href="https://www.linkedin.com/in/christopher-adolph-aa2069402/"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square" alt="LinkedIn" /></a>
-<a href="https://github.com/Chriscoding19"><img src="https://img.shields.io/badge/GitHub-181717?style=flat-square" alt="GitHub" /></a>
-<br/><br/>
-</td>
-</tr>
+<div align="center">
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr>
+    <td align="center" width="220" valign="top">
+      <br/>
+      <a href="https://github.com/u23770912"><img src="https://github.com/u23770912.png?size=160" width="88" height="88" alt="Warona Moleboge" /></a>
+      <br/><br/>
+      <b>Warona Moleboge</b>
+      <br/>
+      <sub>Cloud and Data Eng</sub>
+      <br/><br/>
+      <sub>I am a passionate developer who thrives on turning complex data into clean, usable interfaces. With a Computer Science background, I combine technical problem-solving with a keen eye for design to create seamless experiences that users would enjoy working with.</sub>
+      <br/><br/><br/><br/>
+      <a href="https://www.linkedin.com/in/warona-moleboge-6855161b8"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" width="28" height="28" alt="LinkedIn" /></a>
+      &nbsp;&nbsp;
+      <a href="https://github.com/u23770912"><img src="https://cdn.simpleicons.org/github/8B949E" width="28" height="28" alt="GitHub" /></a>
+      <br/><br/>
+    </td>
+    <td align="center" width="220" valign="top">
+      <br/>
+      <a href="https://github.com/Boompie3"><img src="https://github.com/Boompie3.png?size=160" width="88" height="88" alt="Marchant Grootboom" /></a>
+      <br/><br/>
+      <b>Marchant Grootboom</b>
+      <br/>
+      <sub>Data Eng and Integration</sub>
+      <br/><br/>
+      <sub>Final-year CS student passionate about data analytics and breaking down complex problems into smaller manageable pieces. Passionate about team collaboration, clean logic, and turning raw data into meaningful decisions.</sub>
+      <br/><br/><br/><br/>
+      <a href="https://www.linkedin.com/in/marchant-grootboom-246513234"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" width="28" height="28" alt="LinkedIn" /></a>
+      &nbsp;&nbsp;
+      <a href="https://github.com/Boompie3"><img src="https://cdn.simpleicons.org/github/8B949E" width="28" height="28" alt="GitHub" /></a>
+      <br/><br/>
+    </td>
+    <td align="center" width="220" valign="top">
+      <br/>
+      <a href="https://github.com/ZiphoZ"><img src="https://github.com/ZiphoZ.png?size=160" width="88" height="88" alt="Ziphozinhle Maduna" /></a>
+      <br/><br/>
+      <b>Ziphozinhle Maduna</b>
+      <br/>
+      <sub>Frontend and UX/UI</sub>
+      <br/><br/>
+      <sub>BSc Computer Science student at the University of Pretoria who enjoys designing clear, intuitive interfaces and is happy working across the full stack. Passionate about thoughtful design, clean code, and building software that feels effortless to use. Outside of code, I enjoy running, reading, and baking.</sub>
+      <br/><br/><br/><br/>
+      <a href="https://www.linkedin.com/in/ziphozinhle-maduna"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" width="28" height="28" alt="LinkedIn" /></a>
+      &nbsp;&nbsp;
+      <a href="https://github.com/ZiphoZ"><img src="https://cdn.simpleicons.org/github/8B949E" width="28" height="28" alt="GitHub" /></a>
+      <br/><br/>
+    </td>
+    <td align="center" width="220" valign="top">
+      <br/>
+      <a href="https://github.com/Kwanele-P"><img src="https://github.com/Kwanele-P.png?size=160" width="88" height="88" alt="Kwanele Phakathi" /></a>
+      <br/><br/>
+      <b>Kwanele Phakathi</b>
+      <br/>
+      <sub>Frontend and Integration</sub>
+      <br/><br/>
+      <sub>Final-year Computer Science student on the Data Science track, with a statistics background that gives her a strong quantitative foundation.Passionate about containerised, CLI-driven DevOps and turning raw telemetry data into meaningful fleet insights.</sub>
+      <br/><br/><br/><br/>
+      <a href="https://www.linkedin.com/in/kwanele-phakathi-77028b231/"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" width="28" height="28" alt="LinkedIn" /></a>
+      &nbsp;&nbsp;
+      <a href="https://github.com/Kwanele-P"><img src="https://cdn.simpleicons.org/github/8B949E" width="28" height="28" alt="GitHub" /></a>
+      <br/><br/>
+    </td>
+    <td align="center" width="220" valign="top">
+      <br/>
+      <a href="https://github.com/Chriscoding19"><img src="https://github.com/Chriscoding19.png?size=160" width="88" height="88" alt="Christopher Adolph" /></a>
+      <br/><br/>
+      <b>Christopher Adolph</b>
+      <br/>
+      <sub>Backend and Testing</sub>
+      <br/><br/>
+      <sub>Final-year CS student specializing in backend engineering and cybersecurity, with a strong mathematical foundation and a background in computer networks. I build secure, cloud-native architectures using AWS (Kinesis, Lambda, API Gateway), design serverless data pipelines, and write clean, well-tested code in Java and C++.</sub>
+      <br/><br/><br/><br/>
+      <a href="https://www.linkedin.com/in/christopher-adolph-aa2069402/"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" width="28" height="28" alt="LinkedIn" /></a>
+      &nbsp;&nbsp;
+      <a href="https://github.com/Chriscoding19"><img src="https://cdn.simpleicons.org/github/8B949E" width="28" height="28" alt="GitHub" /></a>
+      <br/><br/>
+    </td>
+  </tr>
 </table>
+</div>
+
+<div align="center">
+
+### Contact Us
+
+Get in touch with the team.
+
+<a href="mailto:kilimanjaro.capstone@gmail.com"><img src="https://cdn.simpleicons.org/gmail/EA4335" width="20" height="20" alt="Email" /></a>
+<br/>
+<a href="mailto:kilimanjaro.capstone@gmail.com">kilimanjaro.capstone@gmail.com</a>
+
+</div>
 
 ---
 

@@ -1,20 +1,16 @@
 import { useEffect } from 'react';
-import Navbar from './Navbar';
-import Hero from './Hero';
-import Sections from './Sections';
-import Footer from './Footer';
+// Import your login page components here...
 
-export default function LandingPage() {
+export default function LoginPage() {
 
     useEffect(() => {
-        // This runs once when the LandingPage component mounts
         const urlParams = new URLSearchParams(window.location.search);
         
         const email = urlParams.get('email');
         const password = urlParams.get('password');
         const autoSubmit = urlParams.get('autosubmit');
 
-        // Grab form inputs (assuming the form is rendered inside Navbar or Hero)
+        // Target the inputs rendered on this specific page
         const emailInput = document.querySelector('input[type="email"], input[name="email"]');
         const passwordInput = document.querySelector('input[type="password"], input[name="password"]');
         const loginForm = document.querySelector('form');
@@ -29,17 +25,19 @@ export default function LandingPage() {
 
         if (autoSubmit === 'true' && loginForm) {
             setTimeout(() => {
-                loginForm.submit();
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.click();
+                } else {
+                    loginForm.submit();
+                }
             }, 500);
         }
-    }, []); // <-- The empty dependency array is crucial. It stops this from running on every re-render.
+    }, []); 
 
     return (
-        <>
-            <Navbar />
-            <Hero />
-            <Sections />
-            <Footer />
-        </>
+        <main>
+            {/* Your login form JSX goes here */}
+        </main>
     );
 }

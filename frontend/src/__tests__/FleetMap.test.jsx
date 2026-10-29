@@ -1,5 +1,5 @@
 import { render, waitFor, act } from "@testing-library/react";
-import FleetMap from "../components/map/FleetMap";
+import FleetMap, { ViewerFleetMap } from "../components/map/FleetMap";
 import { getGeofencesGeoJSON } from "@/services/geofenceServices";
 
 jest.mock("mapbox-gl", () => {
@@ -161,6 +161,16 @@ describe("FleetMap: initialisation", () => {
     render(<FleetMap />);
     expect(latestMapInstance().opts.center).toEqual([28.2293, -25.75456]);
     expect(latestMapInstance().opts.zoom).toBe(12);
+  });
+
+  it("renders the viewer map without geofence layers or geofence requests", () => {
+    render(<ViewerFleetMap />);
+    const mapInstance = latestMapInstance();
+
+    act(() => mapInstance.__fireLoad());
+
+    expect(mapInstance.addLayer).toHaveBeenCalledTimes(1);
+    expect(getGeofencesGeoJSON).not.toHaveBeenCalled();
   });
 
   it("uses a valid initialView center and zoom", () => {

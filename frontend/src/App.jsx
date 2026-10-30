@@ -19,6 +19,7 @@ import CustomAlerts from './pages/alerts/CustomAlerts';
 import useNewAlertToasts from '../src/hooks/useNewAlertToasts';
 import FleetGroupsManagement from './pages/fleetgroups/FleetGroupsManagement'
 import FleetGroupDetail from './pages/fleetgroups/FleetGroupDetail'
+import DemoLogin from './pages/auth/DemoLogin'
 
 import Reports from './pages/reports/Reports'
 import FleetRiskPage from './pages/risk/FleetRiskPage'
@@ -51,6 +52,7 @@ function App() {
         {/* Auth routes - no sidebar */}
         <Route path="/landing" element={<Landing />} />
         <Route path="/login"  element={<Login />} />
+        <Route path="/demo/:role" element={<DemoLogin />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify" element={<VerifyEmail />} />
         <Route path="/style-guide" element={<BrandStyleGuide />} />

@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const { CognitoIdentityProviderClient, SignUpCommand, InitiateAuthCommand, GlobalSignOutCommand } = require('@aws-sdk/client-cognito-identity-provider');
 const { pool } = require('../db/pool');
 const { success, error } = require('../utils/response');
@@ -110,6 +111,38 @@ async function login(req, res) {
   }
 }
 
+function codesMatch(provided, configured) {
+  if (!provided || !configured) return false;
+  const providedBuffer = Buffer.from(provided);
+  const configuredBuffer = Buffer.from(configured);
+  return providedBuffer.length === configuredBuffer.length
+    && crypto.timingSafeEqual(providedBuffer, configuredBuffer);
+}
+
+async function demoLogin(req, res) {
+  const { code, role } = req.body;
+  const demoAccounts = {
+    viewer: {
+      code: process.env.DEMO_VIEWER_CODE,
+      email: process.env.DEMO_VIEWER_EMAIL,
+      password: process.env.DEMO_VIEWER_PASSWORD,
+    },
+    manager: {
+      code: process.env.DEMO_MANAGER_CODE,
+      email: process.env.DEMO_MANAGER_EMAIL,
+      password: process.env.DEMO_MANAGER_PASSWORD,
+    },
+  };
+  const account = demoAccounts[role];
+
+  if (!account || !codesMatch(code, account.code) || !account.email || !account.password) {
+    return error(res, 'Invalid demo access link', 401);
+  }
+
+  req.body = { email: account.email, password: account.password };
+  return login(req, res);
+}
+
 async function logout(req, res) {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(' ')[1];
@@ -127,4 +160,4 @@ async function logout(req, res) {
   }
 }
 
-module.exports = { register, login, logout };
+module.exports = { register, login, demoLogin, logout };

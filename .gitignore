@@ -4,6 +4,7 @@ node_modules/
 dist/
 build/
 coverage/
+frontend/demo-qrs/
 .DS_Store
 *.log
 npm-debug.log*

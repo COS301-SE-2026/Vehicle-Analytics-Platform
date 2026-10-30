@@ -18,6 +18,12 @@ const { __sendMock } = require('@aws-sdk/client-cognito-identity-provider');
 
 process.env.JWT_SECRET = 'test_secret_key';
 process.env.NODE_ENV = 'test';
+process.env.DEMO_VIEWER_CODE = 'viewer-code';
+process.env.DEMO_VIEWER_EMAIL = 'viewer@example.com';
+process.env.DEMO_VIEWER_PASSWORD = 'ViewerPass1!';
+process.env.DEMO_MANAGER_CODE = 'manager-code';
+process.env.DEMO_MANAGER_EMAIL = 'manager@example.com';
+process.env.DEMO_MANAGER_PASSWORD = 'ManagerPass1!';
 
 describe('Auth Controller', () => {
   beforeEach(() => {
@@ -136,6 +142,74 @@ describe('Auth Controller', () => {
       .post('/api/auth/login')
       .send({ email: 'any@test.com', password: 'Test1234!' });
     expect(res.status).toBe(500);
+  });
+
+  describe('POST /api/auth/demo-login', () => {
+    test('rejects an invalid role or code without calling Cognito', async () => {
+      const res = await request(app)
+        .post('/api/auth/demo-login')
+        .send({ role: 'fleet_manager', code: 'manager-code' });
+
+      expect(res.status).toBe(401);
+      expect(__sendMock).not.toHaveBeenCalled();
+    });
+
+    test('rejects a missing demo configuration', async () => {
+      const originalCode = process.env.DEMO_VIEWER_CODE;
+      delete process.env.DEMO_VIEWER_CODE;
+
+      const res = await request(app)
+        .post('/api/auth/demo-login')
+        .send({ role: 'viewer', code: 'viewer-code' });
+
+      process.env.DEMO_VIEWER_CODE = originalCode;
+      expect(res.status).toBe(401);
+      expect(__sendMock).not.toHaveBeenCalled();
+    });
+
+    test('logs in the configured viewer account', async () => {
+      __sendMock.mockResolvedValueOnce({
+        AuthenticationResult: {
+          AccessToken: 'viewer-access',
+          IdToken: 'viewer-id',
+          RefreshToken: 'viewer-refresh',
+          ExpiresIn: 3600,
+        },
+      });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 3, name: 'Viewer', email: 'viewer@example.com', role: 'viewer', is_active: true }],
+      });
+
+      const res = await request(app)
+        .post('/api/auth/demo-login')
+        .send({ role: 'viewer', code: 'viewer-code' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.user.role).toBe('viewer');
+      expect(res.body.data.idToken).toBe('viewer-id');
+    });
+
+    test('logs in the configured manager account', async () => {
+      __sendMock.mockResolvedValueOnce({
+        AuthenticationResult: {
+          AccessToken: 'manager-access',
+          IdToken: 'manager-id',
+          RefreshToken: 'manager-refresh',
+          ExpiresIn: 3600,
+        },
+      });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 4, name: 'Manager', email: 'manager@example.com', role: 'fleet_manager', is_active: true }],
+      });
+
+      const res = await request(app)
+        .post('/api/auth/demo-login')
+        .send({ role: 'manager', code: 'manager-code' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.user.role).toBe('fleet_manager');
+      expect(res.body.data.user.email).toBe('manager@example.com');
+    });
   });
 
   // Logout

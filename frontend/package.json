@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "generate-demo-qrs": "node scripts/generate-demo-qrs.mjs",
     "test": "node --max-old-space-size=4096 ./node_modules/jest-cli/bin/jest.js --coverage --runInBand --forceExit",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -123,7 +124,8 @@
     "postcss": "^8.5.14",
     "resolve-cwd": "^3.0.0",
     "tailwindcss": "^3.4.19",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "qrcode": "^1.5.4"
   },
   "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
   "main": "eslint.config.js",
